@@ -1,0 +1,62 @@
+:root {
+  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  /* ✅ NÃO forçar light/dark aqui, deixa o app controlar */
+  /* color-scheme: light dark; */ /* opcional: pode manter se quiser */
+
+  color: rgba(255, 255, 255, 0.87);
+
+  /* ✅ FUNDO GLOBAL DO APP (elimina canto branco) */
+  background-color: #0F0F0F;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ✅ ZERA MARGENS E GARANTE FUNDO NO DOCUMENTO INTEIRO */
+html,
+body,
+#root {
+  height: 100%;
+  min-height: 100%;
+  background: #0F0F0F;
+}
+
+body {
+  margin: 0;
+
+  /* ❌ REMOVER: isso centraliza o app e cria sobras/“canto” */
+  /* display: flex; */
+  /* place-items: center; */
+
+  min-width: 320px;
+
+  /* ✅ garante que o layout ocupe toda a largura */
+  width: 100%;
+}
+
+/* Links – você pode manter, mas eu sugiro usar o theme.css pra padronizar */
+a {
+  font-weight: 500;
+  color: #FFFFFF;
+  text-decoration: inherit;
+}
+a:hover {
+  color: #FF6A00;
+}
+
+/* Opcional: manter configurações de botão padrão, mas cuidado:
+   você já estiliza botões inline, então isso pode interferir. */
+button {
+  font-family: inherit;
+}
+
+/* ❌ Isso aqui causa “branco” quando o sistema estiver em light
+@media (prefers-color-scheme: light) {
+  :root { background-color: #ffffff; color: #213547; }
+}
+*/
