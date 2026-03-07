@@ -41,7 +41,7 @@ export default function LoginPage() {
     if (isAuthenticated && role) nav(nextPathByRole(role), { replace: true });
   }, [isAuthenticated, role, nav]);
 
-  function onSubmit(e: React.FormEvent) {
+  function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
 
@@ -100,7 +100,7 @@ export default function LoginPage() {
             <span style={{ color: COLORS.muted, fontSize: 13 }}>E-mail</span>
             <input
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
               placeholder="ex: admin@treinai.com"
               autoComplete="email"
               style={{
@@ -118,7 +118,7 @@ export default function LoginPage() {
             <span style={{ color: COLORS.muted, fontSize: 13 }}>Senha</span>
             <input
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
               placeholder="••••••"
               type="password"
               autoComplete="current-password"
