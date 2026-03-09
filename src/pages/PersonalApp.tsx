@@ -9,6 +9,7 @@ import ConsultingStudentsPage from "./personal/ConsultingStudentsPage";
 import MessagesPage from "./personal/MessagesPage";
 import ReviewWorkoutsPage from "./personal/ReviewWorkoutsPage";
 import WorkoutLibraryPage from "./personal/WorkoutLibraryPage";
+import VideoLibraryPage from "./personal/VideoLibraryPage";
 
 // ✅ BUILDER REAL
 import WorkoutBuilderPage from "./personal/WorkoutBuilderPage";
@@ -162,6 +163,7 @@ export default function PersonalApp() {
           <MenuLink to="/app/personal/messages" label="Mensagens" />
           <MenuLink to="/app/personal/review" label="Revisar treinos" />
           <MenuLink to="/app/personal/library" label="Treinos gerais (Netflix)" />
+          <MenuLink to="/app/personal/videos" label="Biblioteca de Vídeos" />
 
           <div style={{ height: 8 }} />
           <div style={{ fontSize: 12, fontWeight: 900, color: "rgba(255,255,255,.65)" }}>AÇÃO RÁPIDA</div>
@@ -200,6 +202,7 @@ export default function PersonalApp() {
             <Route path="messages" element={<MessagesPage />} />
             <Route path="review" element={<ReviewWorkoutsPage />} />
             <Route path="library" element={<WorkoutLibraryPage />} />
+            <Route path="videos" element={<VideoLibraryPage />} />
 
             {/* ✅ BUILDER (com aluno) */}
             <Route

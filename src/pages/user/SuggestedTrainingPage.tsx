@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useVideos, type Video } from "../../hooks/useVideos";
 
 interface UserProfile {
   age: number;
@@ -143,6 +144,48 @@ function generateRecommendation(profile: UserProfile): TrainingRecommendation {
   };
 }
 
+function VideoCard({ video }: { video: Video }) {
+  return (
+    <a
+      href={video.url}
+      target="_blank"
+      rel="noopener noreferrer"
+      style={{
+        display: "flex",
+        gap: 12,
+        padding: 12,
+        background: "rgba(255,106,0,.08)",
+        border: `1px solid ${COLORS.border}`,
+        borderRadius: 12,
+        textDecoration: "none",
+        cursor: "pointer",
+        transition: "all 0.2s",
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.background = "rgba(255,106,0,.15)";
+        e.currentTarget.style.borderColor = "rgba(255,106,0,.35)";
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.background = "rgba(255,106,0,.08)";
+        e.currentTarget.style.borderColor = COLORS.border;
+      }}
+    >
+      <div style={{ fontSize: 32, minWidth: 40, display: "flex", alignItems: "center" }}>▶️</div>
+      <div>
+        <div style={{ fontWeight: 900, color: COLORS.text }}>{video.title}</div>
+        <div style={{ fontSize: 12, color: COLORS.muted, marginTop: 4 }}>{video.description}</div>
+        <div style={{ fontSize: 11, color: COLORS.muted, marginTop: 6, display: "flex", gap: 6, flexWrap: "wrap" }}>
+          {video.tags.map((tag) => (
+            <span key={tag} style={{ background: "rgba(255,106,0,.2)", padding: "2px 6px", borderRadius: 4 }}>
+              #{tag}
+            </span>
+          ))}
+        </div>
+      </div>
+    </a>
+  );
+}
+
 export default function SuggestedTrainingPage() {
   const [profile, setProfile] = useState<UserProfile>({
     age: 30,
@@ -156,6 +199,12 @@ export default function SuggestedTrainingPage() {
 
   const [recommendation, setRecommendation] = useState<TrainingRecommendation | null>(null);
   const [showResults, setShowResults] = useState(false);
+
+  // Fetch videos based on the recommended goal
+  const { videos, loading: videosLoading } = useVideos({
+    goal: recommendation?.title ? (profile.goal as "weight_loss" | "muscle_gain" | "maintenance") : undefined,
+    limit: 5,
+  });
 
   function handleInputChange(field: keyof UserProfile, value: number | string) {
     setProfile((prev) => ({
@@ -489,6 +538,27 @@ export default function SuggestedTrainingPage() {
               </div>
             </div>
           </div>
+
+          {/* Vídeos Recomendados */}
+          {!videosLoading && videos.length > 0 && (
+            <div
+              style={{
+                background: COLORS.panel,
+                border: `1px solid ${COLORS.border}`,
+                borderRadius: 16,
+                padding: 24,
+              }}
+            >
+              <h3 style={{ fontSize: 18, fontWeight: 900, marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
+                🎬 Vídeos Recomendados
+              </h3>
+              <div style={{ display: "grid", gap: 12 }}>
+                {videos.map((video) => (
+                  <VideoCard key={video.id} video={video} />
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Botão Voltar */}
           <button
