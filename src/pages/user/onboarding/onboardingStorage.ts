@@ -3,23 +3,12 @@
 export type UserPlan = "basic" | "silver" | "gold" | "black";
 
 export type OnboardingAnswers = {
-  ageRange: "13-17" | "18-25" | "26-35" | "36-45" | "46-55" | "56+";
-  gender: "male" | "female" | "na";
-
-  heightCm?: number;
-  weightKg?: number;
-
-  goal: "emagrecimento" | "hipertrofia" | "condicionamento" | "resistencia" | "mobilidade" | "saude";
-
-  experience: "never" | "stopped" | "1-2" | "3-4" | "5+";
   trainingPlace: "home" | "gym" | "both";
   timePerDay: "10-15" | "20-30" | "30-45" | "60+";
 
   injuries: Array<"none" | "joelho" | "ombro" | "lombar" | "tornozelo" | "outra">;
   surgeryRecent: "no" | "yes";
-  conditions: Array<"none" | "pressao" | "cardiaco" | "diabetes" | "respiratorio">;
   frequentPain: "no" | "sometimes" | "often";
-  clearedByDoctor: "yes" | "no" | "unsure";
 
   daysPerWeek: 2 | 3 | 4 | 5 | 6;
   bestTime: "morning" | "afternoon" | "night" | "variable";
@@ -113,17 +102,11 @@ export function buildRecommendation(a: OnboardingAnswers): Recommendation {
   const safetyNotes: string[] = [];
 
   const hasInjury = a.injuries.length > 0 && !(a.injuries.length === 1 && a.injuries[0] === "none");
-  const hasCondition = a.conditions.length > 0 && !(a.conditions.length === 1 && a.conditions[0] === "none");
-  const highRisk =
-    a.surgeryRecent === "yes" ||
-    a.clearedByDoctor !== "yes" ||
-    a.frequentPain === "often" ||
-    hasCondition;
+  const highRisk = a.surgeryRecent === "yes" || a.frequentPain === "often";
 
   if (highRisk) {
     safetyNotes.push("Recomendação conservadora por segurança.");
     if (a.surgeryRecent === "yes") safetyNotes.push("Cirurgia recente: comece com baixo impacto e, se possível, aval médico.");
-    if (a.clearedByDoctor !== "yes") safetyNotes.push("Se tiver dúvidas, confirme liberação médica.");
     if (a.frequentPain === "often") safetyNotes.push("Dor frequente: evite intensidades altas e ajuste movimentos.");
   }
 
@@ -153,16 +136,6 @@ export function buildRecommendation(a: OnboardingAnswers): Recommendation {
 
   tags.push(`${a.daysPerWeek}x/sem`);
 
-  const goalLabel: Record<OnboardingAnswers["goal"], string> = {
-    emagrecimento: "Emagrecimento",
-    hipertrofia: "Hipertrofia",
-    condicionamento: "Condicionamento",
-    resistencia: "Resistência",
-    mobilidade: "Mobilidade",
-    saude: "Saúde",
-  };
-  tags.push(goalLabel[a.goal]);
-
   if (a.intensityPref === "intense") tags.push("Intenso");
   if (a.intensityPref === "progressive") tags.push("Progressivo");
 
@@ -171,13 +144,6 @@ export function buildRecommendation(a: OnboardingAnswers): Recommendation {
     subtitle = "Treinos simples para construir técnica + consistência.";
     route = "/app/user/treinos";
     tags.push("Academia");
-  }
-
-  if (a.goal === "mobilidade") {
-    title = "Plano recomendado: Mobilidade + Core";
-    subtitle = "Foco em qualidade de movimento e base forte.";
-    route = "/app/user/treinos/em-casa";
-    tags.push("Baixo impacto");
   }
 
   if (highRisk) {

@@ -2,6 +2,7 @@
 import React from "react";
 import { NavLink, Navigate, Route, Routes, useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
+import AppShell from "../layout/AppShell";
 
 import DashboardPage from "./personal/DashboardPage";
 import StudentsListPage from "./personal/StudentsListPage";
@@ -20,16 +21,7 @@ function MenuLink({ to, label }: { to: string; label: string }) {
   return (
     <NavLink
       to={to}
-      style={({ isActive }) => ({
-        padding: "12px 12px",
-        borderRadius: 12,
-        textDecoration: "none",
-        display: "block",
-        color: "#FFFFFF",
-        background: isActive ? "rgba(255,106,0,.18)" : "transparent",
-        border: isActive ? "1px solid rgba(255,106,0,.35)" : "1px solid rgba(255,255,255,.10)",
-        fontWeight: 900,
-      })}
+      className={({ isActive }) => `navLink ${isActive ? "navLinkActive" : ""}`}
     >
       {label}
     </NavLink>
@@ -41,21 +33,7 @@ function MenuCTA({ to, label }: { to: string; label: string }) {
   return (
     <NavLink
       to={to}
-      style={({ isActive }) => ({
-        padding: "12px 12px",
-        borderRadius: 12,
-        textDecoration: "none",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        gap: 10,
-        background: "#FF6A00",
-        color: "#0F0F0F",
-        border: "1px solid rgba(255,106,0,.45)",
-        fontWeight: 1000,
-        boxShadow: "0 10px 22px rgba(0,0,0,.35)",
-        outline: isActive ? "2px solid rgba(255,255,255,.12)" : "none",
-      })}
+      className={({ isActive }) => `navLink navLinkCta ${isActive ? "navLinkActive" : ""}`}
     >
       <span>{label}</span>
       <span style={{ fontWeight: 1000 }}>→</span>
@@ -131,68 +109,45 @@ export default function PersonalApp() {
   }
 
   return (
-    <div
+    <AppShell
+      sidebar={
+        <>
+          <div className="heroPanel" style={{ padding: 18 }}>
+            <div className="shellTitle">Painel do Personal</div>
+            <div className="shellSubtitle" style={{ marginTop: 8 }}>
+              Gestão de alunos, treinos e biblioteca em uma navegação mais consistente e orientada à ação.
+            </div>
+          </div>
+
+          <div className="navStack">
+            <MenuLink to="/app/personal/dashboard" label="Dashboard" />
+            <MenuLink to="/app/personal/students" label="Ver alunos" />
+            <MenuLink to="/app/personal/consulting" label="Alunos consultoria" />
+            <MenuLink to="/app/personal/messages" label="Mensagens" />
+            <MenuLink to="/app/personal/review" label="Revisar treinos" />
+            <MenuLink to="/app/personal/library" label="Treinos gerais (Netflix)" />
+            <MenuLink to="/app/personal/videos" label="Biblioteca de Vídeos" />
+
+            <div style={{ height: 4 }} />
+            <div className="sectionLabel">Ação rápida</div>
+            <MenuCTA to="/app/personal/workout-builder" label="Montar treino" />
+          </div>
+
+          <div style={{ flex: 1 }} />
+
+          <button onClick={handleLogout} className="logoutButton">
+            Sair
+          </button>
+        </>
+      }
+    >
+      <div
       style={{
         display: "grid",
-        gridTemplateColumns: "260px 1fr",
-        minHeight: "100vh",
-        background: "#0F0F0F",
-        color: "#FFFFFF",
-        width: "100%",
+        gap: 16,
       }}
     >
-      <aside
-        style={{
-          padding: 16,
-          borderRight: "1px solid rgba(255,255,255,.10)",
-          display: "flex",
-          flexDirection: "column",
-          gap: 12,
-          background: "linear-gradient(180deg, #0C0C0C, #111111)",
-          position: "sticky",
-          top: 0,
-          height: "100vh",
-        }}
-      >
-        <div style={{ fontWeight: 1000, letterSpacing: 0.2 }}>Painel do Personal</div>
-
-        <div style={{ display: "grid", gap: 10 }}>
-          <MenuLink to="/app/personal/dashboard" label="Dashboard" />
-          <MenuLink to="/app/personal/students" label="Ver alunos" />
-          <MenuLink to="/app/personal/consulting" label="Alunos consultoria" />
-          <MenuLink to="/app/personal/messages" label="Mensagens" />
-          <MenuLink to="/app/personal/review" label="Revisar treinos" />
-          <MenuLink to="/app/personal/library" label="Treinos gerais (Netflix)" />
-          <MenuLink to="/app/personal/videos" label="Biblioteca de Vídeos" />
-
-          <div style={{ height: 8 }} />
-          <div style={{ fontSize: 12, fontWeight: 900, color: "rgba(255,255,255,.65)" }}>AÇÃO RÁPIDA</div>
-
-          {/* ✅ Mantém a rota "sem aluno" (o builder tem seletor de aluno) */}
-          <MenuCTA to="/app/personal/workout-builder" label="Montar treino" />
-        </div>
-
-        <div style={{ flex: 1 }} />
-
-        <button
-          onClick={handleLogout}
-          style={{
-            padding: "12px 12px",
-            borderRadius: 12,
-            border: "1px solid rgba(255,255,255,.10)",
-            background: "transparent",
-            cursor: "pointer",
-            textAlign: "left",
-            fontWeight: 900,
-            color: "#FFFFFF",
-          }}
-        >
-          Sair
-        </button>
-      </aside>
-
-      <main style={{ padding: 22, background: "#0F0F0F", minHeight: "100vh" }}>
-        <div style={{ maxWidth: 1180, margin: "0 auto" }}>
+        <div className="pageSurface pageSurfacePad" style={{ maxWidth: 1180, margin: "0 auto" }}>
           <Routes>
             <Route index element={<RedirectToDashboard />} />
 
@@ -230,7 +185,7 @@ export default function PersonalApp() {
             <Route path="*" element={<RedirectToDashboard />} />
           </Routes>
         </div>
-      </main>
-    </div>
+      </div>
+    </AppShell>
   );
 }

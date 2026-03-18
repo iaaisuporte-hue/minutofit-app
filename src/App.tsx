@@ -3,6 +3,7 @@ import { AuthProvider } from "./auth/AuthContext";
 import ProtectedRoute from "./auth/ProtectedRoute";
 
 import Login from "./pages/login";
+import ProfileCompletionPage from "./pages/ProfileCompletionPage";
 import UserApp from "./pages/UserApp";
 import PersonalApp from "./pages/PersonalApp";
 import NutriApp from "./pages/NutriApp";
@@ -14,6 +15,14 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="/login" element={<Login />} />
+        <Route
+          path="/profile-completion"
+          element={
+            <ProtectedRoute allow={["user", "personal", "nutri", "admin"]}>
+              <ProfileCompletionPage />
+            </ProtectedRoute>
+          }
+        />
 
         <Route
           path="/app/user/*"

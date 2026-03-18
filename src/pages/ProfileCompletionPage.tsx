@@ -1,0 +1,337 @@
+// src/pages/ProfileCompletionPage.tsx
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth, type Role } from "../auth/AuthContext";
+
+const COLORS = {
+  bg: "#0F0F0F",
+  panel: "#171717",
+  border: "rgba(255,255,255,.10)",
+  text: "#FFFFFF",
+  muted: "rgba(255,255,255,.70)",
+  orange: "#FF6A00",
+  orangeSoft: "rgba(255,106,0,.16)",
+};
+
+const EXPERIENCE_LEVELS = ["Iniciante", "Intermediário", "Avançado"];
+const FITNESS_GOALS = ["Perda de Peso", "Ganho de Massa", "Manutenção", "Flexibilidade"];
+
+function nextPathByRole(role: Role) {
+  switch (role) {
+    case "user":
+      return "/app/user";
+    case "personal":
+      return "/app/personal";
+    case "nutri":
+      return "/app/nutri";
+    case "admin":
+      return "/app/admin";
+    default:
+      return "/login";
+  }
+}
+
+export default function ProfileCompletionPage() {
+  const nav = useNavigate();
+  const auth = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const [formData, setFormData] = useState({
+    name: "",
+    photoUrl: "",
+    fitnessGoal: "",
+    experienceLevel: "",
+    heightCm: "",
+    weightKg: "",
+    dietaryRestrictions: "",
+  });
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    setIsLoading(true);
+
+    try {
+      // Validate required fields
+      if (
+        !formData.name ||
+        !formData.fitnessGoal ||
+        !formData.experienceLevel ||
+        !formData.heightCm ||
+        !formData.weightKg
+      ) {
+        setError("Por favor, preencha todos os campos obrigatórios");
+        setIsLoading(false);
+        return;
+      }
+
+      // Get token from localStorage
+      const token = localStorage.getItem("minutofit_token");
+      if (!token) {
+        setError("Token not found. Please login again.");
+        nav("/login", { replace: true });
+        return;
+      }
+
+      // Call API to complete profile
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL || "http://localhost:3000/api"}/auth/complete-profile`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            name: formData.name,
+            photoUrl: formData.photoUrl || null,
+            fitnessGoal: formData.fitnessGoal,
+            experienceLevel: formData.experienceLevel,
+            heightCm: parseFloat(formData.heightCm),
+            weightKg: parseFloat(formData.weightKg),
+            dietaryRestrictions: formData.dietaryRestrictions || null,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Failed to complete profile");
+      }
+
+      // Redirect to appropriate dashboard based on role
+      nav(nextPathByRole(auth.role as Role), { replace: true });
+    } catch (err: any) {
+      setError(err.message || "An error occurred");
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  return (
+    <div
+      style={{
+        minHeight: "100vh",
+        background: COLORS.bg,
+        color: COLORS.text,
+        display: "grid",
+        placeItems: "center",
+        padding: 16,
+      }}
+    >
+      <div
+        style={{
+          width: "100%",
+          maxWidth: 600,
+          background: COLORS.panel,
+          border: `1px solid ${COLORS.border}`,
+          borderRadius: 16,
+          padding: 24,
+        }}
+      >
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ fontSize: 24, fontWeight: 800 }}>Complete seu Perfil</div>
+          <div style={{ color: COLORS.muted, marginTop: 8 }}>
+            Precisamos de algumas informações para personalizar sua experiência
+          </div>
+        </div>
+
+        {error && (
+          <div
+            style={{
+              background: COLORS.orangeSoft,
+              border: `1px solid ${COLORS.orange}`,
+              padding: 12,
+              borderRadius: 12,
+              marginBottom: 16,
+              color: COLORS.text,
+            }}
+          >
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} style={{ display: "grid", gap: 14 }}>
+          {/* Name */}
+          <label style={{ display: "grid", gap: 6 }}>
+            <span style={{ color: COLORS.muted, fontSize: 13, fontWeight: 600 }}>
+              Nome Completo *
+            </span>
+            <input
+              type="text"
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              placeholder="João Silva"
+              disabled={isLoading}
+              style={{
+                background: "#101010",
+                color: COLORS.text,
+                border: `1px solid ${COLORS.border}`,
+                borderRadius: 12,
+                padding: "12px 12px",
+                outline: "none",
+                opacity: isLoading ? 0.7 : 1,
+              }}
+            />
+          </label>
+
+          {/* Fitness Goal */}
+          <label style={{ display: "grid", gap: 6 }}>
+            <span style={{ color: COLORS.muted, fontSize: 13, fontWeight: 600 }}>
+              Seu Objetivo *
+            </span>
+            <select
+              value={formData.fitnessGoal}
+              onChange={(e) => setFormData({ ...formData, fitnessGoal: e.target.value })}
+              disabled={isLoading}
+              style={{
+                background: "#101010",
+                color: COLORS.text,
+                border: `1px solid ${COLORS.border}`,
+                borderRadius: 12,
+                padding: "12px 12px",
+                outline: "none",
+                opacity: isLoading ? 0.7 : 1,
+              }}
+            >
+              <option value="">Selecione um objetivo</option>
+              {FITNESS_GOALS.map((goal) => (
+                <option key={goal} value={goal}>
+                  {goal}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          {/* Experience Level */}
+          <label style={{ display: "grid", gap: 6 }}>
+            <span style={{ color: COLORS.muted, fontSize: 13, fontWeight: 600 }}>
+              Nível de Experiência *
+            </span>
+            <select
+              value={formData.experienceLevel}
+              onChange={(e) => setFormData({ ...formData, experienceLevel: e.target.value })}
+              disabled={isLoading}
+              style={{
+                background: "#101010",
+                color: COLORS.text,
+                border: `1px solid ${COLORS.border}`,
+                borderRadius: 12,
+                padding: "12px 12px",
+                outline: "none",
+                opacity: isLoading ? 0.7 : 1,
+              }}
+            >
+              <option value="">Selecione um nível</option>
+              {EXPERIENCE_LEVELS.map((level) => (
+                <option key={level} value={level}>
+                  {level}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          {/* Height & Weight */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <label style={{ display: "grid", gap: 6 }}>
+              <span style={{ color: COLORS.muted, fontSize: 13, fontWeight: 600 }}>
+                Altura (cm) *
+              </span>
+              <input
+                type="number"
+                value={formData.heightCm}
+                onChange={(e) => setFormData({ ...formData, heightCm: e.target.value })}
+                placeholder="170"
+                min="100"
+                max="250"
+                disabled={isLoading}
+                style={{
+                  background: "#101010",
+                  color: COLORS.text,
+                  border: `1px solid ${COLORS.border}`,
+                  borderRadius: 12,
+                  padding: "12px 12px",
+                  outline: "none",
+                  opacity: isLoading ? 0.7 : 1,
+                }}
+              />
+            </label>
+
+            <label style={{ display: "grid", gap: 6 }}>
+              <span style={{ color: COLORS.muted, fontSize: 13, fontWeight: 600 }}>
+                Peso (kg) *
+              </span>
+              <input
+                type="number"
+                value={formData.weightKg}
+                onChange={(e) => setFormData({ ...formData, weightKg: e.target.value })}
+                placeholder="75"
+                min="30"
+                max="300"
+                disabled={isLoading}
+                style={{
+                  background: "#101010",
+                  color: COLORS.text,
+                  border: `1px solid ${COLORS.border}`,
+                  borderRadius: 12,
+                  padding: "12px 12px",
+                  outline: "none",
+                  opacity: isLoading ? 0.7 : 1,
+                }}
+              />
+            </label>
+          </div>
+
+          {/* Dietary Restrictions */}
+          <label style={{ display: "grid", gap: 6 }}>
+            <span style={{ color: COLORS.muted, fontSize: 13, fontWeight: 600 }}>
+              Restrições Dietéticas
+            </span>
+            <textarea
+              value={formData.dietaryRestrictions}
+              onChange={(e) => setFormData({ ...formData, dietaryRestrictions: e.target.value })}
+              placeholder="Ex: Vegetariano, Sem glúten, Sem lactose..."
+              disabled={isLoading}
+              rows={3}
+              style={{
+                background: "#101010",
+                color: COLORS.text,
+                border: `1px solid ${COLORS.border}`,
+                borderRadius: 12,
+                padding: "12px 12px",
+                outline: "none",
+                fontFamily: "inherit",
+                opacity: isLoading ? 0.7 : 1,
+              }}
+            />
+          </label>
+
+          {/* Submit Button */}
+          <button
+            type="submit"
+            disabled={isLoading}
+            style={{
+              marginTop: 12,
+              background: COLORS.orange,
+              color: "#0B0B0B",
+              border: "none",
+              borderRadius: 12,
+              padding: "14px 16px",
+              fontWeight: 800,
+              fontSize: 16,
+              cursor: isLoading ? "not-allowed" : "pointer",
+              opacity: isLoading ? 0.7 : 1,
+            }}
+          >
+            {isLoading ? "Salvando..." : "Completar Perfil e Continuar"}
+          </button>
+
+          <div style={{ color: COLORS.muted, fontSize: 12, textAlign: "center" }}>
+            * Campos obrigatórios
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}

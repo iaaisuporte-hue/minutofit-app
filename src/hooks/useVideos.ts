@@ -51,7 +51,7 @@ export function useVideos(options: UseVideosOptions = {}) {
 
         const response = await fetch(url, {
           headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
+            Authorization: `Bearer ${localStorage.getItem("minutofit_token") || localStorage.getItem("token")}`,
           },
         });
 

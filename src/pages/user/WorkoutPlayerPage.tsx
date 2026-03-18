@@ -1,5 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { addWorkoutHistoryEntry, wasMuscleGroupTrainedYesterday, type MuscleGroup } from "./workoutHistory";
+import { getStreak, registerDailyCheckin } from "./gamification";
+import { persistGamificationCheckin } from "../../services/gamificationApi";
+import { homeWorkoutCatalog } from "./homeWorkoutCatalog";
 
 type Step = {
   id: string;
@@ -10,13 +14,16 @@ type Step = {
 
 type Workout = {
   title: string;
+  muscleGroup: MuscleGroup;
   steps: Step[];
   nextSuggestionId?: string;
+  alwaysAvailable?: boolean;
 };
 
 const MOCK_WORKOUTS: Record<string, Workout> = {
   "home-10min": {
     title: "Treino em Casa • 10 minutos",
+    muscleGroup: "full_body",
     nextSuggestionId: "home-20min",
     steps: [
       { id: "s1", title: "Aquecimento", videoId: "ml6cT4AZdqI", durationMin: 2 },
@@ -26,6 +33,7 @@ const MOCK_WORKOUTS: Record<string, Workout> = {
   },
   "home-20min": {
     title: "HIIT • 20 minutos",
+    muscleGroup: "cardio",
     nextSuggestionId: "home-30min-peso",
     steps: [
       { id: "s1", title: "Aquecimento", videoId: "ml6cT4AZdqI", durationMin: 4 },
@@ -35,6 +43,7 @@ const MOCK_WORKOUTS: Record<string, Workout> = {
   },
   "home-30min-peso": {
     title: "Full Body com Peso • 30 minutos",
+    muscleGroup: "full_body",
     steps: [
       { id: "s1", title: "Aquecimento", videoId: "ml6cT4AZdqI", durationMin: 5 },
       { id: "s2", title: "Força", videoId: "aclHkVaku9U", durationMin: 15 },
@@ -50,52 +59,31 @@ declare global {
   }
 }
 
-function addToHistory(workoutId: string) {
-  const key = "workout_history_v1";
-  const raw = localStorage.getItem(key);
-  const list: Array<{ workoutId: string; date: string }> = raw ? JSON.parse(raw) : [];
-  list.push({ workoutId, date: new Date().toISOString() });
-  localStorage.setItem(key, JSON.stringify(list));
-}
-
-function updateStreak() {
-  const key = "workout_streak_v1";
-  const lastKey = "workout_streak_lastday_v1";
-
-  const lastDayRaw = localStorage.getItem(lastKey);
-  let streak = Number(localStorage.getItem(key) || "0");
-
-  if (!lastDayRaw) {
-    streak = 1;
-  } else {
-    const last = new Date(lastDayRaw);
-    const now = new Date();
-
-    const lastDate = new Date(last.toDateString());
-    const nowDate = new Date(now.toDateString());
-    const diffDays = Math.floor((+nowDate - +lastDate) / (1000 * 60 * 60 * 24));
-
-    if (diffDays === 0) {
-      // já contou hoje
-    } else if (diffDays === 1) {
-      streak += 1;
-    } else {
-      streak = 1;
-    }
-  }
-
-  localStorage.setItem(key, String(streak));
-  localStorage.setItem(lastKey, new Date().toISOString());
-  return streak;
-}
-
 export default function WorkoutPlayerPage() {
   const { workoutId } = useParams<{ workoutId: string }>();
   const navigate = useNavigate();
 
   const workout = useMemo(() => {
     if (!workoutId) return null;
-    return MOCK_WORKOUTS[workoutId] || null;
+    const predefined = MOCK_WORKOUTS[workoutId];
+    if (predefined) return predefined;
+
+    const short = homeWorkoutCatalog.find((item) => item.id === workoutId);
+    if (!short) return null;
+
+    return {
+      title: short.title,
+      muscleGroup: short.muscleGroups[0] || "full_body",
+      alwaysAvailable: short.alwaysAvailable,
+      steps: [
+        {
+          id: `${short.id}-step-1`,
+          title: short.title,
+          videoId: short.videoId,
+          durationMin: short.durationMin,
+        },
+      ],
+    } satisfies Workout;
   }, [workoutId]);
 
   const storageKey = `workout_progress_${workoutId}`;
@@ -103,6 +91,8 @@ export default function WorkoutPlayerPage() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [finished, setFinished] = useState(false);
   const [ytReady, setYtReady] = useState(false);
+  const [blockedMessage, setBlockedMessage] = useState<string | null>(null);
+  const [rewardMessage, setRewardMessage] = useState<string | null>(null);
 
   // ⏱ Timer baseado no tempo REAL do vídeo
   const [secondsLeft, setSecondsLeft] = useState<number | null>(null);
@@ -176,7 +166,7 @@ export default function WorkoutPlayerPage() {
     }, 500);
   }
 
-  function finishWorkout() {
+  async function finishWorkout() {
     if (finishingRef.current || finishedRef.current) return;
     finishingRef.current = true;
 
@@ -191,8 +181,33 @@ export default function WorkoutPlayerPage() {
     setFinished(true);
 
     localStorage.removeItem(storageKey);
-    if (workoutId) addToHistory(workoutId);
-    updateStreak();
+    if (workoutId && workout) {
+      addWorkoutHistoryEntry({
+        workoutId,
+        title: workout.title,
+        muscleGroups: [workout.muscleGroup],
+        date: new Date().toISOString(),
+      });
+    }
+    const checkin = registerDailyCheckin("workout", 30);
+    setRewardMessage(
+      checkin.alreadyCheckedIn ? "Treino registrado. O check-in de hoje já estava valendo." : "Treino registrado. +30 XP."
+    );
+    if (workoutId && workout) {
+      try {
+        await persistGamificationCheckin({
+          source: "workout",
+          xp: 30,
+          workout: {
+            workoutId,
+            title: workout.title,
+            muscleGroups: [workout.muscleGroup],
+          },
+        });
+      } catch (error) {
+        console.error("Failed to persist workout gamification:", error);
+      }
+    }
   }
 
   function goNext() {
@@ -291,6 +306,31 @@ export default function WorkoutPlayerPage() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!workout) return;
+
+    if (!workout.alwaysAvailable && wasMuscleGroupTrainedYesterday(workout.muscleGroup)) {
+      const labels: Record<MuscleGroup, string> = {
+        chest: "peito",
+        back: "costas",
+        legs: "pernas",
+        shoulders: "ombros",
+        arms: "braços",
+        core: "core",
+        full_body: "corpo inteiro",
+        cardio: "cardio",
+        mobility: "mobilidade",
+      };
+
+      setBlockedMessage(
+        `Ontem você já treinou ${labels[workout.muscleGroup]}. Hoje o ideal é variar para outro grupo muscular.`
+      );
+      return;
+    }
+
+    setBlockedMessage(null);
+  }, [workout]);
+
   function formatTime(sec: number | null) {
     if (sec === null) return "--:--";
     const m = Math.floor(sec / 60);
@@ -307,17 +347,83 @@ export default function WorkoutPlayerPage() {
     );
   }
 
+  if (blockedMessage) {
+    return (
+      <div style={{ display: "grid", gap: 12 }}>
+        <div
+          style={{
+            padding: 16,
+            borderRadius: 16,
+            border: "1px solid rgba(255,122,122,.35)",
+            background: "rgba(255,122,122,.08)",
+            color: "#FFFFFF",
+          }}
+        >
+          <div style={{ fontWeight: 900, fontSize: 18, marginBottom: 8 }}>Treino bloqueado hoje</div>
+          <div style={{ lineHeight: 1.5 }}>{blockedMessage}</div>
+        </div>
+
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          <Link
+            to="/app/user/treinos"
+            style={{
+              padding: "12px 14px",
+              borderRadius: 12,
+              border: "1px solid #eee",
+              background: "#fff",
+              textDecoration: "none",
+              fontWeight: 900,
+              color: "#111",
+            }}
+          >
+            Escolher outro treino
+          </Link>
+
+          <Link
+            to="/app/user/today"
+            style={{
+              padding: "12px 14px",
+              borderRadius: 12,
+              border: "1px solid rgba(255,255,255,.18)",
+              background: "transparent",
+              textDecoration: "none",
+              fontWeight: 900,
+              color: "#FFFFFF",
+            }}
+          >
+            Voltar para hoje
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   const steps = workout.steps;
   const lastIndex = steps.length - 1;
   const safeIndex = Math.min(Math.max(currentIndex, 0), lastIndex);
   const current = steps[safeIndex];
   const progressPct = Math.round(((safeIndex + 1) / steps.length) * 100);
 
-  const streak = Number(localStorage.getItem("workout_streak_v1") || "1");
+  const streak = getStreak() || 1;
   const suggestion = workout.nextSuggestionId;
 
   return (
     <div style={{ display: "grid", gap: 12 }}>
+      {blockedMessage ? (
+        <div
+          style={{
+            padding: 14,
+            borderRadius: 14,
+            border: "1px solid rgba(255,122,122,.35)",
+            background: "rgba(255,122,122,.08)",
+            color: "#FFFFFF",
+            fontWeight: 700,
+          }}
+        >
+          {blockedMessage}
+        </div>
+      ) : null}
+
       {/* Top bar */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
         <Link to="/app/user/treinos" style={{ textDecoration: "none" }}>
@@ -451,6 +557,7 @@ export default function WorkoutPlayerPage() {
               </p>
 
               <div style={{ marginTop: 10, fontWeight: 900 }}>🔥 Streak atual: {streak} dia(s) consecutivo(s)</div>
+              {rewardMessage ? <div style={{ marginTop: 8, fontWeight: 800, color: "#0F3D2E" }}>{rewardMessage}</div> : null}
 
               <div style={{ marginTop: 10, padding: 12, borderRadius: 12, background: "#f6f6f6" }}>
                 <div style={{ fontWeight: 900, marginBottom: 6 }}>Texto pronto pra postar:</div>
@@ -465,20 +572,23 @@ export default function WorkoutPlayerPage() {
                 {suggestion ? (
                   <button
                     onClick={() => {
+                      if (blockedMessage) return;
                       finishedRef.current = false;
                       finishingRef.current = false;
                       setFinished(false);
                       setCurrentIndex(0);
                       navigate(`/app/user/treinos/player/${suggestion}`);
                     }}
+                    disabled={Boolean(blockedMessage)}
                     style={{
                       padding: "10px 14px",
                       borderRadius: 12,
                       border: "1px solid #111",
                       background: "#111",
                       color: "#fff",
-                      cursor: "pointer",
+                      cursor: blockedMessage ? "not-allowed" : "pointer",
                       fontWeight: 900,
+                      opacity: blockedMessage ? 0.55 : 1,
                     }}
                   >
                     ▶️ Próximo sugerido

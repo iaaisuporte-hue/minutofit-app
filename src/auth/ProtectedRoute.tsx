@@ -10,9 +10,14 @@ export default function ProtectedRoute({
   allow: Role[];
   children: React.ReactNode;
 }) {
-  const { isAuthenticated, role } = useAuth();
+  const { isAuthenticated, role, profileCompleted } = useAuth();
 
   if (!isAuthenticated) return <Navigate to="/login" replace />;
+
+  // Check if profile completion is required
+  if (profileCompleted === false) {
+    return <Navigate to="/profile-completion" replace />;
+  }
 
   // ✅ Admin tem acesso total
   if (role === "admin") return <>{children}</>;
