@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { PERSONAL_STUDENTS, type PersonalStudentGender, type PersonalStudentPlan } from "./personalStudentsMock";
 
 /** ====== Identidade Treinaí ====== */
 const COLORS = {
@@ -17,8 +18,8 @@ const COLORS = {
   orangeBorder: "rgba(255,106,0,.35)",
 };
 
-type Plan = "basic" | "silver" | "gold" | "black";
-type Gender = "M" | "F";
+type Plan = PersonalStudentPlan;
+type Gender = PersonalStudentGender;
 
 type Student = {
   id: string;
@@ -145,17 +146,14 @@ export default function WorkoutBuilderPage() {
   const prefilledStudentName = (location.state as any)?.studentName as string | undefined;
   const prefilledStudentId = (location.state as any)?.studentId as string | undefined;
 
-  /** Mock alunos */
   const students: Student[] = useMemo(
-    () => [
-      { id: "1", name: "João Silva", plan: "basic", gender: "M" },
-      { id: "2", name: "Maria Souza", plan: "basic", gender: "F" },
-      { id: "6", name: "Bruno Santos", plan: "silver", gender: "M" },
-      { id: "10", name: "Rafaela Dias", plan: "silver", gender: "F" },
-      { id: "12", name: "Helena Ribeiro", plan: "gold", gender: "F" },
-      { id: "16", name: "Natália Freitas", plan: "black", gender: "F" },
-      { id: "17", name: "Otávio Barbosa", plan: "black", gender: "M" },
-    ],
+    () =>
+      PERSONAL_STUDENTS.map((student) => ({
+        id: student.id,
+        name: student.name,
+        plan: student.plan,
+        gender: student.gender,
+      })),
     []
   );
 

@@ -18,13 +18,20 @@ interface Tag {
 }
 
 const COLORS = {
-  bg: "#0F0F0F",
-  panel: "#171717",
-  border: "rgba(255,255,255,.10)",
+  bg: "#0F1110",
+  panel: "linear-gradient(180deg, rgba(22,25,22,.92), rgba(15,18,16,.96))",
+  panelDeep: "linear-gradient(135deg, rgba(15,61,46,.94), rgba(15,24,20,.98))",
+  card: "rgba(255,255,255,.03)",
+  border: "rgba(124,255,107,.16)",
+  borderStrong: "rgba(29,185,84,.34)",
   text: "#FFFFFF",
   muted: "rgba(255,255,255,.70)",
-  orange: "#FF6A00",
-  orangeSoft: "rgba(255,106,0,.16)",
+  muted2: "rgba(232,236,233,.58)",
+  green: "#1DB954",
+  greenSoft: "rgba(29,185,84,.18)",
+  greenSoftStrong: "rgba(29,185,84,.10)",
+  danger: "#FF6B6B",
+  dangerSoft: "rgba(255, 77, 77, .14)",
 };
 
 // Default tags - should match database
@@ -50,6 +57,54 @@ const AVAILABLE_TAGS: Tag[] = [
   { id: 19, name: "Recuperação", slug: "recuperacao" },
   { id: 20, name: "Aquecimento", slug: "aquecimento" },
 ];
+
+function MetricCard({
+  label,
+  value,
+  helper,
+}: {
+  label: string;
+  value: string | number;
+  helper: string;
+}) {
+  return (
+    <div
+      style={{
+        border: `1px solid ${COLORS.border}`,
+        borderRadius: 18,
+        background: COLORS.card,
+        boxShadow: "0 18px 44px rgba(0,0,0,.45)",
+        padding: 16,
+        display: "grid",
+        gap: 6,
+      }}
+    >
+      <div style={{ color: COLORS.muted2, fontSize: 12, textTransform: "uppercase", letterSpacing: 0.9 }}>{label}</div>
+      <div style={{ fontSize: 28, fontWeight: 1000, color: COLORS.text }}>{value}</div>
+      <div style={{ color: COLORS.muted, fontSize: 12 }}>{helper}</div>
+    </div>
+  );
+}
+
+function TagPill({ children, active = false }: { children: React.ReactNode; active?: boolean }) {
+  return (
+    <span
+      style={{
+        background: active ? COLORS.greenSoft : "rgba(255,255,255,.04)",
+        border: `1px solid ${active ? COLORS.borderStrong : COLORS.border}`,
+        color: active ? COLORS.text : COLORS.muted,
+        padding: "6px 10px",
+        borderRadius: 999,
+        fontSize: 11,
+        fontWeight: 800,
+        display: "inline-flex",
+        alignItems: "center",
+      }}
+    >
+      {children}
+    </span>
+  );
+}
 
 export default function VideoLibraryPage() {
   const [videos, setVideos] = useState<Video[]>(() => {
@@ -190,35 +245,53 @@ export default function VideoLibraryPage() {
     setSelectedVideoToPlay(video);
   }
 
+  const totalDurationSeconds = videos.reduce((total, video) => total + video.duration_seconds, 0);
+  const recentCount = videos.filter((video) => Date.now() - new Date(video.created_at).getTime() <= 1000 * 60 * 60 * 24 * 30).length;
+
   return (
-    <div style={{ display: "grid", gap: 24 }}>
-      {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start" }}>
-        <div>
-          <h1 style={{ fontSize: 28, fontWeight: 900, marginBottom: 8 }}>Biblioteca de Vídeos</h1>
-          <p style={{ color: COLORS.muted }}>Gerencie seus vídeos de treino e adicione tags</p>
+    <div style={{ display: "grid", gap: 20, color: COLORS.text }}>
+      <div
+        style={{
+          border: `1px solid ${COLORS.border}`,
+          borderRadius: 20,
+          background: COLORS.panelDeep,
+          boxShadow: "0 18px 44px rgba(0,0,0,.45)",
+          padding: 18,
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+          gap: 12,
+          flexWrap: "wrap",
+        }}
+      >
+        <div style={{ display: "grid", gap: 6 }}>
+          <div style={{ fontSize: 28, fontWeight: 1000 }}>Biblioteca de vídeos</div>
+          <div style={{ color: COLORS.muted, maxWidth: 720, fontSize: 14, lineHeight: 1.5 }}>
+            Organize sua base de demonstrações, categorize por objetivo e deixe o material pronto para reutilizar na prescrição.
+          </div>
         </div>
         <button
           onClick={() => setShowUploadForm(!showUploadForm)}
           style={{
-            background: COLORS.orange,
+            background: "linear-gradient(135deg, #1DB954 0%, #7CFF6B 100%)",
             color: "#0B0B0B",
-            border: "none",
-            borderRadius: 12,
+            border: `1px solid ${COLORS.borderStrong}`,
+            borderRadius: 14,
             padding: "12px 20px",
             fontWeight: 900,
             cursor: "pointer",
-            transition: "all 0.2s",
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.opacity = "0.9";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.opacity = "1";
+            boxShadow: "0 10px 24px rgba(0,0,0,.35)",
           }}
         >
-          {showUploadForm ? "Cancelar" : "+ Novo Vídeo"}
+          {showUploadForm ? "Fechar envio" : "Novo vídeo"}
         </button>
+      </div>
+
+      <div style={{ display: "grid", gap: 12, gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))" }}>
+        <MetricCard label="Vídeos" value={videos.length} helper="conteúdos disponíveis na biblioteca" />
+        <MetricCard label="Recentes" value={recentCount} helper="publicados nos últimos 30 dias" />
+        <MetricCard label="Tags ativas" value={new Set(videos.flatMap((video) => video.tags)).size} helper="categorias já usadas no acervo" />
+        <MetricCard label="Duração" value={`${Math.floor(totalDurationSeconds / 60)} min`} helper="tempo somado do acervo atual" />
       </div>
 
       {/* Upload Form */}
@@ -227,11 +300,15 @@ export default function VideoLibraryPage() {
           style={{
             background: COLORS.panel,
             border: `1px solid ${COLORS.border}`,
-            borderRadius: 16,
+            borderRadius: 20,
             padding: 24,
+            boxShadow: "0 18px 44px rgba(0,0,0,.45)",
           }}
         >
-          <h2 style={{ fontSize: 20, fontWeight: 900, marginBottom: 20 }}>Enviar Novo Vídeo</h2>
+          <div style={{ display: "grid", gap: 6, marginBottom: 20 }}>
+            <h2 style={{ fontSize: 20, fontWeight: 900, margin: 0 }}>Adicionar novo vídeo</h2>
+            <div style={{ color: COLORS.muted, fontSize: 13 }}>Preencha os dados principais e marque as tags para facilitar busca e reutilização.</div>
+          </div>
 
           <form onSubmit={handleSubmitVideo} style={{ display: "grid", gap: 16 }}>
             {/* Título */}
@@ -243,7 +320,7 @@ export default function VideoLibraryPage() {
                 onChange={(e) => setFormData((prev) => ({ ...prev, title: e.target.value }))}
                 placeholder="ex: Treino de Peito Iniciante"
                 style={{
-                  background: "#101010",
+                  background: "rgba(255,255,255,.03)",
                   color: COLORS.text,
                   border: `1px solid ${COLORS.border}`,
                   borderRadius: 12,
@@ -261,7 +338,7 @@ export default function VideoLibraryPage() {
                 onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
                 placeholder="Descreva o conteúdo do vídeo..."
                 style={{
-                  background: "#101010",
+                  background: "rgba(255,255,255,.03)",
                   color: COLORS.text,
                   border: `1px solid ${COLORS.border}`,
                   borderRadius: 12,
@@ -282,7 +359,7 @@ export default function VideoLibraryPage() {
                 accept="video/mp4,video/webm,video/quicktime,video/x-msvideo,.mp4,.webm,.mov,.avi"
                 onChange={(e) => setSelectedVideoFile(e.target.files?.[0] || null)}
                 style={{
-                  background: "#101010",
+                  background: "rgba(255,255,255,.03)",
                   color: COLORS.text,
                   border: `1px solid ${COLORS.border}`,
                   borderRadius: 12,
@@ -292,16 +369,16 @@ export default function VideoLibraryPage() {
                 }}
               />
               {selectedVideoFile && (
-                <div style={{ fontSize: 12, color: COLORS.orange }}>
+                <div style={{ fontSize: 12, color: "#7CFF6B" }}>
                   ✓ Arquivo selecionado: {selectedVideoFile.name} ({(selectedVideoFile.size / 1024 / 1024).toFixed(2)}MB)
                 </div>
               )}
-              <div style={{ fontSize: 12, color: COLORS.muted, background: "rgba(255,106,0,.08)", padding: "12px 12px", borderRadius: 8, border: `1px solid rgba(255,106,0,.20)` }}>
-                <strong>📁 Formatos:</strong> MP4, WebM, MOV, AVI
+              <div style={{ fontSize: 12, color: COLORS.muted, background: COLORS.greenSoftStrong, padding: "12px 12px", borderRadius: 12, border: `1px solid ${COLORS.border}` }}>
+                <strong>Formatos:</strong> MP4, WebM, MOV, AVI
                 <br />
-                <strong>📏 Tamanho máximo:</strong> 500MB
+                <strong>Tamanho máximo:</strong> 500MB
                 <br />
-                <strong>📂 Destino:</strong> /minutofit-app/videos/
+                <strong>Armazenamento:</strong> navegador local nesta fase
               </div>
             </div>
 
@@ -316,9 +393,9 @@ export default function VideoLibraryPage() {
                     onClick={() => handleTagToggle(tag.slug)}
                     style={{
                       padding: "10px 12px",
-                      borderRadius: 10,
-                      border: `2px solid ${selectedTags.includes(tag.slug) ? COLORS.orange : COLORS.border}`,
-                      background: selectedTags.includes(tag.slug) ? COLORS.orangeSoft : "transparent",
+                      borderRadius: 12,
+                      border: `1px solid ${selectedTags.includes(tag.slug) ? COLORS.borderStrong : COLORS.border}`,
+                      background: selectedTags.includes(tag.slug) ? COLORS.greenSoft : "transparent",
                       color: COLORS.text,
                       cursor: "pointer",
                       fontWeight: 700,
@@ -327,8 +404,8 @@ export default function VideoLibraryPage() {
                     }}
                     onMouseEnter={(e) => {
                       if (!selectedTags.includes(tag.slug)) {
-                        e.currentTarget.style.borderColor = COLORS.orange;
-                        e.currentTarget.style.background = "rgba(255,106,0,.08)";
+                        e.currentTarget.style.borderColor = COLORS.borderStrong;
+                        e.currentTarget.style.background = "rgba(255,255,255,.03)";
                       }
                     }}
                     onMouseLeave={(e) => {
@@ -348,9 +425,9 @@ export default function VideoLibraryPage() {
             {selectedTags.length > 0 && (
               <div
                 style={{
-                  background: "rgba(255,106,0,.08)",
+                  background: COLORS.greenSoftStrong,
                   border: `1px solid ${COLORS.border}`,
-                  borderRadius: 10,
+                  borderRadius: 12,
                   padding: 12,
                 }}
               >
@@ -360,17 +437,17 @@ export default function VideoLibraryPage() {
                     <div
                       key={tagSlug}
                       style={{
-                        background: COLORS.orange,
+                        background: COLORS.greenSoft,
                         color: "#0B0B0B",
                         padding: "6px 12px",
-                        borderRadius: 8,
+                        borderRadius: 999,
                         fontSize: 12,
                         fontWeight: 700,
                         display: "flex",
                         alignItems: "center",
                         gap: 6,
                       }}
-                    >
+                      >
                       #{tagSlug}
                       <button
                         type="button"
@@ -396,15 +473,15 @@ export default function VideoLibraryPage() {
               type="submit"
               disabled={isUploading}
               style={{
-                background: COLORS.orange,
+                background: "linear-gradient(135deg, #1DB954 0%, #7CFF6B 100%)",
                 color: "#0B0B0B",
-                border: "none",
-                borderRadius: 12,
+                border: `1px solid ${COLORS.borderStrong}`,
+                borderRadius: 14,
                 padding: "14px 20px",
                 fontWeight: 900,
                 cursor: isUploading ? "not-allowed" : "pointer",
                 opacity: isUploading ? 0.6 : 1,
-                transition: "all 0.2s",
+                boxShadow: "0 10px 24px rgba(0,0,0,.35)",
               }}
             >
               {isUploading ? "Enviando..." : "Enviar Vídeo"}
@@ -419,15 +496,16 @@ export default function VideoLibraryPage() {
           style={{
             background: COLORS.panel,
             border: `1px solid ${COLORS.border}`,
-            borderRadius: 16,
-            padding: 32,
+            borderRadius: 20,
+            padding: 36,
             textAlign: "center",
             color: COLORS.muted,
+            boxShadow: "0 18px 44px rgba(0,0,0,.45)",
           }}
         >
-          <div style={{ fontSize: 48, marginBottom: 12 }}>🎬</div>
-          <p>Nenhum vídeo enviado ainda</p>
-          <p style={{ fontSize: 12, marginTop: 8 }}>Envie seu primeiro vídeo clicando em "+ Novo Vídeo"</p>
+          <div style={{ fontSize: 18, fontWeight: 1000, color: COLORS.text, marginBottom: 8 }}>Sua biblioteca ainda está vazia</div>
+          <p style={{ margin: 0 }}>Comece com vídeos de base para ganhar velocidade na montagem dos treinos.</p>
+          <p style={{ fontSize: 12, marginTop: 8 }}>Use “Novo vídeo” para publicar o primeiro conteúdo.</p>
         </div>
       ) : (
         <div style={{ display: "grid", gap: 12 }}>
@@ -437,19 +515,20 @@ export default function VideoLibraryPage() {
               style={{
                 background: COLORS.panel,
                 border: `1px solid ${COLORS.border}`,
-                borderRadius: 12,
+                borderRadius: 18,
                 padding: 16,
                 display: "grid",
                 gridTemplateColumns: "120px 1fr auto",
                 gap: 16,
                 alignItems: "start",
+                boxShadow: "0 18px 44px rgba(0,0,0,.45)",
               }}
             >
               {/* Thumbnail */}
               <div
                 style={{
-                  background: "#101010",
-                  borderRadius: 8,
+                  background: "rgba(255,255,255,.03)",
+                  borderRadius: 12,
                   minWidth: 120,
                   height: 90,
                   backgroundImage: `url('${video.thumbnail_url}')`,
@@ -459,9 +538,10 @@ export default function VideoLibraryPage() {
                   alignItems: "center",
                   justifyContent: "center",
                   color: COLORS.muted,
+                  border: `1px solid ${COLORS.border}`,
               }}
               >
-                ▶️
+                Assistir
               </div>
 
               {/* Video Info */}
@@ -470,22 +550,14 @@ export default function VideoLibraryPage() {
                 <p style={{ color: COLORS.muted, fontSize: 13, marginBottom: 10, lineHeight: 1.4 }}>
                   {video.description || "Sem descrição"}
                 </p>
+                <div style={{ display: "flex", gap: 12, fontSize: 12, color: COLORS.muted2, marginBottom: 10, flexWrap: "wrap" }}>
+                  <span>{new Date(video.created_at).toLocaleDateString("pt-BR")}</span>
+                  <span>{formatDuration(video.duration_seconds)}</span>
+                  <span>{video.tags.length} tag(s)</span>
+                </div>
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                   {video.tags.map((tag) => (
-                    <span
-                      key={tag}
-                      style={{
-                        background: "rgba(255,106,0,.12)",
-                        border: `1px solid ${COLORS.border}`,
-                        color: COLORS.orange,
-                        padding: "4px 10px",
-                        borderRadius: 6,
-                        fontSize: 11,
-                        fontWeight: 700,
-                      }}
-                    >
-                      #{tag}
-                    </span>
+                    <TagPill key={tag}>#{tag}</TagPill>
                   ))}
                 </div>
               </div>
@@ -498,42 +570,28 @@ export default function VideoLibraryPage() {
                 <button
                   onClick={() => playVideo(video)}
                   style={{
-                    background: COLORS.orange,
+                    background: "linear-gradient(135deg, #1DB954 0%, #7CFF6B 100%)",
                     color: "#0B0B0B",
-                    border: "none",
-                    borderRadius: 8,
+                    border: `1px solid ${COLORS.borderStrong}`,
+                    borderRadius: 10,
                     padding: "6px 12px",
                     fontSize: 12,
                     fontWeight: 700,
                     cursor: "pointer",
-                    transition: "all 0.2s",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.opacity = "0.9";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.opacity = "1";
                   }}
                 >
-                  ▶️ Assistir
+                  Assistir
                 </button>
                 <button
                   style={{
-                    background: COLORS.border,
+                    background: "rgba(255,255,255,.03)",
                     color: COLORS.text,
-                    border: "none",
-                    borderRadius: 8,
+                    border: `1px solid ${COLORS.border}`,
+                    borderRadius: 10,
                     padding: "6px 12px",
                     fontSize: 12,
                     fontWeight: 700,
                     cursor: "pointer",
-                    transition: "all 0.2s",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = "rgba(255,255,255,.15)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = COLORS.border;
                   }}
                 >
                   Editar
@@ -541,24 +599,17 @@ export default function VideoLibraryPage() {
                 <button
                   onClick={() => deleteVideo(video.id as number)}
                   style={{
-                    background: "rgba(255,0,0,.15)",
-                    color: "#FF6B6B",
-                    border: "none",
-                    borderRadius: 8,
+                    background: COLORS.dangerSoft,
+                    color: COLORS.danger,
+                    border: "1px solid rgba(255,0,0,.18)",
+                    borderRadius: 10,
                     padding: "6px 12px",
                     fontSize: 12,
                     fontWeight: 700,
                     cursor: "pointer",
-                    transition: "all 0.2s",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = "rgba(255,0,0,.25)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = "rgba(255,0,0,.15)";
                   }}
                 >
-                  Deletar
+                  Remover
                 </button>
               </div>
             </div>
@@ -587,33 +638,38 @@ export default function VideoLibraryPage() {
           <div
             style={{
               background: COLORS.panel,
-              borderRadius: 16,
+              borderRadius: 20,
               padding: 24,
               maxWidth: 900,
               width: "100%",
               maxHeight: "90vh",
               overflow: "auto",
               border: `1px solid ${COLORS.border}`,
+              boxShadow: "0 18px 44px rgba(0,0,0,.45)",
             }}
             onClick={(e) => e.stopPropagation()}
           >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-              <h2 style={{ fontSize: 22, fontWeight: 900, margin: 0 }}>{selectedVideoToPlay.title}</h2>
+              <div style={{ display: "grid", gap: 6 }}>
+                <h2 style={{ fontSize: 22, fontWeight: 900, margin: 0 }}>{selectedVideoToPlay.title}</h2>
+                <div style={{ color: COLORS.muted, fontSize: 13 }}>Visualização do acervo e revisão rápida do material</div>
+              </div>
               <button
                 onClick={() => setSelectedVideoToPlay(null)}
                 style={{
-                  background: "transparent",
-                  border: "none",
+                  background: "rgba(255,255,255,.03)",
+                  border: `1px solid ${COLORS.border}`,
                   color: COLORS.text,
-                  fontSize: 28,
+                  fontSize: 20,
                   cursor: "pointer",
                   fontWeight: 900,
                   padding: 0,
-                  width: 32,
-                  height: 32,
+                  width: 40,
+                  height: 40,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
+                  borderRadius: 12,
                 }}
               >
                 ✕
@@ -629,7 +685,8 @@ export default function VideoLibraryPage() {
                     width: "100%",
                     maxHeight: 500,
                     background: "#000",
-                    borderRadius: 12,
+                    borderRadius: 16,
+                    border: `1px solid ${COLORS.border}`,
                   }}
                   controls
                   autoPlay
@@ -650,49 +707,51 @@ export default function VideoLibraryPage() {
                     gap: 12,
                   }}
                 >
-                  <div style={{ fontSize: 48 }}>❌</div>
-                  <div>Vídeo não encontrado</div>
+                  <div style={{ fontSize: 18, fontWeight: 900, color: COLORS.text }}>Vídeo não encontrado</div>
                   <div style={{ fontSize: 12 }}>O arquivo pode ter sido removido ou não estar acessível</div>
                 </div>
               )}
             </div>
 
             {/* Video Info */}
-            <div style={{ display: "grid", gap: 12 }}>
+            <div style={{ display: "grid", gap: 14 }}>
               {selectedVideoToPlay.description && (
-                <div>
+                <div
+                  style={{
+                    border: `1px solid ${COLORS.border}`,
+                    borderRadius: 14,
+                    padding: 14,
+                    background: "rgba(255,255,255,.02)",
+                  }}
+                >
                   <div style={{ fontSize: 12, color: COLORS.muted, fontWeight: 700, marginBottom: 6 }}>DESCRIÇÃO</div>
                   <p style={{ margin: 0, color: COLORS.muted }}>{selectedVideoToPlay.description}</p>
                 </div>
               )}
 
               {/* Tags */}
-              <div>
+              <div
+                style={{
+                  border: `1px solid ${COLORS.border}`,
+                  borderRadius: 14,
+                  padding: 14,
+                  background: "rgba(255,255,255,.02)",
+                }}
+              >
                 <div style={{ fontSize: 12, color: COLORS.muted, fontWeight: 700, marginBottom: 6 }}>TAGS</div>
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                   {selectedVideoToPlay.tags.map((tag) => (
-                    <span
-                      key={tag}
-                      style={{
-                        background: "rgba(255,106,0,.12)",
-                        border: `1px solid ${COLORS.border}`,
-                        color: COLORS.orange,
-                        padding: "4px 10px",
-                        borderRadius: 6,
-                        fontSize: 11,
-                        fontWeight: 700,
-                      }}
-                    >
+                    <TagPill key={tag} active>
                       #{tag}
-                    </span>
+                    </TagPill>
                   ))}
                 </div>
               </div>
 
               {/* Meta */}
-              <div style={{ display: "flex", gap: 16, fontSize: 12, color: COLORS.muted }}>
-                <span>📅 {new Date(selectedVideoToPlay.created_at).toLocaleDateString("pt-BR")}</span>
-                <span>⏱️ {formatDuration(selectedVideoToPlay.duration_seconds)}</span>
+              <div style={{ display: "flex", gap: 16, fontSize: 12, color: COLORS.muted, flexWrap: "wrap" }}>
+                <TagPill>{new Date(selectedVideoToPlay.created_at).toLocaleDateString("pt-BR")}</TagPill>
+                <TagPill>{formatDuration(selectedVideoToPlay.duration_seconds)}</TagPill>
               </div>
             </div>
           </div>

@@ -568,24 +568,6 @@ export default function LoginPage() {
               >
                 {isLoading ? "Entrando..." : "Entrar"}
               </button>
-
-              <div
-                style={{
-                  marginTop: 14,
-                  color: COLORS.muted,
-                  fontSize: 13,
-                  lineHeight: 1.45,
-                  borderRadius: 18,
-                  border: `1px solid ${COLORS.border}`,
-                  background: "rgba(255,255,255,.03)",
-                  padding: "14px 16px",
-                }}
-              >
-                <div style={{ marginBottom: 8, fontWeight: 700, color: COLORS.text }}>Logins de teste</div>
-                <div>Admin: admin@treinai.com / 123456</div>
-                <div>Personal: personal@treinai.com / 123456</div>
-                <div>Aluno: teste1@treinai.com / 123456</div>
-              </div>
             </form>
           ) : (
             <form onSubmit={onRegisterSubmit} style={{ display: "grid", gap: 18, maxHeight: "78vh", overflowY: "auto", paddingRight: 4 }}>

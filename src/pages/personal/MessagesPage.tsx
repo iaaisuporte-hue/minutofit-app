@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext";
+import { PERSONAL_STUDENTS, resolvePersonalStudentReference } from "./personalStudentsMock";
 
 /**
  * =========================
@@ -36,7 +38,8 @@ type ChatConversation = {
 };
 
 type StudentMini = {
-  id: string; // email
+  id: string;
+  chatParticipantId: string;
   name: string;
 };
 
@@ -47,6 +50,18 @@ type StudentMini = {
  */
 const CONVERSATIONS_KEY = "treinai_chat_conversations_v1";
 const MESSAGES_KEY_PREFIX = "treinai_chat_messages_v1__"; // + conversationId
+
+const COLORS = {
+  border: "rgba(124,255,107,.16)",
+  borderStrong: "rgba(29,185,84,.34)",
+  text: "#FFFFFF",
+  muted: "rgba(255,255,255,.72)",
+  mutedSoft: "rgba(232,236,233,.58)",
+  panel: "linear-gradient(180deg, rgba(22,25,22,.92), rgba(15,18,16,.96))",
+  panelDeep: "linear-gradient(135deg, rgba(15,61,46,.94), rgba(15,24,20,.98))",
+  primarySoft: "rgba(29,185,84,.18)",
+  highlightSoft: "rgba(124,255,107,.12)",
+};
 
 /** ✅ Helpers */
 function nowISO() {
@@ -89,6 +104,10 @@ function writeMessages(conversationId: string, list: ChatMessage[]) {
   localStorage.setItem(MESSAGES_KEY_PREFIX + conversationId, JSON.stringify(list));
 }
 
+function sortConversationsByRecency(list: ChatConversation[]) {
+  return [...list].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+}
+
 /**
  * ✅ Garante que só os participantes vejam
  * (MVP “seguro” na UI)
@@ -120,11 +139,11 @@ function Pill({
   title?: string;
 }) {
   const map = {
-    neutral: { bd: "rgba(255,255,255,.12)", bg: "rgba(255,255,255,.06)" },
-    success: { bd: "rgba(34,197,94,.35)", bg: "rgba(34,197,94,.12)" },
+    neutral: { bd: COLORS.border, bg: COLORS.highlightSoft },
+    success: { bd: COLORS.borderStrong, bg: COLORS.primarySoft },
     warn: { bd: "rgba(255,183,3,.35)", bg: "rgba(255,183,3,.12)" },
     danger: { bd: "rgba(220,38,38,.35)", bg: "rgba(220,38,38,.12)" },
-    orange: { bd: "rgba(255,106,0,.35)", bg: "rgba(255,106,0,.12)" },
+    orange: { bd: COLORS.borderStrong, bg: COLORS.primarySoft },
   } as const;
 
   return (
@@ -138,7 +157,7 @@ function Pill({
         fontSize: 12,
         fontWeight: 900,
         lineHeight: 1,
-        color: "#FFFFFF",
+        color: COLORS.text,
         display: "inline-flex",
         alignItems: "center",
         gap: 8,
@@ -156,9 +175,9 @@ function Card({ children }: { children: React.ReactNode }) {
   return (
     <div
       style={{
-        border: "1px solid rgba(255,255,255,.10)",
-        borderRadius: 16,
-        background: "#171717",
+        border: `1px solid ${COLORS.border}`,
+        borderRadius: 20,
+        background: COLORS.panel,
         boxShadow: "0 18px 44px rgba(0,0,0,.45)",
       }}
     >
@@ -169,8 +188,11 @@ function Card({ children }: { children: React.ReactNode }) {
 
 export default function MessagesPage() {
   const { user } = useAuth() as any; // 👈 MVP: depende do seu AuthContext
+  const location = useLocation();
   const myId: string = user?.email || "personal@treinai.com"; // ✅ (MVP) usa email como ID
   const myRole: Role = user?.role || "personal";
+  const preselectedStudentId = (location.state as { studentId?: string; studentName?: string } | null)?.studentId;
+  const preselectedStudentName = (location.state as { studentId?: string; studentName?: string } | null)?.studentName;
 
   // ✅ segurança (UI): se não for personal, não mostra
   if (myRole !== "personal") {
@@ -192,12 +214,12 @@ export default function MessagesPage() {
    * - Assim a conversa “encaixa” automaticamente.
    */
   const students: StudentMini[] = useMemo(
-    () => [
-      { id: "basic@treinai.com", name: "Aluno Basic" },
-      { id: "silver@treinai.com", name: "Aluno Silver" },
-      { id: "gold@treinai.com", name: "Aluno Gold" },
-      { id: "black@treinai.com", name: "Aluno Black" },
-    ],
+    () =>
+      PERSONAL_STUDENTS.map((student) => ({
+        id: student.id,
+        chatParticipantId: student.chatParticipantId,
+        name: student.name,
+      })),
     []
   );
 
@@ -213,19 +235,26 @@ export default function MessagesPage() {
   // ✅ scroll pro final
   const endRef = useRef<HTMLDivElement | null>(null);
 
+  function loadMyConversations() {
+    return sortConversationsByRecency(readConversations().filter((c) => canAccessConversation(c, myId, myRole)));
+  }
+
   /** ✅ Carregar conversas do storage */
   useEffect(() => {
-    const list = readConversations();
-    // só as minhas (personal)
-    const mine = list.filter((c) => canAccessConversation(c, myId, myRole));
-    // mais recentes primeiro
-    mine.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+    const mine = loadMyConversations();
     setConversations(mine);
 
     // seleciona a primeira se nada selecionado
     if (!selectedId && mine.length) setSelectedId(mine[0].id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [myId, myRole]);
+
+  useEffect(() => {
+    if (!preselectedStudentId && !preselectedStudentName) return;
+    const student = resolvePersonalStudentReference({ id: preselectedStudentId, name: preselectedStudentName });
+    if (!student) return;
+    openConversationWithStudent(student.id);
+  }, [preselectedStudentId, preselectedStudentName]);
 
   /** ✅ Sempre que selecionar conversa, carregar mensagens */
   useEffect(() => {
@@ -233,7 +262,8 @@ export default function MessagesPage() {
       setMessages([]);
       return;
     }
-    const conv = conversations.find((c) => c.id === selectedId);
+
+    const conv = readConversations().find((c) => c.id === selectedId);
     if (!conv) {
       setMessages([]);
       return;
@@ -256,10 +286,8 @@ export default function MessagesPage() {
     writeConversations(updated);
 
     // atualiza state local
-    const mine = updated.filter((c) => canAccessConversation(c, myId, myRole));
-    mine.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
-    setConversations(mine);
-  }, [selectedId, myId, myRole, conversations]);
+    setConversations(sortConversationsByRecency(updated.filter((c) => canAccessConversation(c, myId, myRole))));
+  }, [selectedId, myId, myRole]);
 
   /** ✅ Scroll sempre que mensagens mudarem */
   useEffect(() => {
@@ -273,9 +301,7 @@ export default function MessagesPage() {
 
       // conversas mudaram
       if (e.key === CONVERSATIONS_KEY) {
-        const list = readConversations().filter((c) => canAccessConversation(c, myId, myRole));
-        list.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
-        setConversations(list);
+        setConversations(loadMyConversations());
       }
 
       // mensagens da conversa aberta mudaram
@@ -290,7 +316,10 @@ export default function MessagesPage() {
 
   /** ✅ Abrir (ou criar) conversa com um aluno */
   function openConversationWithStudent(studentId: string) {
-    const convId = conversationIdOf(studentId, myId);
+    const student = students.find((item) => item.id === studentId);
+    if (!student) return;
+
+    const convId = conversationIdOf(student.chatParticipantId, myId);
 
     const all = readConversations();
     let conv = all.find((c) => c.id === convId);
@@ -299,7 +328,7 @@ export default function MessagesPage() {
     if (!conv) {
       conv = {
         id: convId,
-        studentId,
+        studentId: student.chatParticipantId,
         personalId: myId,
         createdAt: nowISO(),
         updatedAt: nowISO(),
@@ -311,9 +340,7 @@ export default function MessagesPage() {
     }
 
     // atualiza state e seleciona
-    const mine = all.filter((c) => canAccessConversation(c, myId, myRole));
-    mine.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
-    setConversations(mine);
+    setConversations(sortConversationsByRecency(all.filter((c) => canAccessConversation(c, myId, myRole))));
     setSelectedId(convId);
   }
 
@@ -351,16 +378,20 @@ export default function MessagesPage() {
     });
     writeConversations(all);
 
-    const mine = all.filter((c) => canAccessConversation(c, myId, myRole));
-    mine.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
-    setConversations(mine);
+    setConversations(sortConversationsByRecency(all.filter((c) => canAccessConversation(c, myId, myRole))));
   }
 
   const selectedConv = useMemo(() => conversations.find((c) => c.id === selectedId) || null, [conversations, selectedId]);
 
   const selectedStudent = useMemo(() => {
     if (!selectedConv) return null;
-    return students.find((s) => s.id === selectedConv.studentId) || { id: selectedConv.studentId, name: selectedConv.studentId };
+    return (
+      students.find((s) => s.chatParticipantId === selectedConv.studentId) || {
+        id: selectedConv.studentId,
+        chatParticipantId: selectedConv.studentId,
+        name: selectedConv.studentId,
+      }
+    );
   }, [selectedConv, students]);
 
   const filteredInbox = useMemo(() => {
@@ -368,7 +399,7 @@ export default function MessagesPage() {
     if (!q) return conversations;
 
     return conversations.filter((c) => {
-      const stu = students.find((s) => s.id === c.studentId);
+      const stu = students.find((s) => s.chatParticipantId === c.studentId);
       const label = (stu?.name || c.studentId).toLowerCase();
       return label.includes(q);
     });
@@ -378,15 +409,25 @@ export default function MessagesPage() {
     <div style={{ display: "grid", gap: 16, color: "#FFFFFF" }}>
       {/* ✅ Top header */}
       <Card>
-        <div style={{ padding: 16, display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+        <div
+          style={{
+            padding: 18,
+            display: "flex",
+            justifyContent: "space-between",
+            gap: 12,
+            flexWrap: "wrap",
+            background: COLORS.panelDeep,
+            borderRadius: 20,
+          }}
+        >
           <div style={{ display: "grid", gap: 6 }}>
-            <div style={{ fontWeight: 1000, fontSize: 18 }}>Mensagens</div>
-            <div style={{ color: "rgba(255,255,255,.70)", fontSize: 13, lineHeight: 1.35 }}>
-              Inbox do Personal. Responda rápido e priorize alunos com dúvidas recorrentes.
+            <div style={{ fontWeight: 1000, fontSize: 22 }}>Mensagens</div>
+            <div style={{ color: COLORS.muted, fontSize: 13, lineHeight: 1.45 }}>
+              Converse com a carteira ativa e responda primeiro quem já está pedindo atenção.
             </div>
           </div>
 
-          <Pill variant="orange">🔐 Treinaí • Chat MVP</Pill>
+          <Pill variant="orange">Inbox do personal</Pill>
         </div>
       </Card>
 
@@ -417,7 +458,7 @@ export default function MessagesPage() {
                 padding: "12px 14px",
                 borderRadius: 14,
                 border: "1px solid rgba(255,255,255,.12)",
-                background: "#121212",
+                background: "rgba(255,255,255,.03)",
                 color: "#FFFFFF",
                 outline: "none",
                 fontWeight: 800,
@@ -438,8 +479,8 @@ export default function MessagesPage() {
                     style={{
                       padding: "10px 12px",
                       borderRadius: 12,
-                      border: "1px solid rgba(255,255,255,.12)",
-                      background: "transparent",
+                      border: `1px solid ${COLORS.border}`,
+                      background: "rgba(255,255,255,.03)",
                       color: "#FFFFFF",
                       cursor: "pointer",
                       fontWeight: 900,
@@ -466,7 +507,7 @@ export default function MessagesPage() {
                   </div>
                 ) : (
                   filteredInbox.map((c) => {
-                    const stu = students.find((s) => s.id === c.studentId);
+                    const stu = students.find((s) => s.chatParticipantId === c.studentId);
                     const label = stu?.name || c.studentId;
 
                     const msgs = readMessages(c.id);
@@ -485,8 +526,8 @@ export default function MessagesPage() {
                           textAlign: "left",
                           padding: "12px 12px",
                           borderRadius: 14,
-                          border: active ? "1px solid rgba(255,106,0,.35)" : "1px solid rgba(255,255,255,.10)",
-                          background: active ? "rgba(255,106,0,.12)" : "rgba(255,255,255,.04)",
+                          border: active ? `1px solid ${COLORS.borderStrong}` : `1px solid ${COLORS.border}`,
+                          background: active ? COLORS.primarySoft : "rgba(255,255,255,.04)",
                           color: "#FFFFFF",
                           cursor: "pointer",
                         }}
@@ -499,8 +540,8 @@ export default function MessagesPage() {
                               style={{
                                 padding: "4px 8px",
                                 borderRadius: 999,
-                                background: "rgba(255,106,0,.18)",
-                                border: "1px solid rgba(255,106,0,.35)",
+                                background: COLORS.primarySoft,
+                                border: `1px solid ${COLORS.borderStrong}`,
                                 fontWeight: 1000,
                                 fontSize: 12,
                                 lineHeight: 1,
@@ -532,7 +573,7 @@ export default function MessagesPage() {
 
             {/* ✅ Dica */}
             <div style={{ marginTop: 6, color: "rgba(255,255,255,.55)", fontSize: 12, lineHeight: 1.4 }}>
-              💡 MVP: as mensagens ficam no navegador (localStorage). No backend a gente coloca autenticação e criptografia.
+              As mensagens desta etapa ainda ficam no navegador enquanto o backend de chat não entra.
             </div>
           </div>
         </Card>
@@ -558,12 +599,12 @@ export default function MessagesPage() {
                 <div style={{ fontWeight: 1000, fontSize: 15 }}>
                   {selectedStudent ? selectedStudent.name : "Selecione uma conversa"}
                 </div>
-                <div style={{ color: "rgba(255,255,255,.65)", fontSize: 12 }}>
+                <div style={{ color: COLORS.mutedSoft, fontSize: 12 }}>
                   {selectedStudent ? selectedStudent.id : "Inbox → escolha um aluno para abrir"}
                 </div>
               </div>
 
-              {selectedConv ? <Pill variant="orange">🔒 Conversa privada</Pill> : <Pill variant="neutral">Sem chat</Pill>}
+              {selectedConv ? <Pill variant="orange">Conversa ativa</Pill> : <Pill variant="neutral">Sem conversa</Pill>}
             </div>
 
             {/* ✅ Mensagens */}
@@ -580,7 +621,7 @@ export default function MessagesPage() {
                 </div>
               ) : messages.length === 0 ? (
                 <div style={{ color: "rgba(255,255,255,.70)", fontSize: 13, lineHeight: 1.5 }}>
-                  Ainda não há mensagens. Envie a primeira 👇
+                  Ainda não há mensagens. Comece a conversa por aqui.
                 </div>
               ) : (
                 <div style={{ display: "grid", gap: 10 }}>
@@ -599,8 +640,8 @@ export default function MessagesPage() {
                             maxWidth: 520,
                             padding: "10px 12px",
                             borderRadius: 14,
-                            border: mine ? "1px solid rgba(255,106,0,.35)" : "1px solid rgba(255,255,255,.10)",
-                            background: mine ? "rgba(255,106,0,.14)" : "rgba(255,255,255,.05)",
+                            border: mine ? `1px solid ${COLORS.borderStrong}` : `1px solid ${COLORS.border}`,
+                            background: mine ? COLORS.primarySoft : "rgba(255,255,255,.05)",
                             color: "#FFFFFF",
                             boxShadow: "0 10px 24px rgba(0,0,0,.25)",
                           }}
@@ -632,8 +673,8 @@ export default function MessagesPage() {
                     resize: "none",
                     padding: "12px 14px",
                     borderRadius: 14,
-                    border: "1px solid rgba(255,255,255,.12)",
-                    background: "#121212",
+                    border: `1px solid ${COLORS.border}`,
+                    background: "rgba(255,255,255,.03)",
                     color: "#FFFFFF",
                     outline: "none",
                     fontWeight: 700,
@@ -647,13 +688,13 @@ export default function MessagesPage() {
                   style={{
                     padding: "12px 14px",
                     borderRadius: 12,
-                    border: "1px solid rgba(255,106,0,.35)",
-                    background: "#FF6A00",
-                    color: "#0F0F0F",
+                    border: `1px solid ${COLORS.borderStrong}`,
+                    background: "linear-gradient(135deg, #1DB954 0%, #7CFF6B 100%)",
+                    color: "#082014",
                     cursor: !selectedConv || !text.trim() ? "not-allowed" : "pointer",
                     fontWeight: 1000,
                     fontSize: 14,
-                    boxShadow: "0 10px 24px rgba(0,0,0,.35)",
+                    boxShadow: "0 14px 28px rgba(29,185,84,.22)",
                     opacity: !selectedConv || !text.trim() ? 0.6 : 1,
                   }}
                 >
@@ -662,7 +703,7 @@ export default function MessagesPage() {
               </div>
 
               <div style={{ marginTop: 8, fontSize: 12, color: "rgba(255,255,255,.55)" }}>
-                ✅ MVP pronto para integração: aluno envia mensagem na conversa `{selectedId || "—"}`.
+                Conversa atual: `{selectedId || "—"}`.
               </div>
             </div>
           </div>

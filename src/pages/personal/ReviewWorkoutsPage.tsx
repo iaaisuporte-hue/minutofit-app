@@ -18,6 +18,26 @@ import { useEffect, useMemo, useState } from "react";
 const USE_PERSISTENCE = true;
 const STORAGE_KEY = "treinai_review_queue_v1";
 
+const COLORS = {
+  panel: "linear-gradient(180deg, rgba(22,25,22,.92), rgba(15,18,16,.96))",
+  panelDeep: "linear-gradient(135deg, rgba(15,61,46,.94), rgba(15,24,20,.98))",
+  card: "rgba(255,255,255,.03)",
+  border: "rgba(124,255,107,.16)",
+  borderStrong: "rgba(29,185,84,.34)",
+  text: "#FFFFFF",
+  muted: "rgba(255,255,255,.72)",
+  mutedSoft: "rgba(232,236,233,.58)",
+  primary: "#1DB954",
+  primarySoft: "rgba(29,185,84,.18)",
+  primaryBorder: "rgba(29,185,84,.34)",
+  successBg: "rgba(46, 204, 113, .14)",
+  successBorder: "rgba(46, 204, 113, .35)",
+  warnBg: "rgba(255, 180, 0, .14)",
+  warnBorder: "rgba(255, 180, 0, .35)",
+  dangerBg: "rgba(255, 77, 77, .14)",
+  dangerBorder: "rgba(255, 77, 77, .35)",
+};
+
 type Plan = "basic" | "silver" | "gold" | "black";
 
 type ReviewStatus = "pending" | "changes_requested" | "approved" | "archived";
@@ -71,10 +91,10 @@ function Card({ children, pad = 16 }: { children: React.ReactNode; pad?: number 
   return (
     <div
       style={{
-        border: "1px solid rgba(255,255,255,.10)", // ✅ (UI) borda padrão
-        borderRadius: 16, // ✅ (UI) arredondamento padrão
-        background: "#171717", // ✅ (UI) fundo padrão
-        boxShadow: "0 18px 44px rgba(0,0,0,.45)", // ✅ (UI) sombra padrão
+        border: `1px solid ${COLORS.border}`,
+        borderRadius: 20,
+        background: COLORS.panel,
+        boxShadow: "0 18px 44px rgba(0,0,0,.45)",
         overflow: "hidden",
       }}
     >
@@ -94,11 +114,11 @@ function Pill({
   title?: string;
 }) {
   const map = {
-    neutral: { bd: "rgba(255,255,255,.12)", bg: "rgba(255,255,255,.06)" },
-    orange: { bd: "rgba(255,106,0,.35)", bg: "rgba(255,106,0,.14)" },
-    success: { bd: "rgba(34,197,94,.35)", bg: "rgba(34,197,94,.12)" },
-    warn: { bd: "rgba(255,183,3,.35)", bg: "rgba(255,183,3,.12)" },
-    danger: { bd: "rgba(220,38,38,.35)", bg: "rgba(220,38,38,.12)" },
+    neutral: { bd: COLORS.border, bg: "rgba(255,255,255,.06)" },
+    orange: { bd: COLORS.primaryBorder, bg: COLORS.primarySoft },
+    success: { bd: COLORS.successBorder, bg: COLORS.successBg },
+    warn: { bd: COLORS.warnBorder, bg: COLORS.warnBg },
+    danger: { bd: COLORS.dangerBorder, bg: COLORS.dangerBg },
   } as const;
 
   return (
@@ -109,15 +129,17 @@ function Pill({
         borderRadius: 999,
         border: `1px solid ${map[variant].bd}`,
         background: map[variant].bg,
-        color: "#FFFFFF",
-        fontWeight: 900,
-        fontSize: 12,
+        color: COLORS.text,
+        fontWeight: 800,
+        fontSize: 11,
         lineHeight: 1,
         display: "inline-flex",
         alignItems: "center",
         gap: 8,
         width: "fit-content",
         whiteSpace: "nowrap",
+        textTransform: "uppercase",
+        letterSpacing: 0.3,
       }}
     >
       {children}
@@ -141,20 +163,20 @@ function Button({
 }) {
   const stylesByVariant: Record<typeof variant, React.CSSProperties> = {
     primary: {
-      background: "#FF6A00",
-      border: "1px solid rgba(255,106,0,.35)",
-      color: "#0F0F0F",
-      boxShadow: "0 10px 24px rgba(0,0,0,.35)",
+      background: "linear-gradient(135deg, #1DB954 0%, #7CFF6B 100%)",
+      border: `1px solid ${COLORS.primaryBorder}`,
+      color: "#082014",
+      boxShadow: "0 14px 28px rgba(29,185,84,.22)",
     },
     ghost: {
       background: "transparent",
-      border: "1px solid rgba(255,255,255,.12)",
-      color: "#FFFFFF",
+      border: `1px solid ${COLORS.border}`,
+      color: COLORS.text,
     },
     danger: {
-      background: "rgba(220,38,38,.16)",
-      border: "1px solid rgba(220,38,38,.35)",
-      color: "#FFFFFF",
+      background: COLORS.dangerBg,
+      border: `1px solid ${COLORS.dangerBorder}`,
+      color: COLORS.text,
     },
   };
 
@@ -194,7 +216,7 @@ function statusVariant(s: ReviewStatus): "neutral" | "warn" | "success" | "dange
 }
 
 function planPill(plan: Plan) {
-  if (plan === "black") return <Pill variant="orange">🟧 Black</Pill>;
+  if (plan === "black") return <Pill variant="orange">Black</Pill>;
   if (plan === "gold") return <Pill variant="neutral">Gold</Pill>;
   if (plan === "silver") return <Pill variant="neutral">Silver</Pill>;
   return <Pill variant="neutral">Básico</Pill>;
@@ -338,6 +360,16 @@ export default function ReviewWorkoutsPage() {
     return { pending, urgent, approvedToday, returned };
   }, [queue]);
 
+  const summaryCards = useMemo(
+    () => [
+      { label: "Pendentes", value: kpis.pending, helper: "aguardando decisao" },
+      { label: "Urgentes", value: kpis.urgent, helper: "48h+ sem resposta" },
+      { label: "Aprovados hoje", value: kpis.approvedToday, helper: "ritmo do dia" },
+      { label: "Devolvidos", value: kpis.returned, helper: "aguardando ajuste" },
+    ],
+    [kpis]
+  );
+
   /** ✅ Filtrado */
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -416,20 +448,28 @@ export default function ReviewWorkoutsPage() {
   }
 
   return (
-    <div style={{ display: "grid", gap: 16, color: "#FFFFFF" }}>
+    <div style={{ display: "grid", gap: 16, color: COLORS.text }}>
       {/* ✅ Header */}
       <Card>
-        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            gap: 12,
+            flexWrap: "wrap",
+            background: COLORS.panelDeep,
+            borderRadius: 20,
+            padding: 18,
+          }}
+        >
           <div style={{ display: "grid", gap: 6 }}>
-            <div style={{ fontWeight: 1000, fontSize: 18 }}>Revisão de Treinos</div>
-            <div style={{ color: "rgba(255,255,255,.70)", fontSize: 13, lineHeight: 1.35 }}>
-              Fila operacional: priorize <b>pendências antigas</b>, alunos <b>Black</b> e casos de <b>risco</b>.
+            <div style={{ fontWeight: 1000, fontSize: 22 }}>Revisão de treinos</div>
+            <div style={{ color: COLORS.muted, fontSize: 13, lineHeight: 1.45, maxWidth: 680 }}>
+              Fila operacional para decidir rápido, devolver com contexto e evitar alunos travados no meio do ciclo.
             </div>
           </div>
 
-          <Pill variant="orange" title="Padrão Treinaí">
-            🟧 Treinaí • Review Queue
-          </Pill>
+          <Pill variant="orange" title="Padrão Treinaí">Fila de revisão</Pill>
         </div>
       </Card>
 
@@ -441,45 +481,17 @@ export default function ReviewWorkoutsPage() {
           gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))",
         }}
       >
-        <Card>
-          <div style={{ display: "grid", gap: 8 }}>
-            <div style={{ color: "rgba(255,255,255,.65)", fontWeight: 900, fontSize: 12 }}>PENDENTES</div>
-            <div style={{ fontSize: 28, fontWeight: 1000 }}>{kpis.pending}</div>
-            <div style={{ color: "rgba(255,255,255,.70)", fontSize: 13 }}>
-              Itens aguardando sua aprovação.
+        {summaryCards.map((card) => (
+          <Card key={card.label}>
+            <div style={{ display: "grid", gap: 8 }}>
+              <div style={{ color: COLORS.mutedSoft, fontWeight: 900, fontSize: 12, textTransform: "uppercase", letterSpacing: 0.8 }}>
+                {card.label}
+              </div>
+              <div style={{ fontSize: 28, fontWeight: 1000 }}>{card.value}</div>
+              <div style={{ color: COLORS.muted, fontSize: 12 }}>{card.helper}</div>
             </div>
-          </div>
-        </Card>
-
-        <Card>
-          <div style={{ display: "grid", gap: 8 }}>
-            <div style={{ color: "rgba(255,255,255,.65)", fontWeight: 900, fontSize: 12 }}>URGENTES (48h+)</div>
-            <div style={{ fontSize: 28, fontWeight: 1000 }}>{kpis.urgent}</div>
-            <div style={{ color: "rgba(255,255,255,.70)", fontSize: 13 }}>
-              Priorize para evitar aluno “sumir”.
-            </div>
-          </div>
-        </Card>
-
-        <Card>
-          <div style={{ display: "grid", gap: 8 }}>
-            <div style={{ color: "rgba(255,255,255,.65)", fontWeight: 900, fontSize: 12 }}>APROVADOS HOJE</div>
-            <div style={{ fontSize: 28, fontWeight: 1000 }}>{kpis.approvedToday}</div>
-            <div style={{ color: "rgba(255,255,255,.70)", fontSize: 13 }}>
-              Ritmo do dia (produção).
-            </div>
-          </div>
-        </Card>
-
-        <Card>
-          <div style={{ display: "grid", gap: 8 }}>
-            <div style={{ color: "rgba(255,255,255,.65)", fontWeight: 900, fontSize: 12 }}>DEVOLVIDOS</div>
-            <div style={{ fontSize: 28, fontWeight: 1000 }}>{kpis.returned}</div>
-            <div style={{ color: "rgba(255,255,255,.70)", fontSize: 13 }}>
-              Itens aguardando ajuste do aluno.
-            </div>
-          </div>
-        </Card>
+          </Card>
+        ))}
       </div>
 
       {/* ✅ Toolbar: busca + filtros */}
@@ -496,9 +508,9 @@ export default function ReviewWorkoutsPage() {
               // ✅ (UI) input padrão Treinaí
               padding: "12px 14px",
               borderRadius: 14,
-              border: "1px solid rgba(255,255,255,.12)",
-              background: "#121212",
-              color: "#FFFFFF",
+              border: `1px solid ${COLORS.border}`,
+              background: "rgba(255,255,255,.03)",
+              color: COLORS.text,
               outline: "none",
               fontWeight: 800,
             }}
@@ -510,9 +522,9 @@ export default function ReviewWorkoutsPage() {
             style={{
               padding: "12px 14px",
               borderRadius: 14,
-              border: "1px solid rgba(255,255,255,.12)",
-              background: "#121212",
-              color: "#FFFFFF",
+              border: `1px solid ${COLORS.border}`,
+              background: "rgba(255,255,255,.03)",
+              color: COLORS.text,
               fontWeight: 900,
               cursor: "pointer",
             }}
@@ -530,9 +542,9 @@ export default function ReviewWorkoutsPage() {
             style={{
               padding: "12px 14px",
               borderRadius: 14,
-              border: "1px solid rgba(255,255,255,.12)",
-              background: "#121212",
-              color: "#FFFFFF",
+              border: `1px solid ${COLORS.border}`,
+              background: "rgba(255,255,255,.03)",
+              color: COLORS.text,
               fontWeight: 900,
               cursor: "pointer",
             }}
@@ -550,9 +562,9 @@ export default function ReviewWorkoutsPage() {
             style={{
               padding: "12px 14px",
               borderRadius: 14,
-              border: "1px solid rgba(255,255,255,.12)",
-              background: "#121212",
-              color: "#FFFFFF",
+              border: `1px solid ${COLORS.border}`,
+              background: "rgba(255,255,255,.03)",
+              color: COLORS.text,
               fontWeight: 900,
               cursor: "pointer",
             }}
@@ -584,9 +596,9 @@ export default function ReviewWorkoutsPage() {
               <div
                 key={item.id}
                 style={{
-                  border: "1px solid rgba(255,255,255,.10)",
-                  borderRadius: 16,
-                  background: "#171717",
+                  border: `1px solid ${COLORS.border}`,
+                  borderRadius: 18,
+                  background: COLORS.card,
                   boxShadow: "0 18px 44px rgba(0,0,0,.45)",
                   padding: 14,
                   display: "flex",
@@ -604,25 +616,19 @@ export default function ReviewWorkoutsPage() {
                     <Pill variant={statusVariant(item.status)}>{statusLabel(item.status)}</Pill>
 
                     {urgent ? (
-                      <Pill variant="danger" title="Mais de 48h pendente">
-                        ⏱️ Urgente
-                      </Pill>
+                      <Pill variant="danger" title="Mais de 48h pendente">Urgente</Pill>
                     ) : null}
 
-                    <Pill variant={priVariant as any} title="Prioridade operacional">
-                      ⭐ {item.priority}
-                    </Pill>
+                    <Pill variant={priVariant as any} title="Prioridade operacional">{item.priority}</Pill>
 
-                    <Pill variant={riskVariant as any} title="Risco de execução">
-                      ⚠️ risco {item.risk}
-                    </Pill>
+                    <Pill variant={riskVariant as any} title="Risco de execução">Risco {item.risk}</Pill>
                   </div>
 
-                  <div style={{ color: "#FFFFFF", fontWeight: 900 }}>
+                  <div style={{ color: COLORS.text, fontWeight: 900 }}>
                     {item.title}
                   </div>
 
-                  <div style={{ color: "rgba(255,255,255,.70)", fontSize: 13, lineHeight: 1.35 }}>
+                  <div style={{ color: COLORS.muted, fontSize: 13, lineHeight: 1.45 }}>
                     Objetivo: <b style={{ color: "#FFFFFF" }}>{item.goal}</b> • Criado há <b>{ageH}h</b>
                     {inactiveDays != null ? (
                       <>
@@ -633,8 +639,8 @@ export default function ReviewWorkoutsPage() {
                   </div>
 
                   {item.notes ? (
-                    <div style={{ color: "rgba(255,255,255,.65)", fontSize: 13, lineHeight: 1.35 }}>
-                      📝 Nota: {item.notes}
+                    <div style={{ color: COLORS.mutedSoft, fontSize: 12, lineHeight: 1.45 }}>
+                      Nota interna: {item.notes}
                     </div>
                   ) : null}
                 </div>

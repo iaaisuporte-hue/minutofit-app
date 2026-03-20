@@ -1,45 +1,26 @@
 import { Link } from "react-router-dom";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { resolvePersonalStudentReference } from "./personalStudentsMock";
+import {
+  fetchPersonalConsulting,
+  type PersonalConsultingNextAction,
+  type PersonalConsultingStudent,
+} from "../../services/personalDashboardApi";
 
-type ConsultingStudent = {
-  id: string;
-  name: string;
-  plan: "black";
-  planExpiresAt: string; // ISO
-  lastWorkoutUpdateAt: string; // ISO
-  workoutsDoneInCurrentPlan: number;
-  workoutsPlannedInCurrentPlan: number;
-};
+type ConsultingStudent = PersonalConsultingStudent;
 
-function formatDateBR(isoDate: string) {
-  const d = new Date(isoDate + "T00:00:00");
-  return new Intl.DateTimeFormat("pt-BR").format(d);
-}
-
-function daysSince(isoDate: string) {
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const d = new Date(isoDate + "T00:00:00");
-  const diffMs = today.getTime() - d.getTime();
-  return Math.floor(diffMs / (1000 * 60 * 60 * 24));
-}
-
-function daysLeftToExpireTraining(lastUpdateISO: string, cycleDays = 30) {
-  return cycleDays - daysSince(lastUpdateISO);
-}
-
-/** ====== IDENTIDADE VISUAL (TREINAí) ====== */
 const COLORS = {
-  panel: "linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02))",
+  panel: "linear-gradient(180deg, rgba(22,25,22,.92), rgba(15,18,16,.96))",
+  panelDeep: "linear-gradient(135deg, rgba(15,61,46,.94), rgba(15,24,20,.98))",
   card: "rgba(255,255,255,.03)",
-  border: "rgba(255,255,255,.10)",
-  borderStrong: "rgba(255,255,255,.14)",
+  border: "rgba(124,255,107,.16)",
+  borderStrong: "rgba(29,185,84,.34)",
   text: "#FFFFFF",
-  muted: "rgba(255,255,255,.70)",
-  muted2: "rgba(255,255,255,.60)",
-  orange: "#FF6A00",
-  orangeSoft: "rgba(255,106,0,.18)",
-  orangeBorder: "rgba(255,106,0,.35)",
+  muted: "rgba(255,255,255,.72)",
+  muted2: "rgba(232,236,233,.58)",
+  green: "#1DB954",
+  greenSoft: "rgba(29,185,84,.18)",
+  greenBorder: "rgba(29,185,84,.34)",
   successBg: "rgba(46, 204, 113, .14)",
   successBorder: "rgba(46, 204, 113, .35)",
   warnBg: "rgba(255, 180, 0, .14)",
@@ -49,6 +30,26 @@ const COLORS = {
   blueBg: "rgba(120, 160, 255, .14)",
   blueBorder: "rgba(120, 160, 255, .35)",
 };
+
+const PLAN_LABEL = {
+  basic: "Básico",
+  silver: "Silver",
+  gold: "Gold",
+  black: "Black",
+} as const;
+
+function formatDateBR(isoDate: string) {
+  const d = new Date(`${isoDate}T00:00:00`);
+  return new Intl.DateTimeFormat("pt-BR").format(d);
+}
+
+function daysUntil(isoDate: string) {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const d = new Date(`${isoDate}T00:00:00`);
+  const diffMs = d.getTime() - today.getTime();
+  return Math.floor(diffMs / (1000 * 60 * 60 * 24));
+}
 
 function pillStyle(opts: { bg: string; border: string }): React.CSSProperties {
   return {
@@ -74,7 +75,7 @@ function Pill({
   title,
 }: {
   children: React.ReactNode;
-  variant?: "neutral" | "success" | "warn" | "danger" | "orange" | "blue";
+  variant?: "neutral" | "success" | "warn" | "danger" | "green" | "blue";
   title?: string;
 }) {
   const map = {
@@ -82,7 +83,7 @@ function Pill({
     success: { bg: COLORS.successBg, border: COLORS.successBorder },
     warn: { bg: COLORS.warnBg, border: COLORS.warnBorder },
     danger: { bg: COLORS.dangerBg, border: COLORS.dangerBorder },
-    orange: { bg: COLORS.orangeSoft, border: COLORS.orangeBorder },
+    green: { bg: COLORS.greenSoft, border: COLORS.greenBorder },
     blue: { bg: COLORS.blueBg, border: COLORS.blueBorder },
   } as const;
 
@@ -98,7 +99,7 @@ function Card({ children }: { children: React.ReactNode }) {
     <div
       style={{
         border: `1px solid ${COLORS.border}`,
-        borderRadius: 16,
+        borderRadius: 20,
         background: COLORS.card,
         boxShadow: "0 18px 44px rgba(0,0,0,.45)",
       }}
@@ -111,10 +112,12 @@ function Card({ children }: { children: React.ReactNode }) {
 function ActionLink({
   to,
   label,
+  state,
   kind = "ghost",
 }: {
   to: string;
   label: string;
+  state?: unknown;
   kind?: "ghost" | "primary";
 }) {
   const base: React.CSSProperties = {
@@ -138,73 +141,112 @@ function ActionLink({
       color: COLORS.text,
     },
     primary: {
-      border: `1px solid ${COLORS.orangeBorder}`,
-      background: COLORS.orange,
+      border: `1px solid ${COLORS.greenBorder}`,
+      background: COLORS.green,
       color: "#0F0F0F",
       boxShadow: "0 10px 24px rgba(0,0,0,.35)",
     },
   };
 
   return (
-    <Link to={to} style={{ ...base, ...variants[kind] }}>
+    <Link to={to} state={state} style={{ ...base, ...variants[kind] }}>
       {label}
     </Link>
   );
 }
 
-export default function ConsultingStudentsPage() {
-  const students: ConsultingStudent[] = useMemo(
-    () => [
-      {
-        id: "16",
-        name: "Natália Freitas",
-        plan: "black",
-        planExpiresAt: "2026-03-25",
-        lastWorkoutUpdateAt: "2026-02-10",
-        workoutsDoneInCurrentPlan: 8,
-        workoutsPlannedInCurrentPlan: 16,
-      },
-      {
-        id: "17",
-        name: "Otávio Barbosa",
-        plan: "black",
-        planExpiresAt: "2026-03-03",
-        lastWorkoutUpdateAt: "2026-02-20",
-        workoutsDoneInCurrentPlan: 5,
-        workoutsPlannedInCurrentPlan: 12,
-      },
-      {
-        id: "19",
-        name: "Renato Sousa",
-        plan: "black",
-        planExpiresAt: "2026-04-15",
-        lastWorkoutUpdateAt: "2026-02-01",
-        workoutsDoneInCurrentPlan: 14,
-        workoutsPlannedInCurrentPlan: 20,
-      },
-      {
-        id: "20",
-        name: "Sabrina Cardoso",
-        plan: "black",
-        planExpiresAt: "2026-03-08",
-        lastWorkoutUpdateAt: "2026-02-24",
-        workoutsDoneInCurrentPlan: 1,
-        workoutsPlannedInCurrentPlan: 10,
-      },
-    ],
-    []
-  );
+function getPlanVariant(plan: ConsultingStudent["plan"]) {
+  if (plan === "black") return "green";
+  if (plan === "gold") return "blue";
+  return "neutral";
+}
 
+function getActionMeta(action: PersonalConsultingNextAction, planExpiresAt: string) {
+  const daysLeft = daysUntil(planExpiresAt);
+
+  if (action === "refresh_today") {
+    return {
+      variant: "danger" as const,
+      headline: "Ficha vencida",
+      chip: "Atualizar hoje",
+      helper: "Próxima ação: ajustar a ficha agora e alinhar a meta da semana.",
+    };
+  }
+
+  if (action === "prepare_update") {
+    return {
+      variant: "warn" as const,
+      headline: daysLeft <= 1 ? "Ciclo na reta final" : `Vence em ${daysLeft} dia(s)`,
+      chip: "Preparar ajuste",
+      helper: "Próxima ação: preparar a atualização e organizar o próximo ciclo.",
+    };
+  }
+
+  if (action === "review_adherence") {
+    return {
+      variant: "warn" as const,
+      headline: "Aderência abaixo do esperado",
+      chip: "Revisar rotina",
+      helper: "Próxima ação: revisar a consistência e renegociar a rotina mínima.",
+    };
+  }
+
+  return {
+    variant: "success" as const,
+    headline: "No ritmo",
+    chip: "Manter progressão",
+    helper: "Próxima ação: manter a progressão e planejar a próxima fase.",
+  };
+}
+
+export default function ConsultingStudentsPage() {
+  const [students, setStudents] = useState<ConsultingStudent[]>([]);
+  const [summary, setSummary] = useState({ total: 0, urgent: 0, warning: 0, onTrack: 0 });
   const [onlyUrgent, setOnlyUrgent] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+
+    async function load() {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const data = await fetchPersonalConsulting();
+        if (!active) return;
+
+        if (!data) {
+          setStudents([]);
+          setSummary({ total: 0, urgent: 0, warning: 0, onTrack: 0 });
+          setError("Sua sessão não foi encontrada. Faça login novamente para ver a carteira.");
+          return;
+        }
+
+        setStudents(data.students);
+        setSummary(data.summary);
+      } catch (err) {
+        if (!active) return;
+        setError(err instanceof Error ? err.message : "Nao foi possivel carregar a consultoria.");
+      } finally {
+        if (active) setLoading(false);
+      }
+    }
+
+    load();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const filtered = useMemo(() => {
     if (!onlyUrgent) return students;
-    return students.filter((s) => daysLeftToExpireTraining(s.lastWorkoutUpdateAt, 30) <= 5);
+    return students.filter((student) => student.status !== "on_track");
   }, [students, onlyUrgent]);
 
   return (
     <div style={{ display: "grid", gap: 16, color: COLORS.text }}>
-      {/* Header */}
       <Card>
         <div
           style={{
@@ -214,156 +256,225 @@ export default function ConsultingStudentsPage() {
             alignItems: "flex-start",
             gap: 12,
             flexWrap: "wrap",
-            background: COLORS.panel,
-            borderRadius: 16,
+            background: COLORS.panelDeep,
+            borderRadius: 20,
           }}
         >
           <div style={{ display: "grid", gap: 6 }}>
-            <div style={{ fontWeight: 1000, fontSize: 18, letterSpacing: 0.2 }}>Alunos consultoria</div>
-            <div style={{ color: COLORS.muted, fontSize: 13, lineHeight: 1.35 }}>
-              Só alunos do <b style={{ color: "#FFB703" }}>Black</b>. Priorize quem está com ficha vencendo.
+            <div style={{ fontWeight: 1000, fontSize: 22, letterSpacing: 0.2 }}>Alunos consultoria</div>
+            <div style={{ color: COLORS.muted, fontSize: 13, lineHeight: 1.45, maxWidth: 680 }}>
+              Carteira operacional da consultoria com prioridade, aderência e vencimento de ciclo em um só lugar.
             </div>
           </div>
 
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
             <button
-              onClick={() => setOnlyUrgent((v) => !v)}
+              onClick={() => setOnlyUrgent((value) => !value)}
               style={{
                 padding: "12px 14px",
                 borderRadius: 12,
                 border: `1px solid ${COLORS.border}`,
-                background: onlyUrgent ? "rgba(255,180,0,.14)" : "rgba(255,255,255,.03)",
+                background: onlyUrgent ? COLORS.warnBg : "rgba(255,255,255,.03)",
                 color: COLORS.text,
                 cursor: "pointer",
                 fontWeight: 1000,
                 fontSize: 14,
               }}
-              title="Mostrar somente alunos com ficha vencida ou vencendo em até 5 dias"
+              title="Mostrar somente alunos com ação imediata"
             >
-              {onlyUrgent ? "⚠️ Mostrando urgentes" : "Filtrar urgentes"}
+              {onlyUrgent ? "Mostrando atenção" : "Filtrar atenção"}
             </button>
 
-            <Pill variant="neutral">Total: {filtered.length}</Pill>
+            <Pill variant="neutral">Total {filtered.length}</Pill>
           </div>
         </div>
       </Card>
 
-      {/* Lista */}
-      <div style={{ display: "grid", gap: 10 }}>
-        {filtered.map((s) => {
-          const left = daysLeftToExpireTraining(s.lastWorkoutUpdateAt, 30);
-          const warningText = left <= 0 ? "Treino vencido — atualizar hoje" : `Faltam ${left} dia(s) para o treino vencer`;
+      <div style={{ display: "grid", gap: 12, gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))" }}>
+        <Card>
+          <div style={{ padding: 14, display: "grid", gap: 6 }}>
+            <div style={{ color: COLORS.muted2, fontSize: 12, textTransform: "uppercase", letterSpacing: 0.9 }}>Carteira ativa</div>
+            <div style={{ fontSize: 28, fontWeight: 1000 }}>{summary.total}</div>
+            <div style={{ color: COLORS.muted, fontSize: 12 }}>alunos em acompanhamento</div>
+          </div>
+        </Card>
+        <Card>
+          <div style={{ padding: 14, display: "grid", gap: 6 }}>
+            <div style={{ color: COLORS.muted2, fontSize: 12, textTransform: "uppercase", letterSpacing: 0.9 }}>Urgente</div>
+            <div style={{ fontSize: 28, fontWeight: 1000 }}>{summary.urgent}</div>
+            <div style={{ color: COLORS.muted, fontSize: 12 }}>pedem ajuste imediato</div>
+          </div>
+        </Card>
+        <Card>
+          <div style={{ padding: 14, display: "grid", gap: 6 }}>
+            <div style={{ color: COLORS.muted2, fontSize: 12, textTransform: "uppercase", letterSpacing: 0.9 }}>Em atenção</div>
+            <div style={{ fontSize: 28, fontWeight: 1000 }}>{summary.warning}</div>
+            <div style={{ color: COLORS.muted, fontSize: 12 }}>pedem acompanhamento próximo</div>
+          </div>
+        </Card>
+        <Card>
+          <div style={{ padding: 14, display: "grid", gap: 6 }}>
+            <div style={{ color: COLORS.muted2, fontSize: 12, textTransform: "uppercase", letterSpacing: 0.9 }}>No ritmo</div>
+            <div style={{ fontSize: 28, fontWeight: 1000 }}>{summary.onTrack}</div>
+            <div style={{ color: COLORS.muted, fontSize: 12 }}>seguem bem no ciclo</div>
+          </div>
+        </Card>
+      </div>
 
-          const warnVariant = left <= 0 ? "danger" : left <= 5 ? "warn" : "success";
-          const warnIcon = left <= 0 ? "🛑" : left <= 5 ? "⚠️" : "✅";
-
-          const done = s.workoutsDoneInCurrentPlan;
-          const planned = s.workoutsPlannedInCurrentPlan;
-          const pct = planned > 0 ? Math.round((done / planned) * 100) : 0;
-
-          const progressLabel =
-            pct >= 85 ? "Consistência alta" : pct >= 50 ? "No ritmo" : pct > 0 ? "Baixa adesão" : "Sem check-in";
-          const progressVariant = pct >= 85 ? "success" : pct >= 50 ? "neutral" : "warn";
-
-          return (
-            <div
-              key={s.id}
-              style={{
-                border: `1px solid ${COLORS.border}`,
-                borderRadius: 16,
-                background: COLORS.card,
-                boxShadow: "0 18px 44px rgba(0,0,0,.45)",
-              }}
-              onMouseEnter={(e) => {
-                (e.currentTarget as HTMLDivElement).style.borderColor = COLORS.borderStrong;
-              }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLDivElement).style.borderColor = COLORS.border;
-              }}
-            >
-              <div
+      {loading ? (
+        <Card>
+          <div style={{ padding: 18, color: COLORS.muted }}>Carregando carteira de consultoria...</div>
+        </Card>
+      ) : error ? (
+        <Card>
+          <div style={{ padding: 18, display: "grid", gap: 12 }}>
+            <div style={{ fontWeight: 900 }}>Nao foi possivel carregar a consultoria.</div>
+            <div style={{ color: COLORS.muted, fontSize: 14 }}>{error}</div>
+            <div>
+              <button
+                onClick={() => window.location.reload()}
                 style={{
-                  padding: 14,
-                  display: "flex",
-                  justifyContent: "space-between",
-                  gap: 12,
-                  alignItems: "flex-start",
-                  flexWrap: "wrap",
+                  padding: "12px 14px",
+                  borderRadius: 12,
+                  border: `1px solid ${COLORS.greenBorder}`,
+                  background: COLORS.green,
+                  color: "#0F0F0F",
+                  cursor: "pointer",
+                  fontWeight: 1000,
+                  fontSize: 14,
                 }}
               >
-                {/* Infos */}
-                <div style={{ display: "grid", gap: 10, minWidth: 280, flex: 1 }}>
-                  <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-                    <div style={{ fontWeight: 1000, fontSize: 16, letterSpacing: 0.2 }}>{s.name}</div>
+                Tentar novamente
+              </button>
+            </div>
+          </div>
+        </Card>
+      ) : filtered.length === 0 ? (
+        <Card>
+          <div style={{ padding: 18, display: "grid", gap: 6 }}>
+            <div style={{ fontWeight: 900 }}>Nenhum aluno encontrado neste recorte.</div>
+            <div style={{ color: COLORS.muted, fontSize: 14 }}>
+              {onlyUrgent ? "Sua carteira está estável neste momento." : "Ainda não há alunos disponíveis para consultoria."}
+            </div>
+          </div>
+        </Card>
+      ) : (
+        <div style={{ display: "grid", gap: 10 }}>
+          {filtered.map((student) => {
+            const resolvedStudent = resolvePersonalStudentReference({ id: student.id, name: student.name });
+            const actionMeta = getActionMeta(student.nextAction, student.planExpiresAt);
+            const progressPct =
+              student.workoutsPlannedInCurrentPlan > 0
+                ? Math.round((student.workoutsDoneInCurrentPlan / student.workoutsPlannedInCurrentPlan) * 100)
+                : 0;
 
-                    <Pill variant="orange">💬 Consultoria • Black</Pill>
+            return (
+              <div
+                key={student.id}
+                style={{
+                  border: `1px solid ${COLORS.border}`,
+                  borderRadius: 16,
+                  background: COLORS.card,
+                  boxShadow: "0 18px 44px rgba(0,0,0,.45)",
+                }}
+                onMouseEnter={(event) => {
+                  (event.currentTarget as HTMLDivElement).style.borderColor = COLORS.borderStrong;
+                }}
+                onMouseLeave={(event) => {
+                  (event.currentTarget as HTMLDivElement).style.borderColor = COLORS.border;
+                }}
+              >
+                <div
+                  style={{
+                    padding: 14,
+                    display: "flex",
+                    justifyContent: "space-between",
+                    gap: 12,
+                    alignItems: "flex-start",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <div style={{ display: "grid", gap: 10, minWidth: 280, flex: 1 }}>
+                    <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+                      <div style={{ fontWeight: 1000, fontSize: 16, letterSpacing: 0.2 }}>{student.name}</div>
 
-                    <Pill variant={warnVariant} title={warningText}>
-                      {warnIcon} {warningText}
-                    </Pill>
+                      <Pill variant={getPlanVariant(student.plan)}>{PLAN_LABEL[student.plan]}</Pill>
 
-                    <Pill variant={progressVariant} title={`${done}/${planned} treinos no ciclo atual`}>
-                      📈 {progressLabel} • {pct}%
-                    </Pill>
+                      <Pill variant={actionMeta.variant} title={actionMeta.helper}>
+                        {actionMeta.chip}
+                      </Pill>
+
+                      <Pill variant={progressPct >= 70 ? "success" : progressPct > 0 ? "warn" : "neutral"}>
+                        {progressPct}% do ciclo
+                      </Pill>
+                    </div>
+
+                    <div style={{ color: COLORS.muted2, fontSize: 13, lineHeight: 1.45 }}>
+                      Última atualização da ficha: <b style={{ color: COLORS.text }}>{formatDateBR(student.lastWorkoutUpdateAt)}</b>{" "}
+                      • Ciclo atual até: <b style={{ color: COLORS.text }}>{formatDateBR(student.planExpiresAt)}</b>
+                    </div>
+
+                    <div style={{ color: COLORS.muted2, fontSize: 13, lineHeight: 1.45 }}>
+                      Progresso do ciclo: <b style={{ color: COLORS.text }}>{student.workoutsDoneInCurrentPlan}</b> /{" "}
+                      {student.workoutsPlannedInCurrentPlan} treinos concluídos
+                    </div>
+
+                    <div
+                      style={{
+                        color: COLORS.muted2,
+                        fontSize: 12,
+                        lineHeight: 1.45,
+                        borderRadius: 14,
+                        border: `1px solid ${
+                          actionMeta.variant === "danger"
+                            ? COLORS.dangerBorder
+                            : actionMeta.variant === "warn"
+                              ? COLORS.warnBorder
+                              : COLORS.border
+                        }`,
+                        background:
+                          actionMeta.variant === "danger"
+                            ? COLORS.dangerBg
+                            : actionMeta.variant === "warn"
+                              ? COLORS.warnBg
+                              : "rgba(255,255,255,.03)",
+                        padding: "10px 12px",
+                      }}
+                    >
+                      <b style={{ color: COLORS.text }}>{actionMeta.headline}:</b> {actionMeta.helper.replace("Próxima ação: ", "")}
+                    </div>
                   </div>
 
-                  <div style={{ color: COLORS.muted2, fontSize: 13, lineHeight: 1.45 }}>
-                    Última atualização da ficha: <b style={{ color: COLORS.text }}>{formatDateBR(s.lastWorkoutUpdateAt)}</b>{" "}
-                    • Plano vence em: <b style={{ color: COLORS.text }}>{formatDateBR(s.planExpiresAt)}</b>
+                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "flex-end" }}>
+                    <ActionLink
+                      to={`../students/${resolvedStudent?.id ?? student.id}/workouts/new`}
+                      state={{ studentName: resolvedStudent?.name ?? student.name }}
+                      label="Atualizar ficha"
+                      kind="primary"
+                    />
+
+                    <button
+                      onClick={() => alert("Placeholder: abrir histórico/check-ins do aluno (próxima fase).")}
+                      style={{
+                        padding: "12px 14px",
+                        borderRadius: 12,
+                        border: `1px solid ${COLORS.border}`,
+                        background: "rgba(255,255,255,.03)",
+                        color: COLORS.text,
+                        cursor: "pointer",
+                        fontWeight: 1000,
+                        fontSize: 14,
+                      }}
+                    >
+                      Ver histórico
+                    </button>
                   </div>
-
-                  <div style={{ color: COLORS.muted2, fontSize: 13, lineHeight: 1.45 }}>
-                    Progresso da ficha atual: <b style={{ color: COLORS.text }}>{done}</b> / {planned} treinos concluídos
-                  </div>
-
-                  <div style={{ color: COLORS.muted2, fontSize: 12, lineHeight: 1.45 }}>
-                    {left <= 0 ? (
-                      <>
-                        🛑 <b style={{ color: COLORS.text }}>Ação:</b> atualizar ficha hoje e mandar mensagem curta com meta da
-                        semana.
-                      </>
-                    ) : left <= 5 ? (
-                      <>
-                        ⚠️ <b style={{ color: COLORS.text }}>Ação:</b> preparar ajuste + reforçar check-ins (últimos dias do ciclo).
-                      </>
-                    ) : pct < 50 ? (
-                      <>
-                        👀 <b style={{ color: COLORS.text }}>Ação:</b> revisar aderência (volume/intensidade) e negociar rotina mínima.
-                      </>
-                    ) : (
-                      <>
-                        ✅ <b style={{ color: COLORS.text }}>Ação:</b> manter progressão e planejar próxima fase do ciclo.
-                      </>
-                    )}
-                  </div>
-                </div>
-
-                {/* Ações */}
-                <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "flex-end" }}>
-                  {/* ✅ IMPORTANTE: link RELATIVO pra funcionar dentro de /consulting */}
-                  <ActionLink to={`../students/${s.id}/workouts/new`} label="🧩 Atualizar ficha" kind="primary" />
-
-                  <button
-                    onClick={() => alert("Placeholder: abrir histórico/check-ins do aluno (próxima fase).")}
-                    style={{
-                      padding: "12px 14px",
-                      borderRadius: 12,
-                      border: `1px solid ${COLORS.border}`,
-                      background: "rgba(255,255,255,.03)",
-                      color: COLORS.text,
-                      cursor: "pointer",
-                      fontWeight: 1000,
-                      fontSize: 14,
-                    }}
-                  >
-                    🧾 Ver histórico
-                  </button>
                 </div>
               </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
