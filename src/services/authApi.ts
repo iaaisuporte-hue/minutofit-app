@@ -1,7 +1,6 @@
 import type { Role } from "../auth/AuthContext";
 import type { AccessProfile, AppPermission } from "../auth/accessControl";
-
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
+import { API_URL } from "./apiBase";
 
 export interface AuthApiUser {
   id: number;

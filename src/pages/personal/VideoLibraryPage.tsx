@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useIsMobile } from "../../hooks/useIsMobile";
 
 interface Video {
   id: number;
@@ -107,6 +108,7 @@ function TagPill({ children, active = false }: { children: React.ReactNode; acti
 }
 
 export default function VideoLibraryPage() {
+  const isMobile = useIsMobile(720);
   const [videos, setVideos] = useState<Video[]>(() => {
     const stored = localStorage.getItem("videos_library");
     return stored ? JSON.parse(stored) : [];
@@ -385,7 +387,7 @@ export default function VideoLibraryPage() {
             {/* Tags */}
             <div style={{ display: "grid", gap: 8 }}>
               <label style={{ color: COLORS.muted, fontSize: 13, fontWeight: 700 }}>Tags * (Selecione pelo menos uma)</label>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: 8 }}>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(auto-fill, minmax(150px, 1fr))", gap: 8 }}>
                 {AVAILABLE_TAGS.map((tag) => (
                   <button
                     key={tag.slug}
@@ -518,7 +520,7 @@ export default function VideoLibraryPage() {
                 borderRadius: 18,
                 padding: 16,
                 display: "grid",
-                gridTemplateColumns: "120px 1fr auto",
+                gridTemplateColumns: isMobile ? "1fr" : "120px 1fr auto",
                 gap: 16,
                 alignItems: "start",
                 boxShadow: "0 18px 44px rgba(0,0,0,.45)",
@@ -530,7 +532,7 @@ export default function VideoLibraryPage() {
                   background: "rgba(255,255,255,.03)",
                   borderRadius: 12,
                   minWidth: 120,
-                  height: 90,
+                  height: isMobile ? 180 : 90,
                   backgroundImage: `url('${video.thumbnail_url}')`,
                   backgroundSize: "cover",
                   backgroundPosition: "center",
@@ -563,7 +565,7 @@ export default function VideoLibraryPage() {
               </div>
 
               {/* Actions */}
-              <div style={{ display: "flex", flexDirection: "column", gap: 8, textAlign: "right" }}>
+              <div style={{ display: "flex", flexDirection: isMobile ? "row" : "column", gap: 8, textAlign: isMobile ? "left" : "right", flexWrap: "wrap" }}>
                 <div style={{ fontSize: 12, color: COLORS.muted }}>
                   {formatDuration(video.duration_seconds)}
                 </div>
@@ -578,6 +580,7 @@ export default function VideoLibraryPage() {
                     fontSize: 12,
                     fontWeight: 700,
                     cursor: "pointer",
+                    width: isMobile ? "fit-content" : undefined,
                   }}
                 >
                   Assistir
@@ -592,6 +595,7 @@ export default function VideoLibraryPage() {
                     fontSize: 12,
                     fontWeight: 700,
                     cursor: "pointer",
+                    width: isMobile ? "fit-content" : undefined,
                   }}
                 >
                   Editar
@@ -607,6 +611,7 @@ export default function VideoLibraryPage() {
                     fontSize: 12,
                     fontWeight: 700,
                     cursor: "pointer",
+                    width: isMobile ? "fit-content" : undefined,
                   }}
                 >
                   Remover

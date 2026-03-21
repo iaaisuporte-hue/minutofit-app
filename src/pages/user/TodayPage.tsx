@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext";
+import { useIsMobile } from "../../hooks/useIsMobile";
 import { loadRecommendation } from "./onboarding/onboardingStorage";
 import { addWorkoutHistoryEntry, getCurrentWeekdayLabel, getLastWorkoutEntry, getYesterdayMuscleGroups, type MuscleGroup } from "./workoutHistory";
 import { getDailyMission, getLevel, getStreak, getXp, hasTodayCheckin, registerDailyCheckin } from "./gamification";
@@ -44,6 +45,7 @@ function Card({
 export default function TodayPage() {
   const navigate = useNavigate();
   const { id, user } = useAuth();
+  const isMobile = useIsMobile(720);
   const userId = (id ?? "").trim().toLowerCase();
 
   const streak = useMemo(() => getStreak(), []);
@@ -300,7 +302,7 @@ export default function TodayPage() {
             </button>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)", gap: 14 }}>
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "minmax(0, 1fr) minmax(0, 1fr)", gap: 14 }}>
             <div
               style={{
                 borderRadius: 18,
@@ -358,7 +360,7 @@ export default function TodayPage() {
         </div>
       </Card>
 
-      <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.1fr) minmax(280px, .9fr)", gap: 14 }}>
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "minmax(0, 1.1fr) minmax(280px, .9fr)", gap: 14 }}>
         <Card>
           <div style={{ display: "grid", gap: 12 }}>
             <div style={{ display: "grid", gap: 6 }}>

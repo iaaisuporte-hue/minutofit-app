@@ -355,39 +355,9 @@ export default function LoginPage() {
   }
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background:
-          "radial-gradient(circle at top left, rgba(29,185,84,.2), transparent 30%), radial-gradient(circle at top right, rgba(124,255,107,.12), transparent 20%), linear-gradient(180deg, #151515 0%, #121212 100%)",
-        color: COLORS.text,
-        display: "grid",
-        placeItems: "center",
-        padding: 20,
-      }}
-    >
-      <div
-        style={{
-          width: "100%",
-          maxWidth: 1220,
-          display: "grid",
-          gridTemplateColumns: "minmax(0, 1.02fr) minmax(380px, 560px)",
-          gap: 24,
-          alignItems: "stretch",
-        }}
-      >
-        <div
-          style={{
-            borderRadius: 28,
-            border: `1px solid ${COLORS.border}`,
-            background: "linear-gradient(135deg, rgba(15,61,46,.95) 0%, rgba(11,20,16,.98) 70%)",
-            padding: 32,
-            minHeight: 720,
-            display: "grid",
-            alignContent: "space-between",
-            boxShadow: "0 24px 60px rgba(0,0,0,.32)",
-          }}
-        >
+    <div className="authPage">
+      <div className="authLayout">
+        <div className="authHero">
           <div>
             <div
               style={{
@@ -407,10 +377,10 @@ export default function LoginPage() {
             >
               Fitness com segurança e consistência
             </div>
-            <div style={{ marginTop: 24, fontSize: 52, fontWeight: 900, lineHeight: 1.02 }}>
+            <div className="authHeroTitle">
               Uma entrada mais profissional para a sua jornada de saúde.
             </div>
-            <div style={{ color: COLORS.muted, marginTop: 18, maxWidth: 540, fontSize: 17, lineHeight: 1.65 }}>
+            <div className="authHeroText">
               Entrar continua rápido. Criar conta agora valida identidade, contato, saúde inicial e contexto de treino para que a personalização comece desde o primeiro acesso.
             </div>
           </div>
@@ -438,18 +408,8 @@ export default function LoginPage() {
           </div>
         </div>
 
-        <div
-          style={{
-            width: "100%",
-            background: COLORS.panel,
-            border: `1px solid ${COLORS.borderStrong}`,
-            borderRadius: 28,
-            padding: 24,
-            boxShadow: "0 24px 60px rgba(0,0,0,.34)",
-            backdropFilter: "blur(14px)",
-          }}
-        >
-          <div style={{ display: "flex", gap: 10, marginBottom: 22 }}>
+        <div className="authCard">
+          <div className="authTabs">
             {[
               { key: "login" as const, label: "Entrar" },
               { key: "register" as const, label: "Criar conta" },
@@ -524,7 +484,7 @@ export default function LoginPage() {
           ) : null}
 
           {mode === "login" ? (
-            <form onSubmit={onLoginSubmit} style={{ display: "grid", gap: 10 }}>
+            <form onSubmit={onLoginSubmit} className="authForm">
               <label style={{ display: "grid", gap: 6 }}>
                 <span style={{ color: COLORS.muted, fontSize: 13 }}>Email</span>
                 <input
@@ -570,7 +530,7 @@ export default function LoginPage() {
               </button>
             </form>
           ) : (
-            <form onSubmit={onRegisterSubmit} style={{ display: "grid", gap: 18, maxHeight: "78vh", overflowY: "auto", paddingRight: 4 }}>
+            <form onSubmit={onRegisterSubmit} className="authForm authFormScrollable">
               <div style={{ display: "grid", gap: 12 }}>
                 <div style={{ fontSize: 15, fontWeight: 900 }}>Identificação e contato</div>
 
@@ -587,7 +547,7 @@ export default function LoginPage() {
                   {registerErrors.name ? <span style={{ color: COLORS.danger, fontSize: 12 }}>{registerErrors.name}</span> : null}
                 </label>
 
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                <div className="authTwoCol">
                   <label style={{ display: "grid", gap: 6 }}>
                     <span style={{ color: COLORS.muted, fontSize: 13 }}>CPF</span>
                     <input
@@ -628,7 +588,7 @@ export default function LoginPage() {
                   {registerErrors.email ? <span style={{ color: COLORS.danger, fontSize: 12 }}>{registerErrors.email}</span> : null}
                 </label>
 
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                <div className="authTwoCol">
                   <label style={{ display: "grid", gap: 6 }}>
                     <span style={{ color: COLORS.muted, fontSize: 13 }}>Senha</span>
                     <input
@@ -657,8 +617,8 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              <div style={{ display: "grid", gap: 12 }}>
-                <div style={{ fontSize: 15, fontWeight: 900 }}>Saúde inicial</div>
+                <div style={{ display: "grid", gap: 12 }}>
+                  <div style={{ fontSize: 15, fontWeight: 900 }}>Saúde inicial</div>
                 <div
                   style={{
                     borderRadius: 18,

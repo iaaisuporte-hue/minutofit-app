@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth, type Role } from "../auth/AuthContext";
+import { API_URL } from "../services/apiBase";
 
 const COLORS = {
   bg: "#0F0F0F",
@@ -76,7 +77,7 @@ export default function ProfileCompletionPage() {
 
       // Call API to complete profile
       const response = await fetch(
-        `${import.meta.env.VITE_API_URL || "http://localhost:3000/api"}/auth/complete-profile`,
+        `${API_URL}/auth/complete-profile`,
         {
           method: "PATCH",
           headers: {
