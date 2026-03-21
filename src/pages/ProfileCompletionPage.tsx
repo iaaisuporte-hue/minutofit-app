@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth, type Role } from "../auth/AuthContext";
-import { API_URL } from "../services/apiBase";
+import { API_URL, handleUnauthorizedResponse } from "../services/apiBase";
 
 const COLORS = {
   bg: "#0F0F0F",
@@ -95,6 +95,10 @@ export default function ProfileCompletionPage() {
           }),
         }
       );
+
+      if (handleUnauthorizedResponse(response)) {
+        return;
+      }
 
       if (!response.ok) {
         const data = await response.json();

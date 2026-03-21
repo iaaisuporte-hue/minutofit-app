@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useMemo, useState, useEffect } from "react";
 import { fetchCurrentUser, loginWithPassword, loginWithProvider, registerWithPassword, type RegisterPayload } from "../services/authApi";
 import { hasPermission as checkPermission, resolvePermissions, type AccessProfile, type AppPermission } from "./accessControl";
+import { SESSION_EXPIRED_EVENT } from "../services/apiBase";
 
 export type Role = "user" | "personal" | "nutri" | "admin";
 
@@ -82,6 +83,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  useEffect(() => {
+    function handleSessionExpired() {
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(LEGACY_TOKEN_KEY);
+      localStorage.removeItem(REFRESH_TOKEN_KEY);
+      setState({
+        isAuthenticated: false,
+        role: null,
+        email: null,
+        id: null,
+        accessProfile: null,
+        permissions: [],
+      });
+      if (window.location.pathname !== "/") {
+        window.location.replace("/");
+      }
+    }
+
+    window.addEventListener(SESSION_EXPIRED_EVENT, handleSessionExpired);
+    return () => window.removeEventListener(SESSION_EXPIRED_EVENT, handleSessionExpired);
+  }, []);
+
   async function restoreSessionFromToken(token: string) {
     try {
       const user = await fetchCurrentUser(token);
@@ -99,10 +122,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } else {
         localStorage.removeItem(TOKEN_KEY);
         localStorage.removeItem(LEGACY_TOKEN_KEY);
+        localStorage.removeItem(REFRESH_TOKEN_KEY);
         setState({ isAuthenticated: false, role: null, email: null, id: null });
       }
     } catch (err) {
       console.error("Error restoring session:", err);
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(LEGACY_TOKEN_KEY);
+      localStorage.removeItem(REFRESH_TOKEN_KEY);
       setState({ isAuthenticated: false, role: null, email: null, id: null });
     }
   }

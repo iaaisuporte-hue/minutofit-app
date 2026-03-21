@@ -12,7 +12,7 @@ export default function ProtectedRoute({
 }) {
   const { isAuthenticated, role, profileCompleted } = useAuth();
 
-  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (!isAuthenticated) return <Navigate to="/" replace />;
 
   // Check if profile completion is required
   if (profileCompleted === false) {
@@ -22,7 +22,7 @@ export default function ProtectedRoute({
   // ✅ Admin tem acesso total
   if (role === "admin") return <>{children}</>;
 
-  if (!role || !allow.includes(role)) return <Navigate to="/login" replace />;
+  if (!role || !allow.includes(role)) return <Navigate to="/" replace />;
 
   return <>{children}</>;
 }

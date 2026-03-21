@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { addWorkoutHistoryEntry, wasMuscleGroupTrainedYesterday, type MuscleGroup } from "./workoutHistory";
 import { getStreak, registerDailyCheckin } from "./gamification";
@@ -52,11 +52,19 @@ const MOCK_WORKOUTS: Record<string, Workout> = {
   },
 };
 
-declare global {
-  interface Window {
-    YT: any;
-    onYouTubeIframeAPIReady: () => void;
-  }
+function getYoutubeEmbedUrl(videoId: string) {
+  const params = new URLSearchParams({
+    autoplay: "1",
+    playsinline: "1",
+    rel: "0",
+    modestbranding: "1",
+  });
+
+  return `https://www.youtube-nocookie.com/embed/${videoId}?${params.toString()}`;
+}
+
+function getYoutubeWatchUrl(videoId: string) {
+  return `https://www.youtube.com/watch?v=${videoId}`;
 }
 
 export default function WorkoutPlayerPage() {
@@ -90,20 +98,14 @@ export default function WorkoutPlayerPage() {
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [finished, setFinished] = useState(false);
-  const [ytReady, setYtReady] = useState(false);
   const [blockedMessage, setBlockedMessage] = useState<string | null>(null);
   const [rewardMessage, setRewardMessage] = useState<string | null>(null);
 
-  // ⏱ Timer baseado no tempo REAL do vídeo
   const [secondsLeft, setSecondsLeft] = useState<number | null>(null);
-  const tickRef = useRef<number | null>(null);
-
-  const playerRef = useRef<any>(null);
-  const playerHostIdRef = useRef(`yt_player_${Math.random().toString(36).slice(2)}`);
-
-  // Guards contra múltiplos ENDED / reentrância
-  const finishingRef = useRef(false);
-  const finishedRef = useRef(false);
+  const [iframeLoaded, setIframeLoaded] = useState(false);
+  const [countdownActive, setCountdownActive] = useState(false);
+  const [isFinishing, setIsFinishing] = useState(false);
+  const [isFinished, setIsFinished] = useState(false);
 
   // Restaurar progresso salvo
   useEffect(() => {
@@ -121,63 +123,12 @@ export default function WorkoutPlayerPage() {
     localStorage.setItem(storageKey, String(currentIndex));
   }, [currentIndex, storageKey, workoutId]);
 
-  // Carregar API do YouTube
-  useEffect(() => {
-    if (window.YT && window.YT.Player) {
-      setYtReady(true);
-      return;
-    }
-
-    const existing = document.querySelector('script[src="https://www.youtube.com/iframe_api"]');
-    if (!existing) {
-      const tag = document.createElement("script");
-      tag.src = "https://www.youtube.com/iframe_api";
-      document.body.appendChild(tag);
-    }
-
-    const prev = window.onYouTubeIframeAPIReady;
-    window.onYouTubeIframeAPIReady = () => {
-      if (typeof prev === "function") prev();
-      setYtReady(true);
-    };
-  }, []);
-
-  function stopTick() {
-    if (tickRef.current) window.clearInterval(tickRef.current);
-    tickRef.current = null;
-  }
-
-  function startTickWithPlayerFallback(fallbackMin: number) {
-    stopTick();
-
-    // fallback inicial (se getDuration demorar)
-    setSecondsLeft(fallbackMin * 60);
-
-    tickRef.current = window.setInterval(() => {
-      const p = playerRef.current;
-      if (!p || typeof p.getDuration !== "function" || typeof p.getCurrentTime !== "function") return;
-
-      const dur = Number(p.getDuration()); // segundos
-      const cur = Number(p.getCurrentTime()); // segundos
-      if (!isFinite(dur) || dur <= 0) return;
-
-      const left = Math.max(0, Math.ceil(dur - cur));
-      setSecondsLeft(left);
-    }, 500);
-  }
-
   async function finishWorkout() {
-    if (finishingRef.current || finishedRef.current) return;
-    finishingRef.current = true;
-
-    stopTick();
+    if (isFinishing || isFinished) return;
+    setIsFinishing(true);
+    setCountdownActive(false);
     setSecondsLeft(0);
-
-    try {
-      if (playerRef.current?.pauseVideo) playerRef.current.pauseVideo();
-    } catch {}
-
-    finishedRef.current = true;
+    setIsFinished(true);
     setFinished(true);
 
     localStorage.removeItem(storageKey);
@@ -208,103 +159,24 @@ export default function WorkoutPlayerPage() {
         console.error("Failed to persist workout gamification:", error);
       }
     }
+
+    setIsFinishing(false);
   }
 
   function goNext() {
     if (!workout) return;
-    if (finishedRef.current || finishingRef.current) return;
+    if (isFinished || isFinishing) return;
 
     const lastIndex = workout.steps.length - 1;
 
     if (currentIndex < lastIndex) {
       setCurrentIndex((i) => Math.min(i + 1, lastIndex));
-      // tenta pausar/evitar áudio do vídeo anterior no instante da troca
-      try {
-        if (playerRef.current?.stopVideo) playerRef.current.stopVideo();
-      } catch {}
+      setCountdownActive(false);
+      setIframeLoaded(false);
     } else {
       finishWorkout();
     }
   }
-
-  function handleVideoEnded() {
-    goNext();
-  }
-
-  // ✅ Fallback: se o timer chegar em 0 e for o último vídeo, finaliza
-  useEffect(() => {
-    if (!workout) return;
-    if (finished) return;
-    if (secondsLeft === null) return;
-
-    // quando chegar em 0, avança (ou finaliza)
-    if (secondsLeft <= 0) {
-      goNext();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [secondsLeft, workout, finished]);
-
-  // Criar / atualizar player quando muda a etapa
-  useEffect(() => {
-    if (!workout) return;
-    if (!ytReady) return;
-    if (finished) return;
-
-    const steps = workout.steps;
-    const lastIndex = steps.length - 1;
-    const safeIndex = Math.min(Math.max(currentIndex, 0), lastIndex);
-    const step = steps[safeIndex];
-
-    startTickWithPlayerFallback(step.durationMin);
-
-    // reset do guard de finishing quando muda etapa
-    finishingRef.current = false;
-
-    if (playerRef.current) {
-      try {
-        playerRef.current.loadVideoById(step.videoId);
-      } catch {}
-      return;
-    }
-
-    playerRef.current = new window.YT.Player(playerHostIdRef.current, {
-      width: "100%",
-      height: "100%",
-      videoId: step.videoId,
-      playerVars: {
-        autoplay: 1,
-        controls: 1,
-        modestbranding: 1,
-        rel: 0,
-        playsinline: 1,
-        origin: window.location.origin,
-        iv_load_policy: 3,
-      },
-      events: {
-        onReady: (event: any) => {
-          try {
-            event.target.playVideo();
-          } catch {}
-        },
-        onStateChange: (event: any) => {
-          // 0 = ENDED
-          if (event.data === 0) handleVideoEnded();
-        },
-      },
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [workout, currentIndex, ytReady, finished]);
-
-  // Cleanup no unmount
-  useEffect(() => {
-    return () => {
-      stopTick();
-      try {
-        if (playerRef.current?.destroy) playerRef.current.destroy();
-      } catch {}
-      playerRef.current = null;
-    };
-  }, []);
 
   useEffect(() => {
     if (!workout) return;
@@ -330,6 +202,30 @@ export default function WorkoutPlayerPage() {
 
     setBlockedMessage(null);
   }, [workout]);
+
+  useEffect(() => {
+    if (!workout || blockedMessage || finished) return;
+    const step = workout.steps[currentIndex];
+    if (!step) return;
+
+    setSecondsLeft(step.durationMin * 60);
+    setIframeLoaded(false);
+    setCountdownActive(false);
+  }, [blockedMessage, currentIndex, finished, workout]);
+
+  useEffect(() => {
+    if (!countdownActive || finished || blockedMessage) return;
+    if (secondsLeft === null || secondsLeft <= 0) return;
+
+    const timer = window.setInterval(() => {
+      setSecondsLeft((prev) => {
+        if (prev === null) return prev;
+        return Math.max(prev - 1, 0);
+      });
+    }, 1000);
+
+    return () => window.clearInterval(timer);
+  }, [blockedMessage, countdownActive, finished, secondsLeft]);
 
   function formatTime(sec: number | null) {
     if (sec === null) return "--:--";
@@ -403,6 +299,8 @@ export default function WorkoutPlayerPage() {
   const safeIndex = Math.min(Math.max(currentIndex, 0), lastIndex);
   const current = steps[safeIndex];
   const progressPct = Math.round(((safeIndex + 1) / steps.length) * 100);
+  const currentEmbedUrl = getYoutubeEmbedUrl(current.videoId);
+  const currentYoutubeUrl = getYoutubeWatchUrl(current.videoId);
 
   const streak = getStreak() || 1;
   const suggestion = workout.nextSuggestionId;
@@ -456,13 +354,23 @@ export default function WorkoutPlayerPage() {
           background: "#000",
         }}
       >
-        <div
-          id={playerHostIdRef.current}
+        <iframe
+          key={current.id}
+          src={currentEmbedUrl}
+          title={current.title}
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allowFullScreen
+          referrerPolicy="strict-origin-when-cross-origin"
           style={{
             position: "absolute",
             inset: 0,
             width: "100%",
             height: "100%",
+            border: 0,
+          }}
+          onLoad={() => {
+            setIframeLoaded(true);
+            setCountdownActive(true);
           }}
         />
 
@@ -486,7 +394,6 @@ export default function WorkoutPlayerPage() {
           </div>
         ) : null}
 
-        {/* ✅ Botão avançar manual */}
         {!finished ? (
           <button
             onClick={goNext}
@@ -510,7 +417,7 @@ export default function WorkoutPlayerPage() {
           </button>
         ) : null}
 
-        {!ytReady ? (
+        {!iframeLoaded ? (
           <div
             style={{
               position: "absolute",
@@ -573,8 +480,10 @@ export default function WorkoutPlayerPage() {
                   <button
                     onClick={() => {
                       if (blockedMessage) return;
-                      finishedRef.current = false;
-                      finishingRef.current = false;
+                      setIsFinished(false);
+                      setIsFinishing(false);
+                      setCountdownActive(false);
+                      setIframeLoaded(false);
                       setFinished(false);
                       setCurrentIndex(0);
                       navigate(`/app/user/treinos/player/${suggestion}`);
@@ -617,13 +526,33 @@ export default function WorkoutPlayerPage() {
 
       {/* Info da etapa */}
       {!finished ? (
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
           <div>
             <div style={{ fontWeight: 900 }}>
               {safeIndex + 1}/{steps.length} — {current?.title ?? ""}
             </div>
-            <div style={{ fontSize: 13, color: "#666" }}>Avança automaticamente quando o vídeo termina ▶️</div>
+            <div style={{ fontSize: 13, color: "#666" }}>
+              Embed direto do YouTube para funcionar melhor no mobile. Se o player do navegador travar, abra no app do YouTube.
+            </div>
           </div>
+
+          <a
+            href={currentYoutubeUrl}
+            target="_blank"
+            rel="noreferrer"
+            style={{
+              padding: "10px 14px",
+              borderRadius: 12,
+              border: "1px solid #eee",
+              background: "#fff",
+              textDecoration: "none",
+              fontWeight: 900,
+              color: "#111",
+              width: "fit-content",
+            }}
+          >
+            Abrir no YouTube
+          </a>
         </div>
       ) : null}
     </div>

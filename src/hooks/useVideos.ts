@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { handleUnauthorizedResponse } from "../services/apiBase";
 
 export interface Video {
   id: number;
@@ -54,6 +55,10 @@ export function useVideos(options: UseVideosOptions = {}) {
             Authorization: `Bearer ${localStorage.getItem("minutofit_token") || localStorage.getItem("token")}`,
           },
         });
+
+        if (handleUnauthorizedResponse(response)) {
+          return;
+        }
 
         if (!response.ok) {
           throw new Error("Erro ao buscar vídeos");

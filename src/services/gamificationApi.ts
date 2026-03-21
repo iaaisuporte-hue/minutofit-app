@@ -1,4 +1,4 @@
-import { API_URL } from "./apiBase";
+import { API_URL, handleUnauthorizedResponse } from "./apiBase";
 
 function getToken() {
   return localStorage.getItem("minutofit_token");
@@ -39,6 +39,10 @@ export async function persistGamificationCheckin(payload: {
     body: JSON.stringify(payload),
   });
 
+  if (handleUnauthorizedResponse(response)) {
+    return null;
+  }
+
   const data = await parseJson(response);
   if (!response.ok) {
     throw new Error(data?.error || "Nao foi possivel persistir a gamificacao.");
@@ -56,6 +60,10 @@ export async function fetchGamificationSummary() {
       Authorization: `Bearer ${token}`,
     },
   });
+
+  if (handleUnauthorizedResponse(response)) {
+    return null;
+  }
 
   const data = await parseJson(response);
   if (!response.ok) {

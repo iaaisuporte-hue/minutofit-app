@@ -1,6 +1,6 @@
 import type { Role } from "../auth/AuthContext";
 import type { AccessProfile, AppPermission } from "../auth/accessControl";
-import { API_URL } from "./apiBase";
+import { API_URL, handleUnauthorizedResponse } from "./apiBase";
 
 export interface AuthApiUser {
   id: number;
@@ -121,6 +121,10 @@ export async function fetchCurrentUser(token: string): Promise<AuthApiUser | nul
       Authorization: `Bearer ${token}`,
     },
   });
+
+  if (handleUnauthorizedResponse(response)) {
+    return null;
+  }
 
   if (!response.ok) {
     return null;
