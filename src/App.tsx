@@ -9,6 +9,7 @@ import PersonalApp from "./pages/PersonalApp";
 import NutriApp from "./pages/NutriApp";
 import AdminApp from "./pages/AdminApp";
 import ColorModeToggle from "./components/ColorModeToggle";
+import HomePage from "./pages/HomePage";
 
 export default function App() {
   return (
@@ -16,6 +17,7 @@ export default function App() {
       <ColorModeToggle />
       <Routes>
         <Route path="/" element={<Navigate to="/login" replace />} />
+        <Route path="/home-teste" element={<HomePage />} />
         <Route path="/login" element={<Login />} />
         <Route
           path="/profile-completion"
