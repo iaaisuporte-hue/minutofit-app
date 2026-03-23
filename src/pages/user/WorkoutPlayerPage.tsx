@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { addWorkoutHistoryEntry, wasMuscleGroupTrainedYesterday, type MuscleGroup } from "./workoutHistory";
 import { getStreak, registerDailyCheckin } from "./gamification";
 import { persistGamificationCheckin } from "../../services/gamificationApi";
-import { homeWorkoutCatalog } from "./homeWorkoutCatalog";
+import { homeWorkoutCatalog, type HomeWorkoutAccessibility } from "./homeWorkoutCatalog";
 
 type Step = {
   id: string;
@@ -18,6 +18,7 @@ type Workout = {
   steps: Step[];
   nextSuggestionId?: string;
   alwaysAvailable?: boolean;
+  accessibility?: HomeWorkoutAccessibility;
 };
 
 const MOCK_WORKOUTS: Record<string, Workout> = {
@@ -83,6 +84,7 @@ export default function WorkoutPlayerPage() {
       title: short.title,
       muscleGroup: short.muscleGroups[0] || "full_body",
       alwaysAvailable: short.alwaysAvailable,
+      accessibility: short.accessibility,
       steps: [
         {
           id: `${short.id}-step-1`,
@@ -304,6 +306,7 @@ export default function WorkoutPlayerPage() {
 
   const streak = getStreak() || 1;
   const suggestion = workout.nextSuggestionId;
+  const accessibility = workout.accessibility;
 
   return (
     <div style={{ display: "grid", gap: 12 }}>
@@ -357,7 +360,7 @@ export default function WorkoutPlayerPage() {
         <iframe
           key={current.id}
           src={currentEmbedUrl}
-          title={current.title}
+          title={`Video do treino: ${current.title}`}
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
           allowFullScreen
           referrerPolicy="strict-origin-when-cross-origin"
@@ -397,6 +400,7 @@ export default function WorkoutPlayerPage() {
         {!finished ? (
           <button
             onClick={goNext}
+            aria-label="Avancar para o proximo video do treino"
             style={{
               position: "absolute",
               left: 12,
@@ -540,6 +544,7 @@ export default function WorkoutPlayerPage() {
             href={currentYoutubeUrl}
             target="_blank"
             rel="noreferrer"
+            aria-label={`Abrir ${current.title} no YouTube em nova aba`}
             style={{
               padding: "10px 14px",
               borderRadius: 12,
@@ -554,6 +559,70 @@ export default function WorkoutPlayerPage() {
             Abrir no YouTube
           </a>
         </div>
+      ) : null}
+
+      {accessibility ? (
+        <section
+          aria-label="Recursos de acessibilidade do treino"
+          style={{
+            border: "1px solid rgba(255,255,255,.16)",
+            borderRadius: 14,
+            padding: 12,
+            background: "rgba(255,255,255,.04)",
+            display: "grid",
+            gap: 10,
+          }}
+        >
+          <div style={{ fontWeight: 900, color: "#FFFFFF" }}>Recursos de acessibilidade</div>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <span
+              style={{
+                borderRadius: 999,
+                padding: "6px 10px",
+                fontSize: 12,
+                fontWeight: 800,
+                border: "1px solid rgba(255,255,255,.22)",
+                color: "#FFFFFF",
+                background: accessibility.visual ? "rgba(27,153,139,.28)" : "rgba(255,255,255,.08)",
+              }}
+            >
+              Visual: {accessibility.visual ? "suportado" : "parcial"}
+            </span>
+            <span
+              style={{
+                borderRadius: 999,
+                padding: "6px 10px",
+                fontSize: 12,
+                fontWeight: 800,
+                border: "1px solid rgba(255,255,255,.22)",
+                color: "#FFFFFF",
+                background: accessibility.auditory ? "rgba(27,153,139,.28)" : "rgba(255,255,255,.08)",
+              }}
+            >
+              Auditiva: {accessibility.auditory ? "suportado" : "parcial"}
+            </span>
+            <span
+              style={{
+                borderRadius: 999,
+                padding: "6px 10px",
+                fontSize: 12,
+                fontWeight: 800,
+                border: "1px solid rgba(255,255,255,.22)",
+                color: "#FFFFFF",
+                background: accessibility.motor ? "rgba(27,153,139,.28)" : "rgba(255,255,255,.08)",
+              }}
+            >
+              Motora: {accessibility.motor ? "suportado" : "parcial"}
+            </span>
+          </div>
+          {accessibility.notes.length > 0 ? (
+            <ul style={{ margin: 0, paddingLeft: 20, color: "rgba(255,255,255,.92)", lineHeight: 1.4 }}>
+              {accessibility.notes.map((note) => (
+                <li key={note}>{note}</li>
+              ))}
+            </ul>
+          ) : null}
+        </section>
       ) : null}
     </div>
   );

@@ -8,10 +8,12 @@ import UserApp from "./pages/UserApp";
 import PersonalApp from "./pages/PersonalApp";
 import NutriApp from "./pages/NutriApp";
 import AdminApp from "./pages/AdminApp";
+import ColorModeToggle from "./components/ColorModeToggle";
 
 export default function App() {
   return (
     <AuthProvider>
+      <ColorModeToggle />
       <Routes>
         <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="/login" element={<Login />} />

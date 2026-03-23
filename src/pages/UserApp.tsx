@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { NavLink, Navigate, Route, Routes, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import AppShell from "../layout/AppShell";
@@ -56,10 +56,19 @@ function RedirectToDefault() {
   return <Navigate to={USER_DEFAULT} replace />;
 }
 
+function LimitedUserOnly({ allowed, children }: { allowed: boolean; children: React.ReactNode }) {
+  if (!allowed) return <Navigate to={USER_DEFAULT} replace />;
+  return <>{children}</>;
+}
+
 export default function UserApp() {
   const navigate = useNavigate();
-  const { logout } = useAuth();
+  const { logout, accessProfile, email } = useAuth();
   const [selectedTraining, setSelectedTraining] = useState<"chest" | "leg" | null>(null);
+  const isLimitedUser = useMemo(() => {
+    const normalizedEmail = String(email || "").trim().toLowerCase();
+    return accessProfile === "clientes_sb" || normalizedEmail === "teste1@treinai.com";
+  }, [accessProfile, email]);
 
   function handleLogout() {
     logout();
@@ -80,22 +89,28 @@ export default function UserApp() {
 
             <div className="navStack">
               <MenuLink to={`${USER_BASE}/today`} label="Hoje" icon="🏠" />
-              <MenuLink to={`${USER_BASE}/treinos`} label="Treinos" icon="🏋️" />
-              <MenuLink to={`${USER_BASE}/activities`} label="Tracker" icon="🏃" />
-              <MenuLink to={`${USER_BASE}/messages`} label="Mensagens" icon="💬" />
-              <MenuLink to={`${USER_BASE}/profile`} label="Perfil" icon="👤" />
+              {isLimitedUser ? (
+                <MenuLink to={`${USER_BASE}/treinos/em-casa`} label="Treinos em casa" icon="🏠" />
+              ) : (
+                <>
+                  <MenuLink to={`${USER_BASE}/treinos`} label="Treinos" icon="🏋️" />
+                  <MenuLink to={`${USER_BASE}/activities`} label="Tracker" icon="🏃" />
+                  <MenuLink to={`${USER_BASE}/messages`} label="Mensagens" icon="💬" />
+                  <MenuLink to={`${USER_BASE}/profile`} label="Perfil" icon="👤" />
 
-              <div style={{ height: 4 }} />
+                  <div style={{ height: 4 }} />
 
-              <div className="sectionLabel">Treino personalizado</div>
-              <MenuLink to={`${USER_BASE}/suggested-training`} label="Treino Sugerido" icon="🎯" />
-              <MenuLink to={`${USER_BASE}/movement-lab`} label="Lab de Movimento" icon="📷" />
+                  <div className="sectionLabel">Treino personalizado</div>
+                  <MenuLink to={`${USER_BASE}/suggested-training`} label="Treino Sugerido" icon="🎯" />
+                  <MenuLink to={`${USER_BASE}/movement-lab`} label="Lab de Movimento" icon="📷" />
 
-              <div style={{ height: 4 }} />
+                  <div style={{ height: 4 }} />
 
-              <div className="sectionLabel">Atalhos</div>
-              <MenuLink to={`${USER_BASE}/upgrade`} label="Evoluir plano" icon="⭐" />
-              <MenuLink to={`${USER_BASE}/settings`} label="Configurações" icon="⚙️" />
+                  <div className="sectionLabel">Atalhos</div>
+                  <MenuLink to={`${USER_BASE}/upgrade`} label="Evoluir plano" icon="⭐" />
+                  <MenuLink to={`${USER_BASE}/settings`} label="Configurações" icon="⚙️" />
+                </>
+              )}
             </div>
 
             <div style={{ flex: 1 }} />
@@ -122,24 +137,94 @@ export default function UserApp() {
 
               {/* ✅ ROTAS */}
               <Route path="today" element={<TodayPage />} />
-              <Route path="activities" element={<ActivityTrackerPage />} />
-              <Route path="messages" element={<UserMessagesPage />} />
-              <Route path="profile" element={<UserProfilePage onLogout={handleLogout} />} />
-              <Route path="movement-lab" element={<MovementLabPage />} />
+              <Route
+                path="activities"
+                element={
+                  <LimitedUserOnly allowed={!isLimitedUser}>
+                    <ActivityTrackerPage />
+                  </LimitedUserOnly>
+                }
+              />
+              <Route
+                path="messages"
+                element={
+                  <LimitedUserOnly allowed={!isLimitedUser}>
+                    <UserMessagesPage />
+                  </LimitedUserOnly>
+                }
+              />
+              <Route
+                path="profile"
+                element={
+                  <LimitedUserOnly allowed={!isLimitedUser}>
+                    <UserProfilePage onLogout={handleLogout} />
+                  </LimitedUserOnly>
+                }
+              />
+              <Route
+                path="movement-lab"
+                element={
+                  <LimitedUserOnly allowed={!isLimitedUser}>
+                    <MovementLabPage />
+                  </LimitedUserOnly>
+                }
+              />
 
               {/* ✅ ONBOARDING (blindado: relativa + absoluta) */}
-              <Route path="onboarding" element={<OnboardingPage />} />
-              <Route path="/app/user/onboarding" element={<OnboardingPage />} />
+              <Route
+                path="onboarding"
+                element={
+                  <LimitedUserOnly allowed={!isLimitedUser}>
+                    <OnboardingPage />
+                  </LimitedUserOnly>
+                }
+              />
+              <Route
+                path="/app/user/onboarding"
+                element={
+                  <LimitedUserOnly allowed={!isLimitedUser}>
+                    <OnboardingPage />
+                  </LimitedUserOnly>
+                }
+              />
 
               {/* ✅ ROTAS antigas (mantidas) */}
-              <Route path="treinos" element={<TreinosPage />} />
+              <Route
+                path="treinos"
+                element={
+                  <LimitedUserOnly allowed={!isLimitedUser}>
+                    <TreinosPage />
+                  </LimitedUserOnly>
+                }
+              />
               <Route path="treinos/em-casa" element={<HomeWorkoutsPage />} />
               <Route path="treinos/player/:workoutId" element={<WorkoutPlayerPage />} />
-              <Route path="upgrade" element={<UpgradePlanPage />} />
-              <Route path="settings" element={<AccountSettingsPage />} />
+              <Route
+                path="upgrade"
+                element={
+                  <LimitedUserOnly allowed={!isLimitedUser}>
+                    <UpgradePlanPage />
+                  </LimitedUserOnly>
+                }
+              />
+              <Route
+                path="settings"
+                element={
+                  <LimitedUserOnly allowed={!isLimitedUser}>
+                    <AccountSettingsPage />
+                  </LimitedUserOnly>
+                }
+              />
 
               {/* ✅ TREINO SUGERIDO */}
-              <Route path="suggested-training" element={<SuggestedTrainingPage />} />
+              <Route
+                path="suggested-training"
+                element={
+                  <LimitedUserOnly allowed={!isLimitedUser}>
+                    <SuggestedTrainingPage />
+                  </LimitedUserOnly>
+                }
+              />
 
               {/* ✅ FALLBACK seguro */}
               <Route path="*" element={<RedirectToDefault />} />

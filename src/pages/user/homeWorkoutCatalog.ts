@@ -1,5 +1,12 @@
 import type { MuscleGroup } from "./workoutHistory";
 
+export type HomeWorkoutAccessibility = {
+  visual: boolean;
+  auditory: boolean;
+  motor: boolean;
+  notes: string[];
+};
+
 export type HomeWorkoutItem = {
   id: string;
   title: string;
@@ -9,6 +16,7 @@ export type HomeWorkoutItem = {
   badges: string[];
   alwaysAvailable?: boolean;
   durationMin: number;
+  accessibility: HomeWorkoutAccessibility;
 };
 
 export const homeWorkoutCatalog: HomeWorkoutItem[] = [
@@ -20,6 +28,12 @@ export const homeWorkoutCatalog: HomeWorkoutItem[] = [
     muscleGroups: ["chest"],
     badges: ["Peito", "Short"],
     durationMin: 1,
+    accessibility: {
+      visual: false,
+      auditory: false,
+      motor: false,
+      notes: ["Versao padrao sem recursos dedicados adicionais."],
+    },
   },
   {
     id: "short-abdomen",
@@ -29,6 +43,12 @@ export const homeWorkoutCatalog: HomeWorkoutItem[] = [
     muscleGroups: ["core"],
     badges: ["Abdômen", "Short"],
     durationMin: 1,
+    accessibility: {
+      visual: false,
+      auditory: false,
+      motor: false,
+      notes: ["Versao padrao sem recursos dedicados adicionais."],
+    },
   },
   {
     id: "short-bracos-costas",
@@ -38,6 +58,12 @@ export const homeWorkoutCatalog: HomeWorkoutItem[] = [
     muscleGroups: ["arms", "back"],
     badges: ["Braços", "Costas", "Short"],
     durationMin: 1,
+    accessibility: {
+      visual: false,
+      auditory: false,
+      motor: false,
+      notes: ["Versao padrao sem recursos dedicados adicionais."],
+    },
   },
   {
     id: "short-queima-gordura",
@@ -48,6 +74,15 @@ export const homeWorkoutCatalog: HomeWorkoutItem[] = [
     badges: ["Cardio", "Sempre liberado"],
     alwaysAvailable: true,
     durationMin: 1,
+    accessibility: {
+      visual: true,
+      auditory: false,
+      motor: true,
+      notes: [
+        "Narracao basica por voz do instrutor facilita acompanhamento sem foco visual continuo.",
+        "Pode ser executado com impacto reduzido em ritmo moderado.",
+      ],
+    },
   },
   {
     id: "short-perna-gluteo",
@@ -57,6 +92,12 @@ export const homeWorkoutCatalog: HomeWorkoutItem[] = [
     muscleGroups: ["legs"],
     badges: ["Pernas", "Glúteo", "Short"],
     durationMin: 1,
+    accessibility: {
+      visual: false,
+      auditory: false,
+      motor: false,
+      notes: ["Versao padrao sem recursos dedicados adicionais."],
+    },
   },
   {
     id: "short-aquecimento",
@@ -67,6 +108,15 @@ export const homeWorkoutCatalog: HomeWorkoutItem[] = [
     badges: ["Aquecimento", "Sempre liberado"],
     alwaysAvailable: true,
     durationMin: 1,
+    accessibility: {
+      visual: true,
+      auditory: true,
+      motor: true,
+      notes: [
+        "Treino indicado como porta de entrada para baixa mobilidade.",
+        "Pode ser executado com apoio de cadeira ou parede.",
+      ],
+    },
   },
   {
     id: "short-alongamento",
@@ -77,6 +127,15 @@ export const homeWorkoutCatalog: HomeWorkoutItem[] = [
     badges: ["Alongamento", "Sempre liberado"],
     alwaysAvailable: true,
     durationMin: 1,
+    accessibility: {
+      visual: true,
+      auditory: true,
+      motor: true,
+      notes: [
+        "Movimentos de menor impacto com foco em amplitude gradual.",
+        "Sugestao de pausas maiores entre repeticoes para controle motor fino.",
+      ],
+    },
   },
   {
     id: "short-triceps",
@@ -86,6 +145,12 @@ export const homeWorkoutCatalog: HomeWorkoutItem[] = [
     muscleGroups: ["arms"],
     badges: ["Tríceps", "Short"],
     durationMin: 1,
+    accessibility: {
+      visual: false,
+      auditory: false,
+      motor: false,
+      notes: ["Versao padrao sem recursos dedicados adicionais."],
+    },
   },
   {
     id: "short-perna",
@@ -95,5 +160,11 @@ export const homeWorkoutCatalog: HomeWorkoutItem[] = [
     muscleGroups: ["legs"],
     badges: ["Pernas", "Short"],
     durationMin: 1,
+    accessibility: {
+      visual: false,
+      auditory: false,
+      motor: false,
+      notes: ["Versao padrao sem recursos dedicados adicionais."],
+    },
   },
 ];

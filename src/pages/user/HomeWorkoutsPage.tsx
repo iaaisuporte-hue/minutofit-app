@@ -47,6 +47,27 @@ function Pill({ children }: { children: React.ReactNode }) {
   );
 }
 
+function AccessibilityPill({ label, supported }: { label: string; supported: boolean }) {
+  return (
+    <span
+      style={{
+        padding: "6px 10px",
+        borderRadius: 999,
+        border: `1px solid ${supported ? "rgba(124,255,107,.36)" : COLORS.border}`,
+        fontSize: 11,
+        fontWeight: 900,
+        background: supported ? "rgba(124,255,107,.16)" : "rgba(255,255,255,.05)",
+        color: "rgba(255,255,255,.94)",
+        lineHeight: "1",
+        display: "inline-flex",
+        alignItems: "center",
+      }}
+    >
+      {label}: {supported ? "suporte" : "parcial"}
+    </span>
+  );
+}
+
 export default function HomeWorkoutsPage() {
   const navigate = useNavigate();
   const yesterdayMuscleGroups = useMemo(() => getYesterdayMuscleGroups(), []);
@@ -241,6 +262,19 @@ export default function HomeWorkoutsPage() {
                           : `Grupo principal: ${workout.muscleGroups.map((group) => groupLabelMap[group]).join(", ")}.`}
                     </div>
 
+                    <div style={{ display: "grid", gap: 8 }}>
+                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                        <AccessibilityPill label="Visual" supported={workout.accessibility.visual} />
+                        <AccessibilityPill label="Auditiva" supported={workout.accessibility.auditory} />
+                        <AccessibilityPill label="Motora" supported={workout.accessibility.motor} />
+                      </div>
+                      {workout.accessibility.notes.length > 0 ? (
+                        <div style={{ color: COLORS.mutedSoft, fontSize: 12, lineHeight: 1.45 }}>
+                          {workout.accessibility.notes[0]}
+                        </div>
+                      ) : null}
+                    </div>
+
                     <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                       <button
                         type="button"
@@ -261,6 +295,30 @@ export default function HomeWorkoutsPage() {
                       >
                         {disabled ? "Treino não disponível hoje" : "Assistir no app"}
                       </button>
+
+                      <a
+                        href={workout.youtubeUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        onClick={(event) => {
+                          if (!disabled) return;
+                          event.preventDefault();
+                        }}
+                        style={{
+                          padding: "12px 14px",
+                          borderRadius: 14,
+                          border: `1px solid ${disabled ? "rgba(255,255,255,.12)" : COLORS.border}`,
+                          background: "rgba(255,255,255,.03)",
+                          color: disabled ? COLORS.mutedSoft : COLORS.text,
+                          fontWeight: 1000,
+                          textDecoration: "none",
+                          cursor: disabled ? "not-allowed" : "pointer",
+                          width: "fit-content",
+                          opacity: disabled ? 0.7 : 1,
+                        }}
+                      >
+                        Abrir no YouTube
+                      </a>
                     </div>
                   </div>
                 );

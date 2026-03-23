@@ -9,6 +9,11 @@ export interface Video {
   thumbnail_url: string;
   duration_seconds: number;
   tags: string[];
+  has_subtitles?: boolean;
+  has_libras?: boolean;
+  has_audio_description?: boolean;
+  low_impact_friendly?: boolean;
+  accessibility_notes?: string | null;
   created_at: string;
 }
 
@@ -16,6 +21,9 @@ interface UseVideosOptions {
   tags?: string[];
   goal?: "weight_loss" | "muscle_gain" | "maintenance";
   limit?: number;
+  visualSupport?: boolean;
+  auditorySupport?: boolean;
+  motorSupport?: boolean;
 }
 
 export function useVideos(options: UseVideosOptions = {}) {
@@ -50,6 +58,18 @@ export function useVideos(options: UseVideosOptions = {}) {
           url += "limit=10";
         }
 
+        if (options.visualSupport !== undefined) {
+          url += `&visualSupport=${options.visualSupport}`;
+        }
+
+        if (options.auditorySupport !== undefined) {
+          url += `&auditorySupport=${options.auditorySupport}`;
+        }
+
+        if (options.motorSupport !== undefined) {
+          url += `&motorSupport=${options.motorSupport}`;
+        }
+
         const response = await fetch(url, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("minutofit_token") || localStorage.getItem("token")}`,
@@ -77,7 +97,7 @@ export function useVideos(options: UseVideosOptions = {}) {
     };
 
     fetchVideos();
-  }, [options.goal, options.tags?.join(","), options.limit]);
+  }, [options.goal, options.tags?.join(","), options.limit, options.visualSupport, options.auditorySupport, options.motorSupport]);
 
   return { videos, loading, error };
 }

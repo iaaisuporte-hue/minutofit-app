@@ -25,6 +25,22 @@
   --maxw: 1060px;
 }
 
+html[data-color-mode="daltonic"]{
+  --primary: #2D7FF9;
+  --primary-deep: #1B2F4B;
+  --highlight: #FFC857;
+  --warn: #FFC857;
+  --success: #38BDF8;
+  --bg: #0f1218;
+  --panel: #121926;
+  --card: #152033;
+  --panel-strong: #0f1727;
+  --stroke: rgba(120, 184, 255, 0.24);
+  --stroke-strong: rgba(255, 200, 87, 0.36);
+  --muted: rgba(255,255,255,.80);
+  --muted2: rgba(226,233,246,.64);
+}
+
 *{ box-sizing:border-box; }
 html,body{ height:100%; }
 body{
@@ -37,6 +53,14 @@ body{
     radial-gradient(circle at top right, rgba(124,255,107,.08), transparent 22%),
     linear-gradient(180deg, #151515 0%, var(--bg) 100%);
   color: var(--white);
+}
+
+html[data-color-mode="daltonic"] body{
+  background:
+    radial-gradient(circle at top left, rgba(45,127,249,.20), transparent 32%),
+    radial-gradient(circle at top right, rgba(255,200,87,.12), transparent 24%),
+    linear-gradient(180deg, #131c2b 0%, var(--bg) 100%);
+  filter: saturate(0.86) contrast(1.08);
 }
 
 /* Layout */
