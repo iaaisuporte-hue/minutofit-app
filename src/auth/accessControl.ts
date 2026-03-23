@@ -5,6 +5,7 @@ export type AccessProfile =
   | "admin_operations"
   | "admin_finance"
   | "admin_support"
+  | "clientes_sb"
   | "user_default"
   | "personal_default"
   | "nutri_default";
@@ -52,6 +53,7 @@ const PROFILE_PERMISSIONS: Record<AccessProfile, AppPermission[]> = {
     "admin.users",
     "admin.users.detail",
   ],
+  clientes_sb: [],
   user_default: [],
   personal_default: [],
   nutri_default: [],
@@ -80,6 +82,11 @@ export const ACCESS_PROFILE_META: Record<
     label: "Admin Suporte",
     roleScope: "admin",
     description: "Ajuda o time a tratar usuários, onboarding e atendimento, com escopo mais restrito.",
+  },
+  clientes_sb: {
+    label: "Clientes SB",
+    roleScope: "user",
+    description: "Perfil com acesso restrito apenas a Hoje e Treinos em casa.",
   },
   user_default: {
     label: "Aluno padrão",
@@ -151,6 +158,7 @@ export const ACCESS_PROFILE_ORDER: AccessProfile[] = [
   "admin_operations",
   "admin_finance",
   "admin_support",
+  "clientes_sb",
   "user_default",
   "personal_default",
   "nutri_default",
