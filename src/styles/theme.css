@@ -60,7 +60,8 @@ html[data-color-mode="daltonic"] body{
     radial-gradient(circle at top left, rgba(45,127,249,.20), transparent 32%),
     radial-gradient(circle at top right, rgba(255,200,87,.12), transparent 24%),
     linear-gradient(180deg, #131c2b 0%, var(--bg) 100%);
-  filter: saturate(0.86) contrast(1.08);
+  /* Shift global hues so hardcoded reds are no longer rendered as pure red. */
+  filter: hue-rotate(28deg) saturate(0.82) contrast(1.08);
 }
 
 /* Layout */
