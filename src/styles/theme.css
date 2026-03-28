@@ -20,6 +20,15 @@
   --muted: rgba(255,255,255,.74);
   --muted2: rgba(232,236,233,.58);
 
+  --neon-accent-soft: rgba(29, 185, 84, 0.18);
+  --neon-accent-border: rgba(29, 185, 84, 0.42);
+  --neon-accent-border-strong: rgba(29, 185, 84, 0.55);
+  --neon-cta-text: #082014;
+  --neon-primary-soft: rgba(29, 185, 84, 0.18);
+  --neon-highlight-soft: rgba(124, 255, 107, 0.12);
+  --neon-danger-soft: rgba(239, 68, 68, 0.12);
+  --neon-danger-border: rgba(239, 68, 68, 0.35);
+
   --radius: 16px;
   --shadow: 0 18px 42px rgba(0,0,0,.42);
   --maxw: 1060px;
@@ -39,6 +48,15 @@ html[data-color-mode="daltonic"]{
   --stroke-strong: rgba(255, 200, 87, 0.36);
   --muted: rgba(255,255,255,.80);
   --muted2: rgba(226,233,246,.64);
+
+  --neon-accent-soft: rgba(45, 127, 249, 0.22);
+  --neon-accent-border: rgba(45, 127, 249, 0.48);
+  --neon-accent-border-strong: rgba(255, 200, 87, 0.5);
+  --neon-cta-text: #0f1727;
+  --neon-primary-soft: rgba(45, 127, 249, 0.22);
+  --neon-highlight-soft: rgba(255, 200, 87, 0.18);
+  --neon-danger-soft: rgba(220, 38, 38, 0.14);
+  --neon-danger-border: rgba(248, 113, 113, 0.42);
 }
 
 *{ box-sizing:border-box; }
@@ -60,8 +78,6 @@ html[data-color-mode="daltonic"] body{
     radial-gradient(circle at top left, rgba(45,127,249,.20), transparent 32%),
     radial-gradient(circle at top right, rgba(255,200,87,.12), transparent 24%),
     linear-gradient(180deg, #131c2b 0%, var(--bg) 100%);
-  /* Shift global hues so hardcoded reds are no longer rendered as pure red. */
-  filter: hue-rotate(28deg) saturate(0.82) contrast(1.08);
 }
 
 /* Layout */
@@ -156,9 +172,22 @@ html[data-color-mode="daltonic"] body{
 }
 
 .navLinkActive{
-  background: linear-gradient(135deg, rgba(29,185,84,.2) 0%, rgba(124,255,107,.12) 100%);
-  border-color: rgba(29,185,84,.42);
-  box-shadow: 0 14px 28px rgba(0,0,0,.22);
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--primary) 24%, transparent) 0%,
+    color-mix(in srgb, var(--highlight) 14%, transparent) 100%
+  );
+  border-color: var(--stroke-strong);
+  box-shadow:
+    inset 3px 0 0 var(--primary),
+    0 14px 28px rgba(0,0,0,.22);
+}
+
+html[data-color-mode="daltonic"] .navLinkActive{
+  box-shadow:
+    inset 3px 0 0 var(--primary),
+    0 0 0 1px rgba(255,255,255,.12),
+    0 14px 28px rgba(0,0,0,.22);
 }
 
 .navLinkCta{
@@ -550,5 +579,29 @@ a:hover{ color: var(--highlight); }
 
   .container{
     gap: 12px;
+  }
+}
+
+/* Compliance banner (clientes_sb) — stack CTA on narrow screens */
+.compliance-banner-root{
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+@media (max-width: 480px){
+  .compliance-banner-root{
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .compliance-banner-root .compliance-banner-cta{
+    width: 100%;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    white-space: normal;
   }
 }

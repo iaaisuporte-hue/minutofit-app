@@ -11,6 +11,11 @@ npm install
 
 No deploy na **Vercel**, a versão do Node segue o campo `engines` em [`package.json`](./package.json).
 
+### Cadastro: senha e CAPTCHA
+
+- **Senha**: mínimo 8 caracteres, 1 letra maiúscula (A–Z) e 1 símbolo não alfanumérico; a mesma regra vale no backend.
+- **Turnstile**: defina `VITE_TURNSTILE_SITE_KEY` no front (Vercel) e `TURNSTILE_SECRET_KEY` no backend. Em local, pode usar `SKIP_CAPTCHA=true` no servidor (veja `.env.example` no backend) enquanto não há chaves.
+
 ---
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.

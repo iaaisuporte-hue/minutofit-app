@@ -140,7 +140,7 @@ export default function TodayPage() {
   }
 
   return (
-    <div style={{ display: "grid", gap: 14, color: COLORS.text }}>
+    <div style={{ display: "grid", gap: 14, color: COLORS.text, minWidth: 0, width: "100%" }}>
       <Card
         style={{
           background: COLORS.panelDeep,
@@ -360,7 +360,14 @@ export default function TodayPage() {
         </div>
       </Card>
 
-      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "minmax(0, 1.1fr) minmax(280px, .9fr)", gap: 14 }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: isMobile ? "1fr" : "minmax(0, 1.1fr) minmax(0, 0.9fr)",
+          gap: 14,
+          minWidth: 0,
+        }}
+      >
         <Card>
           <div style={{ display: "grid", gap: 12 }}>
             <div style={{ display: "grid", gap: 6 }}>

@@ -21,6 +21,7 @@ import OnboardingPage from "./user/OnboardingPage";
 
 // ✅ TREINO SUGERIDO
 import SuggestedTrainingPage from "./user/SuggestedTrainingPage";
+import ComplianceBanner from "../components/ComplianceBanner";
 
 const USER_BASE = "/app/user" as const;
 const USER_DEFAULT = "/app/user/today" as const;
@@ -48,11 +49,8 @@ function LimitedUserOnly({ allowed, children }: { allowed: boolean; children: Re
 
 export default function UserApp() {
   const navigate = useNavigate();
-  const { logout, accessProfile, email } = useAuth();
-  const isLimitedUser = useMemo(() => {
-    const normalizedEmail = String(email || "").trim().toLowerCase();
-    return accessProfile === "clientes_sb" || normalizedEmail === "teste1@treinai.com";
-  }, [accessProfile, email]);
+  const { logout, accessProfile } = useAuth();
+  const isLimitedUser = useMemo(() => accessProfile === "clientes_sb", [accessProfile]);
 
   function handleLogout() {
     logout();
@@ -73,7 +71,10 @@ export default function UserApp() {
             <div className="navStack">
               <MenuLink to={`${USER_BASE}/today`} label="Hoje" icon="🏠" />
               {isLimitedUser ? (
-                <MenuLink to={`${USER_BASE}/treinos/em-casa`} label="Treinos em casa" icon="🏠" />
+                <>
+                  <MenuLink to={`${USER_BASE}/treinos/em-casa`} label="Treinos em casa" icon="🏋️" />
+                  <MenuLink to={`${USER_BASE}/settings`} label="Minha conta" icon="👤" />
+                </>
               ) : (
                 <>
                   <MenuLink to={`${USER_BASE}/treinos`} label="Treinos" icon="🏋️" />
@@ -111,9 +112,12 @@ export default function UserApp() {
           style={{
             display: "grid",
             gap: 16,
+            minWidth: 0,
+            width: "100%",
           }}
         >
           <div className="pageSurface pageSurfacePad">
+            <ComplianceBanner />
             <Routes>
               {/* ✅ INDEX seguro */}
               <Route index element={<RedirectToDefault />} />
@@ -190,14 +194,7 @@ export default function UserApp() {
                   </LimitedUserOnly>
                 }
               />
-              <Route
-                path="settings"
-                element={
-                  <LimitedUserOnly allowed={!isLimitedUser}>
-                    <AccountSettingsPage />
-                  </LimitedUserOnly>
-                }
-              />
+              <Route path="settings" element={<AccountSettingsPage />} />
 
               {/* ✅ TREINO SUGERIDO */}
               <Route

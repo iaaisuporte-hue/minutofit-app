@@ -48,14 +48,19 @@ const PARTICLE_LAYOUT = [
   { l: 68, t: 12, s: 2.6, delay: 1.5, dur: 13 },
 ];
 
+/** Caps vmax-based orbs so narrow viewports do not force horizontal overflow. */
+const ORB_LG = "min(85vmax, 120vmin)";
+const ORB_MD = "min(70vmax, 110vmin)";
+const ORB_SM = "min(55vmax, 95vmin)";
+
 function AnimatedMeshOrbs() {
   return (
     <div className="login-future-mesh" style={{ position: "absolute", inset: 0 }} aria-hidden>
       <motion.div
         style={{
           position: "absolute",
-          width: "85vmax",
-          height: "85vmax",
+          width: ORB_LG,
+          height: ORB_LG,
           borderRadius: "50%",
           left: "-25%",
           top: "-35%",
@@ -72,8 +77,8 @@ function AnimatedMeshOrbs() {
       <motion.div
         style={{
           position: "absolute",
-          width: "70vmax",
-          height: "70vmax",
+          width: ORB_MD,
+          height: ORB_MD,
           borderRadius: "50%",
           right: "-20%",
           bottom: "-25%",
@@ -90,8 +95,8 @@ function AnimatedMeshOrbs() {
       <motion.div
         style={{
           position: "absolute",
-          width: "55vmax",
-          height: "55vmax",
+          width: ORB_SM,
+          height: ORB_SM,
           borderRadius: "50%",
           left: "35%",
           top: "40%",

@@ -1,6 +1,13 @@
 // src/auth/AuthContext.tsx
 import React, { createContext, useContext, useMemo, useState, useEffect } from "react";
-import { fetchCurrentUser, loginWithPassword, loginWithProvider, registerWithPassword, type RegisterPayload } from "../services/authApi";
+import {
+  fetchCurrentUser,
+  loginWithPassword,
+  loginWithProvider,
+  registerWithPassword,
+  type AuthApiHealthFlags,
+  type RegisterPayload,
+} from "../services/authApi";
 import { hasPermission as checkPermission, resolvePermissions, type AccessProfile, type AppPermission } from "./accessControl";
 import { SESSION_EXPIRED_EVENT } from "../services/apiBase";
 import { clearTokens as clearStoredTokens, getAccessToken, setTokens } from "../services/authTokens";
@@ -23,6 +30,13 @@ export interface AuthUser {
   profileCompleted?: boolean;
   accessProfile?: AccessProfile;
   permissions?: AppPermission[];
+  healthFlags?: AuthApiHealthFlags;
+  onboardingAnswers?: Record<string, unknown>;
+  parqAnswers?: Array<{ id: string; yes: boolean }>;
+  parqSignedAt?: string;
+  parqFormVersion?: string;
+  parqAnyYes?: boolean;
+  studentComplianceComplete?: boolean;
 }
 
 type AuthState = {
@@ -261,9 +275,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (!getAccessToken()) return null;
 
         try {
-          return await fetchCurrentUser();
+          const user = await fetchCurrentUser();
+          if (user) {
+            setState((prev) => ({
+              ...prev,
+              user,
+              profileCompleted: user.profileCompleted ?? prev.profileCompleted,
+              accessProfile: user.accessProfile ?? null,
+              permissions: user.permissions ?? [],
+            }));
+          }
+          return user;
         } catch (err) {
-          console.error('Error fetching user:', err);
+          console.error("Error fetching user:", err);
           return null;
         }
       },

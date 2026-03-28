@@ -58,3 +58,22 @@ export function normalizeEmail(value: string) {
 export function isValidEmail(value: string) {
   return /\S+@\S+\.\S+/.test(String(value || "").trim());
 }
+
+/** Mínimo 8 caracteres, 1 maiúscula (A–Z), 1 símbolo (não alfanumérico ASCII). */
+export function getStrongPasswordError(password: string): string | null {
+  const p = String(password || "");
+  if (p.length < 8) {
+    return "A senha deve ter no mínimo 8 caracteres.";
+  }
+  if (!/[A-Z]/.test(p)) {
+    return "Inclua pelo menos uma letra maiúscula (A–Z).";
+  }
+  if (!/[^A-Za-z0-9]/.test(p)) {
+    return "Inclua pelo menos um símbolo (ex.: ! @ # $ % & *).";
+  }
+  return null;
+}
+
+export function isStrongPassword(password: string): boolean {
+  return getStrongPasswordError(password) === null;
+}

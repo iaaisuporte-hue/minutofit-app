@@ -5,16 +5,7 @@ import { useAuth, type Role } from "../auth/AuthContext";
 import { API_URL, parseJson } from "../services/apiBase";
 import { authFetch } from "../services/apiClient";
 import { getAccessToken } from "../services/authTokens";
-
-const COLORS = {
-  bg: "#0F0F0F",
-  panel: "#171717",
-  border: "rgba(255,255,255,.10)",
-  text: "#FFFFFF",
-  muted: "rgba(255,255,255,.70)",
-  orange: "#FF6A00",
-  orangeSoft: "rgba(255,106,0,.16)",
-};
+import { useNeonTheme } from "../theme/minutofitNeonTheme";
 
 const EXPERIENCE_LEVELS = ["Iniciante", "Intermediário", "Avançado"];
 const FITNESS_GOALS = ["Perda de Peso", "Ganho de Massa", "Manutenção", "Flexibilidade"];
@@ -22,7 +13,7 @@ const FITNESS_GOALS = ["Perda de Peso", "Ganho de Massa", "Manutenção", "Flexi
 function nextPathByRole(role: Role) {
   switch (role) {
     case "user":
-      return "/app/user";
+      return "/app/user/today";
     case "personal":
       return "/app/personal";
     case "nutri":
@@ -37,6 +28,7 @@ function nextPathByRole(role: Role) {
 export default function ProfileCompletionPage() {
   const nav = useNavigate();
   const auth = useAuth();
+  const neon = useNeonTheme();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -113,49 +105,53 @@ export default function ProfileCompletionPage() {
     <div
       style={{
         minHeight: "100vh",
-        background: COLORS.bg,
-        color: COLORS.text,
+        background: neon.bg,
+        color: neon.text,
         display: "grid",
         placeItems: "center",
         padding: 16,
+        boxSizing: "border-box",
       }}
     >
       <div
         style={{
           width: "100%",
-          maxWidth: 600,
-          background: COLORS.panel,
-          border: `1px solid ${COLORS.border}`,
+          maxWidth: "min(600px, 100%)",
+          minWidth: 0,
+          background: neon.panel,
+          border: `1px solid ${neon.border}`,
           borderRadius: 16,
           padding: 24,
+          boxSizing: "border-box",
         }}
       >
         <div style={{ marginBottom: 20 }}>
           <div style={{ fontSize: 24, fontWeight: 800 }}>Complete seu Perfil</div>
-          <div style={{ color: COLORS.muted, marginTop: 8 }}>
+          <div style={{ color: neon.muted, marginTop: 8 }}>
             Precisamos de algumas informações para personalizar sua experiência
           </div>
         </div>
 
         {error && (
           <div
+            role="alert"
             style={{
-              background: COLORS.orangeSoft,
-              border: `1px solid ${COLORS.orange}`,
+              background: neon.dangerSoft,
+              border: `1px solid ${neon.dangerBorder}`,
               padding: 12,
               borderRadius: 12,
               marginBottom: 16,
-              color: COLORS.text,
+              color: neon.text,
             }}
           >
-            {error}
+            ⚠ {error}
           </div>
         )}
 
         <form onSubmit={handleSubmit} style={{ display: "grid", gap: 14 }}>
           {/* Name */}
           <label style={{ display: "grid", gap: 6 }}>
-            <span style={{ color: COLORS.muted, fontSize: 13, fontWeight: 600 }}>
+            <span style={{ color: neon.muted, fontSize: 13, fontWeight: 600 }}>
               Nome Completo *
             </span>
             <input
@@ -166,8 +162,8 @@ export default function ProfileCompletionPage() {
               disabled={isLoading}
               style={{
                 background: "#101010",
-                color: COLORS.text,
-                border: `1px solid ${COLORS.border}`,
+                color: neon.text,
+                border: `1px solid ${neon.border}`,
                 borderRadius: 12,
                 padding: "12px 12px",
                 outline: "none",
@@ -178,7 +174,7 @@ export default function ProfileCompletionPage() {
 
           {/* Fitness Goal */}
           <label style={{ display: "grid", gap: 6 }}>
-            <span style={{ color: COLORS.muted, fontSize: 13, fontWeight: 600 }}>
+            <span style={{ color: neon.muted, fontSize: 13, fontWeight: 600 }}>
               Seu Objetivo *
             </span>
             <select
@@ -187,8 +183,8 @@ export default function ProfileCompletionPage() {
               disabled={isLoading}
               style={{
                 background: "#101010",
-                color: COLORS.text,
-                border: `1px solid ${COLORS.border}`,
+                color: neon.text,
+                border: `1px solid ${neon.border}`,
                 borderRadius: 12,
                 padding: "12px 12px",
                 outline: "none",
@@ -206,7 +202,7 @@ export default function ProfileCompletionPage() {
 
           {/* Experience Level */}
           <label style={{ display: "grid", gap: 6 }}>
-            <span style={{ color: COLORS.muted, fontSize: 13, fontWeight: 600 }}>
+            <span style={{ color: neon.muted, fontSize: 13, fontWeight: 600 }}>
               Nível de Experiência *
             </span>
             <select
@@ -215,8 +211,8 @@ export default function ProfileCompletionPage() {
               disabled={isLoading}
               style={{
                 background: "#101010",
-                color: COLORS.text,
-                border: `1px solid ${COLORS.border}`,
+                color: neon.text,
+                border: `1px solid ${neon.border}`,
                 borderRadius: 12,
                 padding: "12px 12px",
                 outline: "none",
@@ -233,9 +229,15 @@ export default function ProfileCompletionPage() {
           </label>
 
           {/* Height & Weight */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(min(140px, 100%), 1fr))",
+              gap: 12,
+            }}
+          >
             <label style={{ display: "grid", gap: 6 }}>
-              <span style={{ color: COLORS.muted, fontSize: 13, fontWeight: 600 }}>
+              <span style={{ color: neon.muted, fontSize: 13, fontWeight: 600 }}>
                 Altura (cm) *
               </span>
               <input
@@ -248,8 +250,8 @@ export default function ProfileCompletionPage() {
                 disabled={isLoading}
                 style={{
                   background: "#101010",
-                  color: COLORS.text,
-                  border: `1px solid ${COLORS.border}`,
+                  color: neon.text,
+                  border: `1px solid ${neon.border}`,
                   borderRadius: 12,
                   padding: "12px 12px",
                   outline: "none",
@@ -259,7 +261,7 @@ export default function ProfileCompletionPage() {
             </label>
 
             <label style={{ display: "grid", gap: 6 }}>
-              <span style={{ color: COLORS.muted, fontSize: 13, fontWeight: 600 }}>
+              <span style={{ color: neon.muted, fontSize: 13, fontWeight: 600 }}>
                 Peso (kg) *
               </span>
               <input
@@ -272,8 +274,8 @@ export default function ProfileCompletionPage() {
                 disabled={isLoading}
                 style={{
                   background: "#101010",
-                  color: COLORS.text,
-                  border: `1px solid ${COLORS.border}`,
+                  color: neon.text,
+                  border: `1px solid ${neon.border}`,
                   borderRadius: 12,
                   padding: "12px 12px",
                   outline: "none",
@@ -285,7 +287,7 @@ export default function ProfileCompletionPage() {
 
           {/* Dietary Restrictions */}
           <label style={{ display: "grid", gap: 6 }}>
-            <span style={{ color: COLORS.muted, fontSize: 13, fontWeight: 600 }}>
+            <span style={{ color: neon.muted, fontSize: 13, fontWeight: 600 }}>
               Restrições Dietéticas
             </span>
             <textarea
@@ -296,8 +298,8 @@ export default function ProfileCompletionPage() {
               rows={3}
               style={{
                 background: "#101010",
-                color: COLORS.text,
-                border: `1px solid ${COLORS.border}`,
+                color: neon.text,
+                border: `1px solid ${neon.border}`,
                 borderRadius: 12,
                 padding: "12px 12px",
                 outline: "none",
@@ -313,21 +315,22 @@ export default function ProfileCompletionPage() {
             disabled={isLoading}
             style={{
               marginTop: 12,
-              background: COLORS.orange,
-              color: "#0B0B0B",
-              border: "none",
+              background: neon.ctaGradient,
+              color: neon.ctaText,
+              border: `1px solid ${neon.accentBorder}`,
               borderRadius: 12,
               padding: "14px 16px",
               fontWeight: 800,
               fontSize: 16,
               cursor: isLoading ? "not-allowed" : "pointer",
               opacity: isLoading ? 0.7 : 1,
+              minHeight: 44,
             }}
           >
             {isLoading ? "Salvando..." : "Completar Perfil e Continuar"}
           </button>
 
-          <div style={{ color: COLORS.muted, fontSize: 12, textAlign: "center" }}>
+          <div style={{ color: neon.muted, fontSize: 12, textAlign: "center" }}>
             * Campos obrigatórios
           </div>
         </form>

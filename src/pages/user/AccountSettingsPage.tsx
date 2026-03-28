@@ -1,58 +1,46 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useAuth } from "../../auth/AuthContext";
-
-const COLORS = {
-  bg: "#0F0F0F",
-  panel: "#171717",
-  panel2: "#141414",
-  border: "rgba(255,255,255,.10)",
-  border2: "rgba(255,255,255,.08)",
-  text: "#FFFFFF",
-  muted: "rgba(255,255,255,.70)",
-  muted2: "rgba(255,255,255,.55)",
-  orange: "#FF6A00",
-  orangeSoft: "rgba(255,106,0,.16)",
-  orangeBorder: "rgba(255,106,0,.35)",
-  danger: "rgba(239,68,68,1)",
-  dangerSoft: "rgba(239,68,68,.12)",
-  dangerBorder: "rgba(239,68,68,.35)",
-};
+import { formatCpf, formatPhone, getStrongPasswordError } from "../../utils/validators";
+import StudentCompliancePanel from "./studentCompliance/StudentCompliancePanel";
+import { useNeonTheme, type NeonTheme } from "../../theme/minutofitNeonTheme";
 
 function Card({
   title,
   subtitle,
   children,
   accent,
+  neon,
 }: {
   title: string;
   subtitle?: string;
   children: React.ReactNode;
   accent?: boolean;
+  neon: NeonTheme;
 }) {
   return (
     <div
       style={{
-        border: accent ? `1px solid ${COLORS.orangeBorder}` : `1px solid ${COLORS.border}`,
+        border: accent ? `1px solid ${neon.accentBorder}` : `1px solid ${neon.border}`,
         borderRadius: 16,
         background: accent
-          ? `linear-gradient(180deg, ${COLORS.orangeSoft}, rgba(255,255,255,0) 55%), ${COLORS.panel}`
-          : COLORS.panel,
+          ? `linear-gradient(180deg, ${neon.accentSoft}, rgba(255,255,255,0) 55%), ${neon.panel}`
+          : neon.panel,
         boxShadow: "0 18px 44px rgba(0,0,0,.45)",
         overflow: "hidden",
-        color: COLORS.text,
+        color: neon.text,
       }}
     >
       <div
         style={{
           padding: 16,
-          borderBottom: `1px solid ${COLORS.border2}`,
+          borderBottom: `1px solid ${neon.border2}`,
           display: "grid",
           gap: 4,
         }}
       >
         <div style={{ fontWeight: 1000, letterSpacing: 0.2 }}>{title}</div>
         {subtitle ? (
-          <div style={{ color: COLORS.muted2, fontSize: 12, lineHeight: 1.35 }}>{subtitle}</div>
+          <div style={{ color: neon.muted2, fontSize: 12, lineHeight: 1.35 }}>{subtitle}</div>
         ) : null}
       </div>
 
@@ -65,36 +53,41 @@ function Field({
   label,
   hint,
   children,
+  neon,
 }: {
   label: string;
   hint?: string;
   children: React.ReactNode;
+  neon: NeonTheme;
 }) {
   return (
     <label style={{ display: "grid", gap: 6 }}>
       <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
         <div style={{ fontWeight: 900, fontSize: 13 }}>{label}</div>
-        {hint ? <div style={{ color: COLORS.muted2, fontSize: 12 }}>{hint}</div> : null}
+        {hint ? <div style={{ color: neon.muted2, fontSize: 12 }}>{hint}</div> : null}
       </div>
       {children}
     </label>
   );
 }
 
-function TextInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
+function TextInput(props: React.InputHTMLAttributes<HTMLInputElement> & { neon: NeonTheme }) {
+  const { readOnly, neon, ...rest } = props;
   return (
     <input
-      {...props}
+      {...rest}
+      readOnly={readOnly}
       style={{
         width: "100%",
         padding: "12px 12px",
         borderRadius: 14,
-        border: `1px solid ${COLORS.border}`,
-        background: COLORS.panel2,
-        color: COLORS.text,
+        border: `1px solid ${neon.border}`,
+        background: readOnly ? "rgba(255,255,255,.04)" : neon.panel2,
+        color: readOnly ? neon.muted : neon.text,
         outline: "none",
         fontWeight: 800,
         letterSpacing: 0.2,
+        cursor: readOnly ? "default" : "text",
       }}
     />
   );
@@ -105,11 +98,13 @@ function Button({
   onClick,
   variant = "primary",
   disabled,
+  neon,
 }: {
   children: React.ReactNode;
   onClick: () => void;
   variant?: "primary" | "ghost" | "danger";
   disabled?: boolean;
+  neon: NeonTheme;
 }) {
   const isPrimary = variant === "primary";
   const isDanger = variant === "danger";
@@ -123,17 +118,18 @@ function Button({
         padding: "12px 14px",
         borderRadius: 14,
         border: isPrimary
-          ? `1px solid ${COLORS.orangeBorder}`
+          ? `1px solid ${neon.accentBorder}`
           : isDanger
-          ? `1px solid ${COLORS.dangerBorder}`
-          : `1px solid ${COLORS.border}`,
-        background: isPrimary ? COLORS.orange : isDanger ? COLORS.dangerSoft : "transparent",
-        color: isPrimary ? COLORS.bg : COLORS.text,
+            ? `1px solid ${neon.dangerBorder}`
+            : `1px solid ${neon.border}`,
+        background: isPrimary ? neon.ctaGradient : isDanger ? neon.dangerSoft : "transparent",
+        color: isPrimary ? neon.ctaText : neon.text,
         cursor: disabled ? "not-allowed" : "pointer",
         fontWeight: 1000,
         boxShadow: isPrimary ? "0 10px 24px rgba(0,0,0,.35)" : "none",
         opacity: disabled ? 0.7 : 1,
         width: "fit-content",
+        minHeight: 44,
       }}
     >
       {children}
@@ -141,8 +137,16 @@ function Button({
   );
 }
 
-function Note({ children, accent }: { children: React.ReactNode; accent?: "orange" | "danger" }) {
-  const isOrange = accent === "orange";
+function Note({
+  children,
+  accent,
+  neon,
+}: {
+  children: React.ReactNode;
+  accent?: "accent" | "danger";
+  neon: NeonTheme;
+}) {
+  const isAccent = accent === "accent";
   const isDanger = accent === "danger";
 
   return (
@@ -151,13 +155,13 @@ function Note({ children, accent }: { children: React.ReactNode; accent?: "orang
         marginTop: 4,
         borderRadius: 14,
         padding: 12,
-        border: isOrange
-          ? `1px solid ${COLORS.orangeBorder}`
+        border: isAccent
+          ? `1px solid ${neon.accentBorder}`
           : isDanger
-          ? `1px solid ${COLORS.dangerBorder}`
-          : `1px solid ${COLORS.border2}`,
-        background: isOrange ? COLORS.orangeSoft : isDanger ? COLORS.dangerSoft : COLORS.panel2,
-        color: COLORS.muted,
+            ? `1px solid ${neon.dangerBorder}`
+            : `1px solid ${neon.border2}`,
+        background: isAccent ? neon.accentSoft : isDanger ? neon.dangerSoft : neon.panel2,
+        color: neon.muted,
         fontSize: 13,
         lineHeight: 1.4,
       }}
@@ -168,32 +172,62 @@ function Note({ children, accent }: { children: React.ReactNode; accent?: "orang
 }
 
 export default function AccountSettingsPage() {
-  const { email: authEmail } = useAuth();
+  const neon = useNeonTheme();
+  const { user, accessProfile, getUser } = useAuth();
+  const isLimitedProfile = accessProfile === "clientes_sb";
 
-  const initialEmail = useMemo(() => authEmail ?? "aluno@email.com", [authEmail]);
-
-  const [name, setName] = useState("Aluno");
-  const [email, setEmail] = useState(initialEmail);
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [cpfMasked, setCpfMasked] = useState("—");
 
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmNewPassword, setConfirmNewPassword] = useState("");
 
+  useEffect(() => {
+    if (!user) return;
+    setName(user.name?.trim() || "");
+    setEmail(user.email || "");
+    setPhone(user.phone ? formatPhone(user.phone) : "");
+    setCpfMasked(user.cpf ? formatCpf(user.cpf) : "—");
+  }, [user]);
+
+  useEffect(() => {
+    if (window.location.hash !== "#compliance") return;
+    requestAnimationFrame(() => {
+      document.getElementById("compliance")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }, []);
+
+  async function refreshFromServer() {
+    const latest = await getUser();
+    if (latest) {
+      setName(latest.name?.trim() || "");
+      setEmail(latest.email || "");
+      setPhone(latest.phone ? formatPhone(latest.phone) : "");
+      setCpfMasked(latest.cpf ? formatCpf(latest.cpf) : "—");
+    }
+  }
+
   function saveProfile() {
     if (!name.trim()) return alert("Informe seu nome.");
-    if (!email.trim() || !email.includes("@")) return alert("Informe um e-mail válido.");
-    alert("Configuração salva (placeholder). Próxima fase: integrar API com segurança.");
+    if (!phone.trim()) return alert("Informe um telefone para contato.");
+    alert(
+      "Salvamento no servidor ainda será conectado à API. Por enquanto seus dados exibidos vêm da sessão atual; use “Atualizar da sessão” após mudanças feitas em outro lugar.",
+    );
   }
 
   function changePassword() {
     if (!currentPassword || !newPassword || !confirmNewPassword) {
       return alert("Preencha todos os campos de senha.");
     }
-    if (newPassword.length < 8) return alert("A nova senha deve ter pelo menos 8 caracteres.");
+    const pwErr = getStrongPasswordError(newPassword);
+    if (pwErr) return alert(pwErr);
     if (newPassword !== confirmNewPassword) return alert("Confirmação de senha não confere.");
 
     alert(
-      "Alteração de senha (placeholder). Para ativar de verdade, precisamos do backend (hash + validação + rate limit)."
+      "Alteração de senha (placeholder). Para ativar de verdade, precisamos do backend (hash + validação + rate limit).",
     );
 
     setCurrentPassword("");
@@ -202,25 +236,46 @@ export default function AccountSettingsPage() {
   }
 
   return (
-    <div style={{ maxWidth: 860, display: "grid", gap: 14, color: COLORS.text }}>
+    <div
+      style={{
+        maxWidth: "min(860px, 100%)",
+        width: "100%",
+        minWidth: 0,
+        display: "grid",
+        gap: 14,
+        color: neon.text,
+        boxSizing: "border-box",
+      }}
+    >
       <Card
+        neon={neon}
         title="Configurações da conta"
-        subtitle="Atualize seus dados e preferências com segurança."
+        subtitle="Seus dados de cadastro e contato, alinhados à sessão atual."
         accent
       >
         <div style={{ display: "grid", gap: 10 }}>
-          <div style={{ fontWeight: 1000, fontSize: 16, letterSpacing: 0.2 }}>Treinaí</div>
-          <div style={{ color: COLORS.muted, fontSize: 13, lineHeight: 1.35 }}>
-            A gente mantém o visual limpo e o controle na sua mão. Ajuste seus dados e siga treinando.
+          <div style={{ fontWeight: 1000, fontSize: 16, letterSpacing: 0.2 }}>MinutoFit</div>
+          <div style={{ color: neon.muted, fontSize: 13, lineHeight: 1.35 }}>
+            Visualize e prepare alterações de nome e telefone. E-mail e CPF permanecem vinculados ao cadastro e à
+            segurança do login.
           </div>
+          {isLimitedProfile ? (
+            <Note accent="accent" neon={neon}>
+              <b>Plano clientes SB:</b> o app mantém o foco em Hoje e Treinos em casa. Aqui você acompanha e ajusta seus
+              dados básicos de contato quando a API de atualização estiver ativa.
+            </Note>
+          ) : null}
         </div>
       </Card>
 
+      {user?.role === "user" ? <StudentCompliancePanel /> : null}
+
       <div style={{ display: "grid", gap: 14 }}>
-        <Card title="Dados do cadastro" subtitle="Nome e e-mail (placeholder no MVP).">
+        <Card neon={neon} title="Dados e contato" subtitle="Preenchidos a partir do seu usuário autenticado (backend / sessão).">
           <div style={{ display: "grid", gap: 12 }}>
-            <Field label="Nome" hint="Como você quer ser chamado">
+            <Field neon={neon} label="Nome" hint="Como você quer ser chamado">
               <TextInput
+                neon={neon}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Seu nome"
@@ -228,43 +283,61 @@ export default function AccountSettingsPage() {
               />
             </Field>
 
-            <Field label="E-mail" hint="Usado no login">
+            <Field neon={neon} label="E-mail" hint="Identificador de login — não alterar aqui">
+              <TextInput neon={neon} value={email} readOnly placeholder="seuemail@dominio.com" autoComplete="email" />
+            </Field>
+
+            <Field neon={neon} label="Telefone" hint="WhatsApp ou celular para contato">
               <TextInput
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="seuemail@dominio.com"
-                autoComplete="email"
-                inputMode="email"
+                neon={neon}
+                value={phone}
+                onChange={(e) => setPhone(formatPhone(e.target.value))}
+                placeholder="(00) 00000-0000"
+                autoComplete="tel"
+                inputMode="tel"
               />
             </Field>
 
+            <Field neon={neon} label="CPF" hint="Cadastro — somente leitura">
+              <TextInput neon={neon} value={cpfMasked} readOnly placeholder="—" autoComplete="off" />
+            </Field>
+
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-              <Button onClick={saveProfile} variant="primary">
-                ✅ Salvar dados
+              <Button neon={neon} onClick={saveProfile} variant="primary">
+                Salvar dados (quando API estiver ativa)
+              </Button>
+
+              <Button neon={neon} onClick={() => void refreshFromServer()} variant="ghost">
+                Atualizar da sessão
               </Button>
 
               <Button
+                neon={neon}
                 onClick={() => {
-                  setName("Aluno");
-                  setEmail(initialEmail);
+                  if (!user) return;
+                  setName(user.name?.trim() || "");
+                  setEmail(user.email || "");
+                  setPhone(user.phone ? formatPhone(user.phone) : "");
+                  setCpfMasked(user.cpf ? formatCpf(user.cpf) : "—");
                 }}
                 variant="ghost"
               >
-                ↩️ Restaurar
+                Restaurar da sessão
               </Button>
             </div>
 
-            <Note accent="orange">
-              Segurança: a plataforma <b>nunca</b> exibe senhas e não salva senha em texto no navegador.
-              Alterações reais devem ser feitas via API segura.
+            <Note accent="accent" neon={neon}>
+              Segurança: a plataforma <b>nunca</b> exibe senha em texto. E-mail e CPF seguem as regras do cadastro; a
+              persistência de nome e telefone dependerá do endpoint seguro no backend.
             </Note>
           </div>
         </Card>
 
-        <Card title="Alterar senha" subtitle="Placeholder (ativa de verdade com backend).">
+        <Card neon={neon} title="Alterar senha" subtitle="Placeholder (ativa de verdade com backend).">
           <div style={{ display: "grid", gap: 12 }}>
-            <Field label="Senha atual">
+            <Field neon={neon} label="Senha atual">
               <TextInput
+                neon={neon}
                 type="password"
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
@@ -273,8 +346,9 @@ export default function AccountSettingsPage() {
               />
             </Field>
 
-            <Field label="Nova senha" hint="Mínimo 8 caracteres">
+            <Field neon={neon} label="Nova senha" hint="Mínimo 8 caracteres">
               <TextInput
+                neon={neon}
                 type="password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
@@ -283,8 +357,9 @@ export default function AccountSettingsPage() {
               />
             </Field>
 
-            <Field label="Confirmar nova senha">
+            <Field neon={neon} label="Confirmar nova senha">
               <TextInput
+                neon={neon}
                 type="password"
                 value={confirmNewPassword}
                 onChange={(e) => setConfirmNewPassword(e.target.value)}
@@ -294,11 +369,12 @@ export default function AccountSettingsPage() {
             </Field>
 
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-              <Button onClick={changePassword} variant="primary">
+              <Button neon={neon} onClick={changePassword} variant="primary">
                 🔐 Solicitar alteração
               </Button>
 
               <Button
+                neon={neon}
                 onClick={() => {
                   setCurrentPassword("");
                   setNewPassword("");
@@ -310,7 +386,7 @@ export default function AccountSettingsPage() {
               </Button>
             </div>
 
-            <Note>
+            <Note neon={neon}>
               Nenhuma senha é armazenada no front. A troca real exige backend (hash/validação + rate limit).
             </Note>
           </div>

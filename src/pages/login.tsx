@@ -1,14 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
+import { Turnstile, type TurnstileInstance } from "@marsidev/react-turnstile";
 import { useNavigate } from "react-router-dom";
 import { useAuth, type Role } from "../auth/AuthContext";
-import {
-  buildRecommendation,
-  saveAnswers,
-  saveRecommendation,
-  setOnboardingDone,
-  type OnboardingAnswers,
-} from "./user/onboarding/onboardingStorage";
 import {
   formatCpf,
   formatPhone,
@@ -17,6 +11,7 @@ import {
   isValidPhone,
   normalizeCpf,
   normalizePhone,
+  getStrongPasswordError,
 } from "../utils/validators";
 import { LoginFuturisticExperience, TiltGlassFeatureCard } from "./login/LoginFuturisticExperience";
 import MinutoFitLogo from "../components/MinutoFitLogo";
@@ -38,26 +33,6 @@ const COLORS = {
 
 type Mode = "login" | "register";
 
-type HealthField =
-  | "sem_historico_hipertensao"
-  | "sem_historico_cardiaco"
-  | "sem_restricao_medica_exercicio"
-  | "apto_para_atividade_fisica"
-  | "aceita_responsabilidade_informacoes";
-
-type RegisterOnboardingForm = {
-  trainingPlace: OnboardingAnswers["trainingPlace"] | "";
-  timePerDay: OnboardingAnswers["timePerDay"] | "";
-  injuries: OnboardingAnswers["injuries"];
-  surgeryRecent: OnboardingAnswers["surgeryRecent"] | "";
-  frequentPain: OnboardingAnswers["frequentPain"] | "";
-  daysPerWeek: OnboardingAnswers["daysPerWeek"] | 0;
-  bestTime: OnboardingAnswers["bestTime"] | "";
-  intensityPref: OnboardingAnswers["intensityPref"] | "";
-  equipmentPref: OnboardingAnswers["equipmentPref"] | "";
-  wantsCloseFollow: OnboardingAnswers["wantsCloseFollow"] | "";
-};
-
 type RegisterForm = {
   name: string;
   cpf: string;
@@ -65,14 +40,12 @@ type RegisterForm = {
   email: string;
   password: string;
   confirmPassword: string;
-  healthFlags: Record<HealthField, boolean>;
-  onboarding: RegisterOnboardingForm;
 };
 
 function nextPathByRole(role: Role) {
   switch (role) {
     case "user":
-      return "/app/user";
+      return "/app/user/today";
     case "personal":
       return "/app/personal";
     case "nutri":
@@ -98,19 +71,6 @@ function fieldStyle(disabled: boolean, invalid = false) {
   };
 }
 
-function pillStyle(active: boolean, disabled: boolean) {
-  return {
-    padding: "10px 12px",
-    borderRadius: 999,
-    border: `1px solid ${active ? COLORS.borderStrong : COLORS.border}`,
-    background: active ? COLORS.primarySoft : "rgba(255,255,255,.03)",
-    color: COLORS.text,
-    cursor: disabled ? "not-allowed" : "pointer",
-    opacity: disabled ? 0.65 : 1,
-    fontWeight: 900,
-  };
-}
-
 const initialRegisterState: RegisterForm = {
   name: "",
   cpf: "",
@@ -118,72 +78,20 @@ const initialRegisterState: RegisterForm = {
   email: "",
   password: "",
   confirmPassword: "",
-  healthFlags: {
-    sem_historico_hipertensao: false,
-    sem_historico_cardiaco: false,
-    sem_restricao_medica_exercicio: false,
-    apto_para_atividade_fisica: false,
-    aceita_responsabilidade_informacoes: false,
-  },
-  onboarding: {
-    trainingPlace: "",
-    timePerDay: "",
-    injuries: [],
-    surgeryRecent: "",
-    frequentPain: "",
-    daysPerWeek: 0,
-    bestTime: "",
-    intensityPref: "",
-    equipmentPref: "",
-    wantsCloseFollow: "",
-  },
 };
 
-const injuryOptions: Array<{
-  value: OnboardingAnswers["injuries"][number];
-  label: string;
-}> = [
-  { value: "none", label: "Nenhuma" },
-  { value: "joelho", label: "Joelho" },
-  { value: "ombro", label: "Ombro" },
-  { value: "lombar", label: "Lombar" },
-  { value: "tornozelo", label: "Tornozelo" },
-  { value: "outra", label: "Outra" },
-];
-
-function SelectGroup<T extends string | number>({
-  value,
-  options,
-  disabled,
-  onSelect,
-}: {
-  value: T | "";
-  options: Array<{ value: T; label: string }>;
-  disabled: boolean;
-  onSelect: (value: T) => void;
-}) {
-  return (
-    <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-      {options.map((option) => (
-        <button
-          key={String(option.value)}
-          type="button"
-          disabled={disabled}
-          onClick={() => onSelect(option.value)}
-          style={pillStyle(value === option.value, disabled)}
-        >
-          {option.label}
-        </button>
-      ))}
-    </div>
-  );
-}
+const turnstileSiteKey =
+  typeof import.meta.env.VITE_TURNSTILE_SITE_KEY === "string"
+    ? import.meta.env.VITE_TURNSTILE_SITE_KEY.trim() || undefined
+    : undefined;
 
 export default function LoginPage() {
   const nav = useNavigate();
   const { login, register, isAuthenticated, role } = useAuth();
 
   const [mode, setMode] = useState<Mode>("login");
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const turnstileRef = useRef<TurnstileInstance | null>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [registerForm, setRegisterForm] = useState<RegisterForm>(initialRegisterState);
@@ -195,6 +103,13 @@ export default function LoginPage() {
       nav(nextPathByRole(role), { replace: true });
     }
   }, [isAuthenticated, role, nav]);
+
+  useEffect(() => {
+    if (mode !== "register") {
+      setCaptchaToken(null);
+      turnstileRef.current?.reset();
+    }
+  }, [mode]);
 
   const registerErrors = useMemo(() => {
     const errors: Record<string, string> = {};
@@ -210,89 +125,25 @@ export default function LoginPage() {
     else if (!isValidPhone(registerForm.phone)) errors.phone = "Telefone inválido.";
 
     if (!registerForm.password) errors.password = "Crie uma senha.";
-    else if (registerForm.password.length < 6) errors.password = "A senha precisa ter pelo menos 6 caracteres.";
+    else {
+      const pwErr = getStrongPasswordError(registerForm.password);
+      if (pwErr) errors.password = pwErr;
+    }
 
     if (!registerForm.confirmPassword) errors.confirmPassword = "Confirme sua senha.";
     else if (registerForm.confirmPassword !== registerForm.password) errors.confirmPassword = "As senhas não coincidem.";
 
-    if (!registerForm.healthFlags.sem_historico_hipertensao) {
-      errors.sem_historico_hipertensao = "Confirme sua condição atual para seguir.";
+    if (turnstileSiteKey && !(captchaToken ?? "").trim()) {
+      errors.captcha = "Complete a verificação anti-robô abaixo.";
     }
-    if (!registerForm.healthFlags.sem_historico_cardiaco) {
-      errors.sem_historico_cardiaco = "Confirme sua condição atual para seguir.";
-    }
-    if (!registerForm.healthFlags.sem_restricao_medica_exercicio) {
-      errors.sem_restricao_medica_exercicio = "Confirme sua condição atual para seguir.";
-    }
-    if (!registerForm.healthFlags.apto_para_atividade_fisica) {
-      errors.apto_para_atividade_fisica = "Você precisa confirmar que está apto para iniciar atividades físicas.";
-    }
-    if (!registerForm.healthFlags.aceita_responsabilidade_informacoes) {
-      errors.aceita_responsabilidade_informacoes = "Você precisa aceitar a declaração final.";
-    }
-
-    if (!registerForm.onboarding.trainingPlace) errors.trainingPlace = "Escolha onde você treina.";
-    if (!registerForm.onboarding.timePerDay) errors.timePerDay = "Escolha quanto tempo você tem por dia.";
-    if (!registerForm.onboarding.daysPerWeek) errors.daysPerWeek = "Escolha sua frequência semanal.";
-    if (!registerForm.onboarding.bestTime) errors.bestTime = "Escolha o melhor horário.";
-    if (!registerForm.onboarding.equipmentPref) errors.equipmentPref = "Escolha a preferência de equipamento.";
-    if (!registerForm.onboarding.intensityPref) errors.intensityPref = "Escolha a intensidade preferida.";
-    if (!registerForm.onboarding.wantsCloseFollow) errors.wantsCloseFollow = "Defina se quer acompanhamento mais próximo.";
-    if (!registerForm.onboarding.surgeryRecent) errors.surgeryRecent = "Informe se houve cirurgia recente.";
-    if (!registerForm.onboarding.frequentPain) errors.frequentPain = "Informe como está sua relação com dor ao treinar.";
-    if (!registerForm.onboarding.injuries.length) errors.injuries = "Escolha ao menos uma opção.";
 
     return errors;
-  }, [registerForm]);
+  }, [registerForm, captchaToken]);
 
   const isRegisterValid = Object.keys(registerErrors).length === 0;
 
   function updateRegisterField<K extends keyof RegisterForm>(field: K, value: RegisterForm[K]) {
     setRegisterForm((current) => ({ ...current, [field]: value }));
-  }
-
-  function updateHealthFlag(field: HealthField, value: boolean) {
-    setRegisterForm((current) => ({
-      ...current,
-      healthFlags: {
-        ...current.healthFlags,
-        [field]: value,
-      },
-    }));
-  }
-
-  function updateOnboardingField<K extends keyof RegisterOnboardingForm>(field: K, value: RegisterOnboardingForm[K]) {
-    setRegisterForm((current) => ({
-      ...current,
-      onboarding: {
-        ...current.onboarding,
-        [field]: value,
-      },
-    }));
-  }
-
-  function toggleInjury(injury: OnboardingAnswers["injuries"][number]) {
-    setRegisterForm((current) => {
-      const selected = current.onboarding.injuries;
-      let next: OnboardingAnswers["injuries"];
-
-      if (injury === "none") {
-        next = ["none"];
-      } else {
-        const withoutNone = selected.filter((item) => item !== "none");
-        next = withoutNone.includes(injury)
-          ? (withoutNone.filter((item) => item !== injury) as OnboardingAnswers["injuries"])
-          : ([...withoutNone, injury] as OnboardingAnswers["injuries"]);
-      }
-
-      return {
-        ...current,
-        onboarding: {
-          ...current.onboarding,
-          injuries: next.length ? next : [],
-        },
-      };
-    });
   }
 
   async function onLoginSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -327,31 +178,16 @@ export default function LoginPage() {
       phone: normalizePhone(registerForm.phone),
       email: registerForm.email.trim().toLowerCase(),
       password: registerForm.password,
-      healthFlags: registerForm.healthFlags,
+      captchaToken: captchaToken ?? undefined,
     });
 
     if (!result.ok) {
       setError(result.message);
       setIsLoading(false);
+      turnstileRef.current?.reset();
+      setCaptchaToken(null);
       return;
     }
-
-    const onboardingAnswers: OnboardingAnswers = {
-      trainingPlace: registerForm.onboarding.trainingPlace as OnboardingAnswers["trainingPlace"],
-      timePerDay: registerForm.onboarding.timePerDay as OnboardingAnswers["timePerDay"],
-      injuries: registerForm.onboarding.injuries as OnboardingAnswers["injuries"],
-      surgeryRecent: registerForm.onboarding.surgeryRecent as OnboardingAnswers["surgeryRecent"],
-      frequentPain: registerForm.onboarding.frequentPain as OnboardingAnswers["frequentPain"],
-      daysPerWeek: registerForm.onboarding.daysPerWeek as OnboardingAnswers["daysPerWeek"],
-      bestTime: registerForm.onboarding.bestTime as OnboardingAnswers["bestTime"],
-      intensityPref: registerForm.onboarding.intensityPref as OnboardingAnswers["intensityPref"],
-      equipmentPref: registerForm.onboarding.equipmentPref as OnboardingAnswers["equipmentPref"],
-      wantsCloseFollow: registerForm.onboarding.wantsCloseFollow as OnboardingAnswers["wantsCloseFollow"],
-    };
-
-    saveAnswers(onboardingAnswers, result.id);
-    saveRecommendation(buildRecommendation(onboardingAnswers), result.id);
-    setOnboardingDone(result.id);
 
     setIsLoading(false);
     nav("/profile-completion", { replace: true });
@@ -412,15 +248,15 @@ export default function LoginPage() {
             </motion.div>
 
             <motion.div variants={heroItem} className="authHeroText">
-              Uma experiência viva, responsiva e energética — da primeira tela ao seu plano. Cadastro completo, dados
-              seguros e contexto de treino desde o primeiro acesso.
+              Uma experiência viva, responsiva e energética — da primeira tela ao seu plano. Cadastro rápido com senha
+              forte e CAPTCHA; triagem de saúde, onboarding de treino e PAR-Q você completa em Configurações após entrar.
             </motion.div>
 
             <motion.div variants={heroItem} style={{ display: "grid", gap: 14, maxWidth: 580 }}>
               {[
-                "Cadastro completo em uma única etapa, sem jogar o onboarding para depois.",
+                "Cadastro enxuto: só dados de identificação e segurança na primeira tela.",
                 "CPF único e validado para reduzir fraude e duplicidade.",
-                "Rotina, intensidade e limitações práticas entram desde o primeiro acesso.",
+                "Saúde, preferências de treino e PAR-Q com assinatura digital ficam em Minha conta / Configurações.",
               ].map((item) => (
                 <TiltGlassFeatureCard key={item}>
                   <div style={{ color: COLORS.text, fontSize: 15, lineHeight: 1.55 }}>
@@ -485,7 +321,7 @@ export default function LoginPage() {
                 textTransform: "uppercase",
               }}
             >
-              {mode === "login" ? "Acesso MinutoFit" : "Cadastro + onboarding"}
+              {mode === "login" ? "Acesso MinutoFit" : "Criar conta"}
             </div>
             <div style={{ marginTop: 16, fontSize: 30, fontWeight: 900, letterSpacing: 0.2 }}>
               {mode === "login" ? "Entrar" : "Criar conta"}
@@ -493,7 +329,7 @@ export default function LoginPage() {
             <div style={{ color: COLORS.muted, marginTop: 8 }}>
               {mode === "login"
                 ? "Acesse com email e senha. O login social fica oculto por enquanto para evitar fluxos incompletos."
-                : "Crie sua conta e já defina o contexto da sua rotina de treino. Depois disso, faltará apenas completar seu perfil físico."}
+                : "Depois de criar a conta você completa o perfil físico e, em seguida, a triagem obrigatória em Configurações (saúde, treino e PAR-Q)."}
             </div>
           </div>
 
@@ -646,219 +482,35 @@ export default function LoginPage() {
                     {registerErrors.confirmPassword ? <span style={{ color: COLORS.danger, fontSize: 12 }}>{registerErrors.confirmPassword}</span> : null}
                   </label>
                 </div>
+                <p style={{ color: COLORS.mutedSoft, fontSize: 12, margin: 0, lineHeight: 1.45 }}>
+                  A senha deve ter no mínimo 8 caracteres, incluir 1 letra maiúscula e 1 símbolo (por exemplo ! @ # $ %).
+                </p>
+                <p style={{ color: COLORS.muted, fontSize: 12, margin: "10px 0 0", lineHeight: 1.45 }}>
+                  Triagem de saúde, preferências de treino e PAR-Q com assinatura ficam em{" "}
+                  <b style={{ color: COLORS.text }}>Configurações</b> após o login (obrigatório para uso completo).
+                </p>
               </div>
 
-                <div style={{ display: "grid", gap: 12 }}>
-                  <div style={{ fontSize: 15, fontWeight: 900 }}>Saúde inicial</div>
-                <div
-                  style={{
-                    borderRadius: 18,
-                    border: `1px solid ${COLORS.border}`,
-                    background: "rgba(255,255,255,.03)",
-                    padding: "16px 16px 6px",
-                  }}
-                >
-                  <div style={{ color: COLORS.muted, fontSize: 13, lineHeight: 1.5, marginBottom: 14 }}>
-                    Essas confirmações ajudam a iniciar o app com mais responsabilidade. Se alguma delas não refletir sua situação atual, o ideal é buscar orientação médica antes de continuar.
-                  </div>
-
-                  {[
-                    ["sem_historico_hipertensao", "Sem histórico de hipertensão."],
-                    ["sem_historico_cardiaco", "Sem histórico cardíaco relevante."],
-                    ["sem_restricao_medica_exercicio", "Sem restrição médica atual para exercícios."],
-                    ["apto_para_atividade_fisica", "Declaro que estou apto para iniciar atividade física."],
-                    ["aceita_responsabilidade_informacoes", "Confirmo que as informações prestadas são verdadeiras e de minha responsabilidade."],
-                  ].map(([key, label]) => (
-                    <label
-                      key={key}
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: "20px 1fr",
-                        gap: 10,
-                        alignItems: "start",
-                        marginBottom: 12,
-                        color: COLORS.text,
-                      }}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={registerForm.healthFlags[key as HealthField]}
-                        onChange={(event) => updateHealthFlag(key as HealthField, event.target.checked)}
-                        disabled={isLoading}
-                        style={{ marginTop: 3 }}
-                      />
-                      <span>
-                        <div>{label}</div>
-                        {registerErrors[key] ? <div style={{ color: COLORS.danger, fontSize: 12, marginTop: 4 }}>{registerErrors[key]}</div> : null}
-                      </span>
-                    </label>
-                  ))}
+              {turnstileSiteKey ? (
+                <div style={{ display: "grid", gap: 8, marginTop: 4 }}>
+                  <span style={{ color: COLORS.muted, fontSize: 13, fontWeight: 800 }}>Verificação anti-robô</span>
+                  <Turnstile
+                    ref={turnstileRef}
+                    siteKey={turnstileSiteKey}
+                    onSuccess={(token) => setCaptchaToken(token)}
+                    onExpire={() => setCaptchaToken(null)}
+                    options={{ theme: "dark" }}
+                  />
+                  {registerErrors.captcha ? (
+                    <span style={{ color: COLORS.danger, fontSize: 12 }}>{registerErrors.captcha}</span>
+                  ) : null}
                 </div>
-              </div>
-
-              <div style={{ display: "grid", gap: 14 }}>
-                <div style={{ fontSize: 15, fontWeight: 900 }}>Onboarding obrigatório de treino</div>
-                <div style={{ color: COLORS.muted, fontSize: 13, lineHeight: 1.5 }}>
-                  Antes do primeiro acesso, já definimos o contexto da sua rotina. Isso evita uma segunda tela obrigatória depois.
-                </div>
-
-                <div style={{ display: "grid", gap: 14 }}>
-                  <div style={{ display: "grid", gap: 6 }}>
-                    <span style={{ color: COLORS.muted, fontSize: 13 }}>Onde você treina?</span>
-                    <SelectGroup
-                      value={registerForm.onboarding.trainingPlace}
-                      disabled={isLoading}
-                      onSelect={(value) => updateOnboardingField("trainingPlace", value)}
-                      options={[
-                        { value: "home", label: "Em casa" },
-                        { value: "gym", label: "Academia" },
-                        { value: "both", label: "Ambos" },
-                      ]}
-                    />
-                    {registerErrors.trainingPlace ? <span style={{ color: COLORS.danger, fontSize: 12 }}>{registerErrors.trainingPlace}</span> : null}
-                  </div>
-
-                  <div style={{ display: "grid", gap: 6 }}>
-                    <span style={{ color: COLORS.muted, fontSize: 13 }}>Tempo disponível por dia</span>
-                    <SelectGroup
-                      value={registerForm.onboarding.timePerDay}
-                      disabled={isLoading}
-                      onSelect={(value) => updateOnboardingField("timePerDay", value)}
-                      options={[
-                        { value: "10-15", label: "10-15 min" },
-                        { value: "20-30", label: "20-30 min" },
-                        { value: "30-45", label: "30-45 min" },
-                        { value: "60+", label: "60+ min" },
-                      ]}
-                    />
-                    {registerErrors.timePerDay ? <span style={{ color: COLORS.danger, fontSize: 12 }}>{registerErrors.timePerDay}</span> : null}
-                  </div>
-
-                  <div style={{ display: "grid", gap: 6 }}>
-                    <span style={{ color: COLORS.muted, fontSize: 13 }}>Dias por semana</span>
-                    <SelectGroup
-                      value={registerForm.onboarding.daysPerWeek}
-                      disabled={isLoading}
-                      onSelect={(value) => updateOnboardingField("daysPerWeek", value)}
-                      options={[
-                        { value: 2, label: "2x" },
-                        { value: 3, label: "3x" },
-                        { value: 4, label: "4x" },
-                        { value: 5, label: "5x" },
-                        { value: 6, label: "6x" },
-                      ]}
-                    />
-                    {registerErrors.daysPerWeek ? <span style={{ color: COLORS.danger, fontSize: 12 }}>{registerErrors.daysPerWeek}</span> : null}
-                  </div>
-
-                  <div style={{ display: "grid", gap: 6 }}>
-                    <span style={{ color: COLORS.muted, fontSize: 13 }}>Melhor horário</span>
-                    <SelectGroup
-                      value={registerForm.onboarding.bestTime}
-                      disabled={isLoading}
-                      onSelect={(value) => updateOnboardingField("bestTime", value)}
-                      options={[
-                        { value: "morning", label: "Manhã" },
-                        { value: "afternoon", label: "Tarde" },
-                        { value: "night", label: "Noite" },
-                        { value: "variable", label: "Variável" },
-                      ]}
-                    />
-                    {registerErrors.bestTime ? <span style={{ color: COLORS.danger, fontSize: 12 }}>{registerErrors.bestTime}</span> : null}
-                  </div>
-
-                  <div style={{ display: "grid", gap: 6 }}>
-                    <span style={{ color: COLORS.muted, fontSize: 13 }}>Equipamentos preferidos</span>
-                    <SelectGroup
-                      value={registerForm.onboarding.equipmentPref}
-                      disabled={isLoading}
-                      onSelect={(value) => updateOnboardingField("equipmentPref", value)}
-                      options={[
-                        { value: "weights", label: "Com peso" },
-                        { value: "no_weights", label: "Sem peso" },
-                        { value: "both", label: "Tanto faz" },
-                      ]}
-                    />
-                    {registerErrors.equipmentPref ? <span style={{ color: COLORS.danger, fontSize: 12 }}>{registerErrors.equipmentPref}</span> : null}
-                  </div>
-
-                  <div style={{ display: "grid", gap: 6 }}>
-                    <span style={{ color: COLORS.muted, fontSize: 13 }}>Intensidade preferida</span>
-                    <SelectGroup
-                      value={registerForm.onboarding.intensityPref}
-                      disabled={isLoading}
-                      onSelect={(value) => updateOnboardingField("intensityPref", value)}
-                      options={[
-                        { value: "progressive", label: "Progressiva" },
-                        { value: "intense", label: "Intensa" },
-                        { value: "any", label: "Tanto faz" },
-                      ]}
-                    />
-                    {registerErrors.intensityPref ? <span style={{ color: COLORS.danger, fontSize: 12 }}>{registerErrors.intensityPref}</span> : null}
-                  </div>
-
-                  <div style={{ display: "grid", gap: 6 }}>
-                    <span style={{ color: COLORS.muted, fontSize: 13 }}>Quer acompanhamento mais próximo?</span>
-                    <SelectGroup
-                      value={registerForm.onboarding.wantsCloseFollow}
-                      disabled={isLoading}
-                      onSelect={(value) => updateOnboardingField("wantsCloseFollow", value)}
-                      options={[
-                        { value: "yes", label: "Sim" },
-                        { value: "no", label: "Não" },
-                      ]}
-                    />
-                    {registerErrors.wantsCloseFollow ? <span style={{ color: COLORS.danger, fontSize: 12 }}>{registerErrors.wantsCloseFollow}</span> : null}
-                  </div>
-
-                  <div style={{ display: "grid", gap: 6 }}>
-                    <span style={{ color: COLORS.muted, fontSize: 13 }}>Lesões atuais</span>
-                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                      {injuryOptions.map((option) => (
-                        <button
-                          key={option.value}
-                          type="button"
-                          disabled={isLoading}
-                          onClick={() => toggleInjury(option.value)}
-                          style={pillStyle(registerForm.onboarding.injuries.includes(option.value), isLoading)}
-                        >
-                          {option.label}
-                        </button>
-                      ))}
-                    </div>
-                    {registerErrors.injuries ? <span style={{ color: COLORS.danger, fontSize: 12 }}>{registerErrors.injuries}</span> : null}
-                  </div>
-
-                  <div style={{ display: "grid", gap: 6 }}>
-                    <span style={{ color: COLORS.muted, fontSize: 13 }}>Cirurgia recente</span>
-                    <SelectGroup
-                      value={registerForm.onboarding.surgeryRecent}
-                      disabled={isLoading}
-                      onSelect={(value) => updateOnboardingField("surgeryRecent", value)}
-                      options={[
-                        { value: "yes", label: "Sim" },
-                        { value: "no", label: "Não" },
-                      ]}
-                    />
-                    {registerErrors.surgeryRecent ? <span style={{ color: COLORS.danger, fontSize: 12 }}>{registerErrors.surgeryRecent}</span> : null}
-                  </div>
-
-                  <div style={{ display: "grid", gap: 6 }}>
-                    <span style={{ color: COLORS.muted, fontSize: 13 }}>Dor frequente ao treinar</span>
-                    <SelectGroup
-                      value={registerForm.onboarding.frequentPain}
-                      disabled={isLoading}
-                      onSelect={(value) => updateOnboardingField("frequentPain", value)}
-                      options={[
-                        { value: "no", label: "Não" },
-                        { value: "sometimes", label: "Às vezes" },
-                        { value: "often", label: "Com frequência" },
-                      ]}
-                    />
-                    {registerErrors.frequentPain ? <span style={{ color: COLORS.danger, fontSize: 12 }}>{registerErrors.frequentPain}</span> : null}
-                  </div>
-                </div>
-              </div>
+              ) : import.meta.env.DEV ? (
+                <p style={{ color: COLORS.mutedSoft, fontSize: 12, margin: "8px 0 0", lineHeight: 1.45 }}>
+                  Desenvolvimento: sem <code style={{ color: COLORS.muted }}>VITE_TURNSTILE_SITE_KEY</code>. No backend use{" "}
+                  <code style={{ color: COLORS.muted }}>SKIP_CAPTCHA=true</code> ou configure Turnstile em produção.
+                </p>
+              ) : null}
 
               <motion.button
                 type="submit"

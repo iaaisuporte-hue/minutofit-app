@@ -226,7 +226,7 @@ export default function HomeWorkoutsPage() {
 
   return (
     <>
-    <div style={{ display: "grid", gap: 16, color: COLORS.text }}>
+    <div style={{ display: "grid", gap: 16, color: COLORS.text, minWidth: 0, width: "100%" }}>
       <div
         style={{
           border: `1px solid ${COLORS.borderStrong}`,
@@ -283,7 +283,17 @@ export default function HomeWorkoutsPage() {
         </div>
       </div>
 
-      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+      <div
+        style={{
+          display: "flex",
+          gap: 10,
+          flexWrap: "wrap",
+          maxWidth: "100%",
+          overflowX: "auto",
+          paddingBottom: 2,
+          WebkitOverflowScrolling: "touch",
+        }}
+      >
         <button
           type="button"
           onClick={() => setFilter("all")}

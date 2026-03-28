@@ -108,9 +108,12 @@
   z-index: 3;
   width: 100%;
   max-width: 1220px;
+  min-width: 0;
 }
 
 .login-future-hero-shell {
+  min-width: 0;
+  max-width: 100%;
   border-radius: 28px;
   border: 1px solid rgba(124, 255, 107, 0.22);
   background: linear-gradient(
@@ -132,6 +135,8 @@
 }
 
 .login-future-card-shell {
+  min-width: 0;
+  max-width: 100%;
   border-radius: 28px;
   border: 1px solid rgba(124, 255, 107, 0.28);
   background: linear-gradient(160deg, rgba(16, 24, 20, 0.5) 0%, rgba(8, 12, 10, 0.65) 100%);
@@ -207,4 +212,32 @@
     border-radius: 22px;
     padding: 20px 16px;
   }
+}
+
+/* Daltonic: align mesh with theme vars (no reliance on body filter) */
+html[data-color-mode="daltonic"] .login-future-page::before {
+  background: radial-gradient(
+    ellipse 120% 80% at 50% -20%,
+    color-mix(in srgb, var(--primary) 22%, transparent),
+    transparent 50%
+  );
+}
+
+html[data-color-mode="daltonic"] .login-future-mesh-gradient-shift {
+  background: linear-gradient(
+    125deg,
+    color-mix(in srgb, var(--primary) 16%, transparent) 0%,
+    transparent 42%,
+    color-mix(in srgb, var(--highlight) 10%, transparent) 100%
+  );
+  opacity: 0.72;
+}
+
+html[data-color-mode="daltonic"] .login-future-particle {
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--highlight) 75%, transparent) 0%,
+    transparent 70%
+  );
+  box-shadow: 0 0 12px color-mix(in srgb, var(--highlight) 35%, transparent);
 }
