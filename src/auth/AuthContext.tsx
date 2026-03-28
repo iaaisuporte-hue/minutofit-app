@@ -3,6 +3,7 @@ import React, { createContext, useContext, useMemo, useState, useEffect } from "
 import { fetchCurrentUser, loginWithPassword, loginWithProvider, registerWithPassword, type RegisterPayload } from "../services/authApi";
 import { hasPermission as checkPermission, resolvePermissions, type AccessProfile, type AppPermission } from "./accessControl";
 import { SESSION_EXPIRED_EVENT } from "../services/apiBase";
+import { clearTokens as clearStoredTokens, getAccessToken, setTokens } from "../services/authTokens";
 
 export type Role = "user" | "personal" | "nutri" | "admin";
 
@@ -56,10 +57,6 @@ type AuthContextType = AuthState & {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-const TOKEN_KEY = "minutofit_token";
-const REFRESH_TOKEN_KEY = "minutofit_refresh_token";
-const LEGACY_TOKEN_KEY = "token";
-
 function normalizeEmail(email: string) {
   return (email ?? "").trim().toLowerCase();
 }
@@ -74,20 +71,47 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     permissions: [],
   });
 
-  // Load auth from localStorage on mount
+  // Load auth from localStorage on mount (access token may be expired; fetchCurrentUser uses refresh via authFetch)
   useEffect(() => {
-    const token = localStorage.getItem(TOKEN_KEY);
-    if (token) {
-      // Try to restore session from token
-      restoreSessionFromToken(token);
-    }
+    if (!getAccessToken()) return;
+
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        const user = await fetchCurrentUser();
+        if (cancelled) return;
+        if (user) {
+          setState({
+            isAuthenticated: true,
+            role: user.role,
+            email: user.email,
+            id: user.id?.toString(),
+            user,
+            profileCompleted: user.profileCompleted,
+            accessProfile: user.accessProfile ?? null,
+            permissions: user.permissions ?? [],
+          });
+        } else {
+          clearStoredTokens();
+          setState({ isAuthenticated: false, role: null, email: null, id: null, accessProfile: null, permissions: [] });
+        }
+      } catch (err) {
+        console.error("Error restoring session:", err);
+        if (cancelled) return;
+        clearStoredTokens();
+        setState({ isAuthenticated: false, role: null, email: null, id: null, accessProfile: null, permissions: [] });
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
     function handleSessionExpired() {
-      localStorage.removeItem(TOKEN_KEY);
-      localStorage.removeItem(LEGACY_TOKEN_KEY);
-      localStorage.removeItem(REFRESH_TOKEN_KEY);
+      clearStoredTokens();
       setState({
         isAuthenticated: false,
         role: null,
@@ -105,50 +129,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener(SESSION_EXPIRED_EVENT, handleSessionExpired);
   }, []);
 
-  async function restoreSessionFromToken(token: string) {
-    try {
-      const user = await fetchCurrentUser(token);
-      if (user) {
-        setState({
-          isAuthenticated: true,
-          role: user.role,
-          email: user.email,
-          id: user.id?.toString(),
-          user,
-          profileCompleted: user.profileCompleted,
-          accessProfile: user.accessProfile ?? null,
-          permissions: user.permissions ?? [],
-        });
-      } else {
-        localStorage.removeItem(TOKEN_KEY);
-        localStorage.removeItem(LEGACY_TOKEN_KEY);
-        localStorage.removeItem(REFRESH_TOKEN_KEY);
-        setState({ isAuthenticated: false, role: null, email: null, id: null });
-      }
-    } catch (err) {
-      console.error("Error restoring session:", err);
-      localStorage.removeItem(TOKEN_KEY);
-      localStorage.removeItem(LEGACY_TOKEN_KEY);
-      localStorage.removeItem(REFRESH_TOKEN_KEY);
-      setState({ isAuthenticated: false, role: null, email: null, id: null });
-    }
-  }
-
   const value = useMemo<AuthContextType>(() => {
-    const storeTokens = (accessToken: string, refreshToken?: string) => {
-      localStorage.setItem(TOKEN_KEY, accessToken);
-      localStorage.setItem(LEGACY_TOKEN_KEY, accessToken);
-      if (refreshToken) {
-        localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
-      }
-    };
-
-    const clearTokens = () => {
-      localStorage.removeItem(TOKEN_KEY);
-      localStorage.removeItem(LEGACY_TOKEN_KEY);
-      localStorage.removeItem(REFRESH_TOKEN_KEY);
-    };
-
     return {
       ...state,
       accessProfile: resolvePermissions(state.role, state.user?.accessProfile, state.user?.permissions).profile,
@@ -172,7 +153,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         try {
           const data = await loginWithPassword(normalizedEmail, normalizedPass);
-          storeTokens(data.accessToken, data.refreshToken);
+          setTokens(data.accessToken, data.refreshToken);
 
           setState({
             isAuthenticated: true,
@@ -202,7 +183,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       register: async (payload) => {
         try {
           const data = await registerWithPassword(payload);
-          storeTokens(data.accessToken, data.refreshToken);
+          setTokens(data.accessToken, data.refreshToken);
 
           setState({
             isAuthenticated: true,
@@ -234,7 +215,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
           const data = await loginWithProvider(provider, idToken, userData);
           const { user, accessToken, refreshToken, requiresProfileCompletion } = data;
-          storeTokens(accessToken, refreshToken);
+          setTokens(accessToken, refreshToken);
 
           // Update state
           setState({
@@ -265,16 +246,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       },
 
       logout: () => {
-        clearTokens();
-        setState({ isAuthenticated: false, role: null, email: null, id: null });
+        clearStoredTokens();
+        setState({
+          isAuthenticated: false,
+          role: null,
+          email: null,
+          id: null,
+          accessProfile: null,
+          permissions: [],
+        });
       },
 
       getUser: async () => {
-        const token = localStorage.getItem(TOKEN_KEY);
-        if (!token) return null;
+        if (!getAccessToken()) return null;
 
         try {
-          return await fetchCurrentUser(token);
+          return await fetchCurrentUser();
         } catch (err) {
           console.error('Error fetching user:', err);
           return null;

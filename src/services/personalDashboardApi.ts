@@ -1,16 +1,6 @@
-import { API_URL, handleUnauthorizedResponse } from "./apiBase";
-
-function getToken() {
-  return localStorage.getItem("minutofit_token");
-}
-
-async function parseJson(response: Response) {
-  try {
-    return await response.json();
-  } catch {
-    return null;
-  }
-}
+import { API_URL, parseJson } from "./apiBase";
+import { authFetch } from "./apiClient";
+import { getAccessToken } from "./authTokens";
 
 export type PersonalDashboardPlan = "basic" | "silver" | "gold" | "black";
 export type PersonalDashboardRisk = "ok" | "alerta" | "critico";
@@ -78,16 +68,11 @@ export type PersonalConsultingResponse = {
 };
 
 export async function fetchPersonalDashboard() {
-  const token = getToken();
-  if (!token) return null;
+  if (!getAccessToken()) return null;
 
-  const response = await fetch(`${API_URL}/personal/dashboard`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+  const response = await authFetch(`${API_URL}/personal/dashboard`);
 
-  if (handleUnauthorizedResponse(response)) {
+  if (response.status === 401) {
     return null;
   }
 
@@ -100,16 +85,11 @@ export async function fetchPersonalDashboard() {
 }
 
 export async function fetchPersonalConsulting() {
-  const token = getToken();
-  if (!token) return null;
+  if (!getAccessToken()) return null;
 
-  const response = await fetch(`${API_URL}/personal/consulting/students`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+  const response = await authFetch(`${API_URL}/personal/consulting/students`);
 
-  if (handleUnauthorizedResponse(response)) {
+  if (response.status === 401) {
     return null;
   }
 

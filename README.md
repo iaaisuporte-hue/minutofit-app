@@ -1,5 +1,18 @@
 # React + TypeScript + Vite
 
+## Node.js
+
+O projeto exige **Node.js 20.19 ou superior** (Vite 7 e React Router 7). O arquivo [`.nvmrc`](./.nvmrc) fixa a versão para desenvolvimento local e CI.
+
+```bash
+nvm use    # ou: fnm use
+npm install
+```
+
+No deploy na **Vercel**, a versão do Node segue o campo `engines` em [`package.json`](./package.json).
+
+---
+
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
 Currently, two official plugins are available:

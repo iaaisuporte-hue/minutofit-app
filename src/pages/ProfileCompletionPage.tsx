@@ -2,7 +2,9 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth, type Role } from "../auth/AuthContext";
-import { API_URL, handleUnauthorizedResponse } from "../services/apiBase";
+import { API_URL, parseJson } from "../services/apiBase";
+import { authFetch } from "../services/apiClient";
+import { getAccessToken } from "../services/authTokens";
 
 const COLORS = {
   bg: "#0F0F0F",
@@ -67,42 +69,35 @@ export default function ProfileCompletionPage() {
         return;
       }
 
-      // Get token from localStorage
-      const token = localStorage.getItem("minutofit_token");
-      if (!token) {
+      if (!getAccessToken()) {
         setError("Token not found. Please login again.");
         nav("/login", { replace: true });
         return;
       }
 
-      // Call API to complete profile
-      const response = await fetch(
-        `${API_URL}/auth/complete-profile`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            name: formData.name,
-            photoUrl: formData.photoUrl || null,
-            fitnessGoal: formData.fitnessGoal,
-            experienceLevel: formData.experienceLevel,
-            heightCm: parseFloat(formData.heightCm),
-            weightKg: parseFloat(formData.weightKg),
-            dietaryRestrictions: formData.dietaryRestrictions || null,
-          }),
-        }
-      );
+      const response = await authFetch(`${API_URL}/auth/complete-profile`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: formData.name,
+          photoUrl: formData.photoUrl || null,
+          fitnessGoal: formData.fitnessGoal,
+          experienceLevel: formData.experienceLevel,
+          heightCm: parseFloat(formData.heightCm),
+          weightKg: parseFloat(formData.weightKg),
+          dietaryRestrictions: formData.dietaryRestrictions || null,
+        }),
+      });
 
-      if (handleUnauthorizedResponse(response)) {
+      if (response.status === 401) {
         return;
       }
 
       if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || "Failed to complete profile");
+        const data = await parseJson(response);
+        throw new Error(data?.error || "Failed to complete profile");
       }
 
       // Redirect to appropriate dashboard based on role

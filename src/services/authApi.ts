@@ -1,6 +1,7 @@
 import type { Role } from "../auth/AuthContext";
 import type { AccessProfile, AppPermission } from "../auth/accessControl";
-import { API_URL, handleUnauthorizedResponse } from "./apiBase";
+import { API_URL, parseJson } from "./apiBase";
+import { authFetch } from "./apiClient";
 
 export interface AuthApiUser {
   id: number;
@@ -40,14 +41,6 @@ export interface AuthApiSuccess {
   accessToken: string;
   refreshToken?: string;
   requiresProfileCompletion?: boolean;
-}
-
-async function parseJson(response: Response) {
-  try {
-    return await response.json();
-  } catch {
-    return null;
-  }
 }
 
 export async function loginWithPassword(email: string, password: string): Promise<AuthApiSuccess> {
@@ -115,14 +108,10 @@ export async function loginWithProvider(
   return data.data;
 }
 
-export async function fetchCurrentUser(token: string): Promise<AuthApiUser | null> {
-  const response = await fetch(`${API_URL}/auth/me`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+export async function fetchCurrentUser(): Promise<AuthApiUser | null> {
+  const response = await authFetch(`${API_URL}/auth/me`);
 
-  if (handleUnauthorizedResponse(response)) {
+  if (response.status === 401) {
     return null;
   }
 

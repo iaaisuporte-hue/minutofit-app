@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { handleUnauthorizedResponse } from "../services/apiBase";
+import { API_URL } from "../services/apiBase";
+import { authFetch } from "../services/apiClient";
 
 export interface Video {
   id: number;
@@ -37,46 +38,37 @@ export function useVideos(options: UseVideosOptions = {}) {
       setError(null);
 
       try {
-        let url = "/api/videos/search?";
+        const params = new URLSearchParams();
 
         if (options.goal) {
-          // Map goal to appropriate tags
           const tagMap: Record<string, string[]> = {
             weight_loss: ["perda-de-peso", "aerobico", "hiit"],
             muscle_gain: ["ganho-de-massa", "forca"],
             maintenance: ["flexibilidade", "cardio", "yoga"],
           };
           const tagsForGoal = tagMap[options.goal];
-          url += `tags=${tagsForGoal.join(",")}&`;
+          params.set("tags", tagsForGoal.join(","));
         } else if (options.tags && options.tags.length > 0) {
-          url += `tags=${options.tags.join(",")}&`;
+          params.set("tags", options.tags.join(","));
         }
 
-        if (options.limit) {
-          url += `limit=${options.limit}`;
-        } else {
-          url += "limit=10";
-        }
+        params.set("limit", String(options.limit ?? 10));
 
         if (options.visualSupport !== undefined) {
-          url += `&visualSupport=${options.visualSupport}`;
+          params.set("visualSupport", String(options.visualSupport));
         }
 
         if (options.auditorySupport !== undefined) {
-          url += `&auditorySupport=${options.auditorySupport}`;
+          params.set("auditorySupport", String(options.auditorySupport));
         }
 
         if (options.motorSupport !== undefined) {
-          url += `&motorSupport=${options.motorSupport}`;
+          params.set("motorSupport", String(options.motorSupport));
         }
 
-        const response = await fetch(url, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("minutofit_token") || localStorage.getItem("token")}`,
-          },
-        });
+        const response = await authFetch(`${API_URL}/videos/search?${params.toString()}`);
 
-        if (handleUnauthorizedResponse(response)) {
+        if (response.status === 401) {
           return;
         }
 

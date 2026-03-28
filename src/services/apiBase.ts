@@ -11,10 +11,10 @@ export function notifySessionExpired() {
   window.dispatchEvent(new CustomEvent(SESSION_EXPIRED_EVENT));
 }
 
-export function handleUnauthorizedResponse(response: Response) {
-  if (response.status === 401) {
-    notifySessionExpired();
-    return true;
+export async function parseJson(response: Response) {
+  try {
+    return await response.json();
+  } catch {
+    return null;
   }
-  return false;
 }

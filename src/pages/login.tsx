@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useAuth, type Role } from "../auth/AuthContext";
 import {
@@ -17,6 +18,8 @@ import {
   normalizeCpf,
   normalizePhone,
 } from "../utils/validators";
+import { LoginFuturisticExperience, TiltGlassFeatureCard } from "./login/LoginFuturisticExperience";
+import MinutoFitLogo from "../components/MinutoFitLogo";
 
 const COLORS = {
   panel: "rgba(18, 26, 21, 0.94)",
@@ -354,61 +357,84 @@ export default function LoginPage() {
     nav("/profile-completion", { replace: true });
   }
 
-  return (
-    <div className="authPage">
-      <div className="authLayout">
-        <div className="authHero">
-          <div>
-            <div
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 10,
-                borderRadius: 999,
-                border: `1px solid ${COLORS.border}`,
-                background: COLORS.highlightSoft,
-                color: COLORS.highlight,
-                padding: "8px 14px",
-                fontSize: 12,
-                fontWeight: 800,
-                letterSpacing: 1.2,
-                textTransform: "uppercase",
-              }}
-            >
-              Fitness com segurança e consistência
-            </div>
-            <div className="authHeroTitle">
-              Uma entrada mais profissional para a sua jornada de saúde.
-            </div>
-            <div className="authHeroText">
-              Entrar continua rápido. Criar conta agora valida identidade, contato, saúde inicial e contexto de treino para que a personalização comece desde o primeiro acesso.
-            </div>
-          </div>
+  const heroVariants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: { staggerChildren: 0.1, delayChildren: 0.05 },
+    },
+  };
 
-          <div style={{ display: "grid", gap: 12, maxWidth: 580 }}>
-            {[
-              "Cadastro completo em uma única etapa, sem jogar o onboarding para depois.",
-              "CPF único e validado para reduzir fraude e duplicidade.",
-              "Rotina, intensidade e limitações práticas entram desde o primeiro acesso.",
-            ].map((item) => (
-              <div
-                key={item}
+  const heroItem = {
+    hidden: { opacity: 0, y: 24 },
+    show: {
+      opacity: 1,
+      y: 0,
+      transition: { type: "spring" as const, stiffness: 300, damping: 28 },
+    },
+  };
+
+  return (
+    <LoginFuturisticExperience
+      hero={
+        <>
+          <motion.div variants={heroVariants} initial="hidden" animate="show" style={{ display: "grid", gap: 28 }}>
+            <motion.div variants={heroItem}>
+              <MinutoFitLogo width={236} style={{ maxWidth: "100%" }} />
+            </motion.div>
+
+            <motion.div variants={heroItem}>
+              <motion.div
+                className="login-future-neon-badge"
+                animate={{ scale: [1, 1.03, 1], opacity: [0.88, 1, 0.88] }}
+                transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut" }}
                 style={{
-                  borderRadius: 18,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 10,
+                  borderRadius: 999,
                   border: `1px solid ${COLORS.border}`,
-                  background: "rgba(255,255,255,.04)",
-                  padding: "14px 16px",
-                  color: COLORS.text,
+                  background: COLORS.highlightSoft,
+                  color: COLORS.highlight,
+                  padding: "8px 14px",
+                  fontSize: 12,
+                  fontWeight: 800,
+                  letterSpacing: 1.2,
+                  textTransform: "uppercase",
                 }}
               >
-                <span style={{ color: COLORS.highlight, fontWeight: 900, marginRight: 10 }}>●</span>
-                {item}
-              </div>
-            ))}
-          </div>
-        </div>
+                Ecossistema fitness digital
+              </motion.div>
+            </motion.div>
 
-        <div className="authCard">
+            <motion.div variants={heroItem} className="authHeroTitle login-future-title-glow">
+              Entre no futuro do seu treino.
+            </motion.div>
+
+            <motion.div variants={heroItem} className="authHeroText">
+              Uma experiência viva, responsiva e energética — da primeira tela ao seu plano. Cadastro completo, dados
+              seguros e contexto de treino desde o primeiro acesso.
+            </motion.div>
+
+            <motion.div variants={heroItem} style={{ display: "grid", gap: 14, maxWidth: 580 }}>
+              {[
+                "Cadastro completo em uma única etapa, sem jogar o onboarding para depois.",
+                "CPF único e validado para reduzir fraude e duplicidade.",
+                "Rotina, intensidade e limitações práticas entram desde o primeiro acesso.",
+              ].map((item) => (
+                <TiltGlassFeatureCard key={item}>
+                  <div style={{ color: COLORS.text, fontSize: 15, lineHeight: 1.55 }}>
+                    <span style={{ color: COLORS.highlight, fontWeight: 900, marginRight: 10 }}>●</span>
+                    {item}
+                  </div>
+                </TiltGlassFeatureCard>
+              ))}
+            </motion.div>
+          </motion.div>
+        </>
+      }
+      card={
+        <>
           <div className="authTabs">
             {[
               { key: "login" as const, label: "Entrar" },
@@ -416,9 +442,12 @@ export default function LoginPage() {
             ].map((tab) => {
               const active = mode === tab.key;
               return (
-                <button
+                <motion.button
                   key={tab.key}
                   type="button"
+                  layout
+                  whileHover={{ scale: 1.02, boxShadow: "0 0 24px rgba(124,255,107,0.15)" }}
+                  whileTap={{ scale: 0.98 }}
                   onClick={() => {
                     setMode(tab.key);
                     setError(null);
@@ -435,7 +464,7 @@ export default function LoginPage() {
                   }}
                 >
                   {tab.label}
-                </button>
+                </motion.button>
               );
             })}
           </div>
@@ -510,9 +539,11 @@ export default function LoginPage() {
                 />
               </label>
 
-              <button
+              <motion.button
                 type="submit"
                 disabled={isLoading}
+                whileHover={isLoading ? undefined : { scale: 1.02, boxShadow: "0 0 32px rgba(124,255,107,0.35)" }}
+                whileTap={isLoading ? undefined : { scale: 0.98 }}
                 style={{
                   marginTop: 6,
                   background: `linear-gradient(135deg, ${COLORS.primary} 0%, ${COLORS.highlight} 100%)`,
@@ -527,7 +558,7 @@ export default function LoginPage() {
                 }}
               >
                 {isLoading ? "Entrando..." : "Entrar"}
-              </button>
+              </motion.button>
             </form>
           ) : (
             <form onSubmit={onRegisterSubmit} className="authForm authFormScrollable">
@@ -829,9 +860,13 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              <button
+              <motion.button
                 type="submit"
                 disabled={isLoading || !isRegisterValid}
+                whileHover={
+                  isLoading || !isRegisterValid ? undefined : { scale: 1.02, boxShadow: "0 0 32px rgba(124,255,107,0.35)" }
+                }
+                whileTap={isLoading || !isRegisterValid ? undefined : { scale: 0.98 }}
                 style={{
                   marginTop: 6,
                   background: `linear-gradient(135deg, ${COLORS.primary} 0%, ${COLORS.highlight} 100%)`,
@@ -846,11 +881,11 @@ export default function LoginPage() {
                 }}
               >
                 {isLoading ? "Criando conta..." : "Criar conta e continuar"}
-              </button>
+              </motion.button>
             </form>
           )}
-        </div>
-      </div>
-    </div>
+        </>
+      }
+    />
   );
 }

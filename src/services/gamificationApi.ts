@@ -1,16 +1,6 @@
-import { API_URL, handleUnauthorizedResponse } from "./apiBase";
-
-function getToken() {
-  return localStorage.getItem("minutofit_token");
-}
-
-async function parseJson(response: Response) {
-  try {
-    return await response.json();
-  } catch {
-    return null;
-  }
-}
+import { API_URL, parseJson } from "./apiBase";
+import { authFetch } from "./apiClient";
+import { getAccessToken } from "./authTokens";
 
 export async function persistGamificationCheckin(payload: {
   source: "workout" | "activity";
@@ -27,19 +17,17 @@ export async function persistGamificationCheckin(payload: {
     pace: number;
   };
 }) {
-  const token = getToken();
-  if (!token) return null;
+  if (!getAccessToken()) return null;
 
-  const response = await fetch(`${API_URL}/gamification/checkins`, {
+  const response = await authFetch(`${API_URL}/gamification/checkins`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
     },
     body: JSON.stringify(payload),
   });
 
-  if (handleUnauthorizedResponse(response)) {
+  if (response.status === 401) {
     return null;
   }
 
@@ -52,16 +40,11 @@ export async function persistGamificationCheckin(payload: {
 }
 
 export async function fetchGamificationSummary() {
-  const token = getToken();
-  if (!token) return null;
+  if (!getAccessToken()) return null;
 
-  const response = await fetch(`${API_URL}/gamification/summary`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+  const response = await authFetch(`${API_URL}/gamification/summary`);
 
-  if (handleUnauthorizedResponse(response)) {
+  if (response.status === 401) {
     return null;
   }
 

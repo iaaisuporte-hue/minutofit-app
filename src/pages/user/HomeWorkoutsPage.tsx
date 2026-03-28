@@ -2,6 +2,10 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getYesterdayMuscleGroups, type MuscleGroup } from "./workoutHistory";
 import { homeWorkoutCatalog } from "./homeWorkoutCatalog";
+import {
+  HOME_EXTRA_YOUTUBE_BY_GROUP,
+  type HomeExtraYoutubeGroup,
+} from "./homeWorkoutExtraYoutube";
 
 const COLORS = {
   border: "rgba(124,255,107,.16)",
@@ -47,6 +51,117 @@ function Pill({ children }: { children: React.ReactNode }) {
   );
 }
 
+function ExtraYoutubeModal({
+  group,
+  onClose,
+}: {
+  group: HomeExtraYoutubeGroup;
+  onClose: () => void;
+}) {
+  const videos = HOME_EXTRA_YOUTUBE_BY_GROUP[group];
+  const title = group === "chest" ? "🏋️ Treino de peito — mais opções no YouTube" : "🦵 Treino de perna — mais opções no YouTube";
+
+  return (
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "rgba(0,0,0,.72)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 1000,
+        padding: 16,
+      }}
+      onClick={onClose}
+      role="presentation"
+    >
+      <div
+        style={{
+          background: "#161916",
+          borderRadius: 24,
+          padding: 24,
+          maxWidth: 700,
+          width: "100%",
+          maxHeight: "min(80vh, 640px)",
+          overflow: "auto",
+          border: "1px solid rgba(124,255,107,.16)",
+          boxShadow: "0 24px 60px rgba(0,0,0,.4)",
+        }}
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-labelledby="extra-youtube-modal-title"
+      >
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, gap: 12 }}>
+          <div id="extra-youtube-modal-title" style={{ fontSize: 20, fontWeight: 900, lineHeight: 1.25 }}>
+            {title}
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Fechar"
+            style={{
+              background: "rgba(255,255,255,.10)",
+              border: "none",
+              color: "#FFFFFF",
+              borderRadius: 8,
+              width: 36,
+              height: 36,
+              cursor: "pointer",
+              fontSize: 18,
+              fontWeight: 900,
+              flexShrink: 0,
+            }}
+          >
+            ✕
+          </button>
+        </div>
+
+        <div style={{ display: "grid", gap: 12 }}>
+          {videos.map((video) => (
+            <a
+              key={video.url}
+              href={video.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: "flex",
+                gap: 12,
+                padding: 12,
+                background: "rgba(29,185,84,.08)",
+                border: "1px solid rgba(29,185,84,.24)",
+                borderRadius: 12,
+                textDecoration: "none",
+                cursor: "pointer",
+              }}
+            >
+              <div style={{ fontSize: 28, lineHeight: 1 }} aria-hidden>
+                ▶️
+              </div>
+              <div>
+                <div style={{ fontWeight: 900, color: "#FFFFFF" }}>{video.title}</div>
+                <div style={{ fontSize: 12, color: "rgba(255,255,255,.60)", marginTop: 4 }}>{video.duration}</div>
+              </div>
+            </a>
+          ))}
+        </div>
+
+        <div
+          style={{
+            marginTop: 16,
+            paddingTop: 16,
+            borderTop: "1px solid rgba(255,255,255,.10)",
+            fontSize: 12,
+            color: "rgba(255,255,255,.60)",
+          }}
+        >
+          Lista curada de treinos mais longos. Toque em um item para abrir no YouTube.
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function AccessibilityPill({ label, supported }: { label: string; supported: boolean }) {
   return (
     <span
@@ -72,6 +187,7 @@ export default function HomeWorkoutsPage() {
   const navigate = useNavigate();
   const yesterdayMuscleGroups = useMemo(() => getYesterdayMuscleGroups(), []);
   const [filter, setFilter] = useState<"all" | MuscleGroup>("all");
+  const [extraYoutubeGroup, setExtraYoutubeGroup] = useState<HomeExtraYoutubeGroup | null>(null);
 
   const filtered = useMemo(() => {
     return homeWorkoutCatalog.filter((workout) => (filter === "all" ? true : workout.muscleGroups.includes(filter)));
@@ -109,6 +225,7 @@ export default function HomeWorkoutsPage() {
   }, [filtered]);
 
   return (
+    <>
     <div style={{ display: "grid", gap: 16, color: COLORS.text }}>
       <div
         style={{
@@ -319,6 +436,44 @@ export default function HomeWorkoutsPage() {
                       >
                         Abrir no YouTube
                       </a>
+
+                      {workout.id === "short-peito" ? (
+                        <button
+                          type="button"
+                          onClick={() => setExtraYoutubeGroup("chest")}
+                          style={{
+                            padding: "12px 14px",
+                            borderRadius: 14,
+                            border: `1px solid ${COLORS.borderStrong}`,
+                            background: "rgba(124,255,107,.10)",
+                            color: COLORS.text,
+                            fontWeight: 1000,
+                            cursor: "pointer",
+                            width: "fit-content",
+                          }}
+                        >
+                          Mais treinos de peito (lista)
+                        </button>
+                      ) : null}
+
+                      {workout.id === "short-perna" ? (
+                        <button
+                          type="button"
+                          onClick={() => setExtraYoutubeGroup("leg")}
+                          style={{
+                            padding: "12px 14px",
+                            borderRadius: 14,
+                            border: `1px solid ${COLORS.borderStrong}`,
+                            background: "rgba(124,255,107,.10)",
+                            color: COLORS.text,
+                            fontWeight: 1000,
+                            cursor: "pointer",
+                            width: "fit-content",
+                          }}
+                        >
+                          Mais treinos de perna (lista)
+                        </button>
+                      ) : null}
                     </div>
                   </div>
                 );
@@ -328,5 +483,8 @@ export default function HomeWorkoutsPage() {
         ))}
       </div>
     </div>
+
+    {extraYoutubeGroup ? <ExtraYoutubeModal group={extraYoutubeGroup} onClose={() => setExtraYoutubeGroup(null)} /> : null}
+    </>
   );
 }
