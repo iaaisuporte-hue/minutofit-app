@@ -2,10 +2,13 @@ import { useRef, type ReactNode } from "react";
 import {
   motion,
   useMotionValue,
+  useReducedMotion,
   useScroll,
   useSpring,
   useTransform,
 } from "framer-motion";
+import { useIsMobile } from "../../hooks/useIsMobile";
+import { useLoginMotionSafe } from "./loginPageMotion";
 import "./loginFuturistic.css";
 
 /** Posições fixas para evitar mismatch SSR/hidratação. */
@@ -53,7 +56,39 @@ const ORB_LG = "min(85vmax, 120vmin)";
 const ORB_MD = "min(70vmax, 110vmin)";
 const ORB_SM = "min(55vmax, 95vmin)";
 
-function AnimatedMeshOrbs() {
+function AnimatedMeshOrbs({ enableAnimation }: { enableAnimation: boolean }) {
+  if (!enableAnimation) {
+    return (
+      <div className="login-future-mesh login-future-mesh-static" style={{ position: "absolute", inset: 0 }} aria-hidden>
+        <div
+          style={{
+            position: "absolute",
+            width: ORB_LG,
+            height: ORB_LG,
+            borderRadius: "50%",
+            left: "-25%",
+            top: "-35%",
+            background: "radial-gradient(circle, rgba(29,185,84,0.38) 0%, transparent 58%)",
+            filter: "blur(72px)",
+          }}
+        />
+        <div
+          style={{
+            position: "absolute",
+            width: ORB_MD,
+            height: ORB_MD,
+            borderRadius: "50%",
+            right: "-20%",
+            bottom: "-25%",
+            background: "radial-gradient(circle, rgba(124,255,107,0.2) 0%, transparent 55%)",
+            filter: "blur(64px)",
+          }}
+        />
+        <div className="login-future-mesh-gradient-shift login-future-mesh-gradient-static" aria-hidden />
+      </div>
+    );
+  }
+
   return (
     <div className="login-future-mesh" style={{ position: "absolute", inset: 0 }} aria-hidden>
       <motion.div
@@ -138,12 +173,17 @@ function ParticleField() {
 
 export function TiltGlassFeatureCard({ children }: { children: ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
+  const isMobile = useIsMobile(720);
+  const prefersReduced = useReducedMotion();
+  const enableTilt = !prefersReduced && !isMobile;
+
   const mx = useMotionValue(0);
   const my = useMotionValue(0);
   const rotateX = useSpring(useTransform(my, [-0.5, 0.5], [10, -10]), { stiffness: 380, damping: 38 });
   const rotateY = useSpring(useTransform(mx, [-0.5, 0.5], [-10, 10]), { stiffness: 380, damping: 38 });
 
   function handleMove(e: React.MouseEvent<HTMLDivElement>) {
+    if (!enableTilt) return;
     const el = ref.current;
     if (!el) return;
     const r = el.getBoundingClientRect();
@@ -157,17 +197,17 @@ export function TiltGlassFeatureCard({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div style={{ perspective: 1100 }}>
+    <div style={{ perspective: enableTilt ? 1100 : undefined }}>
       <motion.div
         ref={ref}
         onMouseMove={handleMove}
         onMouseLeave={handleLeave}
         style={{
-          rotateX,
-          rotateY,
+          rotateX: enableTilt ? rotateX : 0,
+          rotateY: enableTilt ? rotateY : 0,
           transformStyle: "preserve-3d",
         }}
-        whileHover={{ scale: 1.02 }}
+        whileHover={enableTilt ? { scale: 1.02 } : { scale: 1.01 }}
         transition={{ type: "spring", stiffness: 400, damping: 28 }}
       >
         <div className="login-future-tilt-inner">{children}</div>
@@ -182,11 +222,24 @@ type Props = {
 };
 
 export function LoginFuturisticExperience({ hero, card }: Props) {
+  const isMobile = useIsMobile(720);
+  const prefersReduced = useReducedMotion();
+  const { shouldUseParallax, shouldUseAmbientMesh, shouldUseParticles } = useLoginMotionSafe({ isMobile });
+
   const { scrollY } = useScroll();
-  const heroY = useTransform(scrollY, [0, 700], [0, 90]);
-  const cardY = useTransform(scrollY, [0, 700], [0, -55]);
-  const meshY = useTransform(scrollY, [0, 700], [0, 100]);
-  const particleY = useTransform(scrollY, [0, 700], [0, 45]);
+  const parallax = shouldUseParallax ? 1 : 0;
+  const heroY = useTransform(scrollY, [0, 700], [0, 90 * parallax]);
+  const cardY = useTransform(scrollY, [0, 700], [0, -55 * parallax]);
+  const meshY = useTransform(scrollY, [0, 700], [0, 100 * parallax]);
+  const particleY = useTransform(scrollY, [0, 700], [0, 45 * parallax]);
+
+  const shellTransition = prefersReduced
+    ? { duration: 0.35, ease: [0.22, 1, 0.36, 1] as const }
+    : { type: "spring" as const, stiffness: 220, damping: 26 };
+
+  const cardTransition = prefersReduced
+    ? { duration: 0.4, ease: [0.22, 1, 0.36, 1] as const, delay: 0.06 }
+    : { type: "spring" as const, stiffness: 260, damping: 28, delay: 0.12 };
 
   return (
     <div className="login-future-page">
@@ -200,29 +253,41 @@ export function LoginFuturisticExperience({ hero, card }: Props) {
         }}
         aria-hidden
       >
-        <AnimatedMeshOrbs />
+        <AnimatedMeshOrbs enableAnimation={shouldUseAmbientMesh} />
       </motion.div>
-      <motion.div style={{ y: particleY }} className="login-future-particles-motion">
-        <ParticleField />
-      </motion.div>
+      {shouldUseParticles ? (
+        <motion.div style={{ y: particleY }} className="login-future-particles-motion">
+          <ParticleField />
+        </motion.div>
+      ) : null}
       <div className="login-future-scanline" aria-hidden />
 
       <div className="authLayout login-future-grid">
         <motion.div
-          className="login-future-hero-shell"
+          className="login-future-hero-shell login-future-glass-surface"
           style={{ y: heroY }}
-          initial={{ opacity: 0, y: 24 }}
+          initial={prefersReduced ? { opacity: 0, y: 16 } : { opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ type: "spring", stiffness: 220, damping: 26 }}
+          transition={shellTransition}
         >
           {hero}
         </motion.div>
         <motion.div
-          className="login-future-card-shell"
+          className="login-future-card-shell login-future-glass-surface"
           style={{ y: cardY }}
-          initial={{ opacity: 0, x: 32 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ type: "spring", stiffness: 260, damping: 28, delay: 0.12 }}
+          initial={prefersReduced ? { opacity: 0, y: 20 } : { opacity: 0, x: 32 }}
+          animate={prefersReduced ? { opacity: 1, y: 0 } : { opacity: 1, x: 0 }}
+          transition={cardTransition}
+          whileHover={
+            prefersReduced || isMobile
+              ? undefined
+              : {
+                  scale: 1.008,
+                  boxShadow: "0 28px 64px rgba(0,0,0,.52), 0 0 72px rgba(124,255,107,.1)",
+                  transition: { duration: 0.28 },
+                }
+          }
+          whileTap={prefersReduced || isMobile ? undefined : { scale: 0.995 }}
         >
           {card}
         </motion.div>

@@ -1,16 +1,23 @@
 import { Link } from "react-router-dom";
+import { motion, useReducedMotion } from "framer-motion";
 import { useAuth } from "../auth/AuthContext";
 import { useNeonTheme } from "../theme/minutofitNeonTheme";
+
+const MotionLink = motion(Link);
 
 export default function ComplianceBanner() {
   const { user, role } = useAuth();
   const neon = useNeonTheme();
+  const shouldReduceMotion = useReducedMotion();
   if (role !== "user" || !user?.id) return null;
   if (user.studentComplianceComplete) return null;
 
   return (
-    <div
+    <motion.div
       className="compliance-banner-root"
+      initial={shouldReduceMotion ? false : { opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.45, ease: "easeOut" }}
       style={{
         margin: "0 0 12px",
         padding: "12px 14px",
@@ -31,9 +38,17 @@ export default function ComplianceBanner() {
         <b>Obrigatório:</b> complete triagem de saúde, preferências de treino e PAR-Q com assinatura em{" "}
         <strong>Configurações</strong> antes de usar o app com segurança jurídica e de saúde.
       </span>
-      <Link
-        to="/app/user/settings#compliance"
+      <MotionLink
+        to="/app/user/settings?focus=compliance#compliance"
         className="compliance-banner-cta"
+        whileHover={shouldReduceMotion ? undefined : { scale: 1.02 }}
+        whileTap={shouldReduceMotion ? undefined : { scale: 0.98 }}
+        animate={
+          shouldReduceMotion
+            ? undefined
+            : { boxShadow: ["0 8px 18px rgba(29,185,84,.20)", "0 10px 22px rgba(124,255,107,.32)", "0 8px 18px rgba(29,185,84,.20)"] }
+        }
+        transition={shouldReduceMotion ? undefined : { duration: 2.8, repeat: Infinity, ease: "easeInOut" }}
         style={{
           color: neon.ctaText,
           background: neon.ctaGradient,
@@ -47,7 +62,7 @@ export default function ComplianceBanner() {
         }}
       >
         Abrir Configurações
-      </Link>
-    </div>
+      </MotionLink>
+    </motion.div>
   );
 }

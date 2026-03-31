@@ -14,6 +14,13 @@ import {
   getStrongPasswordError,
 } from "../utils/validators";
 import { LoginFuturisticExperience, TiltGlassFeatureCard } from "./login/LoginFuturisticExperience";
+import {
+  loginCardInnerStagger,
+  loginItemRevealVariants,
+  loginPageStaggerVariants,
+  useLoginMotionSafe,
+} from "./login/loginPageMotion";
+import { useIsMobile } from "../hooks/useIsMobile";
 import MinutoFitLogo from "../components/MinutoFitLogo";
 
 const COLORS = {
@@ -88,6 +95,8 @@ const turnstileSiteKey =
 export default function LoginPage() {
   const nav = useNavigate();
   const { login, register, isAuthenticated, role } = useAuth();
+  const isMobile = useIsMobile(720);
+  const { shouldReduceMotion, shouldUsePulse } = useLoginMotionSafe({ isMobile });
 
   const [mode, setMode] = useState<Mode>("login");
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
@@ -193,37 +202,31 @@ export default function LoginPage() {
     nav("/profile-completion", { replace: true });
   }
 
-  const heroVariants = {
-    hidden: { opacity: 0 },
-    show: {
-      opacity: 1,
-      transition: { staggerChildren: 0.1, delayChildren: 0.05 },
-    },
-  };
-
-  const heroItem = {
-    hidden: { opacity: 0, y: 24 },
-    show: {
-      opacity: 1,
-      y: 0,
-      transition: { type: "spring" as const, stiffness: 300, damping: 28 },
-    },
-  };
-
   return (
     <LoginFuturisticExperience
       hero={
         <>
-          <motion.div variants={heroVariants} initial="hidden" animate="show" style={{ display: "grid", gap: 28 }}>
-            <motion.div variants={heroItem}>
+          <motion.div
+            variants={loginPageStaggerVariants}
+            initial={shouldReduceMotion ? false : "hidden"}
+            animate="show"
+            style={{ display: "grid", gap: 28 }}
+          >
+            <motion.div variants={loginItemRevealVariants}>
               <MinutoFitLogo width={236} style={{ maxWidth: "100%" }} />
             </motion.div>
 
-            <motion.div variants={heroItem}>
+            <motion.div variants={loginItemRevealVariants}>
               <motion.div
                 className="login-future-neon-badge"
-                animate={{ scale: [1, 1.03, 1], opacity: [0.88, 1, 0.88] }}
-                transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut" }}
+                animate={
+                  shouldReduceMotion
+                    ? undefined
+                    : { scale: [1, 1.03, 1], opacity: [0.88, 1, 0.88] }
+                }
+                transition={
+                  shouldReduceMotion ? undefined : { duration: 3.2, repeat: Infinity, ease: "easeInOut" }
+                }
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
@@ -243,16 +246,16 @@ export default function LoginPage() {
               </motion.div>
             </motion.div>
 
-            <motion.div variants={heroItem} className="authHeroTitle login-future-title-glow">
+            <motion.div variants={loginItemRevealVariants} className="authHeroTitle login-future-title-glow">
               Entre no futuro do seu treino.
             </motion.div>
 
-            <motion.div variants={heroItem} className="authHeroText">
+            <motion.div variants={loginItemRevealVariants} className="authHeroText">
               Uma experiência viva, responsiva e energética — da primeira tela ao seu plano. Cadastro rápido com senha
               forte e CAPTCHA; triagem de saúde, onboarding de treino e PAR-Q você completa em Configurações após entrar.
             </motion.div>
 
-            <motion.div variants={heroItem} style={{ display: "grid", gap: 14, maxWidth: 580 }}>
+            <motion.div variants={loginItemRevealVariants} style={{ display: "grid", gap: 14, maxWidth: 580 }}>
               {[
                 "Cadastro enxuto: só dados de identificação e segurança na primeira tela.",
                 "CPF único e validado para reduzir fraude e duplicidade.",
@@ -271,7 +274,13 @@ export default function LoginPage() {
       }
       card={
         <>
-          <div className="authTabs">
+          <motion.div
+            variants={loginCardInnerStagger}
+            initial={shouldReduceMotion ? false : "hidden"}
+            animate="show"
+            style={{ display: "grid", gap: 0 }}
+          >
+            <motion.div variants={loginItemRevealVariants} className="authTabs">
             {[
               { key: "login" as const, label: "Entrar" },
               { key: "register" as const, label: "Criar conta" },
@@ -303,9 +312,38 @@ export default function LoginPage() {
                 </motion.button>
               );
             })}
-          </div>
+            </motion.div>
 
-          <div style={{ marginBottom: 18 }}>
+            <motion.div variants={loginItemRevealVariants} style={{ marginTop: 12, marginBottom: 6 }}>
+              <div
+                style={{
+                  position: "relative",
+                  height: 5,
+                  borderRadius: 999,
+                  background: "rgba(255,255,255,.08)",
+                  overflow: "hidden",
+                  border: `1px solid ${COLORS.border}`,
+                }}
+              >
+                <motion.div
+                  layout
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    bottom: 0,
+                    width: "50%",
+                    borderRadius: 999,
+                    background: `linear-gradient(135deg, ${COLORS.primary} 0%, ${COLORS.highlight} 100%)`,
+                    boxShadow: "0 0 18px rgba(29,185,84,.4)",
+                  }}
+                  initial={shouldReduceMotion ? false : { left: "-52%", opacity: 0 }}
+                  animate={{ left: mode === "login" ? "0%" : "50%", opacity: 1 }}
+                  transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+                />
+              </div>
+            </motion.div>
+
+          <motion.div variants={loginItemRevealVariants} style={{ marginBottom: 18 }}>
             <div
               style={{
                 display: "inline-flex",
@@ -331,25 +369,31 @@ export default function LoginPage() {
                 ? "Acesse com email e senha. O login social fica oculto por enquanto para evitar fluxos incompletos."
                 : "Depois de criar a conta você completa o perfil físico e, em seguida, a triagem obrigatória em Configurações (saúde, treino e PAR-Q)."}
             </div>
-          </div>
+          </motion.div>
 
           {error ? (
-            <div
-              style={{
-                background: "rgba(255,122,122,.1)",
-                border: `1px solid rgba(255,122,122,.35)`,
-                padding: 12,
-                borderRadius: 16,
-                marginBottom: 14,
-                color: COLORS.text,
-              }}
-            >
-              {error}
-            </div>
+            <motion.div variants={loginItemRevealVariants}>
+              <div
+                style={{
+                  background: "rgba(255,122,122,.1)",
+                  border: `1px solid rgba(255,122,122,.35)`,
+                  padding: 12,
+                  borderRadius: 16,
+                  marginBottom: 14,
+                  color: COLORS.text,
+                }}
+              >
+                {error}
+              </div>
+            </motion.div>
           ) : null}
 
           {mode === "login" ? (
-            <form onSubmit={onLoginSubmit} className="authForm">
+            <motion.form
+              variants={loginItemRevealVariants}
+              onSubmit={onLoginSubmit}
+              className="authForm"
+            >
               <label style={{ display: "grid", gap: 6 }}>
                 <span style={{ color: COLORS.muted, fontSize: 13 }}>Email</span>
                 <input
@@ -380,6 +424,19 @@ export default function LoginPage() {
                 disabled={isLoading}
                 whileHover={isLoading ? undefined : { scale: 1.02, boxShadow: "0 0 32px rgba(124,255,107,0.35)" }}
                 whileTap={isLoading ? undefined : { scale: 0.98 }}
+                animate={
+                  shouldUsePulse && !isLoading
+                    ? {
+                        boxShadow: [
+                          "0 14px 28px rgba(29,185,84,.22)",
+                          "0 16px 32px rgba(124,255,107,.32)",
+                          "0 14px 28px rgba(29,185,84,.22)",
+                        ],
+                      }
+                    : undefined
+                }
+                transition={shouldUsePulse && !isLoading ? { duration: 2.8, repeat: Infinity, ease: "easeInOut" } : undefined}
+                className="login-cta-pulse"
                 style={{
                   marginTop: 6,
                   background: `linear-gradient(135deg, ${COLORS.primary} 0%, ${COLORS.highlight} 100%)`,
@@ -395,9 +452,13 @@ export default function LoginPage() {
               >
                 {isLoading ? "Entrando..." : "Entrar"}
               </motion.button>
-            </form>
+            </motion.form>
           ) : (
-            <form onSubmit={onRegisterSubmit} className="authForm authFormScrollable">
+            <motion.form
+              variants={loginItemRevealVariants}
+              onSubmit={onRegisterSubmit}
+              className="authForm authFormScrollable"
+            >
               <div style={{ display: "grid", gap: 12 }}>
                 <div style={{ fontSize: 15, fontWeight: 900 }}>Identificação e contato</div>
 
@@ -519,6 +580,23 @@ export default function LoginPage() {
                   isLoading || !isRegisterValid ? undefined : { scale: 1.02, boxShadow: "0 0 32px rgba(124,255,107,0.35)" }
                 }
                 whileTap={isLoading || !isRegisterValid ? undefined : { scale: 0.98 }}
+                animate={
+                  shouldUsePulse && !isLoading && isRegisterValid
+                    ? {
+                        boxShadow: [
+                          "0 14px 28px rgba(29,185,84,.22)",
+                          "0 16px 32px rgba(124,255,107,.32)",
+                          "0 14px 28px rgba(29,185,84,.22)",
+                        ],
+                      }
+                    : undefined
+                }
+                transition={
+                  shouldUsePulse && !isLoading && isRegisterValid
+                    ? { duration: 2.8, repeat: Infinity, ease: "easeInOut" }
+                    : undefined
+                }
+                className="login-cta-pulse"
                 style={{
                   marginTop: 6,
                   background: `linear-gradient(135deg, ${COLORS.primary} 0%, ${COLORS.highlight} 100%)`,
@@ -534,8 +612,9 @@ export default function LoginPage() {
               >
                 {isLoading ? "Criando conta..." : "Criar conta e continuar"}
               </motion.button>
-            </form>
+            </motion.form>
           )}
+          </motion.div>
         </>
       }
     />

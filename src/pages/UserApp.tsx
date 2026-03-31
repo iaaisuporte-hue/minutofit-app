@@ -200,7 +200,7 @@ export default function UserApp() {
                   </LimitedUserOnly>
                 }
               />
-              <Route path="settings" element={<LimitedUserOnly allowed={canSettings}><AccountSettingsPage /></LimitedUserOnly>} />
+              <Route path="settings" element={<LimitedUserOnly allowed={!loading}><AccountSettingsPage /></LimitedUserOnly>} />
 
               {/* ✅ TREINO SUGERIDO */}
               <Route

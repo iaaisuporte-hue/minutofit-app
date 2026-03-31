@@ -28,6 +28,10 @@ body,
     linear-gradient(180deg, #151515 0%, #121212 100%);
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   margin: 0;
 
@@ -55,6 +59,12 @@ a:hover {
    você já estiliza botões inline, então isso pode interferir. */
 button {
   font-family: inherit;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
 }
 
 /* ❌ Isso aqui causa “branco” quando o sistema estiver em light

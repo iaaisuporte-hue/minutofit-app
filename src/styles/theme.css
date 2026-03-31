@@ -16,6 +16,8 @@
   --card: #181d19;
   --panel-strong: #0f1814;
   --stroke: rgba(124,255,107,.16);
+  /** Bordas mais suaves (cards internos) — mesma família cromática da sidebar */
+  --stroke-subtle: rgba(124,255,107,.10);
   --stroke-strong: rgba(29,185,84,.34);
   --muted: rgba(255,255,255,.74);
   --muted2: rgba(232,236,233,.58);
@@ -45,6 +47,7 @@ html[data-color-mode="daltonic"]{
   --card: #152033;
   --panel-strong: #0f1727;
   --stroke: rgba(120, 184, 255, 0.24);
+  --stroke-subtle: rgba(120, 184, 255, 0.14);
   --stroke-strong: rgba(255, 200, 87, 0.36);
   --muted: rgba(255,255,255,.80);
   --muted2: rgba(226,233,246,.64);
@@ -78,6 +81,12 @@ html[data-color-mode="daltonic"] body{
     radial-gradient(circle at top left, rgba(45,127,249,.20), transparent 32%),
     radial-gradient(circle at top right, rgba(255,200,87,.12), transparent 24%),
     linear-gradient(180deg, #131c2b 0%, var(--bg) 100%);
+}
+
+/* Garante cobertura visual completa do modo daltônico,
+   inclusive em telas com cores inline fora dos tokens CSS. */
+html[data-color-mode="daltonic"] #root{
+  filter: hue-rotate(140deg) saturate(0.82) contrast(1.06);
 }
 
 /* Layout */

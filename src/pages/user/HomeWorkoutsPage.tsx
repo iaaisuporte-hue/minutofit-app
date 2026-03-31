@@ -1,5 +1,17 @@
 import { useMemo, useState } from "react";
+import { motion, useScroll, useTransform } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+import InteractiveSurfaceCard from "../../components/InteractiveSurfaceCard";
+import { useIsMobile } from "../../hooks/useIsMobile";
+import {
+  itemRevealVariants,
+  pageStaggerVariants,
+  sectionRevealVariants,
+  subtleHoverScale,
+  subtleTapScale,
+  useTodayMotionSafe,
+} from "./todayPageMotion";
+import "./todayPage.css";
 import { getYesterdayMuscleGroups, type MuscleGroup } from "./workoutHistory";
 import { homeWorkoutCatalog } from "./homeWorkoutCatalog";
 import {
@@ -14,6 +26,7 @@ const COLORS = {
   muted: "rgba(255,255,255,.72)",
   mutedSoft: "rgba(232,236,233,.58)",
   panel: "linear-gradient(180deg, rgba(22,25,22,.92), rgba(15,18,16,.96))",
+  panelDeep: "linear-gradient(180deg, rgba(15,61,46,.95), rgba(15,24,20,.98))",
   primarySoft: "rgba(29,185,84,.18)",
   highlightSoft: "rgba(124,255,107,.12)",
 };
@@ -76,7 +89,10 @@ function ExtraYoutubeModal({
       onClick={onClose}
       role="presentation"
     >
-      <div
+      <motion.div
+        initial={shouldReduceMotion ? false : { opacity: 0, y: 14, scale: 0.98 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.4, ease: "easeOut" }}
         style={{
           background: "#161916",
           borderRadius: 24,
@@ -96,10 +112,12 @@ function ExtraYoutubeModal({
           <div id="extra-youtube-modal-title" style={{ fontSize: 20, fontWeight: 900, lineHeight: 1.25 }}>
             {title}
           </div>
-          <button
+          <motion.button
             type="button"
             onClick={onClose}
             aria-label="Fechar"
+            whileHover={shouldReduceMotion ? undefined : subtleHoverScale}
+            whileTap={shouldReduceMotion ? undefined : subtleTapScale}
             style={{
               background: "rgba(255,255,255,.10)",
               border: "none",
@@ -114,16 +132,18 @@ function ExtraYoutubeModal({
             }}
           >
             ✕
-          </button>
+          </motion.button>
         </div>
 
         <div style={{ display: "grid", gap: 12 }}>
           {videos.map((video) => (
-            <a
+            <motion.a
               key={video.url}
               href={video.url}
               target="_blank"
               rel="noopener noreferrer"
+              whileHover={shouldReduceMotion ? undefined : subtleHoverScale}
+              whileTap={shouldReduceMotion ? undefined : subtleTapScale}
               style={{
                 display: "flex",
                 gap: 12,
@@ -142,7 +162,7 @@ function ExtraYoutubeModal({
                 <div style={{ fontWeight: 900, color: "#FFFFFF" }}>{video.title}</div>
                 <div style={{ fontSize: 12, color: "rgba(255,255,255,.60)", marginTop: 4 }}>{video.duration}</div>
               </div>
-            </a>
+            </motion.a>
           ))}
         </div>
 
@@ -157,7 +177,7 @@ function ExtraYoutubeModal({
         >
           Lista curada de treinos mais longos. Toque em um item para abrir no YouTube.
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }
@@ -188,6 +208,11 @@ export default function HomeWorkoutsPage() {
   const yesterdayMuscleGroups = useMemo(() => getYesterdayMuscleGroups(), []);
   const [filter, setFilter] = useState<"all" | MuscleGroup>("all");
   const [extraYoutubeGroup, setExtraYoutubeGroup] = useState<HomeExtraYoutubeGroup | null>(null);
+  const isMobile = useIsMobile(720);
+  const { shouldReduceMotion, shouldUseParallax, shouldUsePulse, shouldUseTilt } = useTodayMotionSafe({ isMobile });
+  const { scrollY } = useScroll();
+  const heroMeshY = useTransform(scrollY, [0, 500], [0, shouldUseParallax ? 65 : 0]);
+  const heroContentY = useTransform(scrollY, [0, 500], [0, shouldUseParallax ? 24 : 0]);
 
   const filtered = useMemo(() => {
     return homeWorkoutCatalog.filter((workout) => (filter === "all" ? true : workout.muscleGroups.includes(filter)));
@@ -226,77 +251,95 @@ export default function HomeWorkoutsPage() {
 
   return (
     <>
-    <div style={{ display: "grid", gap: 16, color: COLORS.text, minWidth: 0, width: "100%" }}>
-      <div
-        style={{
-          border: `1px solid ${COLORS.borderStrong}`,
-          borderRadius: 20,
-          padding: 18,
-          display: "grid",
-          gap: 12,
-          background: "linear-gradient(135deg, rgba(15,61,46,.94), rgba(15,24,20,.98))",
-          boxShadow: "0 18px 44px rgba(0,0,0,.45)",
-        }}
-      >
-        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
-          <button
-            onClick={() => navigate(-1)}
-            style={{
-              padding: "12px 14px",
-              borderRadius: 12,
-              border: `1px solid ${COLORS.border}`,
-              background: "transparent",
-              color: "#FFFFFF",
-              cursor: "pointer",
-              fontWeight: 1000,
-              fontSize: 14,
-              width: "fit-content",
-            }}
-          >
-            ← Voltar
-          </button>
-
-          <div style={{ textAlign: "center" }}>
-            <div style={{ fontWeight: 1000, fontSize: 22 }}>Treinos em casa</div>
-            <div style={{ marginTop: 6, color: COLORS.muted, fontSize: 13 }}>
-              Shorts rápidos com regra de recuperação por grupo muscular.
-            </div>
-          </div>
-
-          <div style={{ color: COLORS.mutedSoft, fontSize: 12, fontWeight: 900, textTransform: "uppercase", letterSpacing: 1 }}>
-            Shorts ativos
-          </div>
-        </div>
-
+    <motion.div
+      style={{ display: "grid", gap: 16, color: COLORS.text, minWidth: 0, width: "100%" }}
+      variants={pageStaggerVariants}
+      initial={shouldReduceMotion ? false : "hidden"}
+      animate="show"
+    >
+      <motion.div variants={sectionRevealVariants}>
         <div
           style={{
-            borderRadius: 16,
-            border: `1px solid ${COLORS.border}`,
-            background: "rgba(255,255,255,.04)",
-            padding: 14,
-            color: COLORS.muted,
-            fontSize: 13,
-            lineHeight: 1.5,
+            position: "relative",
+            overflow: "hidden",
+            border: `1px solid ${COLORS.borderStrong}`,
+            borderRadius: 20,
+            padding: 18,
+            display: "grid",
+            gap: 12,
+            background: "linear-gradient(180deg, rgba(15,61,46,.95), rgba(15,24,20,.98))",
+            boxShadow: "0 18px 44px rgba(0,0,0,.45)",
           }}
         >
-          Se você treinou determinado grupo ontem, ele aparece aqui mas fica indisponível hoje. Queima de gordura, aquecimento e alongamento continuam liberados todos os dias.
-        </div>
-      </div>
+          <motion.div
+            aria-hidden
+            style={{
+              position: "absolute",
+              inset: -24,
+              y: heroMeshY,
+              background:
+                "radial-gradient(circle at 18% 24%, rgba(124,255,107,.12), transparent 45%), radial-gradient(circle at 84% 20%, rgba(29,185,84,.12), transparent 42%)",
+              pointerEvents: "none",
+            }}
+          />
+          <motion.div style={{ display: "grid", gap: 12, y: heroContentY }}>
+            <motion.div variants={itemRevealVariants} style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
+              <motion.button
+                type="button"
+                onClick={() => navigate(-1)}
+                whileHover={subtleHoverScale}
+                whileTap={subtleTapScale}
+                style={{
+                  padding: "12px 14px",
+                  borderRadius: 12,
+                  border: `1px solid ${COLORS.border}`,
+                  background: "transparent",
+                  color: "#FFFFFF",
+                  cursor: "pointer",
+                  fontWeight: 1000,
+                  fontSize: 14,
+                  width: "fit-content",
+                }}
+              >
+                ← Voltar
+              </motion.button>
 
-      <div
-        style={{
-          display: "flex",
-          gap: 10,
-          flexWrap: "wrap",
-          maxWidth: "100%",
-          overflowX: "auto",
-          paddingBottom: 2,
-          WebkitOverflowScrolling: "touch",
-        }}
-      >
-        <button
+              <div style={{ textAlign: "center" }}>
+                <div style={{ fontWeight: 1000, fontSize: 22 }}>Treinos em casa</div>
+                <div style={{ marginTop: 6, color: COLORS.muted, fontSize: 13 }}>
+                  Shorts rápidos com regra de recuperação por grupo muscular.
+                </div>
+              </div>
+
+              <div style={{ color: COLORS.mutedSoft, fontSize: 12, fontWeight: 900, textTransform: "uppercase", letterSpacing: 1 }}>
+                Shorts ativos
+              </div>
+            </motion.div>
+
+            <motion.div
+              variants={itemRevealVariants}
+              style={{
+                borderRadius: 16,
+                border: `1px solid ${COLORS.border}`,
+                background: "rgba(255,255,255,.04)",
+                padding: 14,
+                color: COLORS.muted,
+                fontSize: 13,
+                lineHeight: 1.5,
+              }}
+            >
+              Se você treinou determinado grupo ontem, ele aparece aqui mas fica indisponível hoje. Queima de gordura, aquecimento e alongamento continuam liberados todos os dias.
+            </motion.div>
+          </motion.div>
+        </div>
+      </motion.div>
+
+      <motion.div variants={itemRevealVariants} style={{ display: "flex", gap: 10, flexWrap: "wrap", maxWidth: "100%", overflowX: "auto", paddingBottom: 2, WebkitOverflowScrolling: "touch" }}>
+        <motion.button
           type="button"
           onClick={() => setFilter("all")}
+          whileHover={subtleHoverScale}
+          whileTap={subtleTapScale}
           style={{
             padding: "10px 12px",
             borderRadius: 999,
@@ -308,12 +351,14 @@ export default function HomeWorkoutsPage() {
           }}
         >
           Todos
-        </button>
+        </motion.button>
         {(["chest", "back", "legs", "arms", "core", "cardio", "mobility"] as MuscleGroup[]).map((group) => (
-          <button
+          <motion.button
             key={group}
             type="button"
             onClick={() => setFilter(group)}
+            whileHover={subtleHoverScale}
+            whileTap={subtleTapScale}
             style={{
               padding: "10px 12px",
               borderRadius: 999,
@@ -325,17 +370,17 @@ export default function HomeWorkoutsPage() {
             }}
           >
             {groupLabelMap[group]}
-          </button>
+          </motion.button>
         ))}
-      </div>
+      </motion.div>
 
       <div style={{ display: "grid", gap: 18 }}>
         {grouped.map((section) => (
-          <div key={section.key} style={{ display: "grid", gap: 12 }}>
-            <div style={{ display: "grid", gap: 4 }}>
+          <motion.div key={section.key} variants={sectionRevealVariants} whileInView="show" initial={shouldReduceMotion ? false : "hidden"} viewport={{ once: true, amount: 0.12 }} style={{ display: "grid", gap: 12 }}>
+            <motion.div variants={itemRevealVariants} style={{ display: "grid", gap: 4 }}>
               <div style={{ fontSize: 18, fontWeight: 1000 }}>{section.title}</div>
               <div style={{ color: COLORS.muted, fontSize: 13, lineHeight: 1.5 }}>{section.description}</div>
-            </div>
+            </motion.div>
 
             <div style={{ display: "grid", gap: 12 }}>
               {section.items.map((workout) => {
@@ -344,13 +389,17 @@ export default function HomeWorkoutsPage() {
                 const blockedGroups = workout.muscleGroups.filter((group) => yesterdayMuscleGroups.includes(group));
 
                 return (
-                  <div
+                  <InteractiveSurfaceCard
                     key={workout.id}
+                    disabled={disabled}
+                    enableTilt={shouldUseTilt && !disabled}
+                    whileHover={disabled ? undefined : subtleHoverScale}
+                    whileTap={disabled ? undefined : subtleTapScale}
                     style={{
                       border: `1px solid ${disabled ? "rgba(255,122,122,.22)" : COLORS.border}`,
                       borderRadius: 18,
                       padding: 16,
-                      background: disabled ? "rgba(255,255,255,.02)" : COLORS.panel,
+                      background: disabled ? "rgba(255,255,255,.02)" : COLORS.panelDeep,
                       boxShadow: "0 18px 44px rgba(0,0,0,.45)",
                       opacity: disabled ? 0.72 : 1,
                       display: "grid",
@@ -403,12 +452,21 @@ export default function HomeWorkoutsPage() {
                     </div>
 
                     <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                      <button
+                      <motion.button
                         type="button"
                         onClick={() => {
                           if (disabled) return;
                           navigate(`/app/user/treinos/player/${workout.id}`);
                         }}
+                        whileHover={disabled ? undefined : subtleHoverScale}
+                        whileTap={disabled ? undefined : subtleTapScale}
+                        animate={
+                          !disabled && shouldUsePulse
+                            ? { boxShadow: ["0 8px 18px rgba(29,185,84,.18)", "0 10px 22px rgba(124,255,107,.28)", "0 8px 18px rgba(29,185,84,.18)"] }
+                            : undefined
+                        }
+                        transition={!disabled && shouldUsePulse ? { duration: 2.8, repeat: Infinity, ease: "easeInOut" } : undefined}
+                        className={!disabled ? "today-premium-cta" : undefined}
                         style={{
                           padding: "12px 14px",
                           borderRadius: 14,
@@ -421,36 +479,14 @@ export default function HomeWorkoutsPage() {
                         }}
                       >
                         {disabled ? "Treino não disponível hoje" : "Assistir no app"}
-                      </button>
-
-                      <a
-                        href={workout.youtubeUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        onClick={(event) => {
-                          if (!disabled) return;
-                          event.preventDefault();
-                        }}
-                        style={{
-                          padding: "12px 14px",
-                          borderRadius: 14,
-                          border: `1px solid ${disabled ? "rgba(255,255,255,.12)" : COLORS.border}`,
-                          background: "rgba(255,255,255,.03)",
-                          color: disabled ? COLORS.mutedSoft : COLORS.text,
-                          fontWeight: 1000,
-                          textDecoration: "none",
-                          cursor: disabled ? "not-allowed" : "pointer",
-                          width: "fit-content",
-                          opacity: disabled ? 0.7 : 1,
-                        }}
-                      >
-                        Abrir no YouTube
-                      </a>
+                      </motion.button>
 
                       {workout.id === "short-peito" ? (
-                        <button
+                        <motion.button
                           type="button"
                           onClick={() => setExtraYoutubeGroup("chest")}
+                          whileHover={subtleHoverScale}
+                          whileTap={subtleTapScale}
                           style={{
                             padding: "12px 14px",
                             borderRadius: 14,
@@ -463,13 +499,15 @@ export default function HomeWorkoutsPage() {
                           }}
                         >
                           Mais treinos de peito (lista)
-                        </button>
+                        </motion.button>
                       ) : null}
 
                       {workout.id === "short-perna" ? (
-                        <button
+                        <motion.button
                           type="button"
                           onClick={() => setExtraYoutubeGroup("leg")}
+                          whileHover={subtleHoverScale}
+                          whileTap={subtleTapScale}
                           style={{
                             padding: "12px 14px",
                             borderRadius: 14,
@@ -482,17 +520,17 @@ export default function HomeWorkoutsPage() {
                           }}
                         >
                           Mais treinos de perna (lista)
-                        </button>
+                        </motion.button>
                       ) : null}
                     </div>
-                  </div>
+                  </InteractiveSurfaceCard>
                 );
               })}
             </div>
-          </div>
+          </motion.div>
         ))}
       </div>
-    </div>
+    </motion.div>
 
     {extraYoutubeGroup ? <ExtraYoutubeModal group={extraYoutubeGroup} onClose={() => setExtraYoutubeGroup(null)} /> : null}
     </>

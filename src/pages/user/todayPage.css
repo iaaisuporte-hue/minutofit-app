@@ -1,0 +1,11 @@
+.today-premium-cta {
+  will-change: transform, box-shadow;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .today-premium-cta {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+

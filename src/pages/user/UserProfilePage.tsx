@@ -1,8 +1,19 @@
 import React, { useMemo } from "react";
-import { Link } from "react-router-dom";
+import { motion, useScroll, useTransform } from "framer-motion";
+import InteractiveSurfaceCard from "../../components/InteractiveSurfaceCard";
+import { useIsMobile } from "../../hooks/useIsMobile";
 import { useAuth } from "../../auth/AuthContext";
 import { useFeatureFlags } from "../../auth/FeatureFlagsContext";
 import { mapCanonicalPlanToLabel, normalizeToCanonicalPlanName } from "../../utils/planNormalization";
+import {
+  itemRevealVariants,
+  pageStaggerVariants,
+  sectionRevealVariants,
+  subtleHoverScale,
+  subtleTapScale,
+  useTodayMotionSafe,
+} from "./todayPageMotion";
+import "./todayPage.css";
 
 type Props = {
   onLogout: () => void;
@@ -15,7 +26,7 @@ const COLORS = {
   muted: "rgba(255,255,255,.72)",
   mutedSoft: "rgba(232,236,233,.58)",
   panel: "linear-gradient(180deg, rgba(22,25,22,.92), rgba(15,18,16,.96))",
-  panelDeep: "linear-gradient(135deg, rgba(15,61,46,.94), rgba(15,24,20,.98))",
+  panelDeep: "linear-gradient(180deg, rgba(15,61,46,.95), rgba(15,24,20,.98))",
   panelSoft: "rgba(255,255,255,.04)",
   primarySoft: "rgba(29,185,84,.18)",
   highlightSoft: "rgba(124,255,107,.12)",
@@ -26,24 +37,34 @@ const COLORS = {
 function Card({
   children,
   style,
+  interactive = false,
+  enableTilt = false,
 }: {
   children: React.ReactNode;
   style?: React.CSSProperties;
+  interactive?: boolean;
+  enableTilt?: boolean;
 }) {
-  return (
-    <div
-      style={{
-        border: `1px solid ${COLORS.border}`,
-        borderRadius: 20,
-        background: COLORS.panel,
-        boxShadow: "0 18px 44px rgba(0,0,0,.45)",
-        padding: 18,
-        ...style,
-      }}
-    >
-      {children}
-    </div>
-  );
+  const baseStyle: React.CSSProperties = {
+    border: `1px solid ${COLORS.border}`,
+    borderRadius: 20,
+    background: COLORS.panel,
+    boxShadow: "0 18px 44px rgba(0,0,0,.45)",
+    padding: 18,
+    backdropFilter: "blur(8px)",
+    WebkitBackdropFilter: "blur(8px)",
+    ...style,
+  };
+
+  if (interactive) {
+    return (
+      <InteractiveSurfaceCard style={baseStyle} enableTilt={enableTilt} whileHover={subtleHoverScale} whileTap={subtleTapScale}>
+        {children}
+      </InteractiveSurfaceCard>
+    );
+  }
+
+  return <div style={baseStyle}>{children}</div>;
 }
 
 function SectionTitle({
@@ -105,71 +126,6 @@ function DataRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-function ActionLink({
-  to,
-  label,
-  icon,
-  accent,
-}: {
-  to: string;
-  label: string;
-  icon: string;
-  accent?: boolean;
-}) {
-  return (
-    <Link
-      to={to}
-      style={{
-        padding: "12px 14px",
-        borderRadius: 14,
-        border: accent ? `1px solid ${COLORS.borderStrong}` : `1px solid ${COLORS.border}`,
-        background: accent ? "linear-gradient(135deg, #1DB954 0%, #7CFF6B 100%)" : "transparent",
-        color: accent ? "#0A130D" : COLORS.text,
-        textDecoration: "none",
-        fontWeight: 1000,
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 10,
-      }}
-    >
-      <span>{icon}</span>
-      <span>{label}</span>
-    </Link>
-  );
-}
-
-function ActionButton({
-  onClick,
-  label,
-  icon,
-}: {
-  onClick: () => void;
-  label: string;
-  icon: string;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      style={{
-        padding: "12px 14px",
-        borderRadius: 14,
-        border: `1px solid ${COLORS.dangerBorder}`,
-        background: COLORS.dangerSoft,
-        color: COLORS.text,
-        cursor: "pointer",
-        fontWeight: 1000,
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 10,
-      }}
-    >
-      <span>{icon}</span>
-      <span>{label}</span>
-    </button>
-  );
-}
-
 function maskCpf(cpf?: string) {
   const digits = (cpf || "").replace(/\D/g, "");
   if (digits.length !== 11) return cpf || "Nao informado";
@@ -187,9 +143,14 @@ function maskPhone(phone?: string) {
   return phone || "Nao informado";
 }
 
-export default function UserProfilePage({ onLogout }: Props) {
+export default function UserProfilePage({ onLogout: _onLogout }: Props) {
   const { user, email, profileCompleted } = useAuth();
   const { planName } = useFeatureFlags();
+  const isMobile = useIsMobile(720);
+  const { shouldReduceMotion, shouldUseParallax, shouldUseTilt } = useTodayMotionSafe({ isMobile });
+  const { scrollY } = useScroll();
+  const heroMeshY = useTransform(scrollY, [0, 500], [0, shouldUseParallax ? 55 : 0]);
+  const heroContentY = useTransform(scrollY, [0, 500], [0, shouldUseParallax ? 20 : 0]);
 
   const accountSummary = useMemo(
     () => ({
@@ -223,49 +184,81 @@ export default function UserProfilePage({ onLogout }: Props) {
   );
 
   return (
-    <div style={{ display: "grid", gap: 18 }}>
-      <Card style={{ background: COLORS.panelDeep, borderColor: COLORS.borderStrong }}>
-        <div style={{ display: "grid", gap: 18 }}>
-          <SectionTitle
-            eyebrow="Minha conta"
-            title={accountSummary.name}
-            subtitle="Aqui ficam seus dados principais de conta, assinatura e perfil fitness. A ideia é concentrar o que realmente define sua experiência no app."
+    <motion.div
+      style={{ display: "grid", gap: 18 }}
+      variants={pageStaggerVariants}
+      initial={shouldReduceMotion ? false : "hidden"}
+      animate="show"
+    >
+      <motion.div variants={sectionRevealVariants}>
+        <Card
+          interactive
+          enableTilt={shouldUseTilt}
+          style={{
+            background: COLORS.panelDeep,
+            borderColor: COLORS.borderStrong,
+            position: "relative",
+            overflow: "hidden",
+          }}
+        >
+          <motion.div
+            aria-hidden
+            style={{
+              position: "absolute",
+              inset: -20,
+              y: heroMeshY,
+              background:
+                "radial-gradient(circle at 18% 24%, rgba(124,255,107,.12), transparent 45%), radial-gradient(circle at 84% 20%, rgba(29,185,84,.12), transparent 42%)",
+              pointerEvents: "none",
+            }}
           />
+          <motion.div style={{ display: "grid", gap: 18, y: heroContentY }}>
+            <motion.div variants={itemRevealVariants} style={{ display: "grid", gap: 18 }}>
+              <SectionTitle
+                eyebrow="Minha conta"
+                title={accountSummary.name}
+                subtitle="Aqui ficam seus dados principais de conta, assinatura e perfil fitness. A ideia é concentrar o que realmente define sua experiência no app."
+              />
 
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <div
-              style={{
-                borderRadius: 999,
-                border: `1px solid ${COLORS.border}`,
-                background: COLORS.panelSoft,
-                padding: "10px 12px",
-                color: COLORS.text,
-                fontSize: 12,
-                fontWeight: 900,
-              }}
-            >
-              Plano {accountSummary.plan}
-            </div>
-            <div
-              style={{
-                borderRadius: 999,
-                border: `1px solid ${profileCompleted ? COLORS.borderStrong : COLORS.border}`,
-                background: profileCompleted ? COLORS.primarySoft : COLORS.panelSoft,
-                padding: "10px 12px",
-                color: COLORS.text,
-                fontSize: 12,
-                fontWeight: 900,
-              }}
-            >
-              Perfil {accountSummary.profileStatus}
-            </div>
-          </div>
-        </div>
-      </Card>
+              <motion.div variants={itemRevealVariants} style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                <div
+                  style={{
+                    borderRadius: 999,
+                    border: `1px solid ${COLORS.border}`,
+                    background: COLORS.panelSoft,
+                    padding: "10px 12px",
+                    color: COLORS.text,
+                    fontSize: 12,
+                    fontWeight: 900,
+                  }}
+                >
+                  Plano {accountSummary.plan}
+                </div>
+                <div
+                  style={{
+                    borderRadius: 999,
+                    border: `1px solid ${profileCompleted ? COLORS.borderStrong : COLORS.border}`,
+                    background: profileCompleted ? COLORS.primarySoft : COLORS.panelSoft,
+                    padding: "10px 12px",
+                    color: COLORS.text,
+                    fontSize: 12,
+                    fontWeight: 900,
+                  }}
+                >
+                  Perfil {accountSummary.profileStatus}
+                </div>
+              </motion.div>
+            </motion.div>
+          </motion.div>
+        </Card>
+      </motion.div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(280px, .85fr)", gap: 16 }}>
-        <div style={{ display: "grid", gap: 16 }}>
-          <Card>
+      <motion.div
+        variants={sectionRevealVariants}
+        style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))", gap: 16 }}
+      >
+        <motion.div variants={itemRevealVariants} whileInView="show" initial={shouldReduceMotion ? false : "hidden"} viewport={{ once: true, amount: 0.15 }}>
+          <Card interactive enableTilt={shouldUseTilt} style={{ background: COLORS.panelDeep, borderColor: COLORS.borderStrong }}>
             <div style={{ display: "grid", gap: 14 }}>
               <div style={{ fontSize: 20, fontWeight: 1000, color: COLORS.text }}>Dados da conta</div>
               <div style={{ display: "grid", gap: 10 }}>
@@ -276,23 +269,10 @@ export default function UserProfilePage({ onLogout }: Props) {
               </div>
             </div>
           </Card>
+        </motion.div>
 
-          <Card>
-            <div style={{ display: "grid", gap: 14 }}>
-              <div style={{ fontSize: 20, fontWeight: 1000, color: COLORS.text }}>Perfil fitness</div>
-              <div style={{ display: "grid", gap: 10 }}>
-                <DataRow label="Objetivo" value={accountSummary.fitnessGoal} />
-                <DataRow label="Nivel" value={accountSummary.experienceLevel} />
-                <DataRow label="Altura" value={accountSummary.height} />
-                <DataRow label="Peso" value={accountSummary.weight} />
-                <DataRow label="Restricoes alimentares" value={accountSummary.dietaryRestrictions} />
-              </div>
-            </div>
-          </Card>
-        </div>
-
-        <div style={{ display: "grid", gap: 16, alignSelf: "start" }}>
-          <Card>
+        <motion.div variants={itemRevealVariants} whileInView="show" initial={shouldReduceMotion ? false : "hidden"} viewport={{ once: true, amount: 0.15 }}>
+          <Card interactive enableTilt={shouldUseTilt} style={{ background: COLORS.panelDeep, borderColor: COLORS.borderStrong }}>
             <div style={{ display: "grid", gap: 14 }}>
               <div style={{ fontSize: 20, fontWeight: 1000, color: COLORS.text }}>Assinatura e status</div>
               <div style={{ display: "grid", gap: 10 }}>
@@ -301,31 +281,29 @@ export default function UserProfilePage({ onLogout }: Props) {
               </div>
             </div>
           </Card>
+        </motion.div>
 
-          <Card>
+        <motion.div
+          variants={itemRevealVariants}
+          whileInView="show"
+          initial={shouldReduceMotion ? false : "hidden"}
+          viewport={{ once: true, amount: 0.15 }}
+          style={isMobile ? undefined : { gridColumn: "1 / -1" }}
+        >
+          <Card interactive enableTilt={shouldUseTilt} style={{ background: COLORS.panelDeep, borderColor: COLORS.borderStrong }}>
             <div style={{ display: "grid", gap: 14 }}>
-              <div style={{ fontSize: 20, fontWeight: 1000, color: COLORS.text }}>Acoes da conta</div>
-              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                <ActionLink to="/app/user/ficha" label="Minha ficha" icon="📋" />
-                <ActionLink to="/app/user/settings" label="Configuracoes" icon="⚙️" />
-                {!profileCompleted ? (
-                  <ActionLink to="/profile-completion" label="Completar perfil" icon="🧾" />
-                ) : null}
-                <ActionButton onClick={onLogout} label="Sair" icon="🚪" />
+              <div style={{ fontSize: 20, fontWeight: 1000, color: COLORS.text }}>Perfil fitness</div>
+              <div style={{ display: "grid", gap: 10, gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))" }}>
+                <DataRow label="Objetivo" value={accountSummary.fitnessGoal} />
+                <DataRow label="Nivel" value={accountSummary.experienceLevel} />
+                <DataRow label="Altura" value={accountSummary.height} />
+                <DataRow label="Peso" value={accountSummary.weight} />
+                <DataRow label="Restricoes alimentares" value={accountSummary.dietaryRestrictions} />
               </div>
             </div>
           </Card>
-
-          <Card>
-            <div style={{ display: "grid", gap: 10 }}>
-              <div style={{ fontSize: 18, fontWeight: 1000, color: COLORS.text }}>Leitura do produto</div>
-              <div style={{ color: COLORS.muted, lineHeight: 1.6 }}>
-                Essa tela agora funciona como um centro de conta de verdade. Configuracoes continuam sendo o lugar para edicao detalhada, mas aqui o usuario enxerga rapidamente quem ele é no sistema, em que plano está e o quanto o perfil já está pronto para alimentar as recomendacoes.
-              </div>
-            </div>
-          </Card>
-        </div>
-      </div>
-    </div>
+        </motion.div>
+      </motion.div>
+    </motion.div>
   );
 }

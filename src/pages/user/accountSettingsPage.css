@@ -1,0 +1,64 @@
+/* Configurações — motion/UX helpers (não altera lógica) */
+
+.account-settings-root {
+  scroll-snap-type: y proximity;
+}
+
+.account-settings-section {
+  scroll-snap-align: start;
+  scroll-margin-top: min(88px, 18vh);
+}
+
+#compliance {
+  scroll-margin-top: min(88px, 18vh);
+}
+
+.account-settings-card-shell {
+  position: relative;
+  border-radius: 16px;
+  will-change: transform;
+}
+
+.account-settings-card-shell::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  /* Tokens globais — alinhados à sidebar (--primary / --highlight) */
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--highlight) 12%, transparent) 0%,
+    transparent 42%,
+    color-mix(in srgb, var(--primary) 10%, transparent) 100%
+  );
+  opacity: 0.85;
+  transition: opacity 0.28s ease;
+}
+
+.account-settings-card-shell:hover::before {
+  opacity: 1;
+}
+
+.account-settings-hero-mesh {
+  will-change: transform;
+}
+
+.account-settings-primary-cta {
+  will-change: transform, box-shadow;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .account-settings-root {
+    scroll-snap-type: none;
+  }
+
+  .account-settings-card-shell::before {
+    transition: none;
+  }
+
+  .account-settings-hero-mesh,
+  .account-settings-primary-cta {
+    will-change: auto;
+  }
+}

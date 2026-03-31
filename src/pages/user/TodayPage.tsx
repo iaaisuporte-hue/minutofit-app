@@ -1,12 +1,23 @@
 import React, { useMemo, useState } from "react";
+import { motion, useScroll, useTransform } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext";
 import { useFeatureFlags } from "../../auth/FeatureFlagsContext";
+import InteractiveSurfaceCard from "../../components/InteractiveSurfaceCard";
 import { useIsMobile } from "../../hooks/useIsMobile";
-import { loadRecommendation } from "./onboarding/onboardingStorage";
-import { addWorkoutHistoryEntry, getCurrentWeekdayLabel, getLastWorkoutEntry, getYesterdayMuscleGroups, type MuscleGroup } from "./workoutHistory";
-import { getDailyMission, getLevel, getStreak, getXp, hasTodayCheckin, registerDailyCheckin } from "./gamification";
 import { persistGamificationCheckin } from "../../services/gamificationApi";
+import { getDailyMission, getLevel, getStreak, getXp, hasTodayCheckin, registerDailyCheckin } from "./gamification";
+import { loadRecommendation } from "./onboarding/onboardingStorage";
+import {
+  itemRevealVariants,
+  pageStaggerVariants,
+  sectionRevealVariants,
+  subtleHoverScale,
+  subtleTapScale,
+  useTodayMotionSafe,
+} from "./todayPageMotion";
+import { addWorkoutHistoryEntry, getCurrentWeekdayLabel, getLastWorkoutEntry, getYesterdayMuscleGroups, type MuscleGroup } from "./workoutHistory";
+import "./todayPage.css";
 
 const COLORS = {
   border: "rgba(124,255,107,.16)",
@@ -15,7 +26,7 @@ const COLORS = {
   muted: "rgba(255,255,255,.72)",
   mutedSoft: "rgba(232,236,233,.58)",
   panel: "linear-gradient(180deg, rgba(22,25,22,.92), rgba(15,18,16,.96))",
-  panelDeep: "linear-gradient(135deg, rgba(15,61,46,.94), rgba(15,24,20,.98))",
+  panelDeep: "linear-gradient(180deg, rgba(15,61,46,.95), rgba(15,24,20,.98))",
   primarySoft: "rgba(29,185,84,.18)",
   highlightSoft: "rgba(124,255,107,.12)",
 };
@@ -23,26 +34,34 @@ const COLORS = {
 function Card({
   children,
   style,
+  interactive = false,
+  enableTilt = false,
 }: {
   children: React.ReactNode;
   style?: React.CSSProperties;
+  interactive?: boolean;
+  enableTilt?: boolean;
 }) {
-  return (
-    <div
-      style={{
-        border: `1px solid ${COLORS.border}`,
-        borderRadius: 18,
-        background: COLORS.panel,
-        boxShadow: "0 10px 28px rgba(0,0,0,.32)",
-        padding: 14,
-        backdropFilter: "blur(8px)",
-        WebkitBackdropFilter: "blur(8px)",
-        ...style,
-      }}
-    >
-      {children}
-    </div>
-  );
+  const baseStyle: React.CSSProperties = {
+    border: `1px solid ${COLORS.border}`,
+    borderRadius: 18,
+    background: COLORS.panel,
+    boxShadow: "0 10px 28px rgba(0,0,0,.32)",
+    padding: 14,
+    backdropFilter: "blur(8px)",
+    WebkitBackdropFilter: "blur(8px)",
+    ...style,
+  };
+
+  if (interactive) {
+    return (
+      <InteractiveSurfaceCard style={baseStyle} enableTilt={enableTilt} whileHover={subtleHoverScale} whileTap={subtleTapScale}>
+        {children}
+      </InteractiveSurfaceCard>
+    );
+  }
+
+  return <div style={baseStyle}>{children}</div>;
 }
 
 export default function TodayPage() {
@@ -89,7 +108,6 @@ export default function TodayPage() {
     mobility: "🧘",
   };
   const alwaysAvailableGroups: MuscleGroup[] = ["cardio", "mobility"];
-
   const muscleGroupLabel = lastWorkout?.muscleGroups?.map((group) => groupLabelMap[group]).join(", ") || null;
 
   const isTablet = !isMobile && typeof window !== "undefined" && window.innerWidth <= 1024;
@@ -108,10 +126,14 @@ export default function TodayPage() {
     transition: "transform .16s ease, opacity .16s ease, border-color .16s ease, background .16s ease",
   };
 
+  const { shouldReduceMotion, shouldUseParallax, shouldUsePulse, shouldUseTilt } = useTodayMotionSafe({ isMobile });
+  const { scrollY } = useScroll();
+  const heroMeshY = useTransform(scrollY, [0, 500], [0, shouldUseParallax ? 65 : 0]);
+  const heroContentY = useTransform(scrollY, [0, 500], [0, shouldUseParallax ? 24 : 0]);
+  const missionProgress = mission.target > 0 ? Math.min(1, mission.progress / mission.target) : 0;
+
   function toggleQuickGroup(group: MuscleGroup) {
-    if (yesterdayMuscleGroups.includes(group) && !alwaysAvailableGroups.includes(group)) {
-      return;
-    }
+    if (yesterdayMuscleGroups.includes(group) && !alwaysAvailableGroups.includes(group)) return;
     setQuickGroups((current) => (current.includes(group) ? current.filter((item) => item !== group) : [...current, group]));
   }
 
@@ -140,7 +162,7 @@ export default function TodayPage() {
     setQuickMessage(
       result.alreadyCheckedIn
         ? "Treino do dia marcado. O check-in de hoje já estava garantido."
-        : `Treino do dia marcado. +20 XP e sequência atualizada.`
+        : "Treino do dia marcado. +20 XP e sequência atualizada."
     );
     try {
       await persistGamificationCheckin({
@@ -160,395 +182,264 @@ export default function TodayPage() {
   }
 
   return (
-    <div style={{ display: "grid", gap: 10, color: COLORS.text, minWidth: 0, width: "100%" }}>
-      <Card
-        style={{
-          background: COLORS.panelDeep,
-          borderColor: COLORS.borderStrong,
-          borderRadius: 20,
-          overflow: "hidden",
-        }}
-      >
-        <div style={{ display: "grid", gap: 12 }}>
-          <div style={{ display: "grid", gap: 8, maxWidth: 760 }}>
-            <div
-              style={{
-                display: "inline-flex",
-                width: "fit-content",
-                alignItems: "center",
-                gap: 8,
-                borderRadius: 999,
-                background: COLORS.highlightSoft,
-                color: "#7CFF6B",
-                padding: "6px 10px",
-                fontSize: 10,
-                fontWeight: 900,
-                letterSpacing: 1.2,
-                textTransform: "uppercase",
-              }}
-            >
-              Hoje
-            </div>
-
-            <div style={{ fontSize: isMobile ? 24 : 30, fontWeight: 1000, lineHeight: 1.12, letterSpacing: "-0.02em" }}>
-              {user?.name ? `Olá, ${user.name.split(" ")[0]}.` : "Olá."} Hora de pontuar o dia.
-            </div>
-
-            <div style={{ color: COLORS.muted, fontSize: 13, lineHeight: 1.45, maxWidth: 620 }}>
-              {recommendation?.subtitle ||
-                "Menos decisão, mais execução: inicie o treino e mantenha sua sequência."}
-            </div>
-
-            <div
-              style={{
-                display: "inline-flex",
-                width: "fit-content",
-                alignItems: "center",
-                gap: 8,
-                borderRadius: 999,
-                border: `1px solid ${COLORS.border}`,
-                background: "rgba(255,255,255,.04)",
-                padding: "6px 10px",
-                color: COLORS.mutedSoft,
-                fontSize: 11,
-                fontWeight: 900,
-                textTransform: "capitalize",
-              }}
-            >
-              📅 {weekdayLabel}
-            </div>
-          </div>
-
-          {recommendationTags.length ? (
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              {recommendationTags.map((tag) => (
-                <div
-                  key={tag}
-                  style={{
-                    borderRadius: 999,
-                    border: `1px solid ${COLORS.border}`,
-                    background: COLORS.primarySoft,
-                    padding: "6px 10px",
-                    fontSize: 11,
-                    fontWeight: 900,
-                  }}
-                >
-                  {tag}
-                </div>
-              ))}
-            </div>
-          ) : null}
-
-          <div
+    <motion.div
+      style={{ display: "grid", gap: 10, color: COLORS.text, minWidth: 0, width: "100%" }}
+      variants={pageStaggerVariants}
+      initial={shouldReduceMotion ? false : "hidden"}
+      animate="show"
+    >
+      <motion.div variants={sectionRevealVariants}>
+        <Card
+          interactive
+          enableTilt={shouldUseTilt}
+          style={{
+            background: COLORS.panelDeep,
+            borderColor: COLORS.borderStrong,
+            borderRadius: 20,
+            overflow: "hidden",
+            position: "relative",
+          }}
+        >
+          <motion.div
+            aria-hidden
             style={{
-              display: "grid",
-              gridTemplateColumns: isMobile ? "1fr" : "minmax(0, auto) minmax(0, 1fr)",
-              gap: 8,
-              alignItems: "center",
+              position: "absolute",
+              inset: -24,
+              y: heroMeshY,
+              background:
+                "radial-gradient(circle at 18% 24%, rgba(124,255,107,.14), transparent 45%), radial-gradient(circle at 84% 20%, rgba(29,185,84,.14), transparent 42%)",
+              pointerEvents: "none",
             }}
-          >
-            <button
-              type="button"
-              onClick={() => navigate("/app/user/treinos/em-casa")}
-              style={{
-                padding: isMobile ? "13px 14px" : "12px 16px",
-                borderRadius: 14,
-                border: `1px solid ${COLORS.borderStrong}`,
-                background: "linear-gradient(135deg, #1DB954 0%, #7CFF6B 100%)",
-                color: "#082014",
-                cursor: "pointer",
-                fontWeight: 1000,
-                boxShadow: "0 10px 20px rgba(29,185,84,.2)",
-                width: isMobile ? "100%" : "fit-content",
-                fontSize: isMobile ? 15 : 14,
-                transition: "transform .18s ease, box-shadow .18s ease, opacity .18s ease",
-              }}
-            >
-              ▶️ Iniciar treino agora
-            </button>
-
-            {!isFreePlan ? (
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                <button
-                  type="button"
-                  onClick={() => navigate("/app/user/onboarding")}
-                  style={compactActionBtnStyle}
-                >
-                  Ajustar rotina inicial
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => navigate("/app/user/activities")}
-                  style={compactActionBtnStyle}
-                >
-                  Registrar atividade
-                </button>
-              </div>
-            ) : null}
-          </div>
-
-          <div style={{ display: "grid", gridTemplateColumns: heroStatsColumns, gap: 8 }}>
-            <div
-              style={{
-                borderRadius: 14,
-                border: `1px solid ${COLORS.border}`,
-                background: "rgba(255,255,255,.03)",
-                padding: 10,
-                display: "grid",
-                gap: 4,
-                minHeight: 0,
-                alignContent: "start",
-              }}
-            >
-              <div style={{ color: COLORS.mutedSoft, fontSize: 10, textTransform: "uppercase", letterSpacing: 1.1 }}>Constância</div>
-              <div style={{ fontSize: 24, fontWeight: 1000, lineHeight: 1 }}>
-                🔥 <span>{streak}</span>
-              </div>
-              <div style={{ color: COLORS.muted, fontSize: 11 }}>dias seguidos</div>
-            </div>
-
-            <div
-              style={{
-                borderRadius: 14,
-                border: `1px solid ${COLORS.border}`,
-                background: "rgba(255,255,255,.03)",
-                padding: 10,
-                display: "grid",
-                gap: 4,
-                minHeight: 0,
-                alignContent: "start",
-              }}
-            >
-              <div style={{ color: COLORS.mutedSoft, fontSize: 10, textTransform: "uppercase", letterSpacing: 1.1 }}>Nível</div>
-              <div style={{ fontSize: 24, fontWeight: 1000, lineHeight: 1 }}>
-                ⭐ <span>{level}</span>
-              </div>
-              <div style={{ color: COLORS.muted, fontSize: 11 }}>{xp} XP</div>
-            </div>
-          </div>
-
-          <div style={{ display: "grid", gridTemplateColumns: heroProgressColumns, gap: 8 }}>
-            <div
-              style={{
-                borderRadius: 14,
-                border: `1px solid ${todayCheckedIn ? COLORS.borderStrong : COLORS.border}`,
-                background: todayCheckedIn ? COLORS.primarySoft : "rgba(255,255,255,.04)",
-                padding: 12,
-                display: "grid",
-                gridTemplateColumns: "auto 1fr",
-                gap: 10,
-                alignItems: "center",
-              }}
-            >
-              <div style={{ fontSize: 22, lineHeight: 1 }}>{todayCheckedIn ? "✅" : "⏳"}</div>
-              <div style={{ display: "grid", gap: 3 }}>
-                <div style={{ color: COLORS.mutedSoft, fontSize: 10, textTransform: "uppercase", letterSpacing: 1.1 }}>Check-in do dia</div>
-                <div style={{ fontWeight: 1000, fontSize: 17, lineHeight: 1.2 }}>{todayCheckedIn ? "Dia garantido" : "Falta marcar o dia"}</div>
-                <div style={{ color: COLORS.muted, fontSize: 11, lineHeight: 1.35 }}>
-                  {todayCheckedIn ? "Sequência protegida." : "Marque no check-in rápido após o treino."}
-                </div>
-              </div>
-            </div>
-
-            <div
-              style={{
-                borderRadius: 14,
-                border: `1px solid ${mission.completed ? COLORS.borderStrong : COLORS.border}`,
-                background: mission.completed ? COLORS.primarySoft : "rgba(255,255,255,.04)",
-                padding: 12,
-                display: "grid",
-                gridTemplateColumns: "auto 1fr",
-                gap: 10,
-                alignItems: "start",
-              }}
-            >
-              <div style={{ fontSize: 22, lineHeight: 1 }}>🎯</div>
-              <div style={{ display: "grid", gap: 4 }}>
-                <div style={{ color: COLORS.mutedSoft, fontSize: 10, textTransform: "uppercase", letterSpacing: 1.1 }}>Missão do dia</div>
-                <div style={{ fontWeight: 1000, fontSize: 16, lineHeight: 1.2 }}>{mission.title}</div>
-                <div style={{ color: COLORS.muted, fontSize: 11, lineHeight: 1.35 }}>{mission.description}</div>
-                <div style={{ color: COLORS.mutedSoft, fontSize: 11 }}>
-                  {mission.progress}/{mission.target} • +{mission.rewardXp} XP
-                </div>
-                <div
-                  style={{
-                    height: 5,
-                    borderRadius: 999,
-                    background: "rgba(255,255,255,.1)",
-                    overflow: "hidden",
-                  }}
-                >
-                  <div
-                    style={{
-                      width: `${Math.min(100, Math.round((mission.progress / mission.target) * 100))}%`,
-                      height: "100%",
-                      borderRadius: 999,
-                      background: "linear-gradient(135deg, #1DB954 0%, #7CFF6B 100%)",
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </Card>
-
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: isMobile ? "1fr" : isFreePlan ? "1fr" : "minmax(0, 1.1fr) minmax(0, 0.9fr)",
-          gap: 10,
-          minWidth: 0,
-        }}
-      >
-        {!isFreePlan ? (
-          <Card>
-            <div style={{ display: "grid", gap: 10 }}>
-              <div style={{ display: "grid", gap: 4 }}>
-                <div style={{ fontWeight: 1000, fontSize: 16 }}>Treino sugerido para hoje</div>
-                <div style={{ color: COLORS.muted, fontSize: 12, lineHeight: 1.4 }}>
-                  {recommendation?.title ||
-                    "Uma sugestão simples para manter consistência e reduzir o esforço de decidir o que fazer agora."}
-                </div>
-              </div>
-
-              <div
+          />
+          <motion.div style={{ display: "grid", gap: 12, y: heroContentY }}>
+            <motion.div variants={itemRevealVariants} style={{ display: "grid", gap: 8, maxWidth: 760 }}>
+              <motion.div
+                variants={itemRevealVariants}
                 style={{
-                  borderRadius: 14,
-                  border: `1px solid ${COLORS.border}`,
-                  background: "rgba(255,255,255,.03)",
-                  padding: 12,
-                  display: "grid",
+                  display: "inline-flex",
+                  width: "fit-content",
+                  alignItems: "center",
                   gap: 8,
+                  borderRadius: 999,
+                  background: COLORS.highlightSoft,
+                  color: "#7CFF6B",
+                  padding: "6px 10px",
+                  fontSize: 10,
+                  fontWeight: 900,
+                  letterSpacing: 1.2,
+                  textTransform: "uppercase",
                 }}
               >
-                <div style={{ fontWeight: 1000, fontSize: 15 }}>{recommendation?.title || "Treino base do dia"}</div>
-                <div style={{ color: COLORS.muted, fontSize: 12, lineHeight: 1.4 }}>
-                  {recommendation?.subtitle ||
-                    "Comece com um treino curto e mantenha o hábito. Depois a recomendação pode ficar mais precisa com mais dados de uso."}
-                </div>
+                Hoje
+              </motion.div>
+              <motion.div variants={itemRevealVariants} style={{ fontSize: isMobile ? 24 : 30, fontWeight: 1000, lineHeight: 1.12, letterSpacing: "-0.02em" }}>
+                {user?.name ? `Olá, ${user.name.split(" ")[0]}.` : "Olá."} Hora de pontuar o dia.
+              </motion.div>
+              <motion.div variants={itemRevealVariants} style={{ color: COLORS.muted, fontSize: 13, lineHeight: 1.45, maxWidth: 620 }}>
+                {recommendation?.subtitle || "Menos decisão, mais execução: inicie o treino e mantenha sua sequência."}
+              </motion.div>
+              <motion.div
+                variants={itemRevealVariants}
+                style={{
+                  display: "inline-flex",
+                  width: "fit-content",
+                  alignItems: "center",
+                  gap: 8,
+                  borderRadius: 999,
+                  border: `1px solid ${COLORS.border}`,
+                  background: "rgba(255,255,255,.04)",
+                  padding: "6px 10px",
+                  color: COLORS.mutedSoft,
+                  fontSize: 11,
+                  fontWeight: 900,
+                  textTransform: "capitalize",
+                }}
+              >
+                📅 {weekdayLabel}
+              </motion.div>
+            </motion.div>
 
-                {muscleGroupLabel ? (
-                  <div
-                    style={{
-                      borderRadius: 12,
-                      border: `1px solid ${COLORS.border}`,
-                      background: "rgba(255,255,255,.03)",
-                      padding: "10px 12px",
-                      color: COLORS.muted,
-                      fontSize: 12,
-                      lineHeight: 1.35,
-                    }}
-                  >
-                    Ontem você treinou <b style={{ color: COLORS.text }}>{muscleGroupLabel}</b>. Hoje vale variar o grupo muscular para recuperar melhor.
-                  </div>
-                ) : null}
+            {recommendationTags.length ? (
+              <motion.div variants={itemRevealVariants} style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                {recommendationTags.map((tag) => (
+                  <motion.div key={tag} whileHover={subtleHoverScale} whileTap={subtleTapScale} style={{ borderRadius: 999, border: `1px solid ${COLORS.border}`, background: COLORS.primarySoft, padding: "6px 10px", fontSize: 11, fontWeight: 900 }}>
+                    {tag}
+                  </motion.div>
+                ))}
+              </motion.div>
+            ) : null}
 
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 2 }}>
-                  <button
-                    type="button"
-                    onClick={() => navigate("/app/user/treinos/em-casa")}
-                    style={{
-                      padding: "10px 12px",
-                      borderRadius: 12,
-                      border: `1px solid ${COLORS.borderStrong}`,
-                      background: "linear-gradient(135deg, #1DB954 0%, #7CFF6B 100%)",
-                      color: "#082014",
-                      cursor: "pointer",
-                      fontWeight: 1000,
-                      transition: "transform .16s ease, opacity .16s ease",
-                    }}
-                  >
-                    Começar agora
-                  </button>
+            <motion.div variants={itemRevealVariants} style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "minmax(0, auto) minmax(0, 1fr)", gap: 8, alignItems: "center" }}>
+              <motion.button
+                type="button"
+                onClick={() => navigate("/app/user/treinos/em-casa")}
+                whileHover={subtleHoverScale}
+                whileTap={subtleTapScale}
+                animate={shouldUsePulse ? { boxShadow: ["0 10px 20px rgba(29,185,84,.20)", "0 12px 24px rgba(124,255,107,.30)", "0 10px 20px rgba(29,185,84,.20)"] } : undefined}
+                transition={shouldUsePulse ? { duration: 2.8, repeat: Infinity, ease: "easeInOut" } : undefined}
+                className="today-premium-cta"
+                style={{
+                  padding: isMobile ? "13px 14px" : "12px 16px",
+                  borderRadius: 14,
+                  border: `1px solid ${COLORS.borderStrong}`,
+                  background: "linear-gradient(135deg, #1DB954 0%, #7CFF6B 100%)",
+                  color: "#082014",
+                  cursor: "pointer",
+                  fontWeight: 1000,
+                  boxShadow: "0 10px 20px rgba(29,185,84,.2)",
+                  width: isMobile ? "100%" : "fit-content",
+                  fontSize: isMobile ? 15 : 14,
+                  transition: "transform .18s ease, box-shadow .18s ease, opacity .18s ease",
+                }}
+              >
+                ▶️ Iniciar treino agora
+              </motion.button>
 
-                  <button
-                    type="button"
-                    onClick={() => navigate("/app/user/treinos")}
-                    style={{
-                      padding: "10px 12px",
-                      borderRadius: 12,
-                      border: `1px solid ${COLORS.border}`,
-                      background: "transparent",
-                      color: COLORS.text,
-                      cursor: "pointer",
-                      fontWeight: 900,
-                      transition: "transform .16s ease, opacity .16s ease",
-                    }}
-                  >
-                    Ver catálogo de treinos
-                  </button>
-                </div>
-              </div>
-
-              {lastWorkout ? (
-                <div
-                  style={{
-                    borderTop: `1px solid ${COLORS.border}`,
-                    paddingTop: 10,
-                    display: "grid",
-                    gap: 6,
-                  }}
-                >
-                  <div style={{ fontWeight: 1000 }}>Retomar do último treino</div>
-                  <div style={{ color: COLORS.muted, fontSize: 12 }}>
-                    Seu último registro foi <b style={{ color: COLORS.text }}>{lastWorkout.title}</b>.
-                  </div>
-                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                    <button
-                      type="button"
-                      onClick={() => navigate(`/app/user/treinos/player/${lastWorkout.workoutId}`)}
-                      style={{
-                      padding: "10px 12px",
-                      borderRadius: 12,
-                        border: `1px solid ${COLORS.border}`,
-                        background: "rgba(255,255,255,.03)",
-                        color: COLORS.text,
-                        cursor: "pointer",
-                        fontWeight: 900,
-                      transition: "transform .16s ease, opacity .16s ease",
-                      }}
-                    >
-                      Repetir último treino
-                    </button>
-                  </div>
+              {!isFreePlan ? (
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  <motion.button type="button" onClick={() => navigate("/app/user/onboarding")} whileHover={subtleHoverScale} whileTap={subtleTapScale} style={compactActionBtnStyle}>
+                    Ajustar rotina inicial
+                  </motion.button>
+                  <motion.button type="button" onClick={() => navigate("/app/user/activities")} whileHover={subtleHoverScale} whileTap={subtleTapScale} style={compactActionBtnStyle}>
+                    Registrar atividade
+                  </motion.button>
                 </div>
               ) : null}
-            </div>
-          </Card>
-        ) : null}
+            </motion.div>
 
-        <div style={{ display: "grid", gap: 10, minWidth: 0 }}>
-          {isFreePlan ? (
-            <Card>
-              <div style={{ display: "grid", gap: 6 }}>
-                <div style={{ fontWeight: 1000, fontSize: 16 }}>Foco do dia</div>
-                <div style={{ color: COLORS.muted, fontSize: 12, lineHeight: 1.4 }}>
-                  No plano Free, priorize constância: marque seu treino diário no check-in rápido e mantenha sua sequência.
+            <motion.div variants={itemRevealVariants} style={{ display: "grid", gridTemplateColumns: heroStatsColumns, gap: 8 }}>
+              <InteractiveSurfaceCard enableTilt={shouldUseTilt} whileHover={subtleHoverScale} whileTap={subtleTapScale} style={{ borderRadius: 14, border: `1px solid ${COLORS.border}`, background: "rgba(255,255,255,.03)", padding: 10, display: "grid", gap: 4, minHeight: 0, alignContent: "start" }}>
+                <div style={{ color: COLORS.mutedSoft, fontSize: 10, textTransform: "uppercase", letterSpacing: 1.1 }}>Constância</div>
+                <div style={{ fontSize: 24, fontWeight: 1000, lineHeight: 1 }}>
+                  🔥 <span>{streak}</span>
                 </div>
+                <div style={{ color: COLORS.muted, fontSize: 11 }}>dias seguidos</div>
+              </InteractiveSurfaceCard>
+
+              <InteractiveSurfaceCard enableTilt={shouldUseTilt} whileHover={subtleHoverScale} whileTap={subtleTapScale} style={{ borderRadius: 14, border: `1px solid ${COLORS.border}`, background: "rgba(255,255,255,.03)", padding: 10, display: "grid", gap: 4, minHeight: 0, alignContent: "start" }}>
+                <div style={{ color: COLORS.mutedSoft, fontSize: 10, textTransform: "uppercase", letterSpacing: 1.1 }}>Nível</div>
+                <div style={{ fontSize: 24, fontWeight: 1000, lineHeight: 1 }}>
+                  ⭐ <span>{level}</span>
+                </div>
+                <div style={{ color: COLORS.muted, fontSize: 11 }}>{xp} XP</div>
+              </InteractiveSurfaceCard>
+            </motion.div>
+
+            <motion.div variants={itemRevealVariants} style={{ display: "grid", gridTemplateColumns: heroProgressColumns, gap: 8 }}>
+              <InteractiveSurfaceCard enableTilt={shouldUseTilt} whileHover={subtleHoverScale} whileTap={subtleTapScale} style={{ borderRadius: 14, border: `1px solid ${todayCheckedIn ? COLORS.borderStrong : COLORS.border}`, background: todayCheckedIn ? COLORS.primarySoft : "rgba(255,255,255,.04)", padding: 12, display: "grid", gridTemplateColumns: "auto 1fr", gap: 10, alignItems: "center" }}>
+                <div style={{ fontSize: 22, lineHeight: 1 }}>{todayCheckedIn ? "✅" : "⏳"}</div>
+                <div style={{ display: "grid", gap: 3 }}>
+                  <div style={{ color: COLORS.mutedSoft, fontSize: 10, textTransform: "uppercase", letterSpacing: 1.1 }}>Check-in do dia</div>
+                  <div style={{ fontWeight: 1000, fontSize: 17, lineHeight: 1.2 }}>{todayCheckedIn ? "Dia garantido" : "Falta marcar o dia"}</div>
+                  <div style={{ color: COLORS.muted, fontSize: 11, lineHeight: 1.35 }}>{todayCheckedIn ? "Sequência protegida." : "Marque no check-in rápido após o treino."}</div>
+                </div>
+              </InteractiveSurfaceCard>
+
+              <InteractiveSurfaceCard enableTilt={shouldUseTilt} whileHover={subtleHoverScale} whileTap={subtleTapScale} style={{ borderRadius: 14, border: `1px solid ${mission.completed ? COLORS.borderStrong : COLORS.border}`, background: mission.completed ? COLORS.primarySoft : "rgba(255,255,255,.04)", padding: 12, display: "grid", gridTemplateColumns: "auto 1fr", gap: 10, alignItems: "start" }}>
+                <div style={{ fontSize: 22, lineHeight: 1 }}>🎯</div>
+                <div style={{ display: "grid", gap: 4 }}>
+                  <div style={{ color: COLORS.mutedSoft, fontSize: 10, textTransform: "uppercase", letterSpacing: 1.1 }}>Missão do dia</div>
+                  <div style={{ fontWeight: 1000, fontSize: 16, lineHeight: 1.2 }}>{mission.title}</div>
+                  <div style={{ color: COLORS.muted, fontSize: 11, lineHeight: 1.35 }}>{mission.description}</div>
+                  <div style={{ color: COLORS.mutedSoft, fontSize: 11 }}>
+                    {mission.progress}/{mission.target} • +{mission.rewardXp} XP
+                  </div>
+                  <div style={{ height: 5, borderRadius: 999, background: "rgba(255,255,255,.1)", overflow: "hidden" }}>
+                    <motion.div
+                      initial={shouldReduceMotion ? false : { scaleX: 0 }}
+                      animate={{ scaleX: missionProgress }}
+                      transition={{ duration: 0.65, ease: "easeOut", delay: 0.1 }}
+                      style={{ height: "100%", borderRadius: 999, background: "linear-gradient(135deg, #1DB954 0%, #7CFF6B 100%)", transformOrigin: "left center" }}
+                    />
+                  </div>
+                </div>
+              </InteractiveSurfaceCard>
+            </motion.div>
+          </motion.div>
+        </Card>
+      </motion.div>
+
+      <motion.div variants={sectionRevealVariants} style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : isFreePlan ? "1fr" : "minmax(0, 1.1fr) minmax(0, 0.9fr)", gap: 10, minWidth: 0 }}>
+        {!isFreePlan ? (
+          <motion.div variants={itemRevealVariants} whileInView="show" initial={shouldReduceMotion ? false : "hidden"} viewport={{ once: true, amount: 0.2 }}>
+            <Card interactive enableTilt={shouldUseTilt}>
+              <div style={{ display: "grid", gap: 10 }}>
+                <div style={{ display: "grid", gap: 4 }}>
+                  <div style={{ fontWeight: 1000, fontSize: 16 }}>Treino sugerido para hoje</div>
+                  <div style={{ color: COLORS.muted, fontSize: 12, lineHeight: 1.4 }}>
+                    {recommendation?.title || "Uma sugestão simples para manter consistência e reduzir o esforço de decidir o que fazer agora."}
+                  </div>
+                </div>
+                <div style={{ borderRadius: 14, border: `1px solid ${COLORS.border}`, background: "rgba(255,255,255,.03)", padding: 12, display: "grid", gap: 8 }}>
+                  <div style={{ fontWeight: 1000, fontSize: 15 }}>{recommendation?.title || "Treino base do dia"}</div>
+                  <div style={{ color: COLORS.muted, fontSize: 12, lineHeight: 1.4 }}>
+                    {recommendation?.subtitle || "Comece com um treino curto e mantenha o hábito. Depois a recomendação pode ficar mais precisa com mais dados de uso."}
+                  </div>
+                  {muscleGroupLabel ? (
+                    <div style={{ borderRadius: 12, border: `1px solid ${COLORS.border}`, background: "rgba(255,255,255,.03)", padding: "10px 12px", color: COLORS.muted, fontSize: 12, lineHeight: 1.35 }}>
+                      Ontem você treinou <b style={{ color: COLORS.text }}>{muscleGroupLabel}</b>. Hoje vale variar o grupo muscular para recuperar melhor.
+                    </div>
+                  ) : null}
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 2 }}>
+                    <motion.button type="button" onClick={() => navigate("/app/user/treinos/em-casa")} whileHover={subtleHoverScale} whileTap={subtleTapScale} style={{ padding: "10px 12px", borderRadius: 12, border: `1px solid ${COLORS.borderStrong}`, background: "linear-gradient(135deg, #1DB954 0%, #7CFF6B 100%)", color: "#082014", cursor: "pointer", fontWeight: 1000, transition: "transform .16s ease, opacity .16s ease" }}>
+                      Começar agora
+                    </motion.button>
+                    <motion.button type="button" onClick={() => navigate("/app/user/treinos")} whileHover={subtleHoverScale} whileTap={subtleTapScale} style={{ padding: "10px 12px", borderRadius: 12, border: `1px solid ${COLORS.border}`, background: "transparent", color: COLORS.text, cursor: "pointer", fontWeight: 900, transition: "transform .16s ease, opacity .16s ease" }}>
+                      Ver catálogo de treinos
+                    </motion.button>
+                  </div>
+                </div>
+                {lastWorkout ? (
+                  <div style={{ borderTop: `1px solid ${COLORS.border}`, paddingTop: 10, display: "grid", gap: 6 }}>
+                    <div style={{ fontWeight: 1000 }}>Retomar do último treino</div>
+                    <div style={{ color: COLORS.muted, fontSize: 12 }}>
+                      Seu último registro foi <b style={{ color: COLORS.text }}>{lastWorkout.title}</b>.
+                    </div>
+                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                      <motion.button type="button" onClick={() => navigate(`/app/user/treinos/player/${lastWorkout.workoutId}`)} whileHover={subtleHoverScale} whileTap={subtleTapScale} style={{ padding: "10px 12px", borderRadius: 12, border: `1px solid ${COLORS.border}`, background: "rgba(255,255,255,.03)", color: COLORS.text, cursor: "pointer", fontWeight: 900, transition: "transform .16s ease, opacity .16s ease" }}>
+                        Repetir último treino
+                      </motion.button>
+                    </div>
+                  </div>
+                ) : null}
               </div>
             </Card>
+          </motion.div>
+        ) : null}
+
+        <motion.div variants={itemRevealVariants} style={{ display: "grid", gap: 10, minWidth: 0 }}>
+          {isFreePlan ? (
+            <motion.div variants={itemRevealVariants} whileInView="show" initial={shouldReduceMotion ? false : "hidden"} viewport={{ once: true, amount: 0.2 }}>
+              <Card interactive enableTilt={shouldUseTilt} style={{ background: COLORS.panelDeep, borderColor: COLORS.borderStrong }}>
+                <div style={{ display: "grid", gap: 6 }}>
+                  <div style={{ fontWeight: 1000, fontSize: 16 }}>Foco do dia</div>
+                  <div style={{ color: COLORS.muted, fontSize: 12, lineHeight: 1.4 }}>
+                    No plano Free, priorize constância: marque seu treino diário no check-in rápido e mantenha sua sequência.
+                  </div>
+                </div>
+              </Card>
+            </motion.div>
           ) : null}
 
-          <Card>
-            <div style={{ display: "grid", gap: 8 }}>
-              <div style={{ fontWeight: 1000, fontSize: 15 }}>Check-in rápido do treino</div>
-              <div style={{ color: COLORS.muted, fontSize: 12, lineHeight: 1.4 }}>
-                Marque rapidamente quais grupos você treinou hoje. Exemplo: peito e bíceps. Isso pontua o dia e impede repetir os mesmos grupos apenas amanhã.
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 8 }}>
-                {(["chest", "back", "legs", "shoulders", "arms", "core", "cardio", "mobility"] as MuscleGroup[]).map((group) => (
-                  (() => {
+          <motion.div variants={itemRevealVariants} whileInView="show" initial={shouldReduceMotion ? false : "hidden"} viewport={{ once: true, amount: 0.15 }}>
+            <Card interactive enableTilt={shouldUseTilt} style={{ background: COLORS.panelDeep, borderColor: COLORS.borderStrong }}>
+              <div style={{ display: "grid", gap: 8 }}>
+                <div style={{ fontWeight: 1000, fontSize: 15 }}>Check-in rápido do treino</div>
+                <div style={{ color: COLORS.muted, fontSize: 12, lineHeight: 1.4 }}>
+                  Marque rapidamente quais grupos você treinou hoje. Exemplo: peito e bíceps. Isso pontua o dia e impede repetir os mesmos grupos apenas amanhã.
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 8 }}>
+                  {(["chest", "back", "legs", "shoulders", "arms", "core", "cardio", "mobility"] as MuscleGroup[]).map((group) => {
                     const disabled = yesterdayMuscleGroups.includes(group) && !alwaysAvailableGroups.includes(group);
                     const active = quickGroups.includes(group);
-
                     return (
-                      <button
+                      <motion.button
                         key={group}
                         type="button"
                         disabled={disabled}
                         onClick={() => toggleQuickGroup(group)}
+                        whileHover={disabled ? undefined : subtleHoverScale}
+                        whileTap={disabled ? undefined : subtleTapScale}
                         style={{
                           padding: "10px 10px",
                           borderRadius: 12,
@@ -572,34 +463,36 @@ export default function TodayPage() {
                             {disabled ? "Indisponível hoje" : yesterdayMuscleGroups.includes(group) ? "Liberado hoje" : "Disponível hoje"}
                           </span>
                         </span>
-                      </button>
+                      </motion.button>
                     );
-                  })()
-                ))}
+                  })}
+                </div>
+                {quickMessage ? <div style={{ color: COLORS.muted, fontSize: 12, lineHeight: 1.4 }}>{quickMessage}</div> : null}
+                <motion.button
+                  type="button"
+                  onClick={handleQuickCheckin}
+                  whileHover={subtleHoverScale}
+                  whileTap={subtleTapScale}
+                  style={{
+                    padding: "10px 12px",
+                    borderRadius: 12,
+                    border: `1px solid ${COLORS.borderStrong}`,
+                    background: "linear-gradient(135deg, #1DB954 0%, #7CFF6B 100%)",
+                    color: "#082014",
+                    cursor: "pointer",
+                    fontWeight: 1000,
+                    width: isMobile ? "100%" : "fit-content",
+                    transition: "transform .16s ease, opacity .16s ease",
+                  }}
+                >
+                  Marcar treino de hoje
+                </motion.button>
               </div>
-              {quickMessage ? <div style={{ color: COLORS.muted, fontSize: 12, lineHeight: 1.4 }}>{quickMessage}</div> : null}
-              <button
-                type="button"
-                onClick={handleQuickCheckin}
-                style={{
-                  padding: "10px 12px",
-                  borderRadius: 12,
-                  border: `1px solid ${COLORS.borderStrong}`,
-                  background: "linear-gradient(135deg, #1DB954 0%, #7CFF6B 100%)",
-                  color: "#082014",
-                  cursor: "pointer",
-                  fontWeight: 1000,
-                  width: isMobile ? "100%" : "fit-content",
-                  transition: "transform .16s ease, opacity .16s ease",
-                }}
-              >
-                Marcar treino de hoje
-              </button>
-            </div>
-          </Card>
-
-        </div>
-      </div>
-    </div>
+            </Card>
+          </motion.div>
+        </motion.div>
+      </motion.div>
+    </motion.div>
   );
 }
+

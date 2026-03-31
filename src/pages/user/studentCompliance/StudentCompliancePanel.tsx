@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "../../../auth/AuthContext";
+import { useFeatureFlags } from "../../../auth/FeatureFlagsContext";
 import {
   buildRecommendation,
   loadAnswers,
@@ -45,6 +46,20 @@ const emptyOb = (): Ob => ({
   equipmentPref: "",
   wantsCloseFollow: "",
 });
+
+/** Plano Free não exibe onboarding; enviamos valores neutros válidos para o backend. */
+const DEFAULT_FREE_ONBOARDING: OnboardingAnswers = {
+  trainingPlace: "home",
+  timePerDay: "20-30",
+  injuries: ["none"],
+  surgeryRecent: "no",
+  frequentPain: "no",
+  daysPerWeek: 3,
+  bestTime: "variable",
+  intensityPref: "progressive",
+  equipmentPref: "both",
+  wantsCloseFollow: "no",
+};
 
 function pillStyle(active: boolean, neon: NeonTheme) {
   return {
@@ -224,6 +239,8 @@ const injuryOptions: Array<{ value: OnboardingAnswers["injuries"][number]; label
 
 export default function StudentCompliancePanel() {
   const neon = useNeonTheme();
+  const { planName } = useFeatureFlags();
+  const isFreePlan = (planName || "").toLowerCase() === "free";
   const { user, getUser } = useAuth();
   const locked = Boolean(user?.studentComplianceComplete);
   const canvasWrapRef = useRef<HTMLDivElement>(null);
@@ -325,22 +342,24 @@ export default function StudentCompliancePanel() {
     if (!healthFlags.sem_restricao_medica_exercicio) return "Marque todas as declarações de saúde (primeiro bloco).";
     if (!healthFlags.apto_para_atividade_fisica) return "Confirme aptidão para atividade física.";
     if (!healthFlags.aceita_responsabilidade_informacoes) return "Aceite a declaração de responsabilidade.";
-    if (!onb.trainingPlace) return "Escolha onde você treina.";
-    if (!onb.timePerDay) return "Escolha o tempo disponível por dia.";
-    if (!onb.daysPerWeek) return "Escolha a frequência semanal.";
-    if (!onb.bestTime) return "Escolha o melhor horário.";
-    if (!onb.equipmentPref) return "Escolha a preferência de equipamento.";
-    if (!onb.intensityPref) return "Escolha a intensidade.";
-    if (!onb.wantsCloseFollow) return "Informe se deseja acompanhamento mais próximo.";
-    if (!onb.surgeryRecent) return "Informe sobre cirurgia recente.";
-    if (!onb.frequentPain) return "Informe sobre dor ao treinar.";
-    if (!onb.injuries.length) return "Selecione ao menos uma opção de lesões (pode ser Nenhuma).";
+    if (!isFreePlan) {
+      if (!onb.trainingPlace) return "Escolha onde você treina.";
+      if (!onb.timePerDay) return "Escolha o tempo disponível por dia.";
+      if (!onb.daysPerWeek) return "Escolha a frequência semanal.";
+      if (!onb.bestTime) return "Escolha o melhor horário.";
+      if (!onb.equipmentPref) return "Escolha a preferência de equipamento.";
+      if (!onb.intensityPref) return "Escolha a intensidade.";
+      if (!onb.wantsCloseFollow) return "Informe se deseja acompanhamento mais próximo.";
+      if (!onb.surgeryRecent) return "Informe sobre cirurgia recente.";
+      if (!onb.frequentPain) return "Informe sobre dor ao treinar.";
+      if (!onb.injuries.length) return "Selecione ao menos uma opção de lesões (pode ser Nenhuma).";
+    }
     for (const q of PARQ_ITEMS) {
       if (parq[q.id] === null) return "Responda todas as perguntas do PAR-Q (Sim ou Não).";
     }
     if (!hasSignatureInk) return "Assine no quadro com o dedo ou mouse.";
     return null;
-  }, [healthFlags, onb, parq, hasSignatureInk]);
+  }, [healthFlags, onb, parq, hasSignatureInk, isFreePlan]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -354,18 +373,20 @@ export default function StudentCompliancePanel() {
     }
     if (!user) return;
 
-    const onboardingAnswers: OnboardingAnswers = {
-      trainingPlace: onb.trainingPlace as OnboardingAnswers["trainingPlace"],
-      timePerDay: onb.timePerDay as OnboardingAnswers["timePerDay"],
-      injuries: onb.injuries,
-      surgeryRecent: onb.surgeryRecent as OnboardingAnswers["surgeryRecent"],
-      frequentPain: onb.frequentPain as OnboardingAnswers["frequentPain"],
-      daysPerWeek: onb.daysPerWeek as OnboardingAnswers["daysPerWeek"],
-      bestTime: onb.bestTime as OnboardingAnswers["bestTime"],
-      intensityPref: onb.intensityPref as OnboardingAnswers["intensityPref"],
-      equipmentPref: onb.equipmentPref as OnboardingAnswers["equipmentPref"],
-      wantsCloseFollow: onb.wantsCloseFollow as OnboardingAnswers["wantsCloseFollow"],
-    };
+    const onboardingAnswers: OnboardingAnswers = isFreePlan
+      ? DEFAULT_FREE_ONBOARDING
+      : {
+          trainingPlace: onb.trainingPlace as OnboardingAnswers["trainingPlace"],
+          timePerDay: onb.timePerDay as OnboardingAnswers["timePerDay"],
+          injuries: onb.injuries,
+          surgeryRecent: onb.surgeryRecent as OnboardingAnswers["surgeryRecent"],
+          frequentPain: onb.frequentPain as OnboardingAnswers["frequentPain"],
+          daysPerWeek: onb.daysPerWeek as OnboardingAnswers["daysPerWeek"],
+          bestTime: onb.bestTime as OnboardingAnswers["bestTime"],
+          intensityPref: onb.intensityPref as OnboardingAnswers["intensityPref"],
+          equipmentPref: onb.equipmentPref as OnboardingAnswers["equipmentPref"],
+          wantsCloseFollow: onb.wantsCloseFollow as OnboardingAnswers["wantsCloseFollow"],
+        };
 
     const parqAnswers = PARQ_ITEMS.map((q) => ({ id: q.id, yes: parq[q.id] === true }));
 
@@ -383,7 +404,11 @@ export default function StudentCompliancePanel() {
       saveRecommendation(buildRecommendation(onboardingAnswers), uid);
       setOnboardingDone(uid);
       await getUser();
-      setMessage("Dados salvos. Obrigado por completar triagem, onboarding e PAR-Q.");
+      setMessage(
+        isFreePlan
+          ? "Dados salvos. Obrigado por completar triagem e PAR-Q."
+          : "Dados salvos. Obrigado por completar triagem, onboarding e PAR-Q.",
+      );
       setHasSignatureInk(false);
       if (canvas) {
         const ctx = canvas.getContext("2d");
@@ -426,8 +451,17 @@ export default function StudentCompliancePanel() {
       <div>
         <div style={{ fontWeight: 1000, fontSize: 17 }}>Saúde, treino e PAR-Q</div>
         <div style={{ color: neon.muted, fontSize: 13, marginTop: 6, lineHeight: 1.45 }}>
-          Obrigatório para uso do app: declarações de saúde, preferências de treino (onboarding) e questionário PAR-Q com assinatura
-          digital. Texto orientativo — consulte profissional de saúde e assessoria jurídica.
+          {isFreePlan ? (
+            <>
+              Obrigatório para uso do app: declarações de saúde e questionário PAR-Q com assinatura digital. Texto orientativo —
+              consulte profissional de saúde e assessoria jurídica.
+            </>
+          ) : (
+            <>
+              Obrigatório para uso do app: declarações de saúde, preferências de treino (onboarding) e questionário PAR-Q com
+              assinatura digital. Texto orientativo — consulte profissional de saúde e assessoria jurídica.
+            </>
+          )}
         </div>
       </div>
 
@@ -466,6 +500,7 @@ export default function StudentCompliancePanel() {
           ))}
         </section>
 
+        {!isFreePlan ? (
         <section style={{ display: "grid", gap: 12 }}>
           <div style={{ fontWeight: 900 }}>Onboarding de treino</div>
           <div>
@@ -619,6 +654,7 @@ export default function StudentCompliancePanel() {
             />
           </div>
         </section>
+        ) : null}
 
         <section style={{ display: "grid", gap: 12 }}>
           <div style={{ fontWeight: 900 }}>PAR-Q ({PARQ_FORM_VERSION})</div>
@@ -685,7 +721,7 @@ export default function StudentCompliancePanel() {
               minHeight: 44,
             }}
           >
-            {saving ? "Salvando…" : "Salvar triagem, onboarding e PAR-Q"}
+            {saving ? "Salvando…" : isFreePlan ? "Salvar triagem e PAR-Q" : "Salvar triagem, onboarding e PAR-Q"}
           </button>
         ) : null}
       </form>
