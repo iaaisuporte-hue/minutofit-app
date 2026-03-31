@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext";
+import { useFeatureFlags } from "../../auth/FeatureFlagsContext";
 import { useIsMobile } from "../../hooks/useIsMobile";
 import { loadRecommendation } from "./onboarding/onboardingStorage";
 import { addWorkoutHistoryEntry, getCurrentWeekdayLabel, getLastWorkoutEntry, getYesterdayMuscleGroups, type MuscleGroup } from "./workoutHistory";
@@ -30,10 +31,12 @@ function Card({
     <div
       style={{
         border: `1px solid ${COLORS.border}`,
-        borderRadius: 20,
+        borderRadius: 18,
         background: COLORS.panel,
-        boxShadow: "0 18px 44px rgba(0,0,0,.45)",
-        padding: 18,
+        boxShadow: "0 10px 28px rgba(0,0,0,.32)",
+        padding: 14,
+        backdropFilter: "blur(8px)",
+        WebkitBackdropFilter: "blur(8px)",
         ...style,
       }}
     >
@@ -45,8 +48,10 @@ function Card({
 export default function TodayPage() {
   const navigate = useNavigate();
   const { id, user } = useAuth();
+  const { planName } = useFeatureFlags();
   const isMobile = useIsMobile(720);
   const userId = (id ?? "").trim().toLowerCase();
+  const isFreePlan = (planName || "").toLowerCase() === "free";
 
   const streak = useMemo(() => getStreak(), []);
   const lastWorkout = useMemo(() => getLastWorkoutEntry(), []);
@@ -60,7 +65,6 @@ export default function TodayPage() {
   const [quickGroups, setQuickGroups] = useState<MuscleGroup[]>([]);
   const [quickMessage, setQuickMessage] = useState<string | null>(null);
 
-  const suggestedWorkoutId = recommendation?.route === "/app/user/treinos" ? "chest" : "home-10min";
   const recommendationTags = recommendation?.tags?.slice(0, 3) || [];
   const groupLabelMap: Record<MuscleGroup, string> = {
     chest: "peito",
@@ -87,6 +91,22 @@ export default function TodayPage() {
   const alwaysAvailableGroups: MuscleGroup[] = ["cardio", "mobility"];
 
   const muscleGroupLabel = lastWorkout?.muscleGroups?.map((group) => groupLabelMap[group]).join(", ") || null;
+
+  const isTablet = !isMobile && typeof window !== "undefined" && window.innerWidth <= 1024;
+  const heroStatsColumns = isMobile ? "repeat(2, minmax(0, 1fr))" : isTablet ? "1fr 1fr" : "repeat(2, minmax(180px, 1fr))";
+  const heroProgressColumns = isMobile ? "1fr" : "1fr 1fr";
+  const compactActionBtnStyle: React.CSSProperties = {
+    padding: isMobile ? "11px 12px" : "10px 12px",
+    borderRadius: 12,
+    border: `1px solid ${COLORS.border}`,
+    background: "rgba(255,255,255,.02)",
+    color: COLORS.text,
+    cursor: "pointer",
+    fontWeight: 800,
+    fontSize: 13,
+    lineHeight: 1.1,
+    transition: "transform .16s ease, opacity .16s ease, border-color .16s ease, background .16s ease",
+  };
 
   function toggleQuickGroup(group: MuscleGroup) {
     if (yesterdayMuscleGroups.includes(group) && !alwaysAvailableGroups.includes(group)) {
@@ -140,99 +160,67 @@ export default function TodayPage() {
   }
 
   return (
-    <div style={{ display: "grid", gap: 14, color: COLORS.text, minWidth: 0, width: "100%" }}>
+    <div style={{ display: "grid", gap: 10, color: COLORS.text, minWidth: 0, width: "100%" }}>
       <Card
         style={{
           background: COLORS.panelDeep,
           borderColor: COLORS.borderStrong,
-          borderRadius: 24,
+          borderRadius: 20,
           overflow: "hidden",
         }}
       >
-        <div style={{ display: "grid", gap: 18 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", gap: 16, flexWrap: "wrap", alignItems: "flex-start" }}>
-            <div style={{ display: "grid", gap: 10, maxWidth: 720 }}>
-              <div
-                style={{
-                  display: "inline-flex",
-                  width: "fit-content",
-                  alignItems: "center",
-                  gap: 8,
-                  borderRadius: 999,
-                  background: COLORS.highlightSoft,
-                  color: "#7CFF6B",
-                  padding: "8px 12px",
-                  fontSize: 11,
-                  fontWeight: 900,
-                  letterSpacing: 1.2,
-                  textTransform: "uppercase",
-                }}
-              >
-                Hoje
-              </div>
-              <div style={{ fontSize: 32, fontWeight: 1000, lineHeight: 1.1 }}>
-                {user?.name ? `Olá, ${user.name.split(" ")[0]}.` : "Olá."} Seu próximo passo já está pronto.
-              </div>
-              <div style={{ color: COLORS.muted, fontSize: 15, lineHeight: 1.6 }}>
-                {recommendation?.subtitle ||
-                  "Sua home diária agora prioriza ação: iniciar treino, acompanhar ritmo e retomar o que ficou pendente com menos atrito."}
-              </div>
+        <div style={{ display: "grid", gap: 12 }}>
+          <div style={{ display: "grid", gap: 8, maxWidth: 760 }}>
+            <div
+              style={{
+                display: "inline-flex",
+                width: "fit-content",
+                alignItems: "center",
+                gap: 8,
+                borderRadius: 999,
+                background: COLORS.highlightSoft,
+                color: "#7CFF6B",
+                padding: "6px 10px",
+                fontSize: 10,
+                fontWeight: 900,
+                letterSpacing: 1.2,
+                textTransform: "uppercase",
+              }}
+            >
+              Hoje
+            </div>
 
-              <div
-                style={{
-                  display: "inline-flex",
-                  width: "fit-content",
-                  alignItems: "center",
-                  gap: 8,
-                  borderRadius: 999,
-                  border: `1px solid ${COLORS.border}`,
-                  background: "rgba(255,255,255,.04)",
-                  padding: "8px 12px",
-                  color: COLORS.mutedSoft,
-                  fontSize: 12,
-                  fontWeight: 900,
-                  textTransform: "capitalize",
-                }}
-              >
-                📅 {weekdayLabel}
-              </div>
+            <div style={{ fontSize: isMobile ? 24 : 30, fontWeight: 1000, lineHeight: 1.12, letterSpacing: "-0.02em" }}>
+              {user?.name ? `Olá, ${user.name.split(" ")[0]}.` : "Olá."} Hora de pontuar o dia.
+            </div>
+
+            <div style={{ color: COLORS.muted, fontSize: 13, lineHeight: 1.45, maxWidth: 620 }}>
+              {recommendation?.subtitle ||
+                "Menos decisão, mais execução: inicie o treino e mantenha sua sequência."}
             </div>
 
             <div
               style={{
-                display: "grid",
-                gap: 10,
-                minWidth: 180,
-                borderRadius: 18,
+                display: "inline-flex",
+                width: "fit-content",
+                alignItems: "center",
+                gap: 8,
+                borderRadius: 999,
                 border: `1px solid ${COLORS.border}`,
                 background: "rgba(255,255,255,.04)",
-                padding: 16,
+                padding: "6px 10px",
+                color: COLORS.mutedSoft,
+                fontSize: 11,
+                fontWeight: 900,
+                textTransform: "capitalize",
               }}
             >
-              <div style={{ color: COLORS.mutedSoft, fontSize: 12, textTransform: "uppercase", letterSpacing: 1.1 }}>Constância</div>
-              <div style={{ fontSize: 30, fontWeight: 1000 }}>🔥 {streak}</div>
-              <div style={{ color: COLORS.muted, fontSize: 13 }}>dias seguidos registrando treino</div>
-            </div>
-
-            <div
-              style={{
-                display: "grid",
-                gap: 10,
-                minWidth: 180,
-                borderRadius: 18,
-                border: `1px solid ${COLORS.border}`,
-                background: "rgba(255,255,255,.04)",
-                padding: 16,
-              }}
-            >
-              <div style={{ color: COLORS.mutedSoft, fontSize: 12, textTransform: "uppercase", letterSpacing: 1.1 }}>Nível</div>
-              <div style={{ fontSize: 30, fontWeight: 1000 }}>⭐ {level}</div>
-              <div style={{ color: COLORS.muted, fontSize: 13 }}>{xp} XP acumulados</div>
+              📅 {weekdayLabel}
             </div>
           </div>
 
           {recommendationTags.length ? (
-            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               {recommendationTags.map((tag) => (
                 <div
                   key={tag}
@@ -240,8 +228,8 @@ export default function TodayPage() {
                     borderRadius: 999,
                     border: `1px solid ${COLORS.border}`,
                     background: COLORS.primarySoft,
-                    padding: "8px 12px",
-                    fontSize: 12,
+                    padding: "6px 10px",
+                    fontSize: 11,
                     fontWeight: 900,
                   }}
                 >
@@ -251,109 +239,155 @@ export default function TodayPage() {
             </div>
           ) : null}
 
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: isMobile ? "1fr" : "minmax(0, auto) minmax(0, 1fr)",
+              gap: 8,
+              alignItems: "center",
+            }}
+          >
             <button
               type="button"
-              onClick={() => navigate(`/app/user/treinos/player/${suggestedWorkoutId}`)}
+              onClick={() => navigate("/app/user/treinos/em-casa")}
               style={{
-                padding: "14px 16px",
+                padding: isMobile ? "13px 14px" : "12px 16px",
                 borderRadius: 14,
                 border: `1px solid ${COLORS.borderStrong}`,
                 background: "linear-gradient(135deg, #1DB954 0%, #7CFF6B 100%)",
                 color: "#082014",
                 cursor: "pointer",
                 fontWeight: 1000,
-                boxShadow: "0 14px 28px rgba(29,185,84,.22)",
+                boxShadow: "0 10px 20px rgba(29,185,84,.2)",
+                width: isMobile ? "100%" : "fit-content",
+                fontSize: isMobile ? 15 : 14,
+                transition: "transform .18s ease, box-shadow .18s ease, opacity .18s ease",
               }}
             >
               ▶️ Iniciar treino agora
             </button>
 
-            <button
-              type="button"
-              onClick={() => navigate("/app/user/onboarding")}
-              style={{
-                padding: "14px 16px",
-                borderRadius: 14,
-                border: `1px solid ${COLORS.border}`,
-                background: "rgba(255,255,255,.03)",
-                color: COLORS.text,
-                cursor: "pointer",
-                fontWeight: 900,
-              }}
-            >
-              Ajustar rotina inicial
-            </button>
+            {!isFreePlan ? (
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <button
+                  type="button"
+                  onClick={() => navigate("/app/user/onboarding")}
+                  style={compactActionBtnStyle}
+                >
+                  Ajustar rotina inicial
+                </button>
 
-            <button
-              type="button"
-              onClick={() => navigate("/app/user/activities")}
-              style={{
-                padding: "14px 16px",
-                borderRadius: 14,
-                border: `1px solid ${COLORS.border}`,
-                background: "rgba(255,255,255,.03)",
-                color: COLORS.text,
-                cursor: "pointer",
-                fontWeight: 900,
-              }}
-            >
-              Registrar atividade
-            </button>
+                <button
+                  type="button"
+                  onClick={() => navigate("/app/user/activities")}
+                  style={compactActionBtnStyle}
+                >
+                  Registrar atividade
+                </button>
+              </div>
+            ) : null}
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "minmax(0, 1fr) minmax(0, 1fr)", gap: 14 }}>
+          <div style={{ display: "grid", gridTemplateColumns: heroStatsColumns, gap: 8 }}>
             <div
               style={{
-                borderRadius: 18,
-                border: `1px solid ${todayCheckedIn ? COLORS.borderStrong : COLORS.border}`,
-                background: todayCheckedIn ? COLORS.primarySoft : "rgba(255,255,255,.04)",
-                padding: 16,
+                borderRadius: 14,
+                border: `1px solid ${COLORS.border}`,
+                background: "rgba(255,255,255,.03)",
+                padding: 10,
                 display: "grid",
-                gap: 8,
+                gap: 4,
+                minHeight: 0,
+                alignContent: "start",
               }}
             >
-              <div style={{ color: COLORS.mutedSoft, fontSize: 12, textTransform: "uppercase", letterSpacing: 1.1 }}>Check-in do dia</div>
-              <div style={{ fontWeight: 1000, fontSize: 22 }}>{todayCheckedIn ? "✅ Dia garantido" : "⏳ Falta marcar o dia"}</div>
-              <div style={{ color: COLORS.muted, fontSize: 13, lineHeight: 1.5 }}>
-                {todayCheckedIn
-                  ? "Você já treinou ou registrou atividade hoje. Sua sequência está protegida."
-                  : "Conclua um treino, registre atividade ou use o check-in rápido para contar o dia."}
+              <div style={{ color: COLORS.mutedSoft, fontSize: 10, textTransform: "uppercase", letterSpacing: 1.1 }}>Constância</div>
+              <div style={{ fontSize: 24, fontWeight: 1000, lineHeight: 1 }}>
+                🔥 <span>{streak}</span>
+              </div>
+              <div style={{ color: COLORS.muted, fontSize: 11 }}>dias seguidos</div>
+            </div>
+
+            <div
+              style={{
+                borderRadius: 14,
+                border: `1px solid ${COLORS.border}`,
+                background: "rgba(255,255,255,.03)",
+                padding: 10,
+                display: "grid",
+                gap: 4,
+                minHeight: 0,
+                alignContent: "start",
+              }}
+            >
+              <div style={{ color: COLORS.mutedSoft, fontSize: 10, textTransform: "uppercase", letterSpacing: 1.1 }}>Nível</div>
+              <div style={{ fontSize: 24, fontWeight: 1000, lineHeight: 1 }}>
+                ⭐ <span>{level}</span>
+              </div>
+              <div style={{ color: COLORS.muted, fontSize: 11 }}>{xp} XP</div>
+            </div>
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: heroProgressColumns, gap: 8 }}>
+            <div
+              style={{
+                borderRadius: 14,
+                border: `1px solid ${todayCheckedIn ? COLORS.borderStrong : COLORS.border}`,
+                background: todayCheckedIn ? COLORS.primarySoft : "rgba(255,255,255,.04)",
+                padding: 12,
+                display: "grid",
+                gridTemplateColumns: "auto 1fr",
+                gap: 10,
+                alignItems: "center",
+              }}
+            >
+              <div style={{ fontSize: 22, lineHeight: 1 }}>{todayCheckedIn ? "✅" : "⏳"}</div>
+              <div style={{ display: "grid", gap: 3 }}>
+                <div style={{ color: COLORS.mutedSoft, fontSize: 10, textTransform: "uppercase", letterSpacing: 1.1 }}>Check-in do dia</div>
+                <div style={{ fontWeight: 1000, fontSize: 17, lineHeight: 1.2 }}>{todayCheckedIn ? "Dia garantido" : "Falta marcar o dia"}</div>
+                <div style={{ color: COLORS.muted, fontSize: 11, lineHeight: 1.35 }}>
+                  {todayCheckedIn ? "Sequência protegida." : "Marque no check-in rápido após o treino."}
+                </div>
               </div>
             </div>
 
             <div
               style={{
-                borderRadius: 18,
+                borderRadius: 14,
                 border: `1px solid ${mission.completed ? COLORS.borderStrong : COLORS.border}`,
                 background: mission.completed ? COLORS.primarySoft : "rgba(255,255,255,.04)",
-                padding: 16,
+                padding: 12,
                 display: "grid",
-                gap: 8,
+                gridTemplateColumns: "auto 1fr",
+                gap: 10,
+                alignItems: "start",
               }}
             >
-              <div style={{ color: COLORS.mutedSoft, fontSize: 12, textTransform: "uppercase", letterSpacing: 1.1 }}>Missão do dia</div>
-              <div style={{ fontWeight: 1000, fontSize: 18 }}>{mission.title}</div>
-              <div style={{ color: COLORS.muted, fontSize: 13, lineHeight: 1.5 }}>{mission.description}</div>
-              <div style={{ color: COLORS.mutedSoft, fontSize: 12 }}>
-                Progresso: {mission.progress}/{mission.target} • Recompensa: +{mission.rewardXp} XP
-              </div>
-              <div
-                style={{
-                  height: 8,
-                  borderRadius: 999,
-                  background: "rgba(255,255,255,.08)",
-                  overflow: "hidden",
-                }}
-              >
+              <div style={{ fontSize: 22, lineHeight: 1 }}>🎯</div>
+              <div style={{ display: "grid", gap: 4 }}>
+                <div style={{ color: COLORS.mutedSoft, fontSize: 10, textTransform: "uppercase", letterSpacing: 1.1 }}>Missão do dia</div>
+                <div style={{ fontWeight: 1000, fontSize: 16, lineHeight: 1.2 }}>{mission.title}</div>
+                <div style={{ color: COLORS.muted, fontSize: 11, lineHeight: 1.35 }}>{mission.description}</div>
+                <div style={{ color: COLORS.mutedSoft, fontSize: 11 }}>
+                  {mission.progress}/{mission.target} • +{mission.rewardXp} XP
+                </div>
                 <div
                   style={{
-                    width: `${Math.min(100, Math.round((mission.progress / mission.target) * 100))}%`,
-                    height: "100%",
+                    height: 5,
                     borderRadius: 999,
-                    background: "linear-gradient(135deg, #1DB954 0%, #7CFF6B 100%)",
+                    background: "rgba(255,255,255,.1)",
+                    overflow: "hidden",
                   }}
-                />
+                >
+                  <div
+                    style={{
+                      width: `${Math.min(100, Math.round((mission.progress / mission.target) * 100))}%`,
+                      height: "100%",
+                      borderRadius: 999,
+                      background: "linear-gradient(135deg, #1DB954 0%, #7CFF6B 100%)",
+                    }}
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -363,131 +397,147 @@ export default function TodayPage() {
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: isMobile ? "1fr" : "minmax(0, 1.1fr) minmax(0, 0.9fr)",
-          gap: 14,
+          gridTemplateColumns: isMobile ? "1fr" : isFreePlan ? "1fr" : "minmax(0, 1.1fr) minmax(0, 0.9fr)",
+          gap: 10,
           minWidth: 0,
         }}
       >
-        <Card>
-          <div style={{ display: "grid", gap: 12 }}>
-            <div style={{ display: "grid", gap: 6 }}>
-              <div style={{ fontWeight: 1000, fontSize: 18 }}>Treino sugerido para hoje</div>
-              <div style={{ color: COLORS.muted, fontSize: 13, lineHeight: 1.5 }}>
-                {recommendation?.title ||
-                  "Uma sugestão simples para manter consistência e reduzir o esforço de decidir o que fazer agora."}
-              </div>
-            </div>
-
-            <div
-              style={{
-                borderRadius: 18,
-                border: `1px solid ${COLORS.border}`,
-                background: "rgba(255,255,255,.03)",
-                padding: 16,
-                display: "grid",
-                gap: 10,
-              }}
-            >
-              <div style={{ fontWeight: 1000, fontSize: 17 }}>{recommendation?.title || "Treino base do dia"}</div>
-              <div style={{ color: COLORS.muted, fontSize: 13, lineHeight: 1.5 }}>
-                {recommendation?.subtitle ||
-                  "Comece com um treino curto e mantenha o hábito. Depois a recomendação pode ficar mais precisa com mais dados de uso."}
-              </div>
-
-              {muscleGroupLabel ? (
-                <div
-                  style={{
-                    borderRadius: 14,
-                    border: `1px solid ${COLORS.border}`,
-                    background: "rgba(255,255,255,.03)",
-                    padding: "12px 14px",
-                    color: COLORS.muted,
-                    fontSize: 13,
-                    lineHeight: 1.5,
-                  }}
-                >
-                  Ontem você treinou <b style={{ color: COLORS.text }}>{muscleGroupLabel}</b>. Hoje vale variar o grupo muscular para recuperar melhor.
+        {!isFreePlan ? (
+          <Card>
+            <div style={{ display: "grid", gap: 10 }}>
+              <div style={{ display: "grid", gap: 4 }}>
+                <div style={{ fontWeight: 1000, fontSize: 16 }}>Treino sugerido para hoje</div>
+                <div style={{ color: COLORS.muted, fontSize: 12, lineHeight: 1.4 }}>
+                  {recommendation?.title ||
+                    "Uma sugestão simples para manter consistência e reduzir o esforço de decidir o que fazer agora."}
                 </div>
-              ) : null}
-
-              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 4 }}>
-                <button
-                  type="button"
-                  onClick={() => navigate(`/app/user/treinos/player/${suggestedWorkoutId}`)}
-                  style={{
-                    padding: "12px 14px",
-                    borderRadius: 14,
-                    border: `1px solid ${COLORS.borderStrong}`,
-                    background: "linear-gradient(135deg, #1DB954 0%, #7CFF6B 100%)",
-                    color: "#082014",
-                    cursor: "pointer",
-                    fontWeight: 1000,
-                  }}
-                >
-                  Começar agora
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => navigate("/app/user/treinos")}
-                  style={{
-                    padding: "12px 14px",
-                    borderRadius: 14,
-                    border: `1px solid ${COLORS.border}`,
-                    background: "transparent",
-                    color: COLORS.text,
-                    cursor: "pointer",
-                    fontWeight: 900,
-                  }}
-                >
-                  Ver catálogo de treinos
-                </button>
               </div>
-            </div>
 
-            {lastWorkout ? (
               <div
                 style={{
-                  borderTop: `1px solid ${COLORS.border}`,
-                  paddingTop: 12,
+                  borderRadius: 14,
+                  border: `1px solid ${COLORS.border}`,
+                  background: "rgba(255,255,255,.03)",
+                  padding: 12,
                   display: "grid",
                   gap: 8,
                 }}
               >
-                <div style={{ fontWeight: 1000 }}>Retomar do último treino</div>
-                <div style={{ color: COLORS.muted, fontSize: 13 }}>
-                  Seu último registro foi <b style={{ color: COLORS.text }}>{lastWorkout.title}</b>.
+                <div style={{ fontWeight: 1000, fontSize: 15 }}>{recommendation?.title || "Treino base do dia"}</div>
+                <div style={{ color: COLORS.muted, fontSize: 12, lineHeight: 1.4 }}>
+                  {recommendation?.subtitle ||
+                    "Comece com um treino curto e mantenha o hábito. Depois a recomendação pode ficar mais precisa com mais dados de uso."}
                 </div>
-                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                  <button
-                    type="button"
-                    onClick={() => navigate(`/app/user/treinos/player/${lastWorkout.workoutId}`)}
+
+                {muscleGroupLabel ? (
+                  <div
                     style={{
-                      padding: "12px 14px",
-                      borderRadius: 14,
+                      borderRadius: 12,
                       border: `1px solid ${COLORS.border}`,
                       background: "rgba(255,255,255,.03)",
+                      padding: "10px 12px",
+                      color: COLORS.muted,
+                      fontSize: 12,
+                      lineHeight: 1.35,
+                    }}
+                  >
+                    Ontem você treinou <b style={{ color: COLORS.text }}>{muscleGroupLabel}</b>. Hoje vale variar o grupo muscular para recuperar melhor.
+                  </div>
+                ) : null}
+
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 2 }}>
+                  <button
+                    type="button"
+                    onClick={() => navigate("/app/user/treinos/em-casa")}
+                    style={{
+                      padding: "10px 12px",
+                      borderRadius: 12,
+                      border: `1px solid ${COLORS.borderStrong}`,
+                      background: "linear-gradient(135deg, #1DB954 0%, #7CFF6B 100%)",
+                      color: "#082014",
+                      cursor: "pointer",
+                      fontWeight: 1000,
+                      transition: "transform .16s ease, opacity .16s ease",
+                    }}
+                  >
+                    Começar agora
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => navigate("/app/user/treinos")}
+                    style={{
+                      padding: "10px 12px",
+                      borderRadius: 12,
+                      border: `1px solid ${COLORS.border}`,
+                      background: "transparent",
                       color: COLORS.text,
                       cursor: "pointer",
                       fontWeight: 900,
+                      transition: "transform .16s ease, opacity .16s ease",
                     }}
                   >
-                    Repetir último treino
+                    Ver catálogo de treinos
                   </button>
                 </div>
               </div>
-            ) : null}
-          </div>
-        </Card>
 
-        <div style={{ display: "grid", gap: 14 }}>
+              {lastWorkout ? (
+                <div
+                  style={{
+                    borderTop: `1px solid ${COLORS.border}`,
+                    paddingTop: 10,
+                    display: "grid",
+                    gap: 6,
+                  }}
+                >
+                  <div style={{ fontWeight: 1000 }}>Retomar do último treino</div>
+                  <div style={{ color: COLORS.muted, fontSize: 12 }}>
+                    Seu último registro foi <b style={{ color: COLORS.text }}>{lastWorkout.title}</b>.
+                  </div>
+                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/app/user/treinos/player/${lastWorkout.workoutId}`)}
+                      style={{
+                      padding: "10px 12px",
+                      borderRadius: 12,
+                        border: `1px solid ${COLORS.border}`,
+                        background: "rgba(255,255,255,.03)",
+                        color: COLORS.text,
+                        cursor: "pointer",
+                        fontWeight: 900,
+                      transition: "transform .16s ease, opacity .16s ease",
+                      }}
+                    >
+                      Repetir último treino
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          </Card>
+        ) : null}
+
+        <div style={{ display: "grid", gap: 10, minWidth: 0 }}>
+          {isFreePlan ? (
+            <Card>
+              <div style={{ display: "grid", gap: 6 }}>
+                <div style={{ fontWeight: 1000, fontSize: 16 }}>Foco do dia</div>
+                <div style={{ color: COLORS.muted, fontSize: 12, lineHeight: 1.4 }}>
+                  No plano Free, priorize constância: marque seu treino diário no check-in rápido e mantenha sua sequência.
+                </div>
+              </div>
+            </Card>
+          ) : null}
+
           <Card>
-            <div style={{ display: "grid", gap: 10 }}>
-              <div style={{ fontWeight: 1000, fontSize: 16 }}>Check-in rápido do treino</div>
-              <div style={{ color: COLORS.muted, fontSize: 13, lineHeight: 1.5 }}>
+            <div style={{ display: "grid", gap: 8 }}>
+              <div style={{ fontWeight: 1000, fontSize: 15 }}>Check-in rápido do treino</div>
+              <div style={{ color: COLORS.muted, fontSize: 12, lineHeight: 1.4 }}>
                 Marque rapidamente quais grupos você treinou hoje. Exemplo: peito e bíceps. Isso pontua o dia e impede repetir os mesmos grupos apenas amanhã.
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 10 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 8 }}>
                 {(["chest", "back", "legs", "shoulders", "arms", "core", "cardio", "mobility"] as MuscleGroup[]).map((group) => (
                   (() => {
                     const disabled = yesterdayMuscleGroups.includes(group) && !alwaysAvailableGroups.includes(group);
@@ -500,8 +550,8 @@ export default function TodayPage() {
                         disabled={disabled}
                         onClick={() => toggleQuickGroup(group)}
                         style={{
-                          padding: "14px 14px",
-                          borderRadius: 18,
+                          padding: "10px 10px",
+                          borderRadius: 12,
                           border: `1px solid ${active ? COLORS.borderStrong : COLORS.border}`,
                           background: active ? COLORS.primarySoft : disabled ? "rgba(255,255,255,.02)" : "rgba(255,255,255,.03)",
                           color: COLORS.text,
@@ -510,14 +560,15 @@ export default function TodayPage() {
                           fontWeight: 900,
                           display: "flex",
                           alignItems: "center",
-                          gap: 12,
+                          gap: 8,
                           textAlign: "left",
+                          transition: "transform .16s ease, opacity .16s ease, border-color .16s ease",
                         }}
                       >
-                        <span style={{ fontSize: 22 }}>{groupIconMap[group]}</span>
+                        <span style={{ fontSize: 18 }}>{groupIconMap[group]}</span>
                         <span style={{ display: "grid", gap: 2 }}>
-                          <span>{groupLabelMap[group]}</span>
-                          <span style={{ fontSize: 11, color: COLORS.mutedSoft, fontWeight: 700 }}>
+                          <span style={{ fontSize: 12 }}>{groupLabelMap[group]}</span>
+                          <span style={{ fontSize: 10, color: COLORS.mutedSoft, fontWeight: 700 }}>
                             {disabled ? "Indisponível hoje" : yesterdayMuscleGroups.includes(group) ? "Liberado hoje" : "Disponível hoje"}
                           </span>
                         </span>
@@ -526,19 +577,20 @@ export default function TodayPage() {
                   })()
                 ))}
               </div>
-              {quickMessage ? <div style={{ color: COLORS.muted, fontSize: 13, lineHeight: 1.5 }}>{quickMessage}</div> : null}
+              {quickMessage ? <div style={{ color: COLORS.muted, fontSize: 12, lineHeight: 1.4 }}>{quickMessage}</div> : null}
               <button
                 type="button"
                 onClick={handleQuickCheckin}
                 style={{
-                  padding: "12px 14px",
-                  borderRadius: 14,
+                  padding: "10px 12px",
+                  borderRadius: 12,
                   border: `1px solid ${COLORS.borderStrong}`,
                   background: "linear-gradient(135deg, #1DB954 0%, #7CFF6B 100%)",
                   color: "#082014",
                   cursor: "pointer",
                   fontWeight: 1000,
-                  width: "fit-content",
+                  width: isMobile ? "100%" : "fit-content",
+                  transition: "transform .16s ease, opacity .16s ease",
                 }}
               >
                 Marcar treino de hoje

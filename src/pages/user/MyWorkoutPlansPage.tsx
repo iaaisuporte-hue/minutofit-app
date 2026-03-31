@@ -1,0 +1,139 @@
+import { useEffect, useMemo, useState } from "react";
+import { fetchMyWorkoutPlans, type UserWorkoutPlan } from "../../services/userWorkoutPlansApi";
+
+const COLORS = {
+  border: "rgba(124,255,107,.16)",
+  borderStrong: "rgba(29,185,84,.34)",
+  text: "#FFFFFF",
+  muted: "rgba(255,255,255,.72)",
+  panel: "linear-gradient(180deg, rgba(22,25,22,.92), rgba(15,18,16,.96))",
+  panelSoft: "rgba(255,255,255,.04)",
+  primarySoft: "rgba(29,185,84,.18)",
+};
+
+function formatDate(value: string) {
+  try {
+    return new Date(value).toLocaleString("pt-BR");
+  } catch {
+    return value;
+  }
+}
+
+export default function MyWorkoutPlansPage() {
+  const [plans, setPlans] = useState<UserWorkoutPlan[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const rows = await fetchMyWorkoutPlans(20);
+        if (!cancelled) setPlans(rows);
+      } catch (e) {
+        if (!cancelled) setError(e instanceof Error ? e.message : "Erro ao carregar fichas.");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const latestPlan = useMemo(() => plans[0] ?? null, [plans]);
+
+  return (
+    <div style={{ display: "grid", gap: 16 }}>
+      <div
+        style={{
+          border: `1px solid ${COLORS.borderStrong}`,
+          borderRadius: 18,
+          background: COLORS.panel,
+          padding: 18,
+          display: "grid",
+          gap: 8,
+        }}
+      >
+        <div style={{ fontSize: 24, fontWeight: 1000, color: COLORS.text }}>Minha ficha de treino</div>
+        <div style={{ color: COLORS.muted, lineHeight: 1.5 }}>
+          Aqui você acompanha as fichas enviadas pelo seu personal. A primeira da lista e a mais recente.
+        </div>
+      </div>
+
+      {loading ? <div style={{ color: COLORS.muted }}>Carregando fichas...</div> : null}
+      {error ? <div style={{ color: "#fca5a5" }}>{error}</div> : null}
+
+      {!loading && !error && !plans.length ? (
+        <div
+          style={{
+            border: `1px dashed ${COLORS.border}`,
+            borderRadius: 14,
+            padding: 16,
+            color: COLORS.muted,
+            background: COLORS.panelSoft,
+          }}
+        >
+          Nenhuma ficha encontrada ainda. Assim que seu personal salvar uma ficha para voce, ela aparece aqui.
+        </div>
+      ) : null}
+
+      {latestPlan ? (
+        <div
+          style={{
+            border: `1px solid ${COLORS.borderStrong}`,
+            borderRadius: 14,
+            background: COLORS.primarySoft,
+            padding: 14,
+            color: COLORS.text,
+          }}
+        >
+          Ficha ativa: <b>{latestPlan.title}</b> • Atualizada em <b>{formatDate(latestPlan.updated_at)}</b>
+        </div>
+      ) : null}
+
+      {plans.map((plan) => (
+        <details
+          key={plan.id}
+          style={{
+            border: `1px solid ${COLORS.border}`,
+            borderRadius: 14,
+            background: COLORS.panel,
+            padding: 12,
+          }}
+        >
+          <summary style={{ cursor: "pointer", color: COLORS.text, fontWeight: 900 }}>
+            {plan.title} • {plan.payload_json?.length || 0} exercicio(s)
+          </summary>
+          <div style={{ marginTop: 10, display: "grid", gap: 8 }}>
+            <div style={{ color: COLORS.muted, fontSize: 13 }}>
+              Preset semanal: <b style={{ color: COLORS.text }}>{plan.week_preset}</b> • Grupo:{" "}
+              <b style={{ color: COLORS.text }}>{plan.selected_group || "Nao informado"}</b>
+            </div>
+            <div style={{ color: COLORS.muted, fontSize: 12 }}>
+              Criado em {formatDate(plan.created_at)} • Atualizado em {formatDate(plan.updated_at)}
+            </div>
+            <div style={{ display: "grid", gap: 6 }}>
+              {(plan.payload_json || []).map((item, idx) => (
+                <div
+                  key={`${plan.id}-${item.exerciseId}-${idx}`}
+                  style={{
+                    border: `1px solid ${COLORS.border}`,
+                    borderRadius: 10,
+                    padding: "8px 10px",
+                    color: COLORS.text,
+                    fontSize: 13,
+                  }}
+                >
+                  {idx + 1}. {item.name} — Series: {item.sets} • Reps: {item.reps} • Descanso: {item.rest}
+                </div>
+              ))}
+            </div>
+          </div>
+        </details>
+      ))}
+    </div>
+  );
+}

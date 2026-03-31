@@ -1,7 +1,7 @@
-import { useMemo } from "react";
 import { NavLink, Navigate, Route, Routes, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import AppShell from "../layout/AppShell";
+import { useFeatureFlags } from "../auth/FeatureFlagsContext";
 
 import AccountSettingsPage from "./user/AccountSettingsPage";
 import TreinosPage from "./user/TreinosPage";
@@ -15,6 +15,7 @@ import TodayPage from "./user/TodayPage";
 import UserMessagesPage from "./user/UserMessagesPage";
 import UserProfilePage from "./user/UserProfilePage";
 import MovementLabPage from "./user/MovementLabPage";
+import MyWorkoutPlansPage from "./user/MyWorkoutPlansPage";
 
 // ✅ ONBOARDING
 import OnboardingPage from "./user/OnboardingPage";
@@ -49,8 +50,16 @@ function LimitedUserOnly({ allowed, children }: { allowed: boolean; children: Re
 
 export default function UserApp() {
   const navigate = useNavigate();
-  const { logout, accessProfile } = useAuth();
-  const isLimitedUser = useMemo(() => accessProfile === "clientes_sb", [accessProfile]);
+  const { logout } = useAuth();
+  const { hasFeature, loading } = useFeatureFlags();
+  const canTracker = hasFeature("tracker");
+  const canMessages = hasFeature("messages");
+  const canProfile = hasFeature("profile");
+  const canTrainingAi = hasFeature("training_ai");
+  const canSuggestedTraining = hasFeature("suggested_training");
+  const canWorkouts = hasFeature("workouts");
+  const canHomeWorkouts = hasFeature("home_workouts");
+  const canSettings = hasFeature("settings");
 
   function handleLogout() {
     logout();
@@ -70,31 +79,20 @@ export default function UserApp() {
 
             <div className="navStack">
               <MenuLink to={`${USER_BASE}/today`} label="Hoje" icon="🏠" />
-              {isLimitedUser ? (
-                <>
-                  <MenuLink to={`${USER_BASE}/treinos/em-casa`} label="Treinos em casa" icon="🏋️" />
-                  <MenuLink to={`${USER_BASE}/settings`} label="Minha conta" icon="👤" />
-                </>
-              ) : (
-                <>
-                  <MenuLink to={`${USER_BASE}/treinos`} label="Treinos" icon="🏋️" />
-                  <MenuLink to={`${USER_BASE}/activities`} label="Tracker" icon="🏃" />
-                  <MenuLink to={`${USER_BASE}/messages`} label="Mensagens" icon="💬" />
-                  <MenuLink to={`${USER_BASE}/profile`} label="Perfil" icon="👤" />
+              {canWorkouts && <MenuLink to={`${USER_BASE}/treinos`} label="Treinos" icon="🏋️" />}
+              {canWorkouts && <MenuLink to={`${USER_BASE}/ficha`} label="Minha ficha" icon="📋" />}
+              {canHomeWorkouts && <MenuLink to={`${USER_BASE}/treinos/em-casa`} label="Treinos em casa" icon="🏠" />}
+              {canTracker && <MenuLink to={`${USER_BASE}/activities`} label="Tracker" icon="🏃" />}
+              {canMessages && <MenuLink to={`${USER_BASE}/messages`} label="Mensagens" icon="💬" />}
+              {canProfile && <MenuLink to={`${USER_BASE}/profile`} label="Perfil" icon="👤" />}
 
-                  <div style={{ height: 4 }} />
+              {(canSuggestedTraining || canTrainingAi) && <div style={{ height: 4 }} />}
+              {(canSuggestedTraining || canTrainingAi) && <div className="sectionLabel">Treino personalizado</div>}
+              {canSuggestedTraining && <MenuLink to={`${USER_BASE}/suggested-training`} label="Treino Sugerido" icon="🎯" />}
+              {canTrainingAi && <MenuLink to={`${USER_BASE}/movement-lab`} label="Lab de Movimento" icon="📷" />}
 
-                  <div className="sectionLabel">Treino personalizado</div>
-                  <MenuLink to={`${USER_BASE}/suggested-training`} label="Treino Sugerido" icon="🎯" />
-                  <MenuLink to={`${USER_BASE}/movement-lab`} label="Lab de Movimento" icon="📷" />
-
-                  <div style={{ height: 4 }} />
-
-                  <div className="sectionLabel">Atalhos</div>
-                  <MenuLink to={`${USER_BASE}/upgrade`} label="Evoluir plano" icon="⭐" />
-                  <MenuLink to={`${USER_BASE}/settings`} label="Configurações" icon="⚙️" />
-                </>
-              )}
+              <div style={{ height: 4 }} />
+              {canSettings && <MenuLink to={`${USER_BASE}/settings`} label="Configurações" icon="⚙️" />}
             </div>
 
             <div style={{ flex: 1 }} />
@@ -127,7 +125,7 @@ export default function UserApp() {
               <Route
                 path="activities"
                 element={
-                  <LimitedUserOnly allowed={!isLimitedUser}>
+                  <LimitedUserOnly allowed={canTracker}>
                     <ActivityTrackerPage />
                   </LimitedUserOnly>
                 }
@@ -135,7 +133,7 @@ export default function UserApp() {
               <Route
                 path="messages"
                 element={
-                  <LimitedUserOnly allowed={!isLimitedUser}>
+                  <LimitedUserOnly allowed={canMessages}>
                     <UserMessagesPage />
                   </LimitedUserOnly>
                 }
@@ -143,7 +141,7 @@ export default function UserApp() {
               <Route
                 path="profile"
                 element={
-                  <LimitedUserOnly allowed={!isLimitedUser}>
+                  <LimitedUserOnly allowed={canProfile}>
                     <UserProfilePage onLogout={handleLogout} />
                   </LimitedUserOnly>
                 }
@@ -151,7 +149,7 @@ export default function UserApp() {
               <Route
                 path="movement-lab"
                 element={
-                  <LimitedUserOnly allowed={!isLimitedUser}>
+                  <LimitedUserOnly allowed={canTrainingAi}>
                     <MovementLabPage />
                   </LimitedUserOnly>
                 }
@@ -161,7 +159,7 @@ export default function UserApp() {
               <Route
                 path="onboarding"
                 element={
-                  <LimitedUserOnly allowed={!isLimitedUser}>
+                  <LimitedUserOnly allowed={canTrainingAi}>
                     <OnboardingPage />
                   </LimitedUserOnly>
                 }
@@ -169,7 +167,7 @@ export default function UserApp() {
               <Route
                 path="/app/user/onboarding"
                 element={
-                  <LimitedUserOnly allowed={!isLimitedUser}>
+                  <LimitedUserOnly allowed={canTrainingAi}>
                     <OnboardingPage />
                   </LimitedUserOnly>
                 }
@@ -179,28 +177,36 @@ export default function UserApp() {
               <Route
                 path="treinos"
                 element={
-                  <LimitedUserOnly allowed={!isLimitedUser}>
+                  <LimitedUserOnly allowed={canWorkouts}>
                     <TreinosPage />
                   </LimitedUserOnly>
                 }
               />
-              <Route path="treinos/em-casa" element={<HomeWorkoutsPage />} />
+              <Route
+                path="ficha"
+                element={
+                  <LimitedUserOnly allowed={canWorkouts}>
+                    <MyWorkoutPlansPage />
+                  </LimitedUserOnly>
+                }
+              />
+              <Route path="treinos/em-casa" element={<LimitedUserOnly allowed={canHomeWorkouts}><HomeWorkoutsPage /></LimitedUserOnly>} />
               <Route path="treinos/player/:workoutId" element={<WorkoutPlayerPage />} />
               <Route
                 path="upgrade"
                 element={
-                  <LimitedUserOnly allowed={!isLimitedUser}>
+                  <LimitedUserOnly allowed={!loading}>
                     <UpgradePlanPage />
                   </LimitedUserOnly>
                 }
               />
-              <Route path="settings" element={<AccountSettingsPage />} />
+              <Route path="settings" element={<LimitedUserOnly allowed={canSettings}><AccountSettingsPage /></LimitedUserOnly>} />
 
               {/* ✅ TREINO SUGERIDO */}
               <Route
                 path="suggested-training"
                 element={
-                  <LimitedUserOnly allowed={!isLimitedUser}>
+                  <LimitedUserOnly allowed={canSuggestedTraining}>
                     <SuggestedTrainingPage />
                   </LimitedUserOnly>
                 }

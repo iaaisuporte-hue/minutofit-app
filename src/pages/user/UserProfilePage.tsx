@@ -1,6 +1,8 @@
 import React, { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext";
+import { useFeatureFlags } from "../../auth/FeatureFlagsContext";
+import { mapCanonicalPlanToLabel, normalizeToCanonicalPlanName } from "../../utils/planNormalization";
 
 type Props = {
   onLogout: () => void;
@@ -185,16 +187,9 @@ function maskPhone(phone?: string) {
   return phone || "Nao informado";
 }
 
-function normalizePlanLabel(plan?: string) {
-  const value = (plan || "basic").toLowerCase();
-  if (value === "black") return "Black";
-  if (value === "gold") return "Gold";
-  if (value === "silver") return "Silver";
-  return "Basico";
-}
-
 export default function UserProfilePage({ onLogout }: Props) {
   const { user, email, profileCompleted } = useAuth();
+  const { planName } = useFeatureFlags();
 
   const accountSummary = useMemo(
     () => ({
@@ -202,7 +197,7 @@ export default function UserProfilePage({ onLogout }: Props) {
       accountEmail: user?.email || email || "Nao informado",
       cpf: maskCpf(user?.cpf),
       phone: maskPhone(user?.phone),
-      plan: normalizePlanLabel(user?.subscriptionTier),
+      plan: mapCanonicalPlanToLabel(normalizeToCanonicalPlanName(planName || user?.subscriptionTier)),
       profileStatus: profileCompleted ? "Completo" : "Pendente",
       fitnessGoal: user?.fitnessGoal || "Nao definido",
       experienceLevel: user?.experienceLevel || "Nao definido",
@@ -221,6 +216,7 @@ export default function UserProfilePage({ onLogout }: Props) {
       user?.heightCm,
       user?.name,
       user?.phone,
+      planName,
       user?.subscriptionTier,
       user?.weightKg,
     ]
@@ -310,8 +306,8 @@ export default function UserProfilePage({ onLogout }: Props) {
             <div style={{ display: "grid", gap: 14 }}>
               <div style={{ fontSize: 20, fontWeight: 1000, color: COLORS.text }}>Acoes da conta</div>
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                <ActionLink to="/app/user/ficha" label="Minha ficha" icon="📋" />
                 <ActionLink to="/app/user/settings" label="Configuracoes" icon="⚙️" />
-                <ActionLink to="/app/user/upgrade" label="Evoluir plano" icon="⭐" accent />
                 {!profileCompleted ? (
                   <ActionLink to="/profile-completion" label="Completar perfil" icon="🧾" />
                 ) : null}

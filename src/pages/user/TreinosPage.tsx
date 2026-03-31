@@ -372,49 +372,6 @@ export default function TreinosPage() {
           <HubCard key={card.id} card={card} currentPlan={currentPlan} />
         ))}
       </div>
-
-      {currentPlan !== "black" ? (
-        <div
-          style={{
-            borderRadius: 18,
-            border: `1px solid ${COLORS.border}`,
-            background: COLORS.panel,
-            boxShadow: "0 18px 44px rgba(0,0,0,.45)",
-            padding: 18,
-            display: "flex",
-            justifyContent: "space-between",
-            gap: 12,
-            flexWrap: "wrap",
-            alignItems: "center",
-          }}
-        >
-          <div style={{ display: "grid", gap: 6, maxWidth: 700 }}>
-            <div style={{ fontWeight: 1000, fontSize: 18 }}>Quer liberar experiências mais profundas?</div>
-            <div style={{ color: COLORS.muted, lineHeight: 1.6 }}>
-              Quando você evoluir de plano, esta área pode destravar fichas de academia, ajustes mais personalizados e consultoria mais próxima.
-            </div>
-          </div>
-
-          <Link
-            to="/app/user/upgrade"
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              padding: "12px 14px",
-              borderRadius: 14,
-              border: `1px solid ${COLORS.borderStrong}`,
-              background: "linear-gradient(135deg, #1DB954 0%, #7CFF6B 100%)",
-              color: "#082014",
-              fontWeight: 1000,
-              textDecoration: "none",
-              width: "fit-content",
-            }}
-          >
-            Evoluir plano
-          </Link>
-        </div>
-      ) : null}
     </div>
   );
 }

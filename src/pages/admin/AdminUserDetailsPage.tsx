@@ -1,5 +1,6 @@
+import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { getAdminStudentById } from "./adminData";
+import { fetchAdminUserById, type AdminUserRow } from "../../services/adminApi";
 
 const COLORS = {
   border: "rgba(124,255,107,.16)",
@@ -9,13 +10,79 @@ const COLORS = {
   panel: "linear-gradient(180deg, rgba(22,25,22,.92), rgba(15,18,16,.96))",
   panelDeep: "linear-gradient(135deg, rgba(15,61,46,.94), rgba(15,24,20,.98))",
   panelSoft: "rgba(255,255,255,.04)",
+  redSoft: "rgba(255,110,110,.10)",
+  redBorder: "rgba(255,110,110,.28)",
 };
+
+function formatDate(iso: string | undefined) {
+  if (!iso) return "—";
+  try {
+    return new Date(iso).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
+  } catch {
+    return iso;
+  }
+}
 
 export default function AdminUserDetailsPage() {
   const { userId } = useParams();
-  const student = getAdminStudentById(userId);
+  const [user, setUser] = useState<AdminUserRow | null | undefined>(undefined);
+  const [error, setError] = useState<string | null>(null);
 
-  if (!student) {
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      if (!userId) {
+        setUser(null);
+        return;
+      }
+      setError(null);
+      setUser(undefined);
+      try {
+        const data = await fetchAdminUserById(userId);
+        if (!cancelled) setUser(data);
+      } catch (err: unknown) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : "Falha ao carregar.");
+          setUser(null);
+        }
+      }
+    }
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
+
+  if (user === undefined && !error) {
+    return (
+      <div style={{ display: "grid", gap: 12, color: COLORS.text }}>
+        <div style={{ fontSize: 18, fontWeight: 1000 }}>Carregando aluno...</div>
+        <div style={{ color: COLORS.muted }}>Buscando dados no servidor.</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div style={{ display: "grid", gap: 12, color: COLORS.text }}>
+        <div
+          style={{
+            border: `1px solid ${COLORS.redBorder}`,
+            borderRadius: 16,
+            background: COLORS.redSoft,
+            padding: 16,
+          }}
+        >
+          <div style={{ fontWeight: 1000 }}>{error}</div>
+          <Link to="/app/admin/users" style={{ color: "#7CFF6B", marginTop: 8, display: "inline-block" }}>
+            Voltar para alunos
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
     return (
       <div style={{ display: "grid", gap: 12, color: COLORS.text }}>
         <div style={{ fontSize: 24, fontWeight: 1000 }}>Aluno não encontrado</div>
@@ -25,6 +92,8 @@ export default function AdminUserDetailsPage() {
       </div>
     );
   }
+
+  const profileOk = user.profile_completed;
 
   return (
     <div style={{ display: "grid", gap: 16, color: COLORS.text }}>
@@ -42,8 +111,8 @@ export default function AdminUserDetailsPage() {
         <Link to="/app/admin/users" style={{ color: "#7CFF6B", textDecoration: "none", fontWeight: 900, width: "fit-content" }}>
           ← Voltar para alunos
         </Link>
-        <div style={{ fontSize: 30, fontWeight: 1000 }}>{student.name}</div>
-        <div style={{ color: COLORS.muted }}>{student.email}</div>
+        <div style={{ fontSize: 30, fontWeight: 1000 }}>{user.name || "Sem nome"}</div>
+        <div style={{ color: COLORS.muted }}>{user.email}</div>
       </div>
 
       <div
@@ -54,12 +123,11 @@ export default function AdminUserDetailsPage() {
         }}
       >
         {[
-          { label: "Plano", value: student.plan },
-          { label: "Status", value: student.status },
-          { label: "Objetivo", value: student.goal },
-          { label: "Personal", value: student.personal ?? "Sem vínculo" },
-          { label: "Onboarding", value: student.onboarding },
-          { label: "Último check-in", value: student.lastCheckin },
+          { label: "Plano ativo", value: user.subscription_tier ?? "Sem assinatura ativa" },
+          { label: "Perfil", value: profileOk ? "Completo" : "Pendente" },
+          { label: "Papel", value: user.role },
+          { label: "Cadastro", value: formatDate(user.created_at) },
+          { label: "ID", value: String(user.id) },
         ].map((item) => (
           <div
             key={item.label}
@@ -93,8 +161,8 @@ export default function AdminUserDetailsPage() {
         >
           <div style={{ fontSize: 18, fontWeight: 1000 }}>Leitura administrativa</div>
           <div style={{ color: COLORS.muted, lineHeight: 1.6 }}>
-            Esta área deve virar o ponto de decisão do admin sobre retenção, risco de churn, necessidade de abordagem humana e
-            qualidade do onboarding.
+            Dados reais do cadastro e da assinatura ativa. Use esta visão para suporte, retenção e ajuste de plano quando o
+            fluxo de gestão estiver disponível.
           </div>
           <div
             style={{
@@ -105,11 +173,11 @@ export default function AdminUserDetailsPage() {
               lineHeight: 1.6,
             }}
           >
-            {student.status === "em risco"
-              ? "Sinal amarelo: a consistência caiu e o onboarding ainda não foi concluído. Vale acionar o aluno ou revisar fricções da jornada."
-              : student.status === "pendente"
-                ? "Aluno recém-chegado ou ainda não ativado. O maior foco aqui é converter cadastro em rotina real."
-                : "Aluno ativo. O próximo passo administrativo é garantir continuidade, plano adequado e boa experiência com o profissional vinculado."}
+            {!profileOk
+              ? "Perfil incompleto: o aluno pode precisar de lembrete para concluir dados essenciais."
+              : user.subscription_tier
+                ? "Aluno com assinatura ativa e perfil completo. Próximos passos: acompanhar engajamento e retenção."
+                : "Sem assinatura ativa no momento. Verifique pagamento ou upgrade de plano."}
           </div>
         </div>
 
@@ -126,10 +194,9 @@ export default function AdminUserDetailsPage() {
         >
           <div style={{ fontSize: 18, fontWeight: 1000 }}>Próximas ações</div>
           {[
-            "Revisar plano e etapa atual do aluno.",
-            "Confirmar se o fluxo inicial foi concluído sem fricção.",
-            "Verificar se existe vínculo com personal ou nutri.",
-            "Usar esta tela futuramente para pagamentos, suporte e histórico.",
+            "Revisar necessidade de completar perfil.",
+            "Confirmar plano e cobrança no painel financeiro quando integrado.",
+            "Usar ID do aluno para suporte e ajustes administrativos.",
           ].map((action) => (
             <div
               key={action}

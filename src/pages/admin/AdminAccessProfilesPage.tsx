@@ -1,13 +1,5 @@
-import { useMemo, useState } from "react";
-import {
-  ACCESS_PROFILE_META,
-  ACCESS_PROFILE_ORDER,
-  APP_PERMISSION_META,
-  APP_PERMISSION_ORDER,
-  getProfilePermissions,
-  type AccessProfile,
-  type AppPermission,
-} from "../../auth/accessControl";
+import { useEffect, useMemo, useState } from "react";
+import { getFeatures, getPlanFeatures, getPlans, updatePlanFeatures, type FeatureItem, type PlanItem } from "../../services/featureApi";
 
 const COLORS = {
   border: "rgba(124,255,107,.16)",
@@ -22,42 +14,87 @@ const COLORS = {
 };
 
 export default function AdminAccessProfilesPage() {
-  const [selectedProfile, setSelectedProfile] = useState<AccessProfile>("admin_owner");
-  const [draftPermissions, setDraftPermissions] = useState<Record<AccessProfile, AppPermission[]>>(() => {
-    const initial = {} as Record<AccessProfile, AppPermission[]>;
-    ACCESS_PROFILE_ORDER.forEach((profile) => {
-      initial[profile] = [...getProfilePermissions(profile)];
-    });
-    return initial;
-  });
+  const [plans, setPlans] = useState<PlanItem[]>([]);
+  const [selectedPlanId, setSelectedPlanId] = useState<number | null>(null);
+  const [featuresCatalog, setFeaturesCatalog] = useState<FeatureItem[]>([]);
+  const [draft, setDraft] = useState<Record<string, boolean>>({});
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
 
-  const groupedPermissions = useMemo(() => {
-    const groups = new Map<string, AppPermission[]>();
-    APP_PERMISSION_ORDER.forEach((permission) => {
-      const group = APP_PERMISSION_META[permission].group;
-      const current = groups.get(group) ?? [];
-      current.push(permission);
-      groups.set(group, current);
-    });
-    return Array.from(groups.entries());
+  const selectedPlan = useMemo(() => plans.find((plan) => plan.id === selectedPlanId) || null, [plans, selectedPlanId]);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      setLoading(true);
+      setMessage(null);
+      try {
+        const [plansData, featuresData] = await Promise.all([getPlans(), getFeatures()]);
+        if (cancelled) return;
+        setPlans(plansData);
+        setFeaturesCatalog(featuresData);
+        const firstPlanId = plansData[0]?.id ?? null;
+        setSelectedPlanId(firstPlanId);
+      } catch (error: any) {
+        if (!cancelled) setMessage(error.message || "Falha ao carregar configuracoes.");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    void load();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  function togglePermission(profile: AccessProfile, permission: AppPermission) {
-    setDraftPermissions((prev) => {
-      const current = prev[profile] ?? [];
-      const has = current.includes(permission);
-      return {
-        ...prev,
-        [profile]: has ? current.filter((item) => item !== permission) : [...current, permission],
-      };
-    });
+  useEffect(() => {
+    if (!selectedPlanId) return;
+    const planId = selectedPlanId;
+    let cancelled = false;
+    async function loadPlanMatrix() {
+      setLoading(true);
+      setMessage(null);
+      try {
+        const data = await getPlanFeatures(planId);
+        if (cancelled) return;
+        const map: Record<string, boolean> = {};
+        data.features.forEach((item) => {
+          map[item.key] = item.enabled;
+        });
+        setDraft(map);
+      } catch (error: any) {
+        if (!cancelled) setMessage(error.message || "Falha ao carregar permissões do plano.");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    void loadPlanMatrix();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedPlanId]);
+
+  function toggleFeature(key: string) {
+    setDraft((prev) => ({ ...prev, [key]: !prev[key] }));
   }
 
-  function resetProfile(profile: AccessProfile) {
-    setDraftPermissions((prev) => ({
-      ...prev,
-      [profile]: [...getProfilePermissions(profile)],
-    }));
+  async function handleSave() {
+    if (!selectedPlanId) return;
+    setSaving(true);
+    setMessage(null);
+    try {
+      const updates = featuresCatalog.map((feature) => ({
+        key: feature.key,
+        enabled: Boolean(draft[feature.key]),
+      }));
+      await updatePlanFeatures(selectedPlanId, updates);
+      setMessage("Permissões salvas com sucesso.");
+    } catch (error: any) {
+      setMessage(error.message || "Falha ao salvar permissões.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -73,9 +110,9 @@ export default function AdminAccessProfilesPage() {
           gap: 8,
         }}
       >
-        <div style={{ fontSize: 28, fontWeight: 1000 }}>Gerência dos perfis</div>
+        <div style={{ fontSize: 28, fontWeight: 1000 }}>Gerência de planos e features</div>
         <div style={{ color: COLORS.muted, lineHeight: 1.6, maxWidth: 860 }}>
-          Esta tela deixa pronta a matriz de perfis e permissões. Você pode usar esse painel para decidir depois quem terá acesso a cada página, ação ou bloco do admin.
+          Configure quais funcionalidades ficam habilitadas em cada plano de assinatura. O frontend e o backend usam essa matriz dinamicamente.
         </div>
       </div>
 
@@ -91,15 +128,14 @@ export default function AdminAccessProfilesPage() {
             gap: 10,
           }}
         >
-          <div style={{ fontSize: 18, fontWeight: 1000 }}>Perfis disponíveis</div>
-          {ACCESS_PROFILE_ORDER.map((profile) => {
-            const meta = ACCESS_PROFILE_META[profile];
-            const active = selectedProfile === profile;
+          <div style={{ fontSize: 18, fontWeight: 1000 }}>Planos disponíveis</div>
+          {plans.map((plan) => {
+            const active = selectedPlanId === plan.id;
             return (
               <button
-                key={profile}
+                key={plan.id}
                 type="button"
-                onClick={() => setSelectedProfile(profile)}
+                onClick={() => setSelectedPlanId(plan.id)}
                 style={{
                   textAlign: "left",
                   padding: 14,
@@ -112,8 +148,8 @@ export default function AdminAccessProfilesPage() {
                   gap: 6,
                 }}
               >
-                <div style={{ fontWeight: 1000 }}>{meta.label}</div>
-                <div style={{ color: COLORS.muted, fontSize: 13, lineHeight: 1.5 }}>{meta.description}</div>
+                <div style={{ fontWeight: 1000 }}>{plan.name}</div>
+                <div style={{ color: COLORS.muted, fontSize: 13, lineHeight: 1.5 }}>{plan.description}</div>
               </button>
             );
           })}
@@ -133,30 +169,31 @@ export default function AdminAccessProfilesPage() {
           >
             <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
               <div style={{ display: "grid", gap: 6 }}>
-                <div style={{ fontSize: 22, fontWeight: 1000 }}>{ACCESS_PROFILE_META[selectedProfile].label}</div>
-                <div style={{ color: COLORS.muted, lineHeight: 1.6 }}>{ACCESS_PROFILE_META[selectedProfile].description}</div>
+                  <div style={{ fontSize: 22, fontWeight: 1000 }}>{selectedPlan?.name || "Plano"}</div>
+                  <div style={{ color: COLORS.muted, lineHeight: 1.6 }}>
+                    {selectedPlan?.description || "Selecione um plano para editar as features."}
+                  </div>
               </div>
               <button
                 type="button"
-                onClick={() => resetProfile(selectedProfile)}
+                  onClick={handleSave}
+                  disabled={saving || loading || !selectedPlanId}
                 style={{
                   padding: "12px 14px",
                   borderRadius: 14,
                   border: `1px solid ${COLORS.border}`,
-                  background: COLORS.panelSoft,
+                    background: COLORS.panelSoft,
                   color: COLORS.text,
                   fontWeight: 1000,
-                  cursor: "pointer",
+                    cursor: "pointer",
                 }}
               >
-                Restaurar perfil base
+                  {saving ? "Salvando..." : "Salvar"}
               </button>
             </div>
           </div>
 
-          {groupedPermissions.map(([group, permissions]) => (
             <div
-              key={group}
               style={{
                 border: `1px solid ${COLORS.border}`,
                 borderRadius: 20,
@@ -167,13 +204,13 @@ export default function AdminAccessProfilesPage() {
                 gap: 12,
               }}
             >
-              <div style={{ fontSize: 18, fontWeight: 1000 }}>{group}</div>
+              <div style={{ fontSize: 18, fontWeight: 1000 }}>Features do plano</div>
               <div style={{ display: "grid", gap: 10 }}>
-                {permissions.map((permission) => {
-                  const checked = draftPermissions[selectedProfile]?.includes(permission);
+                {featuresCatalog.map((feature) => {
+                  const checked = Boolean(draft[feature.key]);
                   return (
                     <label
-                      key={permission}
+                      key={feature.key}
                       style={{
                         display: "grid",
                         gridTemplateColumns: "22px minmax(0, 1fr)",
@@ -189,22 +226,21 @@ export default function AdminAccessProfilesPage() {
                       <input
                         type="checkbox"
                         checked={!!checked}
-                        onChange={() => togglePermission(selectedProfile, permission)}
+                        onChange={() => toggleFeature(feature.key)}
                         style={{ marginTop: 2 }}
                       />
                       <div style={{ display: "grid", gap: 6 }}>
-                        <div style={{ fontWeight: 1000 }}>{APP_PERMISSION_META[permission].label}</div>
+                        <div style={{ fontWeight: 1000 }}>{feature.name}</div>
                         <div style={{ color: COLORS.muted, fontSize: 13, lineHeight: 1.5 }}>
-                          {APP_PERMISSION_META[permission].description}
+                          {feature.description}
                         </div>
-                        <div style={{ color: COLORS.lime, fontSize: 12, fontWeight: 900 }}>{permission}</div>
+                        <div style={{ color: COLORS.lime, fontSize: 12, fontWeight: 900 }}>{feature.key}</div>
                       </div>
                     </label>
                   );
                 })}
               </div>
             </div>
-          ))}
 
           <div
             style={{
@@ -217,7 +253,7 @@ export default function AdminAccessProfilesPage() {
               lineHeight: 1.6,
             }}
           >
-            Esta tela ainda trabalha com rascunho local no frontend. O próximo passo será salvar essas decisões no backend e associar cada usuário a um `accessProfile` ou a uma lista explícita de permissões.
+            {message || "As alterações são persistidas no backend e passam a valer para toda a plataforma."}
           </div>
         </div>
       </div>

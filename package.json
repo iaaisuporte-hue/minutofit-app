@@ -1,7 +1,8 @@
 {
-  "name": "app-plataforma-fitness-v1",
+  "name": "minutofit-app",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
+  "description": "Frontend web MinutoFit (React + Vite) — aluno, login e cadastro.",
   "type": "module",
   "engines": {
     "node": ">=20.19.0"

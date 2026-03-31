@@ -1,0 +1,20 @@
+{
+  "name": "MinutoFit",
+  "short_name": "MinutoFit",
+  "description": "Plataforma de treino, acompanhamento e cadastro — experiência aluno.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#121212",
+  "theme_color": "#1DB954",
+  "lang": "pt-BR",
+  "dir": "ltr",
+  "icons": [
+    {
+      "src": "/minutofit-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

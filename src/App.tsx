@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import { AuthProvider } from "./auth/AuthContext";
+import { FeatureFlagsProvider } from "./auth/FeatureFlagsContext";
 import ProtectedRoute from "./auth/ProtectedRoute";
 
 import Login from "./pages/login";
@@ -14,58 +15,60 @@ import HomePage from "./pages/HomePage";
 export default function App() {
   return (
     <AuthProvider>
-      <ColorModeToggle />
-      <Routes>
-        <Route path="/" element={<Navigate to="/login" replace />} />
-        <Route path="/home-teste" element={<HomePage />} />
-        <Route path="/login" element={<Login />} />
-        <Route
-          path="/profile-completion"
-          element={
-            <ProtectedRoute allow={["user", "personal", "nutri", "admin"]}>
-              <ProfileCompletionPage />
-            </ProtectedRoute>
-          }
-        />
+      <FeatureFlagsProvider>
+        <ColorModeToggle />
+        <Routes>
+          <Route path="/" element={<Navigate to="/login" replace />} />
+          <Route path="/home-teste" element={<HomePage />} />
+          <Route path="/login" element={<Login />} />
+          <Route
+            path="/profile-completion"
+            element={
+              <ProtectedRoute allow={["user", "personal", "nutri", "admin"]}>
+                <ProfileCompletionPage />
+              </ProtectedRoute>
+            }
+          />
 
-        <Route
-          path="/app/user/*"
-          element={
-            <ProtectedRoute allow={["user"]}>
-              <UserApp />
-            </ProtectedRoute>
-          }
-        />
+          <Route
+            path="/app/user/*"
+            element={
+              <ProtectedRoute allow={["user"]}>
+                <UserApp />
+              </ProtectedRoute>
+            }
+          />
 
-        <Route
-          path="/app/personal/*"
-          element={
-            <ProtectedRoute allow={["personal"]}>
-              <PersonalApp />
-            </ProtectedRoute>
-          }
-        />
+          <Route
+            path="/app/personal/*"
+            element={
+              <ProtectedRoute allow={["personal"]}>
+                <PersonalApp />
+              </ProtectedRoute>
+            }
+          />
 
-        <Route
-          path="/app/nutri/*"
-          element={
-            <ProtectedRoute allow={["nutri"]}>
-              <NutriApp />
-            </ProtectedRoute>
-          }
-        />
+          <Route
+            path="/app/nutri/*"
+            element={
+              <ProtectedRoute allow={["nutri"]}>
+                <NutriApp />
+              </ProtectedRoute>
+            }
+          />
 
-        <Route
-          path="/app/admin/*"
-          element={
-            <ProtectedRoute allow={["admin"]}>
-              <AdminApp />
-            </ProtectedRoute>
-          }
-        />
+          <Route
+            path="/app/admin/*"
+            element={
+              <ProtectedRoute allow={["admin"]}>
+                <AdminApp />
+              </ProtectedRoute>
+            }
+          />
 
-        <Route path="*" element={<Navigate to="/login" replace />} />
-      </Routes>
+          <Route path="*" element={<Navigate to="/login" replace />} />
+        </Routes>
+      </FeatureFlagsProvider>
     </AuthProvider>
   );
 }
