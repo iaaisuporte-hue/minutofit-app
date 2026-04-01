@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { motion, useScroll, useTransform } from "framer-motion";
+import { motion, useReducedMotion, useScroll, useTransform } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import InteractiveSurfaceCard from "../../components/InteractiveSurfaceCard";
 import { useIsMobile } from "../../hooks/useIsMobile";
@@ -71,6 +71,7 @@ function ExtraYoutubeModal({
   group: HomeExtraYoutubeGroup;
   onClose: () => void;
 }) {
+  const shouldReduceMotion = Boolean(useReducedMotion());
   const videos = HOME_EXTRA_YOUTUBE_BY_GROUP[group];
   const title = group === "chest" ? "🏋️ Treino de peito — mais opções no YouTube" : "🦵 Treino de perna — mais opções no YouTube";
 
