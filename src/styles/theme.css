@@ -83,11 +83,11 @@ html[data-color-mode="daltonic"] body{
     linear-gradient(180deg, #131c2b 0%, var(--bg) 100%);
 }
 
-/* Garante cobertura visual completa do modo daltônico,
-   inclusive em telas com cores inline fora dos tokens CSS. */
-html[data-color-mode="daltonic"] #root{
-  filter: hue-rotate(140deg) saturate(0.82) contrast(1.06);
-}
+/*
+ * Não aplicar filter global em #root: em produção quebra de forma inconsistente entre
+ * Chrome / Safari / Firefox (stacking, backdrop-filter, position:fixed, GPU).
+ * O tema daltônico usa apenas variáveis em html[data-color-mode="daltonic"] acima.
+ */
 
 /* Layout */
 .appShell{

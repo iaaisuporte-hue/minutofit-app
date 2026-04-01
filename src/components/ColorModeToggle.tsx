@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useLayoutEffect, useState } from "react";
 
-const STORAGE_KEY = "minutofit_color_mode";
+/** Mantido em sync com o script inline em index.html */
+export const STORAGE_KEY = "minutofit_color_mode";
 const DALTONIC = "daltonic";
 const DEFAULT = "default";
 
@@ -19,7 +20,7 @@ function applyMode(mode: ColorMode) {
 export default function ColorModeToggle() {
   const [mode, setMode] = useState<ColorMode>(DEFAULT);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const stored = readStoredMode();
     setMode(stored);
     applyMode(stored);

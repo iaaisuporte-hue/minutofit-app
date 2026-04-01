@@ -191,7 +191,14 @@ export default function UserApp() {
                 }
               />
               <Route path="treinos/em-casa" element={<LimitedUserOnly allowed={canHomeWorkouts}><HomeWorkoutsPage /></LimitedUserOnly>} />
-              <Route path="treinos/player/:workoutId" element={<WorkoutPlayerPage />} />
+              <Route
+                path="treinos/player/:workoutId"
+                element={
+                  <LimitedUserOnly allowed={canWorkouts || canHomeWorkouts}>
+                    <WorkoutPlayerPage />
+                  </LimitedUserOnly>
+                }
+              />
               <Route
                 path="upgrade"
                 element={

@@ -2,6 +2,16 @@
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
+    <!-- Antes de CSS/paint: modo daltônico vindo do localStorage (mesma chave que ColorModeToggle) -->
+    <script>
+      (function () {
+        try {
+          if (localStorage.getItem("minutofit_color_mode") === "daltonic") {
+            document.documentElement.setAttribute("data-color-mode", "daltonic");
+          }
+        } catch (_) {}
+      })();
+    </script>
     <link rel="icon" type="image/svg+xml" href="/minutofit-icon.svg" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
