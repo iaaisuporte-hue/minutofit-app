@@ -9,6 +9,7 @@
   "theme_color": "#1DB954",
   "lang": "pt-BR",
   "dir": "ltr",
+  "categories": ["health", "lifestyle", "fitness"],
   "icons": [
     {
       "src": "/minutofit-icon.svg",
