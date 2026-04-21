@@ -20,7 +20,7 @@ export default function MinutoFitLogo({ width = 200, variant = "horizontal", cla
   return (
     <img
       src={src}
-      alt="MinutoFit"
+      alt="MetaCore"
       width={width}
       height={h}
       className={className}

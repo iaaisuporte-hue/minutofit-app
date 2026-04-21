@@ -2,6 +2,7 @@ import { NavLink, Navigate, Route, Routes, useNavigate } from "react-router-dom"
 import { useAuth } from "../auth/AuthContext";
 import AppShell from "../layout/AppShell";
 import { useFeatureFlags } from "../auth/FeatureFlagsContext";
+import MinutoFitLogo from "../components/MinutoFitLogo";
 
 import AccountSettingsPage from "./user/AccountSettingsPage";
 import TreinosPage from "./user/TreinosPage";
@@ -71,8 +72,8 @@ export default function UserApp() {
         sidebar={
           <>
             <div style={{ padding: "8px 4px 16px" }}>
-              <div className="shellTitle">MinutoFit</div>
-              <div className="shellSubtitle">Aluno</div>
+              <MinutoFitLogo width={148} />
+              <div className="shellSubtitle" style={{ marginTop: 8 }}>Aluno</div>
             </div>
 
             <div className="navStack">

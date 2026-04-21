@@ -1,5 +1,6 @@
 import { useAuth } from "../auth/AuthContext";
 import AppShell from "../layout/AppShell";
+import MinutoFitLogo from "../components/MinutoFitLogo";
 
 export default function NutriApp() {
   const auth = useAuth();
@@ -9,8 +10,8 @@ export default function NutriApp() {
       sidebar={
         <>
           <div style={{ padding: "8px 4px 16px" }}>
-            <div className="shellTitle">MinutoFit</div>
-            <div className="shellSubtitle">Nutrição</div>
+            <MinutoFitLogo width={148} />
+            <div className="shellSubtitle" style={{ marginTop: 8 }}>Nutrição</div>
           </div>
 
           <div className="navStack">

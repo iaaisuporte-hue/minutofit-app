@@ -3,6 +3,7 @@ import React from "react";
 import { NavLink, Navigate, Route, Routes, useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import AppShell from "../layout/AppShell";
+import MinutoFitLogo from "../components/MinutoFitLogo";
 
 import DashboardPage from "./personal/DashboardPage";
 import StudentsListPage from "./personal/StudentsListPage";
@@ -113,8 +114,8 @@ export default function PersonalApp() {
       sidebar={
         <>
           <div style={{ padding: "8px 4px 16px" }}>
-            <div className="shellTitle">MinutoFit</div>
-            <div className="shellSubtitle">Personal</div>
+            <MinutoFitLogo width={148} />
+            <div className="shellSubtitle" style={{ marginTop: 8 }}>Personal</div>
           </div>
 
           <div className="navStack">
