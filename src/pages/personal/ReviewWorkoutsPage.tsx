@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { COLORS } from "../../styles/colors";
 
 /**
  * ==========================================
@@ -17,26 +18,6 @@ import { useEffect, useMemo, useState } from "react";
 /** ✅ Ative/desative persistência (MVP) */
 const USE_PERSISTENCE = true;
 const STORAGE_KEY = "treinai_review_queue_v1";
-
-const COLORS = {
-  panel: "linear-gradient(180deg, rgba(22,25,22,.92), rgba(15,18,16,.96))",
-  panelDeep: "linear-gradient(135deg, rgba(15,61,46,.94), rgba(15,24,20,.98))",
-  card: "rgba(255,255,255,.03)",
-  border: "rgba(124,255,107,.16)",
-  borderStrong: "rgba(29,185,84,.34)",
-  text: "#FFFFFF",
-  muted: "rgba(255,255,255,.72)",
-  mutedSoft: "rgba(232,236,233,.58)",
-  primary: "#1DB954",
-  primarySoft: "rgba(29,185,84,.18)",
-  primaryBorder: "rgba(29,185,84,.34)",
-  successBg: "rgba(46, 204, 113, .14)",
-  successBorder: "rgba(46, 204, 113, .35)",
-  warnBg: "rgba(255, 180, 0, .14)",
-  warnBorder: "rgba(255, 180, 0, .35)",
-  dangerBg: "rgba(255, 77, 77, .14)",
-  dangerBorder: "rgba(255, 77, 77, .35)",
-};
 
 type Plan = "basic" | "silver" | "gold" | "black";
 
@@ -94,7 +75,7 @@ function Card({ children, pad = 16 }: { children: React.ReactNode; pad?: number 
         border: `1px solid ${COLORS.border}`,
         borderRadius: 20,
         background: COLORS.panel,
-        boxShadow: "0 18px 44px rgba(0,0,0,.45)",
+        boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.05)",
         overflow: "hidden",
       }}
     >
@@ -114,7 +95,7 @@ function Pill({
   title?: string;
 }) {
   const map = {
-    neutral: { bd: COLORS.border, bg: "rgba(255,255,255,.06)" },
+    neutral: { bd: COLORS.border, bg: "#F9FAFB" },
     orange: { bd: COLORS.primaryBorder, bg: COLORS.primarySoft },
     success: { bd: COLORS.successBorder, bg: COLORS.successBg },
     warn: { bd: COLORS.warnBorder, bg: COLORS.warnBg },
@@ -130,7 +111,7 @@ function Pill({
         border: `1px solid ${map[variant].bd}`,
         background: map[variant].bg,
         color: COLORS.text,
-        fontWeight: 800,
+        fontWeight: 600,
         fontSize: 11,
         lineHeight: 1,
         display: "inline-flex",
@@ -163,10 +144,10 @@ function Button({
 }) {
   const stylesByVariant: Record<typeof variant, React.CSSProperties> = {
     primary: {
-      background: "linear-gradient(135deg, #1DB954 0%, #7CFF6B 100%)",
+      background: "#22C55E",
       border: `1px solid ${COLORS.primaryBorder}`,
-      color: "#082014",
-      boxShadow: "0 14px 28px rgba(29,185,84,.22)",
+      color: "#1F2937",
+      boxShadow: "0 14px 28px rgba(34,197,94,.22)",
     },
     ghost: {
       background: "transparent",
@@ -189,7 +170,7 @@ function Button({
         padding: "12px 14px", // ✅ (UI) tamanho padrão
         borderRadius: 12, // ✅ (UI) bordas padrão
         cursor: disabled ? "not-allowed" : "pointer",
-        fontWeight: 1000,
+        fontWeight: 700,
         fontSize: 14,
         opacity: disabled ? 0.6 : 1,
         ...stylesByVariant[variant],
@@ -463,7 +444,7 @@ export default function ReviewWorkoutsPage() {
           }}
         >
           <div style={{ display: "grid", gap: 6 }}>
-            <div style={{ fontWeight: 1000, fontSize: 22 }}>Revisão de treinos</div>
+            <div style={{ fontWeight: 700, fontSize: 22 }}>Revisão de treinos</div>
             <div style={{ color: COLORS.muted, fontSize: 13, lineHeight: 1.45, maxWidth: 680 }}>
               Fila operacional para decidir rápido, devolver com contexto e evitar alunos travados no meio do ciclo.
             </div>
@@ -484,10 +465,10 @@ export default function ReviewWorkoutsPage() {
         {summaryCards.map((card) => (
           <Card key={card.label}>
             <div style={{ display: "grid", gap: 8 }}>
-              <div style={{ color: COLORS.mutedSoft, fontWeight: 900, fontSize: 12, textTransform: "uppercase", letterSpacing: 0.8 }}>
+              <div style={{ color: COLORS.mutedSoft, fontWeight: 600, fontSize: 12, textTransform: "uppercase", letterSpacing: 0.8 }}>
                 {card.label}
               </div>
-              <div style={{ fontSize: 28, fontWeight: 1000 }}>{card.value}</div>
+              <div style={{ fontSize: 28, fontWeight: 700 }}>{card.value}</div>
               <div style={{ color: COLORS.muted, fontSize: 12 }}>{card.helper}</div>
             </div>
           </Card>
@@ -509,10 +490,10 @@ export default function ReviewWorkoutsPage() {
               padding: "12px 14px",
               borderRadius: 14,
               border: `1px solid ${COLORS.border}`,
-              background: "rgba(255,255,255,.03)",
+              background: "#FAFAFA",
               color: COLORS.text,
               outline: "none",
-              fontWeight: 800,
+              fontWeight: 600,
             }}
           />
 
@@ -523,9 +504,9 @@ export default function ReviewWorkoutsPage() {
               padding: "12px 14px",
               borderRadius: 14,
               border: `1px solid ${COLORS.border}`,
-              background: "rgba(255,255,255,.03)",
+              background: "#FAFAFA",
               color: COLORS.text,
-              fontWeight: 900,
+              fontWeight: 600,
               cursor: "pointer",
             }}
           >
@@ -543,9 +524,9 @@ export default function ReviewWorkoutsPage() {
               padding: "12px 14px",
               borderRadius: 14,
               border: `1px solid ${COLORS.border}`,
-              background: "rgba(255,255,255,.03)",
+              background: "#FAFAFA",
               color: COLORS.text,
-              fontWeight: 900,
+              fontWeight: 600,
               cursor: "pointer",
             }}
           >
@@ -563,9 +544,9 @@ export default function ReviewWorkoutsPage() {
               padding: "12px 14px",
               borderRadius: 14,
               border: `1px solid ${COLORS.border}`,
-              background: "rgba(255,255,255,.03)",
+              background: "#FAFAFA",
               color: COLORS.text,
-              fontWeight: 900,
+              fontWeight: 600,
               cursor: "pointer",
             }}
           >
@@ -579,7 +560,7 @@ export default function ReviewWorkoutsPage() {
       <div style={{ display: "grid", gap: 10 }}>
         {filtered.length === 0 ? (
           <Card>
-            <div style={{ color: "rgba(255,255,255,.70)", fontSize: 13 }}>
+            <div style={{ color: "#6B7280", fontSize: 13 }}>
               Nenhum item para revisar com esses filtros.
             </div>
           </Card>
@@ -599,7 +580,7 @@ export default function ReviewWorkoutsPage() {
                   border: `1px solid ${COLORS.border}`,
                   borderRadius: 18,
                   background: COLORS.card,
-                  boxShadow: "0 18px 44px rgba(0,0,0,.45)",
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.05)",
                   padding: 14,
                   display: "flex",
                   justifyContent: "space-between",
@@ -611,7 +592,7 @@ export default function ReviewWorkoutsPage() {
                 {/* ✅ Left */}
                 <div style={{ display: "grid", gap: 8, minWidth: 320 }}>
                   <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-                    <div style={{ fontWeight: 1000, fontSize: 15 }}>{item.studentName}</div>
+                    <div style={{ fontWeight: 700, fontSize: 15 }}>{item.studentName}</div>
                     {planPill(item.plan)}
                     <Pill variant={statusVariant(item.status)}>{statusLabel(item.status)}</Pill>
 
@@ -624,12 +605,12 @@ export default function ReviewWorkoutsPage() {
                     <Pill variant={riskVariant as any} title="Risco de execução">Risco {item.risk}</Pill>
                   </div>
 
-                  <div style={{ color: COLORS.text, fontWeight: 900 }}>
+                  <div style={{ color: COLORS.text, fontWeight: 600 }}>
                     {item.title}
                   </div>
 
                   <div style={{ color: COLORS.muted, fontSize: 13, lineHeight: 1.45 }}>
-                    Objetivo: <b style={{ color: "#FFFFFF" }}>{item.goal}</b> • Criado há <b>{ageH}h</b>
+                    Objetivo: <b style={{ color: "#1F2937" }}>{item.goal}</b> • Criado há <b>{ageH}h</b>
                     {inactiveDays != null ? (
                       <>
                         {" "}
@@ -706,10 +687,10 @@ export default function ReviewWorkoutsPage() {
               }}
             >
               <div style={{ display: "grid", gap: 6 }}>
-                <div style={{ fontWeight: 1000, fontSize: 16 }}>
+                <div style={{ fontWeight: 700, fontSize: 16 }}>
                   Revisão • {selected.studentName}
                 </div>
-                <div style={{ color: "rgba(255,255,255,.65)", fontSize: 12 }}>
+                <div style={{ color: "#6B7280", fontSize: 12 }}>
                   Criado: <b style={{ color: "#fff" }}>{formatDateTimeBR(selected.createdAt)}</b> • Atualizado:{" "}
                   <b style={{ color: "#fff" }}>{formatDateTimeBR(selected.updatedAt)}</b>
                 </div>
@@ -725,8 +706,8 @@ export default function ReviewWorkoutsPage() {
             <div style={{ padding: 16, display: "grid", gap: 14 }}>
               <Card>
                 <div style={{ display: "grid", gap: 8 }}>
-                  <div style={{ fontWeight: 1000 }}>{selected.title}</div>
-                  <div style={{ color: "rgba(255,255,255,.70)", fontSize: 13, lineHeight: 1.35 }}>
+                  <div style={{ fontWeight: 700 }}>{selected.title}</div>
+                  <div style={{ color: "#6B7280", fontSize: 13, lineHeight: 1.35 }}>
                     Objetivo: <b style={{ color: "#fff" }}>{selected.goal}</b> • Risco:{" "}
                     <b style={{ color: "#fff" }}>{selected.risk}</b> • Prioridade:{" "}
                     <b style={{ color: "#fff" }}>{selected.priority}</b>
@@ -736,7 +717,7 @@ export default function ReviewWorkoutsPage() {
 
               {/* ✅ Notes */}
               <div style={{ display: "grid", gap: 8 }}>
-                <div style={{ fontWeight: 1000, fontSize: 13 }}>📝 Observações internas (só personal)</div>
+                <div style={{ fontWeight: 700, fontSize: 13 }}>📝 Observações internas (só personal)</div>
                 <textarea
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
@@ -749,7 +730,7 @@ export default function ReviewWorkoutsPage() {
                     borderRadius: 14,
                     border: "1px solid rgba(255,255,255,.12)",
                     background: "#121212",
-                    color: "#FFFFFF",
+                    color: "#1F2937",
                     outline: "none",
                     fontWeight: 700,
                     lineHeight: 1.35,
@@ -770,7 +751,7 @@ export default function ReviewWorkoutsPage() {
 
               {/* ✅ Feedback ao aluno (quando devolve) */}
               <div style={{ display: "grid", gap: 8 }}>
-                <div style={{ fontWeight: 1000, fontSize: 13 }}>📩 Feedback para o aluno (quando pedir ajustes)</div>
+                <div style={{ fontWeight: 700, fontSize: 13 }}>📩 Feedback para o aluno (quando pedir ajustes)</div>
                 <textarea
                   value={feedback}
                   onChange={(e) => setFeedback(e.target.value)}
@@ -783,14 +764,14 @@ export default function ReviewWorkoutsPage() {
                     borderRadius: 14,
                     border: "1px solid rgba(255,255,255,.12)",
                     background: "#121212",
-                    color: "#FFFFFF",
+                    color: "#1F2937",
                     outline: "none",
                     fontWeight: 700,
                     lineHeight: 1.35,
                   }}
                 />
                 {selected.lastFeedback ? (
-                  <div style={{ color: "rgba(255,255,255,.65)", fontSize: 12, lineHeight: 1.35 }}>
+                  <div style={{ color: "#6B7280", fontSize: 12, lineHeight: 1.35 }}>
                     Último feedback enviado: <b style={{ color: "#fff" }}>{selected.lastFeedback}</b>
                   </div>
                 ) : null}

@@ -1,15 +1,6 @@
 import { Link, useParams } from "react-router-dom";
 import { adminStudents, getAdminPersonalById } from "./adminData";
-
-const COLORS = {
-  border: "rgba(124,255,107,.16)",
-  borderStrong: "rgba(29,185,84,.34)",
-  text: "#FFFFFF",
-  muted: "rgba(255,255,255,.72)",
-  panel: "linear-gradient(180deg, rgba(22,25,22,.92), rgba(15,18,16,.96))",
-  panelDeep: "linear-gradient(135deg, rgba(15,61,46,.94), rgba(15,24,20,.98))",
-  panelSoft: "rgba(255,255,255,.04)",
-};
+import { COLORS } from "../../styles/colors";
 
 export default function AdminPersonalDetailsPage() {
   const { personalId } = useParams();
@@ -18,8 +9,8 @@ export default function AdminPersonalDetailsPage() {
   if (!personal) {
     return (
       <div style={{ display: "grid", gap: 12, color: COLORS.text }}>
-        <div style={{ fontSize: 24, fontWeight: 1000 }}>Personal não encontrado</div>
-        <Link to="/app/admin/personals" style={{ color: "#7CFF6B" }}>
+        <div style={{ fontSize: 24, fontWeight: 700 }}>Personal não encontrado</div>
+        <Link to="/app/admin/personals" style={{ color: "#22C55E" }}>
           Voltar para personals
         </Link>
       </div>
@@ -35,16 +26,16 @@ export default function AdminPersonalDetailsPage() {
           border: `1px solid ${COLORS.borderStrong}`,
           borderRadius: 20,
           background: COLORS.panelDeep,
-          boxShadow: "0 18px 44px rgba(0,0,0,.45)",
+          boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.05)",
           padding: 18,
           display: "grid",
           gap: 8,
         }}
       >
-        <Link to="/app/admin/personals" style={{ color: "#7CFF6B", textDecoration: "none", fontWeight: 900, width: "fit-content" }}>
+        <Link to="/app/admin/personals" style={{ color: "#22C55E", textDecoration: "none", fontWeight: 600, width: "fit-content" }}>
           ← Voltar para personals
         </Link>
-        <div style={{ fontSize: 30, fontWeight: 1000 }}>{personal.name}</div>
+        <div style={{ fontSize: 30, fontWeight: 700 }}>{personal.name}</div>
         <div style={{ color: COLORS.muted }}>{personal.email}</div>
       </div>
 
@@ -61,14 +52,14 @@ export default function AdminPersonalDetailsPage() {
               border: `1px solid ${COLORS.border}`,
               borderRadius: 18,
               background: COLORS.panel,
-              boxShadow: "0 18px 44px rgba(0,0,0,.45)",
+              boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.05)",
               padding: 16,
               display: "grid",
               gap: 8,
             }}
           >
             <div style={{ color: COLORS.muted, fontSize: 12 }}>{item.label}</div>
-            <div style={{ fontSize: 18, fontWeight: 1000 }}>{item.value}</div>
+            <div style={{ fontSize: 18, fontWeight: 700 }}>{item.value}</div>
           </div>
         ))}
       </div>
@@ -78,13 +69,13 @@ export default function AdminPersonalDetailsPage() {
           border: `1px solid ${COLORS.border}`,
           borderRadius: 20,
           background: COLORS.panel,
-          boxShadow: "0 18px 44px rgba(0,0,0,.45)",
+          boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.05)",
           padding: 18,
           display: "grid",
           gap: 12,
         }}
       >
-        <div style={{ fontSize: 18, fontWeight: 1000 }}>Alunos vinculados</div>
+        <div style={{ fontSize: 18, fontWeight: 700 }}>Alunos vinculados</div>
         <div style={{ color: COLORS.muted, lineHeight: 1.6 }}>
           Aqui o admin consegue enxergar rapidamente quem está sob acompanhamento e como anda a carteira operacional desse personal.
         </div>
@@ -105,12 +96,12 @@ export default function AdminPersonalDetailsPage() {
               }}
             >
               <div style={{ display: "grid", gap: 4 }}>
-                <div style={{ fontWeight: 900 }}>{student.name}</div>
+                <div style={{ fontWeight: 600 }}>{student.name}</div>
                 <div style={{ color: COLORS.muted, fontSize: 13 }}>
                   {student.goal} • {student.plan} • {student.weeklyConsistency}
                 </div>
               </div>
-              <Link to={`/app/admin/users/${student.id}`} style={{ color: "#7CFF6B", fontWeight: 900, textDecoration: "none" }}>
+              <Link to={`/app/admin/users/${student.id}`} style={{ color: "#22C55E", fontWeight: 600, textDecoration: "none" }}>
                 Ver aluno
               </Link>
             </div>

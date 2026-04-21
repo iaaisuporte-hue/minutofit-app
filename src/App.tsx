@@ -4,6 +4,7 @@ import { FeatureFlagsProvider } from "./auth/FeatureFlagsContext";
 import ProtectedRoute from "./auth/ProtectedRoute";
 
 import Login from "./pages/login";
+import Register from "./pages/register";
 import ProfileCompletionPage from "./pages/ProfileCompletionPage";
 import UserApp from "./pages/UserApp";
 import PersonalApp from "./pages/PersonalApp";
@@ -21,6 +22,7 @@ export default function App() {
           <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="/home-teste" element={<HomePage />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
           <Route
             path="/profile-completion"
             element={

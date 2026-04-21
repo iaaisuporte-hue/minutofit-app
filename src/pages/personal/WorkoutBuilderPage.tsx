@@ -447,7 +447,7 @@ export default function WorkoutBuilderPage() {
     padding: "10px 12px",
     borderRadius: 12,
     border: `1px solid ${WB.border}`,
-    background: "rgba(255,255,255,.03)",
+    background: "#FAFAFA",
     color: WB.text,
     outline: "none",
   };
@@ -483,7 +483,7 @@ export default function WorkoutBuilderPage() {
     background: active ? WB.primarySoft : "transparent",
     color: WB.text,
     cursor: "pointer",
-    fontWeight: 900,
+    fontWeight: 600,
     fontSize: 13,
   });
 
@@ -502,7 +502,7 @@ export default function WorkoutBuilderPage() {
         <div style={{ padding: 18, display: "grid", gap: 14 }}>
           <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "flex-start" }}>
             <div style={{ display: "grid", gap: 8, maxWidth: 720 }}>
-              <h1 style={{ margin: 0, fontWeight: 1000, fontSize: 22, letterSpacing: "-0.03em" }}>Montar ficha de treino</h1>
+              <h1 style={{ margin: 0, fontWeight: 700, fontSize: 22, letterSpacing: "-0.03em" }}>Montar ficha de treino</h1>
               <p style={{ margin: 0, color: WB.muted, fontSize: 14, lineHeight: 1.5 }}>
                 Primeiro confira o aluno. Depois dê um nome à ficha e escolha quantos dias na semana. Por fim, monte a{" "}
                 <strong style={{ color: WB.text }}>ordem dos exercícios</strong> — é essa lista que o aluno seguirá.
@@ -561,7 +561,7 @@ export default function WorkoutBuilderPage() {
                   borderRadius: 12,
                   border: `1px solid ${WB.primaryBorder}`,
                   background: WB.primarySoft,
-                  fontWeight: 900,
+                  fontWeight: 600,
                 }}
               >
                 {selectedStudent.name}
@@ -574,7 +574,7 @@ export default function WorkoutBuilderPage() {
             <div style={{ display: "grid", gap: 12 }}>
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "flex-end" }}>
                 <div style={{ display: "grid", gap: 6 }}>
-                  <div style={{ fontSize: 12, fontWeight: 900, color: WB.muted }}>Buscar</div>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: WB.muted }}>Buscar</div>
                   <input
                     value={studentQuery}
                     onChange={(e) => setStudentQuery(e.target.value)}
@@ -583,7 +583,7 @@ export default function WorkoutBuilderPage() {
                   />
                 </div>
                 <div style={{ display: "grid", gap: 6 }}>
-                  <div style={{ fontSize: 12, fontWeight: 900, color: WB.muted }}>Gênero</div>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: WB.muted }}>Gênero</div>
                   <select
                     value={genderFilter}
                     onChange={(e) => setGenderFilter(e.target.value as "all" | Gender)}
@@ -595,7 +595,7 @@ export default function WorkoutBuilderPage() {
                   </select>
                 </div>
                 <div style={{ display: "grid", gap: 6 }}>
-                  <div style={{ fontSize: 12, fontWeight: 900, color: WB.muted }}>Plano</div>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: WB.muted }}>Plano</div>
                   <select
                     value={planFilter}
                     onChange={(e) => setPlanFilter(e.target.value as "all" | Plan)}
@@ -609,7 +609,7 @@ export default function WorkoutBuilderPage() {
                   </select>
                 </div>
                 <div style={{ display: "grid", gap: 6, flex: 1, minWidth: 220 }}>
-                  <div style={{ fontSize: 12, fontWeight: 900, color: WB.muted }}>Aluno</div>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: WB.muted }}>Aluno</div>
                   <select
                     value={selectedStudentId}
                     onChange={(e) => onStudentSelect(e.target.value)}
@@ -644,7 +644,7 @@ export default function WorkoutBuilderPage() {
           />
           <div style={{ display: "grid", gap: 12, gridTemplateColumns: narrow ? "1fr" : "1fr 1fr" }}>
             <div style={{ display: "grid", gap: 8 }}>
-              <div style={{ fontSize: 12, fontWeight: 900, color: WB.muted }}>Nome da ficha</div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: WB.muted }}>Nome da ficha</div>
               <input
                 value={workoutName}
                 onChange={(e) => setWorkoutName(e.target.value)}
@@ -653,7 +653,7 @@ export default function WorkoutBuilderPage() {
               />
             </div>
             <div style={{ display: "grid", gap: 8 }}>
-              <div style={{ fontSize: 12, fontWeight: 900, color: WB.muted }}>Quantos treinos na semana (referência)</div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: WB.muted }}>Quantos treinos na semana (referência)</div>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                 <button type="button" style={tabBtn(weekPreset === "semana_util")} onClick={() => setWeekPreset("semana_util")}>
                   Semana útil
@@ -701,7 +701,7 @@ export default function WorkoutBuilderPage() {
 
             {libraryTab === "catalog" ? (
               <div style={{ display: "grid", gap: 10 }}>
-                <div style={{ fontSize: 12, fontWeight: 900, color: WB.muted }}>Grupo muscular</div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: WB.muted }}>Grupo muscular</div>
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                   {catalogGroups.map((g) => (
                     <button
@@ -712,10 +712,10 @@ export default function WorkoutBuilderPage() {
                         padding: "8px 12px",
                         borderRadius: 999,
                         border: `1px solid ${selectedGroup === g ? WB.primaryBorder : WB.border}`,
-                        background: selectedGroup === g ? WB.primarySoft : "rgba(255,255,255,.03)",
+                        background: selectedGroup === g ? WB.primarySoft : "#FAFAFA",
                         color: WB.text,
                         cursor: "pointer",
-                        fontWeight: 800,
+                        fontWeight: 600,
                         fontSize: 13,
                       }}
                     >
@@ -754,7 +754,7 @@ export default function WorkoutBuilderPage() {
                         border: `1px solid ${WB.border}`,
                         borderRadius: 12,
                         padding: 12,
-                        background: "rgba(255,255,255,.02)",
+                        background: "#FFFFFF",
                         display: "flex",
                         justifyContent: "space-between",
                         gap: 10,
@@ -763,7 +763,7 @@ export default function WorkoutBuilderPage() {
                       }}
                     >
                       <div style={{ display: "grid", gap: 4, minWidth: 0 }}>
-                        <div style={{ fontWeight: 900 }}>{ex.name}</div>
+                        <div style={{ fontWeight: 600 }}>{ex.name}</div>
                         <div style={{ color: WB.muted2, fontSize: 12 }}>
                           {libraryTab === "videos" ? "Vídeo da plataforma" : `Grupo: ${ex.group}`}
                         </div>
@@ -779,7 +779,7 @@ export default function WorkoutBuilderPage() {
 
             {items.length > 0 && suggestions.length > 0 ? (
               <div style={{ display: "grid", gap: 8, paddingTop: 4 }}>
-                <div style={{ fontWeight: 900, fontSize: 14 }}>Sugestões heurísticas</div>
+                <div style={{ fontWeight: 600, fontSize: 14 }}>Sugestões heurísticas</div>
                 <div style={{ color: WB.muted, fontSize: 12, lineHeight: 1.35 }}>
                   A partir do primeiro exercício da lista ({items[0]?.name}). Opcional.
                 </div>
@@ -793,10 +793,10 @@ export default function WorkoutBuilderPage() {
                         padding: "8px 12px",
                         borderRadius: 999,
                         border: `1px solid ${WB.border}`,
-                        background: "rgba(255,255,255,.03)",
+                        background: "#FAFAFA",
                         color: WB.text,
                         cursor: "pointer",
-                        fontWeight: 800,
+                        fontWeight: 600,
                         fontSize: 13,
                       }}
                     >
@@ -815,7 +815,7 @@ export default function WorkoutBuilderPage() {
             <div style={{ padding: 18, display: "grid", gap: 12 }}>
               <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
                 <div>
-                  <div style={{ fontWeight: 1000, fontSize: 16 }}>Sua lista (ordem do treino)</div>
+                  <div style={{ fontWeight: 700, fontSize: 16 }}>Sua lista (ordem do treino)</div>
                   <div style={{ color: WB.muted, fontSize: 12, marginTop: 4 }}>
                     O aluno executa de cima para baixo. Use as setas para mudar a ordem.
                   </div>
@@ -847,7 +847,7 @@ export default function WorkoutBuilderPage() {
                       style={{
                         border: `1px solid ${WB.border}`,
                         borderRadius: 12,
-                        background: "rgba(255,255,255,.02)",
+                        background: "#FFFFFF",
                         padding: 12,
                         display: "grid",
                         gap: 8,
@@ -864,7 +864,7 @@ export default function WorkoutBuilderPage() {
                           minWidth: 0,
                         }}
                       >
-                        <div style={{ fontWeight: 1000, minWidth: 0, flex: "1 1 140px", lineHeight: 1.3 }}>
+                        <div style={{ fontWeight: 700, minWidth: 0, flex: "1 1 140px", lineHeight: 1.3 }}>
                           {idx + 1}. {it.name}
                         </div>
                         <div style={{ display: "flex", gap: 6, flexWrap: "wrap", flexShrink: 0 }}>
@@ -879,7 +879,7 @@ export default function WorkoutBuilderPage() {
                               background: "transparent",
                               color: WB.text,
                               cursor: idx === 0 ? "not-allowed" : "pointer",
-                              fontWeight: 800,
+                              fontWeight: 600,
                               opacity: idx === 0 ? 0.4 : 1,
                             }}
                           >
@@ -896,7 +896,7 @@ export default function WorkoutBuilderPage() {
                               background: "transparent",
                               color: WB.text,
                               cursor: idx >= items.length - 1 ? "not-allowed" : "pointer",
-                              fontWeight: 800,
+                              fontWeight: 600,
                               opacity: idx >= items.length - 1 ? 0.4 : 1,
                             }}
                           >
@@ -912,7 +912,7 @@ export default function WorkoutBuilderPage() {
                               background: "transparent",
                               color: WB.text,
                               cursor: "pointer",
-                              fontWeight: 800,
+                              fontWeight: 600,
                             }}
                           >
                             Remover
@@ -945,7 +945,7 @@ export default function WorkoutBuilderPage() {
                               display: "grid",
                               gap: 3,
                               fontSize: 10,
-                              fontWeight: 800,
+                              fontWeight: 600,
                               color: WB.muted,
                               textTransform: "uppercase",
                               letterSpacing: "0.03em",
@@ -1020,7 +1020,7 @@ export default function WorkoutBuilderPage() {
               }}
             >
               <div style={{ display: "grid", gap: 6 }}>
-                <div style={{ fontWeight: 1000, fontSize: 16 }}>Resumo do treino</div>
+                <div style={{ fontWeight: 700, fontSize: 16 }}>Resumo do treino</div>
                 <div style={{ color: WB.muted, fontSize: 13 }}>
                   Aluno: <b style={{ color: WB.text }}>{selectedStudent?.name ?? "—"}</b> • Nome:{" "}
                   <b style={{ color: WB.text }}>{workoutName}</b> • Grupo: <b style={{ color: WB.text }}>{selectedGroup}</b>
@@ -1057,7 +1057,7 @@ export default function WorkoutBuilderPage() {
                 <span style={pillStyle(WB.primarySoft, WB.primaryBorder)}>
                   Preset: <b>{weekPreset === "semana_util" ? "Semana útil" : `${weekPreset} treinos`}</b>
                 </span>
-                <span style={pillStyle("rgba(255,255,255,.06)", WB.borderStrong)}>
+                <span style={pillStyle("#F9FAFB", WB.borderStrong)}>
                   Total: <b>{items.length}</b> exercício(s)
                 </span>
               </div>
@@ -1069,13 +1069,13 @@ export default function WorkoutBuilderPage() {
                     style={{
                       border: `1px solid ${WB.border}`,
                       borderRadius: 14,
-                      background: "rgba(255,255,255,.02)",
+                      background: "#FFFFFF",
                       padding: 12,
                       display: "grid",
                       gap: 6,
                     }}
                   >
-                    <div style={{ fontWeight: 1000 }}>
+                    <div style={{ fontWeight: 700 }}>
                       {idx + 1}. {it.name}
                     </div>
                     <div style={{ color: WB.muted, fontSize: 13 }}>

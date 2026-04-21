@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext";
 import { PERSONAL_STUDENTS, resolvePersonalStudentReference } from "./personalStudentsMock";
+import { COLORS } from "../../styles/colors";
 
 /**
  * =========================
@@ -50,18 +51,6 @@ type StudentMini = {
  */
 const CONVERSATIONS_KEY = "treinai_chat_conversations_v1";
 const MESSAGES_KEY_PREFIX = "treinai_chat_messages_v1__"; // + conversationId
-
-const COLORS = {
-  border: "rgba(124,255,107,.16)",
-  borderStrong: "rgba(29,185,84,.34)",
-  text: "#FFFFFF",
-  muted: "rgba(255,255,255,.72)",
-  mutedSoft: "rgba(232,236,233,.58)",
-  panel: "linear-gradient(180deg, rgba(22,25,22,.92), rgba(15,18,16,.96))",
-  panelDeep: "linear-gradient(135deg, rgba(15,61,46,.94), rgba(15,24,20,.98))",
-  primarySoft: "rgba(29,185,84,.18)",
-  highlightSoft: "rgba(124,255,107,.12)",
-};
 
 /** ✅ Helpers */
 function nowISO() {
@@ -155,7 +144,7 @@ function Pill({
         border: `1px solid ${map[variant].bd}`,
         background: map[variant].bg,
         fontSize: 12,
-        fontWeight: 900,
+        fontWeight: 600,
         lineHeight: 1,
         color: COLORS.text,
         display: "inline-flex",
@@ -178,7 +167,7 @@ function Card({ children }: { children: React.ReactNode }) {
         border: `1px solid ${COLORS.border}`,
         borderRadius: 20,
         background: COLORS.panel,
-        boxShadow: "0 18px 44px rgba(0,0,0,.45)",
+        boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.05)",
       }}
     >
       {children}
@@ -199,8 +188,8 @@ export default function MessagesPage() {
     return (
       <Card>
         <div style={{ padding: 16 }}>
-          <div style={{ fontWeight: 1000, fontSize: 16 }}>Acesso negado</div>
-          <div style={{ marginTop: 6, color: "rgba(255,255,255,.70)", fontSize: 13 }}>
+          <div style={{ fontWeight: 700, fontSize: 16 }}>Acesso negado</div>
+          <div style={{ marginTop: 6, color: "#6B7280", fontSize: 13 }}>
             Esta área é exclusiva para Personal.
           </div>
         </div>
@@ -406,7 +395,7 @@ export default function MessagesPage() {
   }, [conversations, search, students]);
 
   return (
-    <div style={{ display: "grid", gap: 16, color: "#FFFFFF" }}>
+    <div style={{ display: "grid", gap: 16, color: "#1F2937" }}>
       {/* ✅ Top header */}
       <Card>
         <div
@@ -421,7 +410,7 @@ export default function MessagesPage() {
           }}
         >
           <div style={{ display: "grid", gap: 6 }}>
-            <div style={{ fontWeight: 1000, fontSize: 22 }}>Mensagens</div>
+            <div style={{ fontWeight: 700, fontSize: 22 }}>Mensagens</div>
             <div style={{ color: COLORS.muted, fontSize: 13, lineHeight: 1.45 }}>
               Converse com a carteira ativa e responda primeiro quem já está pedindo atenção.
             </div>
@@ -458,16 +447,16 @@ export default function MessagesPage() {
                 padding: "12px 14px",
                 borderRadius: 14,
                 border: "1px solid rgba(255,255,255,.12)",
-                background: "rgba(255,255,255,.03)",
-                color: "#FFFFFF",
+                background: "#FAFAFA",
+                color: "#1F2937",
                 outline: "none",
-                fontWeight: 800,
+                fontWeight: 600,
               }}
             />
 
             {/* ✅ Atalho: abrir conversa (criar) */}
             <div style={{ display: "grid", gap: 8 }}>
-              <div style={{ fontSize: 12, fontWeight: 900, color: "rgba(255,255,255,.65)" }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: "#6B7280" }}>
                 INICIAR CONVERSA
               </div>
 
@@ -480,10 +469,10 @@ export default function MessagesPage() {
                       padding: "10px 12px",
                       borderRadius: 12,
                       border: `1px solid ${COLORS.border}`,
-                      background: "rgba(255,255,255,.03)",
-                      color: "#FFFFFF",
+                      background: "#FAFAFA",
+                      color: "#1F2937",
                       cursor: "pointer",
-                      fontWeight: 900,
+                      fontWeight: 600,
                       fontSize: 13,
                     }}
                     title={`Abrir chat com ${s.name}`}
@@ -496,13 +485,13 @@ export default function MessagesPage() {
 
             {/* ✅ Lista de conversas */}
             <div style={{ display: "grid", gap: 8 }}>
-              <div style={{ fontSize: 12, fontWeight: 900, color: "rgba(255,255,255,.65)" }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: "#6B7280" }}>
                 CONVERSAS
               </div>
 
               <div style={{ display: "grid", gap: 8 }}>
                 {filteredInbox.length === 0 ? (
-                  <div style={{ color: "rgba(255,255,255,.65)", fontSize: 13 }}>
+                  <div style={{ color: "#6B7280", fontSize: 13 }}>
                     Nenhuma conversa ainda. Crie uma acima.
                   </div>
                 ) : (
@@ -527,13 +516,13 @@ export default function MessagesPage() {
                           padding: "12px 12px",
                           borderRadius: 14,
                           border: active ? `1px solid ${COLORS.borderStrong}` : `1px solid ${COLORS.border}`,
-                          background: active ? COLORS.primarySoft : "rgba(255,255,255,.04)",
-                          color: "#FFFFFF",
+                          background: active ? COLORS.primarySoft : "#FAFAFA",
+                          color: "#1F2937",
                           cursor: "pointer",
                         }}
                       >
                         <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center" }}>
-                          <div style={{ fontWeight: 1000, fontSize: 14 }}>{label}</div>
+                          <div style={{ fontWeight: 700, fontSize: 14 }}>{label}</div>
 
                           {unread > 0 ? (
                             <span
@@ -542,7 +531,7 @@ export default function MessagesPage() {
                                 borderRadius: 999,
                                 background: COLORS.primarySoft,
                                 border: `1px solid ${COLORS.borderStrong}`,
-                                fontWeight: 1000,
+                                fontWeight: 700,
                                 fontSize: 12,
                                 lineHeight: 1,
                               }}
@@ -552,7 +541,7 @@ export default function MessagesPage() {
                           ) : null}
                         </div>
 
-                        <div style={{ marginTop: 6, color: "rgba(255,255,255,.65)", fontSize: 12, lineHeight: 1.35 }}>
+                        <div style={{ marginTop: 6, color: "#6B7280", fontSize: 12, lineHeight: 1.35 }}>
                           {last ? (
                             <>
                               <b style={{ color: "rgba(255,255,255,.85)" }}>
@@ -572,7 +561,7 @@ export default function MessagesPage() {
             </div>
 
             {/* ✅ Dica */}
-            <div style={{ marginTop: 6, color: "rgba(255,255,255,.55)", fontSize: 12, lineHeight: 1.4 }}>
+            <div style={{ marginTop: 6, color: "#9CA3AF", fontSize: 12, lineHeight: 1.4 }}>
               As mensagens desta etapa ainda ficam no navegador enquanto o backend de chat não entra.
             </div>
           </div>
@@ -596,7 +585,7 @@ export default function MessagesPage() {
               }}
             >
               <div style={{ display: "grid", gap: 4 }}>
-                <div style={{ fontWeight: 1000, fontSize: 15 }}>
+                <div style={{ fontWeight: 700, fontSize: 15 }}>
                   {selectedStudent ? selectedStudent.name : "Selecione uma conversa"}
                 </div>
                 <div style={{ color: COLORS.mutedSoft, fontSize: 12 }}>
@@ -616,11 +605,11 @@ export default function MessagesPage() {
               }}
             >
               {!selectedConv ? (
-                <div style={{ color: "rgba(255,255,255,.70)", fontSize: 13, lineHeight: 1.5 }}>
+                <div style={{ color: "#6B7280", fontSize: 13, lineHeight: 1.5 }}>
                   Abra uma conversa na coluna da esquerda para começar.
                 </div>
               ) : messages.length === 0 ? (
-                <div style={{ color: "rgba(255,255,255,.70)", fontSize: 13, lineHeight: 1.5 }}>
+                <div style={{ color: "#6B7280", fontSize: 13, lineHeight: 1.5 }}>
                   Ainda não há mensagens. Comece a conversa por aqui.
                 </div>
               ) : (
@@ -641,13 +630,13 @@ export default function MessagesPage() {
                             padding: "10px 12px",
                             borderRadius: 14,
                             border: mine ? `1px solid ${COLORS.borderStrong}` : `1px solid ${COLORS.border}`,
-                            background: mine ? COLORS.primarySoft : "rgba(255,255,255,.05)",
-                            color: "#FFFFFF",
+                            background: mine ? COLORS.primarySoft : "#F9FAFB",
+                            color: "#1F2937",
                             boxShadow: "0 10px 24px rgba(0,0,0,.25)",
                           }}
                         >
                           <div style={{ fontSize: 13, lineHeight: 1.45, whiteSpace: "pre-wrap" }}>{m.text}</div>
-                          <div style={{ marginTop: 6, fontSize: 11, color: "rgba(255,255,255,.55)" }}>
+                          <div style={{ marginTop: 6, fontSize: 11, color: "#9CA3AF" }}>
                             {new Date(m.createdAt).toLocaleString("pt-BR")}
                           </div>
                         </div>
@@ -674,8 +663,8 @@ export default function MessagesPage() {
                     padding: "12px 14px",
                     borderRadius: 14,
                     border: `1px solid ${COLORS.border}`,
-                    background: "rgba(255,255,255,.03)",
-                    color: "#FFFFFF",
+                    background: "#FAFAFA",
+                    color: "#1F2937",
                     outline: "none",
                     fontWeight: 700,
                     lineHeight: 1.35,
@@ -689,12 +678,12 @@ export default function MessagesPage() {
                     padding: "12px 14px",
                     borderRadius: 12,
                     border: `1px solid ${COLORS.borderStrong}`,
-                    background: "linear-gradient(135deg, #1DB954 0%, #7CFF6B 100%)",
-                    color: "#082014",
+                    background: "#22C55E",
+                    color: "#FFFFFF",
                     cursor: !selectedConv || !text.trim() ? "not-allowed" : "pointer",
-                    fontWeight: 1000,
+                    fontWeight: 700,
                     fontSize: 14,
-                    boxShadow: "0 14px 28px rgba(29,185,84,.22)",
+                    boxShadow: "0 14px 28px rgba(34,197,94,.22)",
                     opacity: !selectedConv || !text.trim() ? 0.6 : 1,
                   }}
                 >
@@ -702,7 +691,7 @@ export default function MessagesPage() {
                 </button>
               </div>
 
-              <div style={{ marginTop: 8, fontSize: 12, color: "rgba(255,255,255,.55)" }}>
+              <div style={{ marginTop: 8, fontSize: 12, color: "#9CA3AF" }}>
                 Conversa atual: `{selectedId || "—"}`.
               </div>
             </div>

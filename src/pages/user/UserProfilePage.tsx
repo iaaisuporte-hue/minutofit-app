@@ -14,24 +14,10 @@ import {
   useTodayMotionSafe,
 } from "./todayPageMotion";
 import "./todayPage.css";
+import { COLORS } from "../../styles/colors";
 
 type Props = {
   onLogout: () => void;
-};
-
-const COLORS = {
-  border: "rgba(124,255,107,.16)",
-  borderStrong: "rgba(29,185,84,.34)",
-  text: "#FFFFFF",
-  muted: "rgba(255,255,255,.72)",
-  mutedSoft: "rgba(232,236,233,.58)",
-  panel: "linear-gradient(180deg, rgba(22,25,22,.92), rgba(15,18,16,.96))",
-  panelDeep: "linear-gradient(180deg, rgba(15,61,46,.95), rgba(15,24,20,.98))",
-  panelSoft: "rgba(255,255,255,.04)",
-  primarySoft: "rgba(29,185,84,.18)",
-  highlightSoft: "rgba(124,255,107,.12)",
-  dangerSoft: "rgba(239,68,68,.12)",
-  dangerBorder: "rgba(239,68,68,.35)",
 };
 
 function Card({
@@ -49,10 +35,8 @@ function Card({
     border: `1px solid ${COLORS.border}`,
     borderRadius: 20,
     background: COLORS.panel,
-    boxShadow: "0 18px 44px rgba(0,0,0,.45)",
+    boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.05)",
     padding: 18,
-    backdropFilter: "blur(8px)",
-    WebkitBackdropFilter: "blur(8px)",
     ...style,
   };
 
@@ -87,10 +71,10 @@ function SectionTitle({
             gap: 8,
             borderRadius: 999,
             background: COLORS.highlightSoft,
-            color: "#7CFF6B",
+            color: "#22C55E",
             padding: "8px 12px",
             fontSize: 11,
-            fontWeight: 900,
+            fontWeight: 600,
             letterSpacing: 1.2,
             textTransform: "uppercase",
           }}
@@ -98,7 +82,7 @@ function SectionTitle({
           {eyebrow}
         </div>
       ) : null}
-      <div style={{ fontSize: 30, fontWeight: 1000, color: COLORS.text }}>{title}</div>
+      <div style={{ fontSize: 30, fontWeight: 700, color: COLORS.text }}>{title}</div>
       {subtitle ? <div style={{ color: COLORS.muted, lineHeight: 1.6 }}>{subtitle}</div> : null}
     </div>
   );
@@ -118,10 +102,10 @@ function DataRow({ label, value }: { label: string; value: string }) {
         alignItems: "center",
       }}
     >
-      <div style={{ color: COLORS.mutedSoft, fontSize: 12, fontWeight: 900, textTransform: "uppercase", letterSpacing: 1.1 }}>
+      <div style={{ color: COLORS.mutedSoft, fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1.1 }}>
         {label}
       </div>
-      <div style={{ color: COLORS.text, fontSize: 14, fontWeight: 900, textAlign: "right" }}>{value}</div>
+      <div style={{ color: COLORS.text, fontSize: 14, fontWeight: 600, textAlign: "right" }}>{value}</div>
     </div>
   );
 }
@@ -208,7 +192,7 @@ export default function UserProfilePage({ onLogout: _onLogout }: Props) {
               inset: -20,
               y: heroMeshY,
               background:
-                "radial-gradient(circle at 18% 24%, rgba(124,255,107,.12), transparent 45%), radial-gradient(circle at 84% 20%, rgba(29,185,84,.12), transparent 42%)",
+                "radial-gradient(circle at 18% 24%, rgba(34,197,94,.12), transparent 45%), radial-gradient(circle at 84% 20%, rgba(34,197,94,.12), transparent 42%)",
               pointerEvents: "none",
             }}
           />
@@ -229,7 +213,7 @@ export default function UserProfilePage({ onLogout: _onLogout }: Props) {
                     padding: "10px 12px",
                     color: COLORS.text,
                     fontSize: 12,
-                    fontWeight: 900,
+                    fontWeight: 600,
                   }}
                 >
                   Plano {accountSummary.plan}
@@ -242,7 +226,7 @@ export default function UserProfilePage({ onLogout: _onLogout }: Props) {
                     padding: "10px 12px",
                     color: COLORS.text,
                     fontSize: 12,
-                    fontWeight: 900,
+                    fontWeight: 600,
                   }}
                 >
                   Perfil {accountSummary.profileStatus}
@@ -260,7 +244,7 @@ export default function UserProfilePage({ onLogout: _onLogout }: Props) {
         <motion.div variants={itemRevealVariants} whileInView="show" initial={shouldReduceMotion ? false : "hidden"} viewport={{ once: true, amount: 0.15 }}>
           <Card interactive enableTilt={shouldUseTilt} style={{ background: COLORS.panelDeep, borderColor: COLORS.borderStrong }}>
             <div style={{ display: "grid", gap: 14 }}>
-              <div style={{ fontSize: 20, fontWeight: 1000, color: COLORS.text }}>Dados da conta</div>
+              <div style={{ fontSize: 20, fontWeight: 700, color: COLORS.text }}>Dados da conta</div>
               <div style={{ display: "grid", gap: 10 }}>
                 <DataRow label="Nome" value={accountSummary.name} />
                 <DataRow label="E-mail" value={accountSummary.accountEmail} />
@@ -274,7 +258,7 @@ export default function UserProfilePage({ onLogout: _onLogout }: Props) {
         <motion.div variants={itemRevealVariants} whileInView="show" initial={shouldReduceMotion ? false : "hidden"} viewport={{ once: true, amount: 0.15 }}>
           <Card interactive enableTilt={shouldUseTilt} style={{ background: COLORS.panelDeep, borderColor: COLORS.borderStrong }}>
             <div style={{ display: "grid", gap: 14 }}>
-              <div style={{ fontSize: 20, fontWeight: 1000, color: COLORS.text }}>Assinatura e status</div>
+              <div style={{ fontSize: 20, fontWeight: 700, color: COLORS.text }}>Assinatura e status</div>
               <div style={{ display: "grid", gap: 10 }}>
                 <DataRow label="Plano atual" value={accountSummary.plan} />
                 <DataRow label="Perfil concluido" value={accountSummary.profileStatus} />
@@ -292,7 +276,7 @@ export default function UserProfilePage({ onLogout: _onLogout }: Props) {
         >
           <Card interactive enableTilt={shouldUseTilt} style={{ background: COLORS.panelDeep, borderColor: COLORS.borderStrong }}>
             <div style={{ display: "grid", gap: 14 }}>
-              <div style={{ fontSize: 20, fontWeight: 1000, color: COLORS.text }}>Perfil fitness</div>
+              <div style={{ fontSize: 20, fontWeight: 700, color: COLORS.text }}>Perfil fitness</div>
               <div style={{ display: "grid", gap: 10, gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))" }}>
                 <DataRow label="Objetivo" value={accountSummary.fitnessGoal} />
                 <DataRow label="Nivel" value={accountSummary.experienceLevel} />

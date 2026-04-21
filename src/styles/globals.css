@@ -1,0 +1,57 @@
+/* ================================================================
+   MinutoFit Global Styles
+   Imports tokens, applies reset and base element styles.
+   ================================================================ */
+
+@import "./tokens.css";
+
+/* ── Box-sizing reset ─────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+/* ── Base elements ────────────────────────────────────────────── */
+html {
+  scroll-behavior: smooth;
+  height: 100%;
+  font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: var(--font-normal);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  width: 100%;
+  overflow-x: hidden;
+  background: var(--color-bg-main);
+  color: var(--color-text);
+}
+
+html, body, #root {
+  height: 100%;
+  min-height: 100%;
+}
+
+a {
+  font-weight: var(--font-medium);
+  color: var(--color-text);
+  text-decoration: inherit;
+  transition: color var(--transition-fast);
+}
+
+a:hover {
+  color: var(--color-primary);
+}
+
+button, input, textarea, select {
+  font-family: inherit;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+}

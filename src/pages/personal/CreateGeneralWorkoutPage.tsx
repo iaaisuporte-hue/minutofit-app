@@ -54,7 +54,7 @@ function card(): React.CSSProperties {
     background: "#171717",
     border: "1px solid rgba(255,255,255,.10)",
     borderRadius: 16,
-    boxShadow: "0 18px 44px rgba(0,0,0,.45)",
+    boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.05)",
   };
 }
 
@@ -64,8 +64,8 @@ function btnBase(): React.CSSProperties {
     borderRadius: 12,
     border: "1px solid rgba(255,255,255,.12)",
     background: "transparent",
-    color: "#FFFFFF",
-    fontWeight: 1000,
+    color: "#1F2937",
+    fontWeight: 700,
     cursor: "pointer",
   };
 }
@@ -87,14 +87,14 @@ function inputStyle(): React.CSSProperties {
     borderRadius: 12,
     border: "1px solid rgba(255,255,255,.12)",
     background: "#0F0F0F",
-    color: "#FFFFFF",
-    fontWeight: 800,
+    color: "#1F2937",
+    fontWeight: 600,
     outline: "none",
   };
 }
 
 function hint(): React.CSSProperties {
-  return { color: "rgba(255,255,255,.65)", fontSize: 13, lineHeight: 1.35 };
+  return { color: "#6B7280", fontSize: 13, lineHeight: 1.35 };
 }
 
 function loadDraft(): { title: string; description: string; videos: VideoItem[] } | null {
@@ -276,12 +276,12 @@ export default function CreateGeneralWorkoutPage() {
   }
 
   return (
-    <div style={{ display: "grid", gap: 14, color: "#FFFFFF" }}>
+    <div style={{ display: "grid", gap: 14, color: "#1F2937" }}>
       {/* ✅ Header */}
       <div style={{ ...card(), padding: 16 }}>
         <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
           <div style={{ display: "grid", gap: 6 }}>
-            <div style={{ fontWeight: 1000, fontSize: 20 }}>Criar treino geral</div>
+            <div style={{ fontWeight: 700, fontSize: 20 }}>Criar treino geral</div>
             <div style={hint()}>
               Monte a sequência de vídeos e publique no catálogo. Depois, na Library, você distribui por plano/perfil.
             </div>
@@ -303,11 +303,11 @@ export default function CreateGeneralWorkoutPage() {
 
       {/* ✅ Dados do treino */}
       <div style={{ ...card(), padding: 16 }}>
-        <div style={{ fontWeight: 1000, marginBottom: 10 }}>1) Informações do treino</div>
+        <div style={{ fontWeight: 700, marginBottom: 10 }}>1) Informações do treino</div>
 
         <div style={{ display: "grid", gap: 12 }}>
           <label style={{ display: "grid", gap: 6 }}>
-            <span style={{ fontWeight: 900 }}>Título</span>
+            <span style={{ fontWeight: 600 }}>Título</span>
             <input
               value={title}
               onChange={(e) => {
@@ -321,7 +321,7 @@ export default function CreateGeneralWorkoutPage() {
           </label>
 
           <label style={{ display: "grid", gap: 6 }}>
-            <span style={{ fontWeight: 900 }}>Descrição</span>
+            <span style={{ fontWeight: 600 }}>Descrição</span>
             <textarea
               value={description}
               onChange={(e) => {
@@ -336,7 +336,7 @@ export default function CreateGeneralWorkoutPage() {
           {/* ✅ Metadados (filtro / distribuição) */}
           <div style={{ display: "grid", gap: 10, gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}>
             <label style={{ display: "grid", gap: 6 }}>
-              <span style={{ fontWeight: 900 }}>Objetivo</span>
+              <span style={{ fontWeight: 600 }}>Objetivo</span>
               <select value={goal} onChange={(e) => setGoal(e.target.value as any)} style={inputStyle()}>
                 <option value="emagrecimento">Emagrecimento</option>
                 <option value="hipertrofia">Hipertrofia</option>
@@ -347,7 +347,7 @@ export default function CreateGeneralWorkoutPage() {
             </label>
 
             <label style={{ display: "grid", gap: 6 }}>
-              <span style={{ fontWeight: 900 }}>Nível</span>
+              <span style={{ fontWeight: 600 }}>Nível</span>
               <select value={level} onChange={(e) => setLevel(e.target.value as any)} style={inputStyle()}>
                 <option value="iniciante">Iniciante</option>
                 <option value="intermediario">Intermediário</option>
@@ -356,7 +356,7 @@ export default function CreateGeneralWorkoutPage() {
             </label>
 
             <label style={{ display: "grid", gap: 6 }}>
-              <span style={{ fontWeight: 900 }}>Duração</span>
+              <span style={{ fontWeight: 600 }}>Duração</span>
               <select value={minutes} onChange={(e) => setMinutes(Number(e.target.value) as any)} style={inputStyle()}>
                 <option value={10}>10 min</option>
                 <option value={15}>15 min</option>
@@ -366,7 +366,7 @@ export default function CreateGeneralWorkoutPage() {
             </label>
 
             <label style={{ display: "grid", gap: 6 }}>
-              <span style={{ fontWeight: 900 }}>Equipamento</span>
+              <span style={{ fontWeight: 600 }}>Equipamento</span>
               <select value={equipment} onChange={(e) => setEquipment(e.target.value as any)} style={inputStyle()}>
                 <option value="sem_peso">Sem peso</option>
                 <option value="com_peso">Com peso</option>
@@ -374,7 +374,7 @@ export default function CreateGeneralWorkoutPage() {
             </label>
 
             <label style={{ display: "grid", gap: 6 }}>
-              <span style={{ fontWeight: 900 }}>Visibilidade</span>
+              <span style={{ fontWeight: 600 }}>Visibilidade</span>
               <select value={visibility} onChange={(e) => setVisibility(e.target.value as any)} style={inputStyle()}>
                 <option value="publico">Público (qualquer aluno elegível)</option>
                 <option value="restrito">Restrito (controle total do personal)</option>
@@ -387,7 +387,7 @@ export default function CreateGeneralWorkoutPage() {
 
       {/* ✅ Bloco YouTube */}
       <div style={{ ...card(), padding: 16 }}>
-        <div style={{ fontWeight: 1000, marginBottom: 10 }}>2) Adicionar vídeo do YouTube</div>
+        <div style={{ fontWeight: 700, marginBottom: 10 }}>2) Adicionar vídeo do YouTube</div>
 
         <div style={{ display: "grid", gap: 10 }}>
           <input
@@ -417,11 +417,11 @@ export default function CreateGeneralWorkoutPage() {
 
       {/* ✅ Bloco Upload local */}
       <div style={{ ...card(), padding: 16 }}>
-        <div style={{ fontWeight: 1000, marginBottom: 10 }}>3) Anexar vídeo (preview local)</div>
+        <div style={{ fontWeight: 700, marginBottom: 10 }}>3) Anexar vídeo (preview local)</div>
 
         <div style={{ display: "grid", gap: 10 }}>
           <label style={{ display: "grid", gap: 6 }}>
-            <span style={{ fontWeight: 900 }}>Título do vídeo (opcional)</span>
+            <span style={{ fontWeight: 600 }}>Título do vídeo (opcional)</span>
             <input
               value={uploadTitle}
               onChange={(e) => setUploadTitle(e.target.value)}
@@ -439,7 +439,7 @@ export default function CreateGeneralWorkoutPage() {
               borderRadius: 12,
               border: "1px solid rgba(255,255,255,.12)",
               background: "#0F0F0F",
-              color: "#FFFFFF",
+              color: "#1F2937",
             }}
           />
 
@@ -455,7 +455,7 @@ export default function CreateGeneralWorkoutPage() {
 
       {/* ✅ Sequência */}
       <div style={{ ...card(), padding: 16 }}>
-        <div style={{ fontWeight: 1000, marginBottom: 10 }}>4) Sequência do treino ({videos.length})</div>
+        <div style={{ fontWeight: 700, marginBottom: 10 }}>4) Sequência do treino ({videos.length})</div>
 
         {videos.length === 0 ? (
           <div style={hint()}>Nenhum vídeo adicionado ainda.</div>
@@ -465,7 +465,7 @@ export default function CreateGeneralWorkoutPage() {
               <div key={v.id} style={{ ...card(), padding: 14, background: "#141414" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
                   <div style={{ display: "grid", gap: 6 }}>
-                    <div style={{ fontWeight: 1000 }}>
+                    <div style={{ fontWeight: 700 }}>
                       #{idx + 1} • {v.kind === "youtube" ? "YouTube" : "Anexado"}
                     </div>
 

@@ -8,11 +8,9 @@ export default function NutriApp() {
     <AppShell
       sidebar={
         <>
-          <div className="heroPanel" style={{ padding: 18 }}>
-            <div className="shellTitle">Painel da Nutrição</div>
-            <div className="shellSubtitle" style={{ marginTop: 8 }}>
-              Acompanhamento alimentar e evolução clínica com a nova identidade do produto.
-            </div>
+          <div style={{ padding: "8px 4px 16px" }}>
+            <div className="shellTitle">MinutoFit</div>
+            <div className="shellSubtitle">Nutrição</div>
           </div>
 
           <div className="navStack">
@@ -24,22 +22,28 @@ export default function NutriApp() {
 
           <div style={{ flex: 1 }} />
 
-          <button onClick={auth.logout} className="logoutButton">
-            Sair
-          </button>
+          <div className="sidebar-footer">
+            <button type="button" onClick={auth.logout} className="logoutButton">
+              Sair da conta
+            </button>
+          </div>
         </>
       }
     >
-      <div className="pageSurface pageSurfacePad" style={{ display: "grid", gap: 14 }}>
-        <div className="shellTitle">Área do Nutricionista</div>
-        <div className="shellSubtitle">
-          Pacientes, planos alimentares e avaliações já com o novo sistema visual aplicado.
+      <div style={{ display: "grid", gap: 16 }}>
+        <div style={{ marginBottom: 4 }}>
+          <h1 style={{ fontSize: 22, fontWeight: 700, color: "#1F2937", margin: 0, letterSpacing: "-0.02em" }}>
+            Área do Nutricionista
+          </h1>
+          <p style={{ color: "#6B7280", fontSize: 14, margin: "6px 0 0" }}>
+            Pacientes, planos alimentares e avaliações.
+          </p>
         </div>
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-            gap: 14,
+            gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+            gap: 12,
           }}
         >
           {[
@@ -48,8 +52,8 @@ export default function NutriApp() {
             { title: "Retornos da semana", value: "12" },
           ].map((item) => (
             <div key={item.title} className="card cardPad">
-              <div className="small">{item.title}</div>
-              <div style={{ marginTop: 10, fontSize: 34, fontWeight: 1000 }}>{item.value}</div>
+              <div style={{ fontSize: 12, color: "#9CA3AF", fontWeight: 500, marginBottom: 8 }}>{item.title}</div>
+              <div style={{ fontSize: 28, fontWeight: 700, color: "#1F2937" }}>{item.value}</div>
             </div>
           ))}
         </div>

@@ -38,7 +38,7 @@ function Card({
         background: accent
           ? `linear-gradient(180deg, ${neon.accentSoft}, rgba(255,255,255,0) 55%), ${neon.panel}`
           : neon.panel,
-        boxShadow: "0 18px 44px rgba(0,0,0,.45)",
+        boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.05)",
         overflow: "hidden",
         color: neon.text,
       }}
@@ -51,7 +51,7 @@ function Card({
           gap: 4,
         }}
       >
-        <div style={{ fontWeight: 1000, letterSpacing: 0.2 }}>{title}</div>
+        <div style={{ fontWeight: 700, letterSpacing: 0.2 }}>{title}</div>
         {subtitle ? (
           <div style={{ color: neon.muted2, fontSize: 12, lineHeight: 1.35 }}>{subtitle}</div>
         ) : null}
@@ -76,7 +76,7 @@ function Field({
   return (
     <label style={{ display: "grid", gap: 6 }}>
       <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
-        <div style={{ fontWeight: 900, fontSize: 13 }}>{label}</div>
+        <div style={{ fontWeight: 600, fontSize: 13 }}>{label}</div>
         {hint ? <div style={{ color: neon.muted2, fontSize: 12 }}>{hint}</div> : null}
       </div>
       {children}
@@ -95,10 +95,10 @@ function TextInput(props: React.InputHTMLAttributes<HTMLInputElement> & { neon: 
         padding: "12px 12px",
         borderRadius: 14,
         border: `1px solid ${neon.border}`,
-        background: readOnly ? "rgba(255,255,255,.04)" : neon.panel2,
+        background: readOnly ? "#FAFAFA" : neon.panel2,
         color: readOnly ? neon.muted : neon.text,
         outline: "none",
-        fontWeight: 800,
+        fontWeight: 600,
         letterSpacing: 0.2,
         cursor: readOnly ? "default" : "text",
       }}
@@ -138,7 +138,7 @@ function Button({
         background: isPrimary ? neon.ctaGradient : isDanger ? neon.dangerSoft : "transparent",
         color: isPrimary ? neon.ctaText : neon.text,
         cursor: disabled ? "not-allowed" : "pointer",
-        fontWeight: 1000,
+        fontWeight: 700,
         boxShadow: isPrimary ? "0 10px 24px rgba(0,0,0,.35)" : "none",
         opacity: disabled ? 0.7 : 1,
         width: "fit-content",
@@ -304,14 +304,14 @@ export default function AccountSettingsPage() {
             viewport={{ once: true, amount: 0.12 }}
             style={{ display: "grid", gap: 8 }}
           >
-            <div style={{ fontWeight: 900, fontSize: 11, letterSpacing: 1.1, textTransform: "uppercase", color: neon.muted2 }}>
+            <div style={{ fontWeight: 600, fontSize: 11, letterSpacing: 1.1, textTransform: "uppercase", color: neon.muted2 }}>
               Saúde &amp; compliance
             </div>
             <div
               style={{
                 height: 5,
                 borderRadius: 999,
-                background: "rgba(255,255,255,.08)",
+                background: "#F9FAFB",
                 overflow: "hidden",
                 border: `1px solid ${neon.border2}`,
               }}
@@ -413,7 +413,7 @@ export default function AccountSettingsPage() {
                         : {
                             boxShadow: [
                               "0 10px 24px rgba(0,0,0,.35)",
-                              "0 12px 28px rgba(29,185,84,.28)",
+                              "0 12px 28px rgba(34,197,94,.28)",
                               "0 10px 24px rgba(0,0,0,.35)",
                             ],
                           }
@@ -523,7 +523,7 @@ export default function AccountSettingsPage() {
                         : {
                             boxShadow: [
                               "0 10px 24px rgba(0,0,0,.35)",
-                              "0 12px 28px rgba(29,185,84,.28)",
+                              "0 12px 28px rgba(34,197,94,.28)",
                               "0 10px 24px rgba(0,0,0,.35)",
                             ],
                           }

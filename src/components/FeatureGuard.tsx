@@ -20,10 +20,10 @@ export default function FeatureGuard({
   return (
     <div
       style={{
-        border: "1px solid rgba(124,255,107,.24)",
+        border: "1px solid rgba(34,197,94,.24)",
         borderRadius: 14,
         padding: 14,
-        background: "rgba(124,255,107,.08)",
+        background: "rgba(34,197,94,.08)",
         color: "#fff",
       }}
     >

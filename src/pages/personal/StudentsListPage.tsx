@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { useMemo, useState } from "react";
 import { PERSONAL_STUDENTS, type PersonalStudentPlan } from "./personalStudentsMock";
+import { COLORS } from "../../styles/colors";
 
 type Plan = PersonalStudentPlan;
 
@@ -43,30 +44,6 @@ function getPlanStatus(isoDate: string): { status: "active" | "expiring" | "expi
 }
 
 /** ====== IDENTIDADE VISUAL (TREINAí) ====== */
-const COLORS = {
-  bg: "#0F0F0F",
-  panel: "linear-gradient(180deg, rgba(22,25,22,.92), rgba(15,18,16,.96))",
-  panelDeep: "linear-gradient(135deg, rgba(15,61,46,.94), rgba(15,24,20,.98))",
-  card: "rgba(255,255,255,.03)",
-  cardHover: "rgba(255,255,255,.045)",
-  border: "rgba(124,255,107,.16)",
-  borderStrong: "rgba(29,185,84,.34)",
-  text: "#FFFFFF",
-  muted: "rgba(255,255,255,.72)",
-  muted2: "rgba(232,236,233,.58)",
-  orange: "#1DB954",
-  orangeSoft: "rgba(29,185,84,.18)",
-  orangeBorder: "rgba(29,185,84,.34)",
-  successBg: "rgba(46, 204, 113, .14)",
-  successBorder: "rgba(46, 204, 113, .35)",
-  warnBg: "rgba(255, 180, 0, .14)",
-  warnBorder: "rgba(255, 180, 0, .35)",
-  dangerBg: "rgba(255, 77, 77, .14)",
-  dangerBorder: "rgba(255, 77, 77, .35)",
-  blueBg: "rgba(120, 160, 255, .14)",
-  blueBorder: "rgba(120, 160, 255, .35)",
-};
-
 /** ✅ ROTAS ABSOLUTAS (ANTI-LOOP) */
 const PERSONAL_BASE = "/app/personal" as const;
 const routes = {
@@ -81,7 +58,7 @@ function pillStyle(opts: { bg: string; border: string; color?: string }): React.
     padding: "6px 10px",
     borderRadius: 999,
     fontSize: 12,
-    fontWeight: 900,
+    fontWeight: 600,
     border: `1px solid ${opts.border}`,
     background: opts.bg,
     color: opts.color ?? COLORS.text,
@@ -96,7 +73,7 @@ function pillStyle(opts: { bg: string; border: string; color?: string }): React.
 
 function planPillStyle(plan: Plan): React.CSSProperties {
   const map: Record<Plan, { bg: string; border: string }> = {
-    basic: { bg: "rgba(255,255,255,.05)", border: "rgba(255,255,255,.14)" },
+    basic: { bg: "#F9FAFB", border: "#E5E7EB" },
     silver: { bg: "rgba(120,160,255,.12)", border: "rgba(120,160,255,.35)" },
     gold: { bg: "rgba(255,200,0,.12)", border: "rgba(255,200,0,.35)" },
     black: { bg: COLORS.orangeSoft, border: COLORS.orangeBorder },
@@ -148,10 +125,10 @@ function DisabledButton({ label, reason }: { label: string; reason: string }) {
         padding: "10px 12px",
         borderRadius: 12,
         border: `1px solid ${COLORS.border}`,
-        background: "rgba(255,255,255,.03)",
-        color: "rgba(255,255,255,.40)",
+        background: "#FAFAFA",
+        color: "#9CA3AF",
         cursor: "not-allowed",
-        fontWeight: 900,
+        fontWeight: 600,
       }}
     >
       {label}
@@ -173,10 +150,10 @@ function ActionLink({ to, label, variant = "ghost" }: { to: string; label: strin
         display: "inline-flex",
         alignItems: "center",
         justifyContent: "center",
-        fontWeight: 900,
-        background: isPrimary ? COLORS.orangeSoft : "rgba(255,255,255,.03)",
+        fontWeight: 600,
+        background: isPrimary ? COLORS.orangeSoft : "#FAFAFA",
         transition: "transform .08s ease, background .12s ease, border-color .12s ease",
-        boxShadow: isPrimary ? "0 14px 28px rgba(29,185,84,.18)" : "none",
+        boxShadow: isPrimary ? "0 14px 28px rgba(34,197,94,.18)" : "none",
       }}
       onMouseDown={(e) => {
         (e.currentTarget as HTMLAnchorElement).style.transform = "scale(0.98)";
@@ -258,7 +235,7 @@ export default function StudentsListPage() {
         {
           key: "active",
           width: `${(base.active / total) * 100}%`,
-          bg: "linear-gradient(135deg, rgba(46,204,113,.95), rgba(29,185,84,.82))",
+          bg: "linear-gradient(135deg, rgba(46,204,113,.95), rgba(34,197,94,.82))",
         },
         {
           key: "expiring",
@@ -309,7 +286,7 @@ export default function StudentsListPage() {
               padding: "10px 12px",
               borderRadius: 12,
               border: `1px solid ${COLORS.border}`,
-              background: "rgba(255,255,255,.03)",
+              background: "#FAFAFA",
               color: COLORS.text,
               outline: "none",
               minWidth: 220,
@@ -317,7 +294,7 @@ export default function StudentsListPage() {
           />
 
           <div style={{ display: "grid", gap: 6 }}>
-            <span style={{ fontSize: 12, fontWeight: 900, color: COLORS.muted }}>Filtrar por plano</span>
+            <span style={{ fontSize: 12, fontWeight: 600, color: COLORS.muted }}>Filtrar por plano</span>
             <select
               value={filter}
               onChange={(e) => setFilter(e.target.value as any)}
@@ -325,7 +302,7 @@ export default function StudentsListPage() {
                 padding: "10px 12px",
                 borderRadius: 12,
                 border: `1px solid ${COLORS.border}`,
-                background: "rgba(255,255,255,.03)",
+                background: "#FAFAFA",
                 color: COLORS.text,
                 outline: "none",
                 cursor: "pointer",
@@ -352,7 +329,7 @@ export default function StudentsListPage() {
         }}
       >
         <div style={{ display: "grid", gap: 4 }}>
-          <div style={{ fontWeight: 1000, fontSize: 16 }}>Status dos planos</div>
+          <div style={{ fontWeight: 700, fontSize: 16 }}>Status dos planos</div>
           <div style={{ color: COLORS.muted2, fontSize: 13, lineHeight: 1.45 }}>
             Visão rápida da carteira filtrada. Exemplo: <b style={{ color: COLORS.text }}>{statusSummary.items[2].value} vencidos</b>.
           </div>
@@ -366,7 +343,7 @@ export default function StudentsListPage() {
             overflow: "hidden",
             borderRadius: 999,
             border: `1px solid ${COLORS.border}`,
-            background: "rgba(255,255,255,.04)",
+            background: "#FAFAFA",
           }}
         >
           {statusSummary.segments.map((segment) =>
@@ -392,7 +369,7 @@ export default function StudentsListPage() {
               <div style={{ color: COLORS.muted2, fontSize: 12, textTransform: "uppercase", letterSpacing: 0.9 }}>
                 {item.label}
               </div>
-              <div style={{ fontSize: 28, fontWeight: 1000 }}>{item.value}</div>
+              <div style={{ fontSize: 28, fontWeight: 700 }}>{item.value}</div>
               <div style={{ color: COLORS.muted, fontSize: 12 }}>
                 {statusSummary.total ? Math.round((item.value / statusSummary.total) * 100) : 0}% da carteira atual
               </div>
@@ -449,7 +426,7 @@ export default function StudentsListPage() {
             >
               <div style={{ display: "grid", gap: 8, minWidth: 360 }}>
                 <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-                  <div style={{ fontWeight: 1000, letterSpacing: 0.2 }}>{s.name}</div>
+                  <div style={{ fontWeight: 700, letterSpacing: 0.2 }}>{s.name}</div>
 
                   <span style={planPillStyle(s.plan)}>Plano: {PLAN_LABEL[s.plan]}</span>
                   <span style={statusPillStyle(status)}>{label}</span>
@@ -511,10 +488,10 @@ export default function StudentsListPage() {
                       padding: "10px 12px",
                       borderRadius: 12,
                       border: `1px solid ${COLORS.border}`,
-                      background: "rgba(255,255,255,.03)",
+                      background: "#FAFAFA",
                       color: COLORS.text,
                       cursor: "pointer",
-                      fontWeight: 900,
+                      fontWeight: 600,
                     }}
                   >
                     Plano de corrida

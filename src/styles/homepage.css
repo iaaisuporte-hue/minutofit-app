@@ -32,7 +32,7 @@
 
 .landingBrand {
   font-size: clamp(21px, 2.4vw, 30px);
-  font-weight: 1000;
+  font-weight: 700;
   letter-spacing: 0.03em;
 }
 
@@ -94,7 +94,7 @@
   margin: 0;
   font-size: clamp(30px, 5vw, 58px);
   line-height: 0.96;
-  font-weight: 1000;
+  font-weight: 700;
   max-width: 11ch;
 }
 

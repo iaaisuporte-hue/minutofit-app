@@ -1,15 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { fetchMyWorkoutPlans, type UserWorkoutPlan } from "../../services/userWorkoutPlansApi";
-
-const COLORS = {
-  border: "rgba(124,255,107,.16)",
-  borderStrong: "rgba(29,185,84,.34)",
-  text: "#FFFFFF",
-  muted: "rgba(255,255,255,.72)",
-  panel: "linear-gradient(180deg, rgba(22,25,22,.92), rgba(15,18,16,.96))",
-  panelSoft: "rgba(255,255,255,.04)",
-  primarySoft: "rgba(29,185,84,.18)",
-};
+import { COLORS } from "../../styles/colors";
 
 function formatDate(value: string) {
   try {
@@ -57,7 +48,7 @@ export default function MyWorkoutPlansPage() {
           gap: 8,
         }}
       >
-        <div style={{ fontSize: 24, fontWeight: 1000, color: COLORS.text }}>Minha ficha de treino</div>
+        <div style={{ fontSize: 24, fontWeight: 700, color: COLORS.text }}>Minha ficha de treino</div>
         <div style={{ color: COLORS.muted, lineHeight: 1.5 }}>
           Aqui você acompanha as fichas enviadas pelo seu personal. A primeira da lista e a mais recente.
         </div>
@@ -104,7 +95,7 @@ export default function MyWorkoutPlansPage() {
             padding: 12,
           }}
         >
-          <summary style={{ cursor: "pointer", color: COLORS.text, fontWeight: 900 }}>
+          <summary style={{ cursor: "pointer", color: COLORS.text, fontWeight: 600 }}>
             {plan.title} • {plan.payload_json?.length || 0} exercicio(s)
           </summary>
           <div style={{ marginTop: 10, display: "grid", gap: 8 }}>

@@ -29,7 +29,7 @@ export default function InteractiveSurfaceCard({
   const glowYPercent = useTransform(glowY, (v) => `${v}%`);
   const dynamicShadow = useTransform([mx, my], (latest) => {
     const [x, y] = latest as number[];
-    return `${-x * 18}px ${-y * 18}px 30px rgba(29,185,84,.18)`;
+    return `${-x * 8}px ${-y * 8}px 16px rgba(0,0,0,0.06)`;
   });
 
   function handleMove(e: React.MouseEvent<HTMLDivElement>) {
@@ -63,19 +63,21 @@ export default function InteractiveSurfaceCard({
         ...style,
       }}
     >
-      <motion.div
-        aria-hidden
-        style={{
-          position: "absolute",
-          inset: 0,
-          borderRadius: "inherit",
-          pointerEvents: "none",
-          background:
-            "radial-gradient(circle at var(--glow-x, 50%) var(--glow-y, 50%), rgba(124,255,107,.15) 0%, rgba(124,255,107,0) 55%)",
-          ["--glow-x" as string]: enableTilt ? glowXPercent : "50%",
-          ["--glow-y" as string]: enableTilt ? glowYPercent : "50%",
-        }}
-      />
+      {enableTilt && (
+        <motion.div
+          aria-hidden
+          style={{
+            position: "absolute",
+            inset: 0,
+            borderRadius: "inherit",
+            pointerEvents: "none",
+            background:
+              "radial-gradient(circle at var(--glow-x, 50%) var(--glow-y, 50%), rgba(34,197,94,0.06) 0%, transparent 55%)",
+            ["--glow-x" as string]: glowXPercent,
+            ["--glow-y" as string]: glowYPercent,
+          }}
+        />
+      )}
       {children}
     </motion.div>
   );

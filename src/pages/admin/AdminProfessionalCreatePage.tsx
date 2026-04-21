@@ -1,16 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-
-const COLORS = {
-  border: "rgba(124,255,107,.16)",
-  borderStrong: "rgba(29,185,84,.34)",
-  text: "#FFFFFF",
-  muted: "rgba(255,255,255,.72)",
-  panel: "linear-gradient(180deg, rgba(22,25,22,.92), rgba(15,18,16,.96))",
-  panelDeep: "linear-gradient(135deg, rgba(15,61,46,.94), rgba(15,24,20,.98))",
-  panelSoft: "rgba(255,255,255,.04)",
-  lime: "#7CFF6B",
-};
+import { COLORS } from "../../styles/colors";
 
 type Props = {
   role: "personal" | "nutri";
@@ -25,7 +15,7 @@ function Field({
 }) {
   return (
     <label style={{ display: "grid", gap: 8 }}>
-      <span style={{ fontWeight: 900, color: "rgba(255,255,255,.86)" }}>{label}</span>
+      <span style={{ fontWeight: 600, color: "rgba(255,255,255,.86)" }}>{label}</span>
       {children}
     </label>
   );
@@ -78,16 +68,16 @@ export default function AdminProfessionalCreatePage({ role }: Props) {
           border: `1px solid ${COLORS.borderStrong}`,
           borderRadius: 20,
           background: COLORS.panelDeep,
-          boxShadow: "0 18px 44px rgba(0,0,0,.45)",
+          boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.05)",
           padding: 18,
           display: "grid",
           gap: 8,
         }}
       >
-        <Link to={backTo} style={{ color: COLORS.lime, textDecoration: "none", fontWeight: 900, width: "fit-content" }}>
+        <Link to={backTo} style={{ color: COLORS.lime, textDecoration: "none", fontWeight: 600, width: "fit-content" }}>
           ← Voltar
         </Link>
-        <div style={{ fontSize: 30, fontWeight: 1000 }}>
+        <div style={{ fontSize: 30, fontWeight: 700 }}>
           Cadastrar {isPersonal ? "personal" : "nutri"}
         </div>
         <div style={{ color: COLORS.muted, lineHeight: 1.6, maxWidth: 820 }}>
@@ -101,7 +91,7 @@ export default function AdminProfessionalCreatePage({ role }: Props) {
           border: `1px solid ${COLORS.border}`,
           borderRadius: 20,
           background: COLORS.panel,
-          boxShadow: "0 18px 44px rgba(0,0,0,.45)",
+          boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.05)",
           padding: 18,
           display: "grid",
           gap: 16,
@@ -173,9 +163,9 @@ export default function AdminProfessionalCreatePage({ role }: Props) {
               padding: "12px 14px",
               borderRadius: 14,
               border: `1px solid ${COLORS.borderStrong}`,
-              background: "linear-gradient(135deg, #1DB954 0%, #7CFF6B 100%)",
-              color: "#082014",
-              fontWeight: 1000,
+              background: "#22C55E",
+              color: "#FFFFFF",
+              fontWeight: 700,
               cursor: "pointer",
             }}
           >
@@ -192,7 +182,7 @@ export default function AdminProfessionalCreatePage({ role }: Props) {
               border: `1px solid ${COLORS.border}`,
               background: COLORS.panelSoft,
               color: COLORS.text,
-              fontWeight: 1000,
+              fontWeight: 700,
               textDecoration: "none",
             }}
           >

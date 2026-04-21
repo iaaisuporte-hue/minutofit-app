@@ -18,5 +18,5 @@
     <circle cx="22" cy="8" r="2.5" fill="#7CFF6B"/>
     <path d="M10 30 L14 20 L18 26 L22 14 L26 26 L30 20 L34 30" fill="none" stroke="#f0fff4" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>
   </g>
-  <text x="58" y="38" fill="#f4fff8" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Ubuntu, sans-serif" font-size="28" font-weight="800" letter-spacing="-0.03em">Minuto<tspan fill="url(#mfl-g)">Fit</tspan></text>
+  <text x="58" y="38" fill="#1F2937" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Ubuntu, sans-serif" font-size="28" font-weight="800" letter-spacing="-0.03em">Minuto<tspan fill="url(#mfl-g)">Fit</tspan></text>
 </svg>

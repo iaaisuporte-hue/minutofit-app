@@ -20,24 +20,7 @@
 }
 
 .account-settings-card-shell::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  pointer-events: none;
-  /* Tokens globais — alinhados à sidebar (--primary / --highlight) */
-  background: linear-gradient(
-    135deg,
-    color-mix(in srgb, var(--highlight) 12%, transparent) 0%,
-    transparent 42%,
-    color-mix(in srgb, var(--primary) 10%, transparent) 100%
-  );
-  opacity: 0.85;
-  transition: opacity 0.28s ease;
-}
-
-.account-settings-card-shell:hover::before {
-  opacity: 1;
+  content: none;
 }
 
 .account-settings-hero-mesh {

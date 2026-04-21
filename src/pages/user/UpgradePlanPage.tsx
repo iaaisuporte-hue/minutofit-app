@@ -1,13 +1,5 @@
 import { Link } from "react-router-dom";
-
-const COLORS = {
-  panel: "#171717",
-  border: "rgba(255,255,255,.10)",
-  text: "#FFFFFF",
-  muted: "rgba(255,255,255,.70)",
-  freeSoft: "rgba(29,185,84,.18)",
-  freeBorder: "rgba(29,185,84,.35)",
-};
+import { COLORS } from "../../styles/colors";
 
 export default function UpgradePlanPage() {
   return (
@@ -18,7 +10,7 @@ export default function UpgradePlanPage() {
           borderRadius: 16,
           padding: 16,
           background: COLORS.panel,
-          boxShadow: "0 18px 44px rgba(0,0,0,.45)",
+          boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.05)",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
@@ -31,7 +23,7 @@ export default function UpgradePlanPage() {
           style={{
             textDecoration: "none",
             color: COLORS.text,
-            fontWeight: 1000,
+            fontWeight: 700,
             padding: "10px 12px",
             borderRadius: 12,
             border: "1px solid rgba(255,255,255,.12)",
@@ -41,8 +33,8 @@ export default function UpgradePlanPage() {
         </Link>
 
         <div style={{ textAlign: "center" }}>
-          <div style={{ fontWeight: 1000, fontSize: 18, letterSpacing: 0.2 }}>Produto atual</div>
-          <div style={{ color: COLORS.muted, fontSize: 12, fontWeight: 900 }}>Plano único ativo</div>
+          <div style={{ fontWeight: 700, fontSize: 18, letterSpacing: 0.2 }}>Produto atual</div>
+          <div style={{ color: COLORS.muted, fontSize: 12, fontWeight: 600 }}>Plano único ativo</div>
         </div>
       </div>
 
@@ -56,7 +48,7 @@ export default function UpgradePlanPage() {
           gap: 10,
         }}
       >
-        <div style={{ fontSize: 24, fontWeight: 1000 }}>Plano Free</div>
+        <div style={{ fontSize: 24, fontWeight: 700 }}>Plano Free</div>
         <div style={{ color: COLORS.muted, lineHeight: 1.5 }}>
           Neste momento, o produto está operando em plano único. Todos os usuários usam o mesmo pacote de recursos.
         </div>

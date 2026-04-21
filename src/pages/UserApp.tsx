@@ -70,37 +70,41 @@ export default function UserApp() {
       <AppShell
         sidebar={
           <>
-            <div className="heroPanel" style={{ padding: 18 }}>
-              <div className="shellTitle">Painel do Aluno</div>
-              <div className="shellSubtitle" style={{ marginTop: 8 }}>
-                Treino, constância e progresso em um ambiente mais limpo e orientado a resultado.
-              </div>
+            <div style={{ padding: "8px 4px 16px" }}>
+              <div className="shellTitle">MinutoFit</div>
+              <div className="shellSubtitle">Aluno</div>
             </div>
 
             <div className="navStack">
               <MenuLink to={`${USER_BASE}/today`} label="Hoje" icon="🏠" />
               {canWorkouts && <MenuLink to={`${USER_BASE}/treinos`} label="Treinos" icon="🏋️" />}
               {canWorkouts && <MenuLink to={`${USER_BASE}/ficha`} label="Minha ficha" icon="📋" />}
-              {canHomeWorkouts && <MenuLink to={`${USER_BASE}/treinos/em-casa`} label="Treinos em casa" icon="🏠" />}
-              {canTracker && <MenuLink to={`${USER_BASE}/activities`} label="Tracker" icon="🏃" />}
+              {canHomeWorkouts && <MenuLink to={`${USER_BASE}/treinos/em-casa`} label="Treinos em casa" icon="🏃" />}
+              {canTracker && <MenuLink to={`${USER_BASE}/activities`} label="Tracker" icon="📊" />}
               {canMessages && <MenuLink to={`${USER_BASE}/messages`} label="Mensagens" icon="💬" />}
               {canProfile && <MenuLink to={`${USER_BASE}/profile`} label="Perfil" icon="👤" />}
 
-              {(canSuggestedTraining || canTrainingAi) && <div style={{ height: 4 }} />}
-              {(canSuggestedTraining || canTrainingAi) && <div className="sectionLabel">Treino personalizado</div>}
+              {(canSuggestedTraining || canTrainingAi) && (
+                <div style={{ paddingTop: 12, paddingBottom: 4 }}>
+                  <div className="sectionLabel">Personalizado</div>
+                </div>
+              )}
               {canSuggestedTraining && <MenuLink to={`${USER_BASE}/suggested-training`} label="Treino Sugerido" icon="🎯" />}
               {canTrainingAi && <MenuLink to={`${USER_BASE}/movement-lab`} label="Lab de Movimento" icon="📷" />}
 
-              <div style={{ height: 4 }} />
+              {canSettings && (
+                <div style={{ paddingTop: 12, paddingBottom: 4 }}>
+                  <div className="sectionLabel">Geral</div>
+                </div>
+              )}
               {canSettings && <MenuLink to={`${USER_BASE}/settings`} label="Configurações" icon="⚙️" />}
             </div>
 
             <div style={{ flex: 1 }} />
 
-            <div style={{ borderTop: "1px solid rgba(124,255,107,.14)", paddingTop: 12, display: "grid", gap: 10 }}>
-              <div className="sectionLabel">Conta</div>
+            <div className="sidebar-footer">
               <button type="button" onClick={handleLogout} className="logoutButton">
-                Sair
+                Sair da conta
               </button>
             </div>
           </>
@@ -114,7 +118,7 @@ export default function UserApp() {
             width: "100%",
           }}
         >
-          <div className="pageSurface pageSurfacePad">
+          <div>
             <ComplianceBanner />
             <Routes>
               {/* ✅ INDEX seguro */}

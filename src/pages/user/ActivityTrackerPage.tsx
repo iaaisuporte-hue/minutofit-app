@@ -4,6 +4,7 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { registerDailyCheckin } from "./gamification";
 import { persistGamificationCheckin } from "../../services/gamificationApi";
+import { COLORS } from "../../styles/colors";
 
 interface Activity {
   id: string;
@@ -41,22 +42,6 @@ const ACTIVITY_META = {
   },
 } satisfies Record<Activity["type"], { icon: string; label: string; helper: string }>;
 
-const COLORS = {
-  border: "rgba(124,255,107,.16)",
-  borderStrong: "rgba(29,185,84,.34)",
-  panel: "linear-gradient(180deg, rgba(22,25,22,.92), rgba(15,18,16,.96))",
-  panelDeep: "linear-gradient(135deg, rgba(15,61,46,.94), rgba(15,24,20,.98))",
-  panelSoft: "rgba(255,255,255,.04)",
-  primarySoft: "rgba(29,185,84,.18)",
-  highlightSoft: "rgba(124,255,107,.12)",
-  text: "#FFFFFF",
-  muted: "rgba(255,255,255,.72)",
-  mutedSoft: "rgba(232,236,233,.58)",
-  green: "#1DB954",
-  lime: "#7CFF6B",
-  deep: "#0F3D2E",
-};
-
 function Card({
   children,
   style,
@@ -70,7 +55,7 @@ function Card({
         border: `1px solid ${COLORS.border}`,
         borderRadius: 20,
         background: COLORS.panel,
-        boxShadow: "0 18px 44px rgba(0,0,0,.45)",
+        boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.05)",
         padding: 18,
         ...style,
       }}
@@ -168,7 +153,7 @@ function MapViewer({ coordinates }: { coordinates: Array<{ lat: number; lng: num
       >
         <div style={{ display: "grid", gap: 8 }}>
           <div style={{ fontSize: 28 }}>📍</div>
-          <div style={{ fontWeight: 900 }}>Aguardando os primeiros pontos do GPS</div>
+          <div style={{ fontWeight: 600 }}>Aguardando os primeiros pontos do GPS</div>
           <div style={{ fontSize: 14, color: COLORS.mutedSoft }}>
             Assim que a localização começar a chegar, a rota aparece aqui em tempo real.
           </div>
@@ -408,9 +393,9 @@ export default function ActivityTrackerPage() {
             padding: 14,
             borderRadius: 14,
             border: `1px solid ${COLORS.borderStrong}`,
-            background: "rgba(29,185,84,.12)",
+            background: "rgba(34,197,94,.12)",
             color: COLORS.text,
-            fontWeight: 800,
+            fontWeight: 600,
           }}
         >
           {rewardMessage}
@@ -438,14 +423,14 @@ export default function ActivityTrackerPage() {
                   color: COLORS.lime,
                   padding: "8px 12px",
                   fontSize: 11,
-                  fontWeight: 900,
+                  fontWeight: 600,
                   letterSpacing: 1.2,
                   textTransform: "uppercase",
                 }}
               >
                 Tracker
               </div>
-              <div style={{ fontSize: 32, fontWeight: 1000, lineHeight: 1.1 }}>
+              <div style={{ fontSize: 32, fontWeight: 700, lineHeight: 1.1 }}>
                 Tracker para corrida, caminhada e ciclismo.
               </div>
               <div style={{ color: COLORS.muted, fontSize: 15, lineHeight: 1.6 }}>
@@ -460,14 +445,14 @@ export default function ActivityTrackerPage() {
                 minWidth: 180,
                 borderRadius: 18,
                 border: `1px solid ${COLORS.border}`,
-                background: "rgba(255,255,255,.04)",
+                background: "#FAFAFA",
                 padding: 16,
               }}
             >
               <div style={{ color: COLORS.mutedSoft, fontSize: 12, textTransform: "uppercase", letterSpacing: 1.1 }}>
                 Sessões
               </div>
-              <div style={{ fontSize: 30, fontWeight: 1000 }}>{stats.totalSessions}</div>
+              <div style={{ fontSize: 30, fontWeight: 700 }}>{stats.totalSessions}</div>
               <div style={{ color: COLORS.muted, fontSize: 13 }}>
                 {latestActivity
                   ? `Última: ${ACTIVITY_META[latestActivity.type].label.toLowerCase()}`
@@ -477,25 +462,25 @@ export default function ActivityTrackerPage() {
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12 }}>
-            <Card style={{ padding: 16, background: "rgba(255,255,255,.04)" }}>
-              <div style={{ color: COLORS.mutedSoft, fontSize: 12, fontWeight: 900, letterSpacing: 1.1, textTransform: "uppercase" }}>
+            <Card style={{ padding: 16, background: "#FAFAFA" }}>
+              <div style={{ color: COLORS.mutedSoft, fontSize: 12, fontWeight: 600, letterSpacing: 1.1, textTransform: "uppercase" }}>
                 Distância total
               </div>
-              <div style={{ marginTop: 10, fontSize: 28, fontWeight: 1000 }}>
+              <div style={{ marginTop: 10, fontSize: 28, fontWeight: 700 }}>
                 {stats.totalDistance.toFixed(2)} <span style={{ fontSize: 15, color: COLORS.muted }}>km</span>
               </div>
             </Card>
-            <Card style={{ padding: 16, background: "rgba(255,255,255,.04)" }}>
-              <div style={{ color: COLORS.mutedSoft, fontSize: 12, fontWeight: 900, letterSpacing: 1.1, textTransform: "uppercase" }}>
+            <Card style={{ padding: 16, background: "#FAFAFA" }}>
+              <div style={{ color: COLORS.mutedSoft, fontSize: 12, fontWeight: 600, letterSpacing: 1.1, textTransform: "uppercase" }}>
                 Tempo acumulado
               </div>
-              <div style={{ marginTop: 10, fontSize: 28, fontWeight: 1000 }}>{formatTime(stats.totalTime)}</div>
+              <div style={{ marginTop: 10, fontSize: 28, fontWeight: 700 }}>{formatTime(stats.totalTime)}</div>
             </Card>
-            <Card style={{ padding: 16, background: "rgba(255,255,255,.04)" }}>
-              <div style={{ color: COLORS.mutedSoft, fontSize: 12, fontWeight: 900, letterSpacing: 1.1, textTransform: "uppercase" }}>
+            <Card style={{ padding: 16, background: "#FAFAFA" }}>
+              <div style={{ color: COLORS.mutedSoft, fontSize: 12, fontWeight: 600, letterSpacing: 1.1, textTransform: "uppercase" }}>
                 Ritmo médio
               </div>
-              <div style={{ marginTop: 10, fontSize: 28, fontWeight: 1000 }}>
+              <div style={{ marginTop: 10, fontSize: 28, fontWeight: 700 }}>
                 {formatPace(stats.avgPace)} <span style={{ fontSize: 15, color: COLORS.muted }}>min/km</span>
               </div>
             </Card>
@@ -520,18 +505,18 @@ export default function ActivityTrackerPage() {
                     gap: 8,
                     width: "fit-content",
                     borderRadius: 999,
-                    background: "rgba(124,255,107,.14)",
+                    background: "rgba(34,197,94,.14)",
                     color: COLORS.lime,
                     padding: "8px 12px",
                     fontSize: 12,
-                    fontWeight: 900,
+                    fontWeight: 600,
                     textTransform: "uppercase",
                     letterSpacing: 1.1,
                   }}
                 >
                   Ao vivo
                 </div>
-                <div style={{ fontSize: 26, fontWeight: 1000, display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{ fontSize: 26, fontWeight: 700, display: "flex", alignItems: "center", gap: 10 }}>
                   <span style={{ fontSize: 34 }}>{ACTIVITY_META[currentActivity.type || "run"].icon}</span>
                   {ACTIVITY_META[currentActivity.type || "run"].label} em andamento
                 </div>
@@ -547,9 +532,9 @@ export default function ActivityTrackerPage() {
                   padding: "14px 18px",
                   borderRadius: 14,
                   border: `1px solid ${COLORS.borderStrong}`,
-                  background: "linear-gradient(135deg, #1DB954 0%, #7CFF6B 100%)",
+                  background: "#22C55E",
                   color: "#0A130D",
-                  fontWeight: 1000,
+                  fontWeight: 700,
                   cursor: "pointer",
                 }}
               >
@@ -561,28 +546,28 @@ export default function ActivityTrackerPage() {
 
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12 }}>
               <Card style={{ padding: 16, background: COLORS.panelSoft }}>
-                <div style={{ color: COLORS.mutedSoft, fontSize: 12, fontWeight: 900, textTransform: "uppercase", letterSpacing: 1.1 }}>
+                <div style={{ color: COLORS.mutedSoft, fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1.1 }}>
                   Tempo atual
                 </div>
-                <div style={{ marginTop: 10, fontSize: 34, fontWeight: 1000, fontFamily: "monospace" }}>
+                <div style={{ marginTop: 10, fontSize: 34, fontWeight: 700, fontFamily: "monospace" }}>
                   {formatTime(elapsedTime)}
                 </div>
               </Card>
 
               <Card style={{ padding: 16, background: COLORS.panelSoft }}>
-                <div style={{ color: COLORS.mutedSoft, fontSize: 12, fontWeight: 900, textTransform: "uppercase", letterSpacing: 1.1 }}>
+                <div style={{ color: COLORS.mutedSoft, fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1.1 }}>
                   Distância GPS
                 </div>
-                <div style={{ marginTop: 10, fontSize: 34, fontWeight: 1000 }}>
+                <div style={{ marginTop: 10, fontSize: 34, fontWeight: 700 }}>
                   {(currentActivity.distance || 0).toFixed(2)} <span style={{ fontSize: 16, color: COLORS.muted }}>km</span>
                 </div>
               </Card>
 
               <Card style={{ padding: 16, background: COLORS.panelSoft }}>
-                <div style={{ color: COLORS.mutedSoft, fontSize: 12, fontWeight: 900, textTransform: "uppercase", letterSpacing: 1.1 }}>
+                <div style={{ color: COLORS.mutedSoft, fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1.1 }}>
                   Ritmo estimado
                 </div>
-                <div style={{ marginTop: 10, fontSize: 34, fontWeight: 1000 }}>
+                <div style={{ marginTop: 10, fontSize: 34, fontWeight: 700 }}>
                   {formatPace(currentActivity.pace || 0)} <span style={{ fontSize: 16, color: COLORS.muted }}>min/km</span>
                 </div>
               </Card>
@@ -593,7 +578,7 @@ export default function ActivityTrackerPage() {
         <Card>
           <div style={{ display: "grid", gap: 18 }}>
             <div style={{ display: "grid", gap: 8 }}>
-              <div style={{ fontSize: 26, fontWeight: 1000 }}>Escolha a atividade e comece a rastrear.</div>
+              <div style={{ fontSize: 26, fontWeight: 700 }}>Escolha a atividade e comece a rastrear.</div>
               <div style={{ color: COLORS.muted, fontSize: 14, lineHeight: 1.6 }}>
                 Use o GPS do aparelho para montar a rota da sessão. Corrida, caminhada e ciclismo compartilham o mesmo fluxo, mas cada opção já entra com o contexto certo.
               </div>
@@ -624,7 +609,7 @@ export default function ActivityTrackerPage() {
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                         <span style={{ fontSize: 30 }}>{ACTIVITY_META[type].icon}</span>
-                        <span style={{ fontSize: 18, fontWeight: 900 }}>{ACTIVITY_META[type].label}</span>
+                        <span style={{ fontSize: 18, fontWeight: 600 }}>{ACTIVITY_META[type].label}</span>
                       </div>
                       {active ? (
                         <span
@@ -634,7 +619,7 @@ export default function ActivityTrackerPage() {
                             color: COLORS.lime,
                             padding: "6px 10px",
                             fontSize: 11,
-                            fontWeight: 900,
+                            fontWeight: 600,
                             textTransform: "uppercase",
                           }}
                         >
@@ -660,11 +645,11 @@ export default function ActivityTrackerPage() {
                 padding: 16,
                 borderRadius: 18,
                 border: `1px solid ${COLORS.border}`,
-                background: "rgba(255,255,255,.04)",
+                background: "#FAFAFA",
               }}
             >
               <div style={{ display: "grid", gap: 6 }}>
-                <div style={{ fontWeight: 900 }}>
+                <div style={{ fontWeight: 600 }}>
                   {ACTIVITY_META[selectedType].icon} {ACTIVITY_META[selectedType].label}
                 </div>
                 <div style={{ color: COLORS.muted, fontSize: 13 }}>
@@ -679,9 +664,9 @@ export default function ActivityTrackerPage() {
                   padding: "14px 18px",
                   borderRadius: 14,
                   border: `1px solid ${COLORS.borderStrong}`,
-                  background: "linear-gradient(135deg, #1DB954 0%, #7CFF6B 100%)",
+                  background: "#22C55E",
                   color: "#0A130D",
-                  fontWeight: 1000,
+                  fontWeight: 700,
                   cursor: "pointer",
                 }}
               >
@@ -694,7 +679,7 @@ export default function ActivityTrackerPage() {
 
       <div style={{ display: "grid", gap: 14 }}>
         <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-          <div style={{ fontSize: 22, fontWeight: 900 }}>Histórico de atividades</div>
+          <div style={{ fontSize: 22, fontWeight: 600 }}>Histórico de atividades</div>
           <div style={{ color: COLORS.muted, fontSize: 13 }}>
             Revise distância, duração, ritmo e a rota de cada sessão.
           </div>
@@ -731,7 +716,7 @@ export default function ActivityTrackerPage() {
                         {ACTIVITY_META[activity.type].icon}
                       </div>
                       <div style={{ display: "grid", gap: 6 }}>
-                        <div style={{ fontWeight: 900, fontSize: 17 }}>
+                        <div style={{ fontWeight: 600, fontSize: 17 }}>
                           {ACTIVITY_META[activity.type].label} • {new Date(activity.startTime).toLocaleDateString("pt-BR")}
                         </div>
                         <div style={{ color: COLORS.muted, fontSize: 13, display: "flex", gap: 12, flexWrap: "wrap" }}>
@@ -751,7 +736,7 @@ export default function ActivityTrackerPage() {
                         border: "1px solid rgba(255,0,0,.22)",
                         borderRadius: 10,
                         color: "#FF9090",
-                        fontWeight: 900,
+                        fontWeight: 600,
                         cursor: "pointer",
                       }}
                     >
@@ -767,7 +752,7 @@ export default function ActivityTrackerPage() {
                         padding: 20,
                         borderRadius: 16,
                         border: `1px dashed ${COLORS.border}`,
-                        background: "rgba(255,255,255,.03)",
+                        background: "#FAFAFA",
                         color: COLORS.muted,
                         textAlign: "center",
                         fontSize: 14,

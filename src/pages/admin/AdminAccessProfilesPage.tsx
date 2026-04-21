@@ -1,17 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { getFeatures, getPlanFeatures, getPlans, updatePlanFeatures, type FeatureItem, type PlanItem } from "../../services/featureApi";
-
-const COLORS = {
-  border: "rgba(124,255,107,.16)",
-  borderStrong: "rgba(29,185,84,.34)",
-  text: "#FFFFFF",
-  muted: "rgba(255,255,255,.72)",
-  panel: "linear-gradient(180deg, rgba(22,25,22,.92), rgba(15,18,16,.96))",
-  panelDeep: "linear-gradient(135deg, rgba(15,61,46,.94), rgba(15,24,20,.98))",
-  panelSoft: "rgba(255,255,255,.04)",
-  primarySoft: "rgba(29,185,84,.18)",
-  lime: "#7CFF6B",
-};
+import { COLORS } from "../../styles/colors";
 
 export default function AdminAccessProfilesPage() {
   const [plans, setPlans] = useState<PlanItem[]>([]);
@@ -104,13 +93,13 @@ export default function AdminAccessProfilesPage() {
           border: `1px solid ${COLORS.borderStrong}`,
           borderRadius: 20,
           background: COLORS.panelDeep,
-          boxShadow: "0 18px 44px rgba(0,0,0,.45)",
+          boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.05)",
           padding: 18,
           display: "grid",
           gap: 8,
         }}
       >
-        <div style={{ fontSize: 28, fontWeight: 1000 }}>Gerência de planos e features</div>
+        <div style={{ fontSize: 28, fontWeight: 700 }}>Gerência de planos e features</div>
         <div style={{ color: COLORS.muted, lineHeight: 1.6, maxWidth: 860 }}>
           Configure quais funcionalidades ficam habilitadas em cada plano de assinatura. O frontend e o backend usam essa matriz dinamicamente.
         </div>
@@ -122,13 +111,13 @@ export default function AdminAccessProfilesPage() {
             border: `1px solid ${COLORS.border}`,
             borderRadius: 20,
             background: COLORS.panel,
-            boxShadow: "0 18px 44px rgba(0,0,0,.45)",
+            boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.05)",
             padding: 16,
             display: "grid",
             gap: 10,
           }}
         >
-          <div style={{ fontSize: 18, fontWeight: 1000 }}>Planos disponíveis</div>
+          <div style={{ fontSize: 18, fontWeight: 700 }}>Planos disponíveis</div>
           {plans.map((plan) => {
             const active = selectedPlanId === plan.id;
             return (
@@ -148,7 +137,7 @@ export default function AdminAccessProfilesPage() {
                   gap: 6,
                 }}
               >
-                <div style={{ fontWeight: 1000 }}>{plan.name}</div>
+                <div style={{ fontWeight: 700 }}>{plan.name}</div>
                 <div style={{ color: COLORS.muted, fontSize: 13, lineHeight: 1.5 }}>{plan.description}</div>
               </button>
             );
@@ -161,7 +150,7 @@ export default function AdminAccessProfilesPage() {
               border: `1px solid ${COLORS.border}`,
               borderRadius: 20,
               background: COLORS.panel,
-              boxShadow: "0 18px 44px rgba(0,0,0,.45)",
+              boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.05)",
               padding: 18,
               display: "grid",
               gap: 8,
@@ -169,7 +158,7 @@ export default function AdminAccessProfilesPage() {
           >
             <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
               <div style={{ display: "grid", gap: 6 }}>
-                  <div style={{ fontSize: 22, fontWeight: 1000 }}>{selectedPlan?.name || "Plano"}</div>
+                  <div style={{ fontSize: 22, fontWeight: 700 }}>{selectedPlan?.name || "Plano"}</div>
                   <div style={{ color: COLORS.muted, lineHeight: 1.6 }}>
                     {selectedPlan?.description || "Selecione um plano para editar as features."}
                   </div>
@@ -184,7 +173,7 @@ export default function AdminAccessProfilesPage() {
                   border: `1px solid ${COLORS.border}`,
                     background: COLORS.panelSoft,
                   color: COLORS.text,
-                  fontWeight: 1000,
+                  fontWeight: 700,
                     cursor: "pointer",
                 }}
               >
@@ -198,13 +187,13 @@ export default function AdminAccessProfilesPage() {
                 border: `1px solid ${COLORS.border}`,
                 borderRadius: 20,
                 background: COLORS.panel,
-                boxShadow: "0 18px 44px rgba(0,0,0,.45)",
+                boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.05)",
                 padding: 18,
                 display: "grid",
                 gap: 12,
               }}
             >
-              <div style={{ fontSize: 18, fontWeight: 1000 }}>Features do plano</div>
+              <div style={{ fontSize: 18, fontWeight: 700 }}>Features do plano</div>
               <div style={{ display: "grid", gap: 10 }}>
                 {featuresCatalog.map((feature) => {
                   const checked = Boolean(draft[feature.key]);
@@ -230,11 +219,11 @@ export default function AdminAccessProfilesPage() {
                         style={{ marginTop: 2 }}
                       />
                       <div style={{ display: "grid", gap: 6 }}>
-                        <div style={{ fontWeight: 1000 }}>{feature.name}</div>
+                        <div style={{ fontWeight: 700 }}>{feature.name}</div>
                         <div style={{ color: COLORS.muted, fontSize: 13, lineHeight: 1.5 }}>
                           {feature.description}
                         </div>
-                        <div style={{ color: COLORS.lime, fontSize: 12, fontWeight: 900 }}>{feature.key}</div>
+                        <div style={{ color: COLORS.lime, fontSize: 12, fontWeight: 600 }}>{feature.key}</div>
                       </div>
                     </label>
                   );
@@ -247,7 +236,7 @@ export default function AdminAccessProfilesPage() {
               borderRadius: 18,
               border: `1px solid ${COLORS.border}`,
               background: COLORS.panel,
-              boxShadow: "0 18px 44px rgba(0,0,0,.45)",
+              boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.05)",
               padding: 16,
               color: COLORS.muted,
               lineHeight: 1.6,

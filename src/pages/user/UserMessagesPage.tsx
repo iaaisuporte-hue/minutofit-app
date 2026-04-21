@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "../../auth/AuthContext";
+import { COLORS } from "../../styles/colors";
 
 type Role = "user" | "personal" | "admin" | "nutri";
 
@@ -22,18 +23,6 @@ type ChatConversation = {
   lastReadAtByPersonal?: string;
 };
 
-const COLORS = {
-  border: "rgba(124,255,107,.16)",
-  borderStrong: "rgba(29,185,84,.34)",
-  panel: "linear-gradient(180deg, rgba(22,25,22,.92), rgba(15,18,16,.96))",
-  panelDeep: "linear-gradient(135deg, rgba(15,61,46,.94), rgba(15,24,20,.98))",
-  text: "#FFFFFF",
-  muted: "rgba(255,255,255,.72)",
-  mutedSoft: "rgba(232,236,233,.58)",
-  highlightSoft: "rgba(124,255,107,.12)",
-  primarySoft: "rgba(29,185,84,.18)",
-};
-
 const CONVERSATIONS_KEY = "treinai_chat_conversations_v1";
 const MESSAGES_KEY_PREFIX = "treinai_chat_messages_v1__";
 const DEFAULT_PERSONAL_ID = "personal@treinai.com";
@@ -51,7 +40,7 @@ function Card({
         border: `1px solid ${COLORS.border}`,
         borderRadius: 20,
         background: COLORS.panel,
-        boxShadow: "0 18px 44px rgba(0,0,0,.45)",
+        boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.05)",
         ...style,
       }}
     >
@@ -225,7 +214,7 @@ export default function UserMessagesPage() {
   if (myRole !== "user") {
     return (
       <Card style={{ padding: 18 }}>
-        <div style={{ fontSize: 18, fontWeight: 1000, color: COLORS.text }}>Acesso indisponível</div>
+        <div style={{ fontSize: 18, fontWeight: 700, color: COLORS.text }}>Acesso indisponível</div>
         <div style={{ marginTop: 8, color: COLORS.muted }}>
           Essa área será controlada por perfil de acesso. Quando você quiser, eu te ajudo a amarrar isso por role de ponta a ponta.
         </div>
@@ -293,17 +282,17 @@ export default function UserMessagesPage() {
               gap: 8,
               borderRadius: 999,
               background: COLORS.highlightSoft,
-              color: "#7CFF6B",
+              color: "#22C55E",
               padding: "8px 12px",
               fontSize: 11,
-              fontWeight: 900,
+              fontWeight: 600,
               letterSpacing: 1.2,
               textTransform: "uppercase",
             }}
           >
             Mensagens
           </div>
-          <div style={{ fontSize: 30, fontWeight: 1000, color: COLORS.text }}>
+          <div style={{ fontSize: 30, fontWeight: 700, color: COLORS.text }}>
             Canal direto com seu personal.
           </div>
           <div style={{ color: COLORS.muted, fontSize: 15, lineHeight: 1.6, maxWidth: 780 }}>
@@ -320,7 +309,7 @@ export default function UserMessagesPage() {
         }}
       >
         <Card style={{ padding: 14, display: "grid", gap: 12, alignSelf: "start" }}>
-          <div style={{ fontWeight: 1000, color: COLORS.text, fontSize: 16 }}>Conversas</div>
+          <div style={{ fontWeight: 700, color: COLORS.text, fontSize: 16 }}>Conversas</div>
           {conversations.map((conversation) => {
             const conversationMessages = readMessages(conversation.id);
             const unread = countUnreadForStudent(conversation, conversationMessages);
@@ -337,7 +326,7 @@ export default function UserMessagesPage() {
                   padding: 14,
                   borderRadius: 16,
                   border: active ? `1px solid ${COLORS.borderStrong}` : `1px solid ${COLORS.border}`,
-                  background: active ? COLORS.primarySoft : "rgba(255,255,255,.03)",
+                  background: active ? COLORS.primarySoft : "#FAFAFA",
                   color: COLORS.text,
                   cursor: "pointer",
                   display: "grid",
@@ -345,16 +334,16 @@ export default function UserMessagesPage() {
                 }}
               >
                 <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center" }}>
-                  <div style={{ fontWeight: 900 }}>{getDisplayNameFromEmail(conversation.personalId)}</div>
+                  <div style={{ fontWeight: 600 }}>{getDisplayNameFromEmail(conversation.personalId)}</div>
                   {unread ? (
                     <span
                       style={{
                         borderRadius: 999,
                         background: COLORS.highlightSoft,
-                        color: "#7CFF6B",
+                        color: "#22C55E",
                         padding: "4px 8px",
                         fontSize: 11,
-                        fontWeight: 900,
+                        fontWeight: 600,
                       }}
                     >
                       {unread} nova{unread > 1 ? "s" : ""}
@@ -385,7 +374,7 @@ export default function UserMessagesPage() {
             }}
           >
             <div style={{ display: "grid", gap: 6 }}>
-              <div style={{ fontSize: 18, fontWeight: 1000, color: COLORS.text }}>
+              <div style={{ fontSize: 18, fontWeight: 700, color: COLORS.text }}>
                 {selectedConversation ? getDisplayNameFromEmail(selectedConversation.personalId) : "Seu personal"}
               </div>
               <div style={{ color: COLORS.muted, fontSize: 13 }}>
@@ -395,12 +384,12 @@ export default function UserMessagesPage() {
             <div
               style={{
                 borderRadius: 999,
-                background: "rgba(29,185,84,.12)",
+                background: "rgba(34,197,94,.12)",
                 border: `1px solid ${COLORS.borderStrong}`,
                 padding: "8px 12px",
                 color: COLORS.text,
                 fontSize: 12,
-                fontWeight: 900,
+                fontWeight: 600,
               }}
             >
               Canal ativo
@@ -428,7 +417,7 @@ export default function UserMessagesPage() {
                 }}
               >
                 <div style={{ fontSize: 30 }}>💬</div>
-                <div style={{ fontWeight: 1000, color: COLORS.text }}>Ainda não há mensagens nessa conversa.</div>
+                <div style={{ fontWeight: 700, color: COLORS.text }}>Ainda não há mensagens nessa conversa.</div>
                 <div style={{ fontSize: 14 }}>
                   Você pode começar pedindo ajuste no treino, avisando como se sentiu na sessão de hoje ou relatando qualquer desconforto.
                 </div>
@@ -452,7 +441,7 @@ export default function UserMessagesPage() {
                         border: mine ? `1px solid ${COLORS.borderStrong}` : `1px solid ${COLORS.border}`,
                         background: mine
                           ? "linear-gradient(135deg, rgba(15,61,46,.9), rgba(24,34,28,.96))"
-                          : "rgba(255,255,255,.05)",
+                          : "#F9FAFB",
                         color: COLORS.text,
                         display: "grid",
                         gap: 8,
@@ -488,7 +477,7 @@ export default function UserMessagesPage() {
                 resize: "vertical",
                 borderRadius: 16,
                 border: `1px solid ${COLORS.border}`,
-                background: "rgba(255,255,255,.04)",
+                background: "#FAFAFA",
                 color: COLORS.text,
                 padding: 14,
                 fontSize: 14,
@@ -508,10 +497,10 @@ export default function UserMessagesPage() {
                   borderRadius: 14,
                   border: `1px solid ${text.trim() ? COLORS.borderStrong : COLORS.border}`,
                   background: text.trim()
-                    ? "linear-gradient(135deg, #1DB954 0%, #7CFF6B 100%)"
-                    : "rgba(255,255,255,.05)",
+                    ? "#22C55E"
+                    : "#F9FAFB",
                   color: text.trim() ? "#0A130D" : COLORS.muted,
-                  fontWeight: 1000,
+                  fontWeight: 700,
                   cursor: text.trim() ? "pointer" : "not-allowed",
                 }}
               >

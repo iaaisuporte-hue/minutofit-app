@@ -1,22 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-
-const COLORS = {
-  border: "rgba(124,255,107,.16)",
-  borderStrong: "rgba(29,185,84,.34)",
-  text: "#FFFFFF",
-  muted: "rgba(255,255,255,.72)",
-  mutedSoft: "rgba(232,236,233,.58)",
-  panel: "linear-gradient(180deg, rgba(22,25,22,.92), rgba(15,18,16,.96))",
-  panelDeep: "linear-gradient(135deg, rgba(15,61,46,.94), rgba(15,24,20,.98))",
-  panelSoft: "rgba(255,255,255,.04)",
-  primarySoft: "rgba(29,185,84,.18)",
-  highlightSoft: "rgba(124,255,107,.12)",
-  lime: "#7CFF6B",
-  redSoft: "rgba(255,110,110,.12)",
-  redBorder: "rgba(255,110,110,.28)",
-  yellowSoft: "rgba(255,200,80,.12)",
-  yellowBorder: "rgba(255,200,80,.28)",
-};
+import { COLORS } from "../../styles/colors";
 
 type CameraStatus = "idle" | "loading" | "ready" | "error";
 type Stage = "down" | "up";
@@ -75,7 +58,7 @@ function Card({
         border: `1px solid ${COLORS.border}`,
         borderRadius: 20,
         background: COLORS.panel,
-        boxShadow: "0 18px 44px rgba(0,0,0,.45)",
+        boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.05)",
         padding: 18,
         ...style,
       }}
@@ -108,7 +91,7 @@ function SectionTitle({
             color: COLORS.lime,
             padding: "8px 12px",
             fontSize: 11,
-            fontWeight: 900,
+            fontWeight: 600,
             letterSpacing: 1.2,
             textTransform: "uppercase",
           }}
@@ -116,7 +99,7 @@ function SectionTitle({
           {eyebrow}
         </div>
       ) : null}
-      <div style={{ fontSize: 30, fontWeight: 1000, color: COLORS.text }}>{title}</div>
+      <div style={{ fontSize: 30, fontWeight: 700, color: COLORS.text }}>{title}</div>
       {subtitle ? <div style={{ color: COLORS.muted, lineHeight: 1.6 }}>{subtitle}</div> : null}
     </div>
   );
@@ -496,11 +479,11 @@ export default function MovementLabPage() {
           const landmarks = results.poseLandmarks || [];
           if (landmarks.length && window.drawConnectors && window.drawLandmarks && window.POSE_CONNECTIONS) {
             window.drawConnectors(ctx, landmarks, window.POSE_CONNECTIONS, {
-              color: "#1DB954",
+              color: "#22C55E",
               lineWidth: 4,
             });
             window.drawLandmarks(ctx, landmarks, {
-              color: "#7CFF6B",
+              color: "#22C55E",
               lineWidth: 1,
               radius: 4,
             });
@@ -678,7 +661,7 @@ export default function MovementLabPage() {
               }}
             >
               <div style={{ display: "grid", gap: 6 }}>
-                <div style={{ fontSize: 22, fontWeight: 1000, color: COLORS.text }}>{analysis.label}</div>
+                <div style={{ fontSize: 22, fontWeight: 700, color: COLORS.text }}>{analysis.label}</div>
                 <div style={{ color: COLORS.muted, lineHeight: 1.6 }}>
                   {exerciseMode === "biceps_curl"
                     ? "Fique com ombros, cotovelos e quadril visíveis. A leitura usa ângulo do cotovelo e estabilidade do tronco para sugerir correções."
@@ -696,7 +679,7 @@ export default function MovementLabPage() {
                   border: `1px solid ${confidenceVisual.border}`,
                   color: confidenceVisual.color,
                   fontSize: 12,
-                  fontWeight: 900,
+                  fontWeight: 600,
                 }}
               >
                 {confidenceVisual.label}
@@ -729,11 +712,11 @@ export default function MovementLabPage() {
                   style={{
                     padding: "8px 12px",
                     borderRadius: 999,
-                    background: "rgba(0,0,0,.42)",
+                    background: "rgba(0,0,0,0.05)",
                     border: `1px solid ${COLORS.border}`,
                     color: COLORS.text,
                     fontSize: 12,
-                    fontWeight: 900,
+                    fontWeight: 600,
                   }}
                 >
                   {cameraStatus === "ready"
@@ -763,7 +746,7 @@ export default function MovementLabPage() {
             ) : null}
 
             <div style={{ display: "grid", gap: 10 }}>
-              <div style={{ color: COLORS.mutedSoft, fontSize: 12, fontWeight: 900, textTransform: "uppercase", letterSpacing: 1.1 }}>
+              <div style={{ color: COLORS.mutedSoft, fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1.1 }}>
                 Exercício em teste
               </div>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -783,7 +766,7 @@ export default function MovementLabPage() {
                       background: exerciseMode === value ? COLORS.primarySoft : COLORS.panelSoft,
                       color: COLORS.text,
                       cursor: "pointer",
-                      fontWeight: 900,
+                      fontWeight: 600,
                     }}
                   >
                     {label}
@@ -797,7 +780,7 @@ export default function MovementLabPage() {
         <div style={{ display: "grid", gap: 16 }}>
           <Card>
             <div style={{ display: "grid", gap: 12 }}>
-              <div style={{ fontSize: 18, fontWeight: 1000, color: COLORS.text }}>Leitura em tempo real</div>
+              <div style={{ fontSize: 18, fontWeight: 700, color: COLORS.text }}>Leitura em tempo real</div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 10 }}>
                 <div
                   style={{
@@ -809,10 +792,10 @@ export default function MovementLabPage() {
                     gap: 6,
                   }}
                 >
-                  <div style={{ color: COLORS.mutedSoft, fontSize: 11, fontWeight: 900, textTransform: "uppercase", letterSpacing: 1.1 }}>
+                  <div style={{ color: COLORS.mutedSoft, fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1.1 }}>
                     {metricLabels.left}
                   </div>
-                  <div style={{ color: COLORS.text, fontSize: 24, fontWeight: 1000 }}>
+                  <div style={{ color: COLORS.text, fontSize: 24, fontWeight: 700 }}>
                     {analysis.leftAngle ?? "--"}°
                   </div>
                 </div>
@@ -826,10 +809,10 @@ export default function MovementLabPage() {
                     gap: 6,
                   }}
                 >
-                  <div style={{ color: COLORS.mutedSoft, fontSize: 11, fontWeight: 900, textTransform: "uppercase", letterSpacing: 1.1 }}>
+                  <div style={{ color: COLORS.mutedSoft, fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1.1 }}>
                     {metricLabels.right}
                   </div>
-                  <div style={{ color: COLORS.text, fontSize: 24, fontWeight: 1000 }}>
+                  <div style={{ color: COLORS.text, fontSize: 24, fontWeight: 700 }}>
                     {analysis.rightAngle ?? "--"}°
                   </div>
                 </div>
@@ -843,10 +826,10 @@ export default function MovementLabPage() {
                     gap: 6,
                   }}
                 >
-                  <div style={{ color: COLORS.mutedSoft, fontSize: 11, fontWeight: 900, textTransform: "uppercase", letterSpacing: 1.1 }}>
+                  <div style={{ color: COLORS.mutedSoft, fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1.1 }}>
                     Repetições
                   </div>
-                  <div style={{ color: COLORS.text, fontSize: 24, fontWeight: 1000 }}>
+                  <div style={{ color: COLORS.text, fontSize: 24, fontWeight: 700 }}>
                     {analysis.repCount}
                   </div>
                 </div>
@@ -860,10 +843,10 @@ export default function MovementLabPage() {
                     gap: 6,
                   }}
                 >
-                  <div style={{ color: COLORS.mutedSoft, fontSize: 11, fontWeight: 900, textTransform: "uppercase", letterSpacing: 1.1 }}>
+                  <div style={{ color: COLORS.mutedSoft, fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1.1 }}>
                     Fase
                   </div>
-                  <div style={{ color: COLORS.text, fontSize: 24, fontWeight: 1000 }}>
+                  <div style={{ color: COLORS.text, fontSize: 24, fontWeight: 700 }}>
                     {analysis.stage === "up" ? metricLabels.stageUp : metricLabels.stageDown}
                   </div>
                 </div>
@@ -873,7 +856,7 @@ export default function MovementLabPage() {
 
           <Card>
             <div style={{ display: "grid", gap: 12 }}>
-              <div style={{ fontSize: 18, fontWeight: 1000, color: COLORS.text }}>Correções sugeridas</div>
+              <div style={{ fontSize: 18, fontWeight: 700, color: COLORS.text }}>Correções sugeridas</div>
               <div style={{ display: "grid", gap: 10 }}>
                 {analysis.feedback.map((item) => (
                   <div
@@ -899,7 +882,7 @@ export default function MovementLabPage() {
                         color: COLORS.lime,
                         display: "grid",
                         placeItems: "center",
-                        fontWeight: 1000,
+                        fontWeight: 700,
                       }}
                     >
                       !
@@ -913,7 +896,7 @@ export default function MovementLabPage() {
 
           <Card>
             <div style={{ display: "grid", gap: 10 }}>
-              <div style={{ fontSize: 18, fontWeight: 1000, color: COLORS.text }}>Notas do experimento</div>
+              <div style={{ fontSize: 18, fontWeight: 700, color: COLORS.text }}>Notas do experimento</div>
               <div style={{ color: COLORS.muted, lineHeight: 1.6 }}>
                 Esta é uma versão inicial. Ela já ajuda a testar webcam, landmarks do Pose e correções básicas de Rosca Direta, mas ainda não substitui orientação humana.
               </div>

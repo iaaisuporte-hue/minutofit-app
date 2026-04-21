@@ -1,18 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { fetchAdminUserById, type AdminUserRow } from "../../services/adminApi";
-
-const COLORS = {
-  border: "rgba(124,255,107,.16)",
-  borderStrong: "rgba(29,185,84,.34)",
-  text: "#FFFFFF",
-  muted: "rgba(255,255,255,.72)",
-  panel: "linear-gradient(180deg, rgba(22,25,22,.92), rgba(15,18,16,.96))",
-  panelDeep: "linear-gradient(135deg, rgba(15,61,46,.94), rgba(15,24,20,.98))",
-  panelSoft: "rgba(255,255,255,.04)",
-  redSoft: "rgba(255,110,110,.10)",
-  redBorder: "rgba(255,110,110,.28)",
-};
+import { COLORS } from "../../styles/colors";
 
 function formatDate(iso: string | undefined) {
   if (!iso) return "—";
@@ -56,7 +45,7 @@ export default function AdminUserDetailsPage() {
   if (user === undefined && !error) {
     return (
       <div style={{ display: "grid", gap: 12, color: COLORS.text }}>
-        <div style={{ fontSize: 18, fontWeight: 1000 }}>Carregando aluno...</div>
+        <div style={{ fontSize: 18, fontWeight: 700 }}>Carregando aluno...</div>
         <div style={{ color: COLORS.muted }}>Buscando dados no servidor.</div>
       </div>
     );
@@ -73,8 +62,8 @@ export default function AdminUserDetailsPage() {
             padding: 16,
           }}
         >
-          <div style={{ fontWeight: 1000 }}>{error}</div>
-          <Link to="/app/admin/users" style={{ color: "#7CFF6B", marginTop: 8, display: "inline-block" }}>
+          <div style={{ fontWeight: 700 }}>{error}</div>
+          <Link to="/app/admin/users" style={{ color: "#22C55E", marginTop: 8, display: "inline-block" }}>
             Voltar para alunos
           </Link>
         </div>
@@ -85,8 +74,8 @@ export default function AdminUserDetailsPage() {
   if (!user) {
     return (
       <div style={{ display: "grid", gap: 12, color: COLORS.text }}>
-        <div style={{ fontSize: 24, fontWeight: 1000 }}>Aluno não encontrado</div>
-        <Link to="/app/admin/users" style={{ color: "#7CFF6B" }}>
+        <div style={{ fontSize: 24, fontWeight: 700 }}>Aluno não encontrado</div>
+        <Link to="/app/admin/users" style={{ color: "#22C55E" }}>
           Voltar para alunos
         </Link>
       </div>
@@ -102,16 +91,16 @@ export default function AdminUserDetailsPage() {
           border: `1px solid ${COLORS.borderStrong}`,
           borderRadius: 20,
           background: COLORS.panelDeep,
-          boxShadow: "0 18px 44px rgba(0,0,0,.45)",
+          boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.05)",
           padding: 18,
           display: "grid",
           gap: 8,
         }}
       >
-        <Link to="/app/admin/users" style={{ color: "#7CFF6B", textDecoration: "none", fontWeight: 900, width: "fit-content" }}>
+        <Link to="/app/admin/users" style={{ color: "#22C55E", textDecoration: "none", fontWeight: 600, width: "fit-content" }}>
           ← Voltar para alunos
         </Link>
-        <div style={{ fontSize: 30, fontWeight: 1000 }}>{user.name || "Sem nome"}</div>
+        <div style={{ fontSize: 30, fontWeight: 700 }}>{user.name || "Sem nome"}</div>
         <div style={{ color: COLORS.muted }}>{user.email}</div>
       </div>
 
@@ -135,14 +124,14 @@ export default function AdminUserDetailsPage() {
               border: `1px solid ${COLORS.border}`,
               borderRadius: 18,
               background: COLORS.panel,
-              boxShadow: "0 18px 44px rgba(0,0,0,.45)",
+              boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.05)",
               padding: 16,
               display: "grid",
               gap: 8,
             }}
           >
             <div style={{ color: COLORS.muted, fontSize: 12 }}>{item.label}</div>
-            <div style={{ fontSize: 18, fontWeight: 1000 }}>{item.value}</div>
+            <div style={{ fontSize: 18, fontWeight: 700 }}>{item.value}</div>
           </div>
         ))}
       </div>
@@ -153,13 +142,13 @@ export default function AdminUserDetailsPage() {
             border: `1px solid ${COLORS.border}`,
             borderRadius: 20,
             background: COLORS.panel,
-            boxShadow: "0 18px 44px rgba(0,0,0,.45)",
+            boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.05)",
             padding: 18,
             display: "grid",
             gap: 10,
           }}
         >
-          <div style={{ fontSize: 18, fontWeight: 1000 }}>Leitura administrativa</div>
+          <div style={{ fontSize: 18, fontWeight: 700 }}>Leitura administrativa</div>
           <div style={{ color: COLORS.muted, lineHeight: 1.6 }}>
             Dados reais do cadastro e da assinatura ativa. Use esta visão para suporte, retenção e ajuste de plano quando o
             fluxo de gestão estiver disponível.
@@ -186,13 +175,13 @@ export default function AdminUserDetailsPage() {
             border: `1px solid ${COLORS.border}`,
             borderRadius: 20,
             background: COLORS.panel,
-            boxShadow: "0 18px 44px rgba(0,0,0,.45)",
+            boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.05)",
             padding: 18,
             display: "grid",
             gap: 10,
           }}
         >
-          <div style={{ fontSize: 18, fontWeight: 1000 }}>Próximas ações</div>
+          <div style={{ fontSize: 18, fontWeight: 700 }}>Próximas ações</div>
           {[
             "Revisar necessidade de completar perfil.",
             "Confirmar plano e cobrança no painel financeiro quando integrado.",

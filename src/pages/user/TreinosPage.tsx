@@ -17,24 +17,6 @@ type TrainingHubCard = {
   lockedText?: string;
 };
 
-const COLORS = {
-  border: "rgba(124,255,107,.16)",
-  borderStrong: "rgba(29,185,84,.34)",
-  text: "#FFFFFF",
-  muted: "rgba(255,255,255,.72)",
-  mutedSoft: "rgba(232,236,233,.58)",
-  panel: "linear-gradient(180deg, rgba(22,25,22,.92), rgba(15,18,16,.96))",
-  panelDeep: "linear-gradient(135deg, rgba(15,61,46,.94), rgba(15,24,20,.98))",
-  panelSoft: "rgba(255,255,255,.04)",
-  primarySoft: "rgba(29,185,84,.18)",
-  highlightSoft: "rgba(124,255,107,.12)",
-  lime: "#7CFF6B",
-  green: "#1DB954",
-  deep: "#0F3D2E",
-  warnSoft: "rgba(255,200,80,.12)",
-  warnBorder: "rgba(255,200,80,.28)",
-};
-
 const PLAN_LABEL: Record<UserPlan, string> = {
   basic: "Básico",
   silver: "Silver",
@@ -59,63 +41,6 @@ function normalizePlan(tier?: string): UserPlan {
   return "basic";
 }
 
-function SectionTitle({
-  eyebrow,
-  title,
-  subtitle,
-}: {
-  eyebrow?: string;
-  title: string;
-  subtitle?: string;
-}) {
-  return (
-    <div style={{ display: "grid", gap: 8 }}>
-      {eyebrow ? (
-        <div
-          style={{
-            display: "inline-flex",
-            width: "fit-content",
-            alignItems: "center",
-            gap: 8,
-            borderRadius: 999,
-            background: COLORS.highlightSoft,
-            color: COLORS.lime,
-            padding: "8px 12px",
-            fontSize: 11,
-            fontWeight: 900,
-            letterSpacing: 1.2,
-            textTransform: "uppercase",
-          }}
-        >
-          {eyebrow}
-        </div>
-      ) : null}
-      <div style={{ fontSize: 30, fontWeight: 1000, color: COLORS.text }}>{title}</div>
-      {subtitle ? <div style={{ color: COLORS.muted, lineHeight: 1.6, maxWidth: 780 }}>{subtitle}</div> : null}
-    </div>
-  );
-}
-
-function InfoPill({ children }: { children: React.ReactNode }) {
-  return (
-    <span
-      style={{
-        padding: "8px 12px",
-        borderRadius: 999,
-        border: `1px solid ${COLORS.border}`,
-        background: "rgba(255,255,255,.04)",
-        color: COLORS.text,
-        fontWeight: 900,
-        fontSize: 12,
-        display: "inline-flex",
-        alignItems: "center",
-      }}
-    >
-      {children}
-    </span>
-  );
-}
-
 function CardAction({
   to,
   locked,
@@ -132,14 +57,16 @@ function CardAction({
     alignItems: "center",
     justifyContent: "center",
     width: "fit-content",
-    padding: "12px 14px",
-    borderRadius: 14,
-    border: `1px solid ${locked ? "rgba(255,255,255,.10)" : COLORS.borderStrong}`,
-    background: locked ? "rgba(255,255,255,.04)" : "linear-gradient(135deg, #1DB954 0%, #7CFF6B 100%)",
-    color: locked ? COLORS.mutedSoft : "#082014",
-    fontWeight: 1000,
+    padding: "9px 16px",
+    borderRadius: 10,
+    border: locked ? "1px solid #E5E7EB" : "none",
+    background: locked ? "#FFFFFF" : "#22C55E",
+    color: locked ? "#9CA3AF" : "#FFFFFF",
+    fontWeight: 600,
+    fontSize: 13,
     cursor: locked ? "not-allowed" : "pointer",
     textDecoration: "none",
+    transition: "background 0.15s ease, transform 0.15s ease",
   };
 
   if (locked) return <span style={style}>{children}</span>;
@@ -158,64 +85,69 @@ function HubCard({
   card: TrainingHubCard;
   currentPlan: UserPlan;
 }) {
+  void currentPlan;
   return (
     <div
       style={{
-        border: `1px solid ${card.recommended ? COLORS.borderStrong : COLORS.border}`,
-        borderRadius: 20,
-        padding: 18,
-        background: card.recommended ? COLORS.panelDeep : COLORS.panel,
-        boxShadow: "0 18px 44px rgba(0,0,0,.45)",
+        border: `1px solid ${card.recommended ? "rgba(34,197,94,0.3)" : "#E5E7EB"}`,
+        borderRadius: 16,
+        padding: 20,
+        background: card.recommended ? "rgba(34,197,94,0.04)" : "#FFFFFF",
+        boxShadow: "0 1px 3px rgba(0,0,0,0.05), 0 4px 12px rgba(0,0,0,0.04)",
         display: "grid",
         gap: 14,
+        transition: "border-color 0.15s ease, box-shadow 0.15s ease",
       }}
     >
       <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "flex-start" }}>
-        <div style={{ display: "grid", gap: 8 }}>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <InfoPill>{card.badge}</InfoPill>
-            {card.recommended ? <InfoPill>Melhor escolha hoje</InfoPill> : null}
+        <div style={{ display: "grid", gap: 6 }}>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+            <span style={{ padding: "3px 10px", borderRadius: 999, border: "1px solid #E5E7EB", background: "#F9FAFB", fontSize: 12, fontWeight: 500, color: "#6B7280" }}>
+              {card.badge}
+            </span>
+            {card.recommended && (
+              <span style={{ padding: "3px 10px", borderRadius: 999, border: "1px solid rgba(34,197,94,0.3)", background: "rgba(34,197,94,0.08)", fontSize: 12, fontWeight: 600, color: "#16A34A" }}>
+                ✨ Melhor escolha hoje
+              </span>
+            )}
           </div>
-          <div style={{ fontSize: 22, fontWeight: 1000, color: COLORS.text }}>{card.title}</div>
-          <div style={{ color: COLORS.muted, lineHeight: 1.55 }}>{card.subtitle}</div>
+          <div style={{ fontSize: 18, fontWeight: 700, color: "#1F2937" }}>{card.title}</div>
+          <div style={{ color: "#6B7280", fontSize: 14, lineHeight: 1.5 }}>{card.subtitle}</div>
         </div>
 
-        <div
-          style={{
-            borderRadius: 999,
-            padding: "8px 12px",
-            border: `1px solid ${card.locked ? COLORS.warnBorder : COLORS.border}`,
-            background: card.locked ? COLORS.warnSoft : COLORS.panelSoft,
-            color: card.locked ? "#FFD36C" : COLORS.mutedSoft,
-            fontWeight: 900,
-            fontSize: 12,
-          }}
-        >
-          {card.locked ? `Disponível no plano ${currentPlan === "black" ? "Black" : "Black"}` : "Disponível agora"}
-        </div>
+        <span style={{
+          borderRadius: 999,
+          padding: "4px 10px",
+          border: `1px solid ${card.locked ? "rgba(245,158,11,0.3)" : "#E5E7EB"}`,
+          background: card.locked ? "rgba(245,158,11,0.08)" : "#F9FAFB",
+          color: card.locked ? "#B45309" : "#9CA3AF",
+          fontWeight: 500,
+          fontSize: 12,
+          whiteSpace: "nowrap",
+        }}>
+          {card.locked ? "Disponível no plano Black" : "Disponível agora"}
+        </span>
       </div>
 
-      <div style={{ color: COLORS.muted, lineHeight: 1.6, minHeight: 72 }}>{card.description}</div>
+      <div style={{ color: "#6B7280", fontSize: 14, lineHeight: 1.6 }}>{card.description}</div>
 
-      {card.locked && card.lockedText ? (
-        <div
-          style={{
-            borderRadius: 14,
-            border: `1px solid ${COLORS.warnBorder}`,
-            background: COLORS.warnSoft,
-            color: "#FFE3A3",
-            padding: 12,
-            fontSize: 13,
-            lineHeight: 1.5,
-          }}
-        >
+      {card.locked && card.lockedText && (
+        <div style={{
+          borderRadius: 12,
+          border: "1px solid rgba(245,158,11,0.25)",
+          background: "rgba(245,158,11,0.06)",
+          color: "#92400E",
+          padding: "10px 14px",
+          fontSize: 13,
+          lineHeight: 1.5,
+        }}>
           {card.lockedText}
         </div>
-      ) : null}
+      )}
 
-      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+      <div>
         <CardAction to={card.locked ? undefined : card.route} locked={card.locked}>
-          {card.locked ? "Recurso premium" : "Abrir"}
+          {card.locked ? "Recurso premium" : "Abrir →"}
         </CardAction>
       </div>
     </div>
@@ -235,7 +167,7 @@ export default function TreinosPage() {
         title: "Treino sugerido com IA",
         subtitle: "Seu treino do dia com leitura de contexto, tempo disponível e recuperação muscular.",
         description:
-          "Aqui o app monta o plano do dia considerando como você acordou, seu contexto de treino, o tempo disponível e os grupos musculares que precisam de recuperação.",
+          "O app monta o plano do dia considerando como você acordou, seu contexto de treino, o tempo disponível e os grupos musculares que precisam de recuperação.",
         badge: "Plano do dia",
         route: "/app/user/suggested-training",
         recommended: true,
@@ -254,20 +186,20 @@ export default function TreinosPage() {
         title: "Academia",
         subtitle: "Fichas mais completas para aparelhos, pesos livres e progressão estruturada.",
         description:
-          "Vamos usar esta área para sessões de academia mais profundas, com variação por objetivo, experiência e disponibilidade semanal.",
+          "Sessões de academia mais profundas, com variação por objetivo, experiência e disponibilidade semanal.",
         badge: "Academia",
         locked: currentPlan !== "black",
-        lockedText: "Planejado para liberar fichas mais completas e personalizadas quando você evoluir para o plano Black.",
+        lockedText: "Disponível no plano Black com fichas completas e personalizadas.",
       },
       {
         id: "consulting",
         title: "Consultoria",
         subtitle: "Espaço para ajustes humanos, revisão de rotina e acompanhamento mais próximo.",
         description:
-          "Aqui entra a camada de acompanhamento premium: revisões de treino, correções e decisões mais finas sobre sua semana.",
+          "Acompanhamento premium: revisões de treino, correções e decisões mais finas sobre sua semana.",
         badge: "Humano + IA",
         locked: currentPlan !== "black",
-        lockedText: "Esta área vai concentrar acompanhamento mais próximo e revisão personalizada dentro dos planos mais completos.",
+        lockedText: "Esta área vai concentrar acompanhamento mais próximo e revisão personalizada.",
       },
     ],
     [currentPlan]
@@ -275,99 +207,71 @@ export default function TreinosPage() {
 
   const recoveryMessage = useMemo(() => {
     if (!yesterdayGroups.length) {
-      return "Nenhum grupo muscular registrado ontem. Hoje você pode começar pelo treino sugerido ou por um short em casa.";
+      return "Nenhum grupo registrado ontem. Comece pelo treino sugerido ou um short em casa.";
     }
     return `Ontem você treinou ${yesterdayGroups
       .map((group) => groupLabelMap[group] ?? group)
-      .join(", ")}. Hoje vale variar o estímulo para recuperar melhor.`;
+      .join(", ")}. Hoje vale variar o estímulo.`;
   }, [yesterdayGroups]);
 
   return (
-    <div style={{ display: "grid", gap: 18, color: COLORS.text }}>
-      <div
-        style={{
-          border: `1px solid ${COLORS.borderStrong}`,
-          borderRadius: 24,
-          padding: 22,
-          background: COLORS.panelDeep,
-          boxShadow: "0 18px 44px rgba(0,0,0,.45)",
-          display: "grid",
-          gap: 16,
-        }}
-      >
-        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
+    <div style={{ display: "grid", gap: 20, color: "#1F2937" }}>
+      {/* Header */}
+      <div>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
           <button
             type="button"
             onClick={() => navigate(-1)}
             style={{
-              padding: "12px 14px",
-              borderRadius: 14,
-              border: `1px solid ${COLORS.border}`,
-              background: "transparent",
-              color: "#FFFFFF",
+              padding: "8px 14px",
+              borderRadius: 10,
+              border: "1px solid #E5E7EB",
+              background: "#FFFFFF",
+              color: "#6B7280",
               cursor: "pointer",
-              fontWeight: 1000,
-              width: "fit-content",
+              fontWeight: 500,
+              fontSize: 14,
+              transition: "border-color 0.15s ease",
             }}
           >
             ← Voltar
           </button>
-
-          <InfoPill>Plano {PLAN_LABEL[currentPlan]}</InfoPill>
+          <span style={{ padding: "4px 10px", borderRadius: 999, border: "1px solid #E5E7EB", background: "#F9FAFB", fontSize: 12, fontWeight: 500, color: "#6B7280" }}>
+            Plano {PLAN_LABEL[currentPlan]}
+          </span>
         </div>
 
-        <SectionTitle
-          eyebrow="Hub de treino"
-          title="Escolha o melhor formato para hoje"
-          subtitle="A área de treinos agora funciona como ponto de entrada do dia: IA para decidir a sessão, casa para execução rápida e, mais adiante, academia e consultoria para os planos mais completos."
-        />
+        <h1 style={{ fontSize: 24, fontWeight: 700, color: "#1F2937", margin: 0, letterSpacing: "-0.02em" }}>
+          Hub de treino
+        </h1>
+        <p style={{ color: "#6B7280", fontSize: 15, margin: "8px 0 0", lineHeight: 1.6, maxWidth: 680 }}>
+          Escolha o melhor formato para hoje. A IA decide a sessão, casa para execução rápida — academia e consultoria nos planos mais completos.
+        </p>
+      </div>
 
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-            gap: 12,
-          }}
-        >
-          <div
-            style={{
-              borderRadius: 18,
-              padding: 14,
-              border: `1px solid ${COLORS.border}`,
-              background: "rgba(255,255,255,.05)",
-              display: "grid",
-              gap: 6,
-            }}
-          >
-            <div style={{ fontSize: 12, color: COLORS.mutedSoft, fontWeight: 900, textTransform: "uppercase", letterSpacing: 1 }}>
-              Melhor ponto de partida
-            </div>
-            <div style={{ fontSize: 18, fontWeight: 1000 }}>Treino sugerido com IA</div>
-            <div style={{ color: COLORS.muted, lineHeight: 1.5 }}>
-              Ideal para montar o treino do dia antes de abrir vídeos, shorts ou tracker.
-            </div>
+      {/* Context cards */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 10 }}>
+        <div style={{ borderRadius: 14, padding: 16, border: "1px solid rgba(34,197,94,0.25)", background: "rgba(34,197,94,0.04)", display: "grid", gap: 4 }}>
+          <div style={{ fontSize: 11, color: "#16A34A", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+            Melhor ponto de partida
           </div>
+          <div style={{ fontSize: 15, fontWeight: 600, color: "#1F2937" }}>Treino sugerido com IA</div>
+          <div style={{ color: "#6B7280", fontSize: 13, lineHeight: 1.5 }}>
+            Monte o treino antes de abrir vídeos ou o tracker.
+          </div>
+        </div>
 
-          <div
-            style={{
-              borderRadius: 18,
-              padding: 14,
-              border: `1px solid ${COLORS.border}`,
-              background: "rgba(255,255,255,.05)",
-              display: "grid",
-              gap: 6,
-            }}
-          >
-            <div style={{ fontSize: 12, color: COLORS.mutedSoft, fontWeight: 900, textTransform: "uppercase", letterSpacing: 1 }}>
-              Recuperação
-            </div>
-            <div style={{ fontSize: 18, fontWeight: 1000 }}>Regra diária ativa</div>
-            <div style={{ color: COLORS.muted, lineHeight: 1.5 }}>{recoveryMessage}</div>
+        <div style={{ borderRadius: 14, padding: 16, border: "1px solid #E5E7EB", background: "#F9FAFB", display: "grid", gap: 4 }}>
+          <div style={{ fontSize: 11, color: "#9CA3AF", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+            Recuperação
           </div>
+          <div style={{ fontSize: 15, fontWeight: 600, color: "#1F2937" }}>Regra diária</div>
+          <div style={{ color: "#6B7280", fontSize: 13, lineHeight: 1.5 }}>{recoveryMessage}</div>
         </div>
       </div>
 
-      <div style={{ display: "grid", gap: 14, gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))" }}>
+      {/* Hub cards */}
+      <div style={{ display: "grid", gap: 12, gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))" }}>
         {cards.map((card) => (
           <HubCard key={card.id} card={card} currentPlan={currentPlan} />
         ))}

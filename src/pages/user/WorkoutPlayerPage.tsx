@@ -259,7 +259,7 @@ export default function WorkoutPlayerPage() {
             color: neon.text,
           }}
         >
-          <div style={{ fontWeight: 900, fontSize: 18, marginBottom: 8 }}>Treino bloqueado hoje</div>
+          <div style={{ fontWeight: 600, fontSize: 18, marginBottom: 8 }}>Treino bloqueado hoje</div>
           <div style={{ lineHeight: 1.5 }}>{blockedMessage}</div>
         </div>
 
@@ -272,7 +272,7 @@ export default function WorkoutPlayerPage() {
               border: `1px solid ${neon.accentBorder}`,
               background: neon.ctaGradient,
               textDecoration: "none",
-              fontWeight: 900,
+              fontWeight: 600,
               color: neon.ctaText,
               minHeight: 44,
               display: "inline-flex",
@@ -288,9 +288,9 @@ export default function WorkoutPlayerPage() {
               padding: "12px 14px",
               borderRadius: 12,
               border: `1px solid ${neon.stroke}`,
-              background: "rgba(255,255,255,.04)",
+              background: "#FAFAFA",
               textDecoration: "none",
-              fontWeight: 900,
+              fontWeight: 600,
               color: neon.text,
               minHeight: 44,
               display: "inline-flex",
@@ -325,7 +325,7 @@ export default function WorkoutPlayerPage() {
             borderRadius: 14,
             border: "1px solid rgba(255,122,122,.35)",
             background: "rgba(255,122,122,.08)",
-            color: "#FFFFFF",
+            color: "#1F2937",
             fontWeight: 700,
           }}
         >
@@ -344,15 +344,15 @@ export default function WorkoutPlayerPage() {
           minWidth: 0,
         }}
       >
-        <Link to="/app/user/treinos" style={{ textDecoration: "none", color: neon.highlight, fontWeight: 800 }}>
+        <Link to="/app/user/treinos" style={{ textDecoration: "none", color: neon.highlight, fontWeight: 600 }}>
           ← Treinos
         </Link>
-        <div style={{ fontWeight: 900, minWidth: 0, textAlign: "center", flex: "1 1 120px" }}>{workout.title}</div>
+        <div style={{ fontWeight: 600, minWidth: 0, textAlign: "center", flex: "1 1 120px" }}>{workout.title}</div>
         <div style={{ fontSize: 12, color: neon.muted }}>{progressPct}%</div>
       </div>
 
       {/* Progress bar */}
-      <div style={{ height: 8, background: "rgba(255,255,255,.08)", borderRadius: 999, overflow: "hidden" }}>
+      <div style={{ height: 8, background: "#F9FAFB", borderRadius: 999, overflow: "hidden" }}>
         <div
           style={{
             height: "100%",
@@ -407,7 +407,7 @@ export default function WorkoutPlayerPage() {
               borderRadius: 999,
               background: "rgba(0,0,0,.6)",
               color: "#fff",
-              fontWeight: 900,
+              fontWeight: 600,
               fontSize: 14,
               zIndex: 5,
             }}
@@ -429,7 +429,7 @@ export default function WorkoutPlayerPage() {
               border: "1px solid rgba(255,255,255,.25)",
               background: "rgba(0,0,0,.6)",
               color: "#fff",
-              fontWeight: 900,
+              fontWeight: 600,
               fontSize: 14,
               cursor: "pointer",
               zIndex: 6,
@@ -448,7 +448,7 @@ export default function WorkoutPlayerPage() {
               display: "grid",
               placeItems: "center",
               color: "#fff",
-              fontWeight: 900,
+              fontWeight: 600,
               background: "rgba(0,0,0,.35)",
               zIndex: 4,
             }}
@@ -488,9 +488,9 @@ export default function WorkoutPlayerPage() {
                 <b>Agora posta no Instagram</b>: tira aquela foto/vídeo no espelho e marca a PH Gym 😉
               </p>
 
-              <div style={{ marginTop: 10, fontWeight: 900 }}>🔥 Streak atual: {streak} dia(s) consecutivo(s)</div>
+              <div style={{ marginTop: 10, fontWeight: 600 }}>🔥 Streak atual: {streak} dia(s) consecutivo(s)</div>
               {rewardMessage ? (
-                <div style={{ marginTop: 8, fontWeight: 800, color: neon.highlight }}>{rewardMessage}</div>
+                <div style={{ marginTop: 8, fontWeight: 600, color: neon.highlight }}>{rewardMessage}</div>
               ) : null}
 
               <div
@@ -498,11 +498,11 @@ export default function WorkoutPlayerPage() {
                   marginTop: 10,
                   padding: 12,
                   borderRadius: 12,
-                  background: "rgba(255,255,255,.04)",
+                  background: "#FAFAFA",
                   border: `1px solid ${neon.stroke}`,
                 }}
               >
-                <div style={{ fontWeight: 900, marginBottom: 6 }}>Texto pronto pra postar:</div>
+                <div style={{ fontWeight: 600, marginBottom: 6 }}>Texto pronto pra postar:</div>
                 <div style={{ fontSize: 14, color: neon.muted, lineHeight: 1.35 }}>
                   “Treino concluído ✅💪 Hoje eu fui! #PHGym #SemDesculpa”
                   <br />
@@ -531,7 +531,7 @@ export default function WorkoutPlayerPage() {
                       background: neon.ctaGradient,
                       color: neon.ctaText,
                       cursor: blockedMessage ? "not-allowed" : "pointer",
-                      fontWeight: 900,
+                      fontWeight: 600,
                       opacity: blockedMessage ? 0.55 : 1,
                       minHeight: 44,
                     }}
@@ -546,9 +546,9 @@ export default function WorkoutPlayerPage() {
                     padding: "10px 14px",
                     borderRadius: 12,
                     border: `1px solid ${neon.stroke}`,
-                    background: "rgba(255,255,255,.06)",
+                    background: "#F9FAFB",
                     textDecoration: "none",
-                    fontWeight: 900,
+                    fontWeight: 600,
                     color: neon.text,
                     minHeight: 44,
                     display: "inline-flex",
@@ -567,7 +567,7 @@ export default function WorkoutPlayerPage() {
       {!finished ? (
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
           <div>
-            <div style={{ fontWeight: 900 }}>
+            <div style={{ fontWeight: 600 }}>
               {safeIndex + 1}/{steps.length} — {current?.title ?? ""}
             </div>
             <div style={{ fontSize: 13, color: neon.muted }}>
@@ -586,7 +586,7 @@ export default function WorkoutPlayerPage() {
               border: `1px solid ${neon.accentBorder}`,
               background: neon.ctaGradient,
               textDecoration: "none",
-              fontWeight: 900,
+              fontWeight: 600,
               color: neon.ctaText,
               width: "fit-content",
               minHeight: 44,
@@ -606,22 +606,22 @@ export default function WorkoutPlayerPage() {
             border: "1px solid rgba(255,255,255,.16)",
             borderRadius: 14,
             padding: 12,
-            background: "rgba(255,255,255,.04)",
+            background: "#FAFAFA",
             display: "grid",
             gap: 10,
           }}
         >
-          <div style={{ fontWeight: 900, color: "#FFFFFF" }}>Recursos de acessibilidade</div>
+          <div style={{ fontWeight: 600, color: "#1F2937" }}>Recursos de acessibilidade</div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             <span
               style={{
                 borderRadius: 999,
                 padding: "6px 10px",
                 fontSize: 12,
-                fontWeight: 800,
+                fontWeight: 600,
                 border: "1px solid rgba(255,255,255,.22)",
-                color: "#FFFFFF",
-                background: accessibility.visual ? neon.primarySoft : "rgba(255,255,255,.08)",
+                color: "#1F2937",
+                background: accessibility.visual ? neon.primarySoft : "#F9FAFB",
               }}
             >
               Visual: {accessibility.visual ? "suportado" : "parcial"}
@@ -631,10 +631,10 @@ export default function WorkoutPlayerPage() {
                 borderRadius: 999,
                 padding: "6px 10px",
                 fontSize: 12,
-                fontWeight: 800,
+                fontWeight: 600,
                 border: "1px solid rgba(255,255,255,.22)",
-                color: "#FFFFFF",
-                background: accessibility.auditory ? neon.primarySoft : "rgba(255,255,255,.08)",
+                color: "#1F2937",
+                background: accessibility.auditory ? neon.primarySoft : "#F9FAFB",
               }}
             >
               Auditiva: {accessibility.auditory ? "suportado" : "parcial"}
@@ -644,17 +644,17 @@ export default function WorkoutPlayerPage() {
                 borderRadius: 999,
                 padding: "6px 10px",
                 fontSize: 12,
-                fontWeight: 800,
+                fontWeight: 600,
                 border: "1px solid rgba(255,255,255,.22)",
-                color: "#FFFFFF",
-                background: accessibility.motor ? neon.primarySoft : "rgba(255,255,255,.08)",
+                color: "#1F2937",
+                background: accessibility.motor ? neon.primarySoft : "#F9FAFB",
               }}
             >
               Motora: {accessibility.motor ? "suportado" : "parcial"}
             </span>
           </div>
           {accessibility.notes.length > 0 ? (
-            <ul style={{ margin: 0, paddingLeft: 20, color: "rgba(255,255,255,.92)", lineHeight: 1.4 }}>
+            <ul style={{ margin: 0, paddingLeft: 20, color: "#1F2937", lineHeight: 1.4 }}>
               {accessibility.notes.map((note) => (
                 <li key={note}>{note}</li>
               ))}

@@ -1,18 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { fetchAdminUsers, type AdminUserRow } from "../../services/adminApi";
-
-const COLORS = {
-  border: "rgba(124,255,107,.16)",
-  borderStrong: "rgba(29,185,84,.34)",
-  text: "#FFFFFF",
-  muted: "rgba(255,255,255,.72)",
-  panel: "linear-gradient(180deg, rgba(22,25,22,.92), rgba(15,18,16,.96))",
-  panelDeep: "linear-gradient(135deg, rgba(15,61,46,.94), rgba(15,24,20,.98))",
-  panelSoft: "rgba(255,255,255,.04)",
-  redSoft: "rgba(255,110,110,.10)",
-  redBorder: "rgba(255,110,110,.28)",
-};
+import { COLORS } from "../../styles/colors";
 
 const PAGE_SIZE = 20;
 
@@ -79,13 +68,13 @@ export default function AdminUsersPage() {
           border: `1px solid ${COLORS.borderStrong}`,
           borderRadius: 20,
           background: COLORS.panelDeep,
-          boxShadow: "0 18px 44px rgba(0,0,0,.45)",
+          boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.05)",
           padding: 18,
           display: "grid",
           gap: 10,
         }}
       >
-        <div style={{ fontSize: 28, fontWeight: 1000 }}>Alunos</div>
+        <div style={{ fontSize: 28, fontWeight: 700 }}>Alunos</div>
         <div style={{ color: COLORS.muted, lineHeight: 1.6, maxWidth: 780 }}>
           Lista operacional com dados reais do servidor: plano ativo, perfil completo e cadastro. Use a busca e a paginação
           para navegar bases grandes.
@@ -117,9 +106,9 @@ export default function AdminUsersPage() {
               padding: "12px 18px",
               borderRadius: 14,
               border: `1px solid ${COLORS.borderStrong}`,
-              background: "linear-gradient(135deg, #1DB954 0%, #7CFF6B 100%)",
-              color: "#082014",
-              fontWeight: 1000,
+              background: "#22C55E",
+              color: "#FFFFFF",
+              fontWeight: 700,
               cursor: "pointer",
             }}
           >
@@ -137,7 +126,7 @@ export default function AdminUsersPage() {
             padding: 18,
           }}
         >
-          <div style={{ fontWeight: 1000, fontSize: 18 }}>Carregando alunos...</div>
+          <div style={{ fontWeight: 700, fontSize: 18 }}>Carregando alunos...</div>
           <div style={{ marginTop: 8, color: COLORS.muted, fontSize: 13 }}>Consultando o banco de dados.</div>
         </div>
       )}
@@ -151,7 +140,7 @@ export default function AdminUsersPage() {
             padding: 18,
           }}
         >
-          <div style={{ fontWeight: 1000, fontSize: 18 }}>Não foi possível carregar a lista</div>
+          <div style={{ fontWeight: 700, fontSize: 18 }}>Não foi possível carregar a lista</div>
           <div style={{ marginTop: 8, color: COLORS.muted, fontSize: 13 }}>{error}</div>
           <button
             type="button"
@@ -161,9 +150,9 @@ export default function AdminUsersPage() {
               padding: "10px 12px",
               borderRadius: 12,
               border: `1px solid ${COLORS.redBorder}`,
-              background: "rgba(255,255,255,.06)",
+              background: "#F9FAFB",
               color: COLORS.text,
-              fontWeight: 1000,
+              fontWeight: 700,
               cursor: "pointer",
             }}
           >
@@ -181,7 +170,7 @@ export default function AdminUsersPage() {
             padding: 18,
           }}
         >
-          <div style={{ fontWeight: 1000, fontSize: 18 }}>Nenhum aluno encontrado</div>
+          <div style={{ fontWeight: 700, fontSize: 18 }}>Nenhum aluno encontrado</div>
           <div style={{ marginTop: 8, color: COLORS.muted, fontSize: 13 }}>
             Ajuste o termo de busca ou verifique se existem usuários com perfil &quot;aluno&quot; no sistema.
           </div>
@@ -215,7 +204,7 @@ export default function AdminUsersPage() {
                   border: `1px solid ${COLORS.border}`,
                   background: hasPrev ? COLORS.panelSoft : "transparent",
                   color: hasPrev ? COLORS.text : COLORS.muted,
-                  fontWeight: 900,
+                  fontWeight: 600,
                   cursor: hasPrev ? "pointer" : "not-allowed",
                 }}
               >
@@ -231,7 +220,7 @@ export default function AdminUsersPage() {
                   border: `1px solid ${COLORS.border}`,
                   background: hasNext ? COLORS.panelSoft : "transparent",
                   color: hasNext ? COLORS.text : COLORS.muted,
-                  fontWeight: 900,
+                  fontWeight: 600,
                   cursor: hasNext ? "pointer" : "not-allowed",
                 }}
               >
@@ -250,7 +239,7 @@ export default function AdminUsersPage() {
                     border: `1px solid ${COLORS.border}`,
                     borderRadius: 20,
                     background: COLORS.panel,
-                    boxShadow: "0 18px 44px rgba(0,0,0,.45)",
+                    boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.05)",
                     padding: 18,
                     display: "grid",
                     gap: 14,
@@ -266,7 +255,7 @@ export default function AdminUsersPage() {
                     }}
                   >
                     <div style={{ display: "grid", gap: 6 }}>
-                      <div style={{ fontSize: 20, fontWeight: 1000 }}>{student.name || "Sem nome"}</div>
+                      <div style={{ fontSize: 20, fontWeight: 700 }}>{student.name || "Sem nome"}</div>
                       <div style={{ color: COLORS.muted }}>{student.email}</div>
                     </div>
                     <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -274,10 +263,10 @@ export default function AdminUsersPage() {
                         style={{
                           borderRadius: 999,
                           padding: "8px 12px",
-                          border: `1px solid ${profileOk ? "rgba(29,185,84,.28)" : "rgba(255,200,80,.28)"}`,
-                          background: profileOk ? "rgba(29,185,84,.14)" : "rgba(255,200,80,.14)",
-                          color: profileOk ? "#7CFF6B" : "#FFD36C",
-                          fontWeight: 900,
+                          border: `1px solid ${profileOk ? "rgba(34,197,94,.28)" : "rgba(255,200,80,.28)"}`,
+                          background: profileOk ? "rgba(34,197,94,.14)" : "rgba(255,200,80,.14)",
+                          color: profileOk ? "#22C55E" : "#FFD36C",
+                          fontWeight: 600,
                           fontSize: 12,
                         }}
                       >
@@ -310,7 +299,7 @@ export default function AdminUsersPage() {
                         }}
                       >
                         <div style={{ color: COLORS.muted, fontSize: 12 }}>{item.label}</div>
-                        <div style={{ fontWeight: 900 }}>{item.value}</div>
+                        <div style={{ fontWeight: 600 }}>{item.value}</div>
                       </div>
                     ))}
                   </div>
@@ -325,9 +314,9 @@ export default function AdminUsersPage() {
                         padding: "12px 14px",
                         borderRadius: 14,
                         border: `1px solid ${COLORS.borderStrong}`,
-                        background: "linear-gradient(135deg, #1DB954 0%, #7CFF6B 100%)",
-                        color: "#082014",
-                        fontWeight: 1000,
+                        background: "#22C55E",
+                        color: "#FFFFFF",
+                        fontWeight: 700,
                         textDecoration: "none",
                         width: "fit-content",
                       }}

@@ -63,7 +63,7 @@ function card(): React.CSSProperties {
     background: "#171717",
     border: "1px solid rgba(255,255,255,.10)",
     borderRadius: 16,
-    boxShadow: "0 18px 44px rgba(0,0,0,.45)",
+    boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.05)",
   };
 }
 
@@ -73,8 +73,8 @@ function btnBase(): React.CSSProperties {
     borderRadius: 12,
     border: "1px solid rgba(255,255,255,.12)",
     background: "transparent",
-    color: "#FFFFFF",
-    fontWeight: 1000,
+    color: "#1F2937",
+    fontWeight: 700,
     cursor: "pointer",
   };
 }
@@ -95,14 +95,14 @@ function inputStyle(): React.CSSProperties {
     borderRadius: 12,
     border: "1px solid rgba(255,255,255,.12)",
     background: "#0F0F0F",
-    color: "#FFFFFF",
-    fontWeight: 800,
+    color: "#1F2937",
+    fontWeight: 600,
     outline: "none",
   };
 }
 
 function hint(): React.CSSProperties {
-  return { color: "rgba(255,255,255,.65)", fontSize: 13, lineHeight: 1.35 };
+  return { color: "#6B7280", fontSize: 13, lineHeight: 1.35 };
 }
 
 /** ✅ Storage */
@@ -226,9 +226,9 @@ export default function AssignGeneralWorkoutPage() {
 
   if (catalog.length === 0) {
     return (
-      <div style={{ display: "grid", gap: 14, color: "#FFFFFF" }}>
+      <div style={{ display: "grid", gap: 14, color: "#1F2937" }}>
         <div style={{ ...card(), padding: 16 }}>
-          <div style={{ fontWeight: 1000, fontSize: 18 }}>Distribuir treino geral</div>
+          <div style={{ fontWeight: 700, fontSize: 18 }}>Distribuir treino geral</div>
           <div style={hint()}>Você ainda não tem treinos no catálogo.</div>
 
           <div style={{ marginTop: 12, display: "flex", gap: 10, flexWrap: "wrap" }}>
@@ -245,12 +245,12 @@ export default function AssignGeneralWorkoutPage() {
   }
 
   return (
-    <div style={{ display: "grid", gap: 14, color: "#FFFFFF" }}>
+    <div style={{ display: "grid", gap: 14, color: "#1F2937" }}>
       {/* ✅ Header */}
       <div style={{ ...card(), padding: 16 }}>
         <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
           <div style={{ display: "grid", gap: 6 }}>
-            <div style={{ fontWeight: 1000, fontSize: 18 }}>Distribuir treino geral</div>
+            <div style={{ fontWeight: 700, fontSize: 18 }}>Distribuir treino geral</div>
             <div style={hint()}>
               Selecione o treino e escolha o público. (Na fase backend, o servidor valida que esses alunos pertencem ao personal.)
             </div>
@@ -269,7 +269,7 @@ export default function AssignGeneralWorkoutPage() {
 
       {/* ✅ Seleção do treino */}
       <div style={{ ...card(), padding: 16 }}>
-        <div style={{ fontWeight: 1000, marginBottom: 10 }}>1) Escolha o treino</div>
+        <div style={{ fontWeight: 700, marginBottom: 10 }}>1) Escolha o treino</div>
 
         <select value={selectedWorkoutId} onChange={(e) => setSelectedWorkoutId(e.target.value)} style={{ ...inputStyle(), width: "100%" }}>
           {catalog.map((w) => (
@@ -286,14 +286,14 @@ export default function AssignGeneralWorkoutPage() {
 
       {/* ✅ Filtros rápidos */}
       <div style={{ ...card(), padding: 16 }}>
-        <div style={{ fontWeight: 1000, marginBottom: 10 }}>2) Filtre o público</div>
+        <div style={{ fontWeight: 700, marginBottom: 10 }}>2) Filtre o público</div>
 
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
           <button
             onClick={() => setActiveOnly((v) => !v)}
             style={{
               ...btnBase(),
-              borderColor: activeOnly ? "rgba(255,106,0,.35)" : "rgba(255,255,255,.12)",
+              borderColor: activeOnly ? "rgba(255,106,0,.35)" : "#F3F4F6",
               background: activeOnly ? "rgba(255,106,0,.14)" : "transparent",
             }}
           >
@@ -319,14 +319,14 @@ export default function AssignGeneralWorkoutPage() {
         </div>
 
         <div style={{ marginTop: 10, ...hint() }}>
-          Elegíveis: <b style={{ color: "#FFFFFF" }}>{eligibleStudents.length}</b> • Selecionados:{" "}
+          Elegíveis: <b style={{ color: "#1F2937" }}>{eligibleStudents.length}</b> • Selecionados:{" "}
           <b style={{ color: "#FF6A00" }}>{selectedCount}</b>
         </div>
       </div>
 
       {/* ✅ Lista de alunos */}
       <div style={{ ...card(), padding: 16 }}>
-        <div style={{ fontWeight: 1000, marginBottom: 10 }}>3) Selecione os alunos</div>
+        <div style={{ fontWeight: 700, marginBottom: 10 }}>3) Selecione os alunos</div>
 
         <div style={{ display: "grid", gap: 10 }}>
           {eligibleStudents.map((s) => {
@@ -346,9 +346,9 @@ export default function AssignGeneralWorkoutPage() {
               >
                 <input type="checkbox" checked={checked} onChange={() => toggleStudent(s.id)} />
                 <div style={{ display: "grid", gap: 4 }}>
-                  <div style={{ fontWeight: 1000 }}>{s.name}</div>
+                  <div style={{ fontWeight: 700 }}>{s.name}</div>
                   <div style={hint()}>
-                    Plano: <b style={{ color: "#FFFFFF" }}>{s.plan}</b> • {s.age} anos • {s.gender} •{" "}
+                    Plano: <b style={{ color: "#1F2937" }}>{s.plan}</b> • {s.age} anos • {s.gender} •{" "}
                     {s.isActive ? "Ativo" : "Inativo"}
                   </div>
                 </div>

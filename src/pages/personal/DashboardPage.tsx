@@ -8,20 +8,7 @@ import {
   type PersonalDashboardRisk,
   type PersonalDashboardStudent,
 } from "../../services/personalDashboardApi";
-
-const COLORS = {
-  border: "rgba(124,255,107,.16)",
-  borderStrong: "rgba(29,185,84,.34)",
-  text: "#FFFFFF",
-  muted: "rgba(255,255,255,.72)",
-  mutedSoft: "rgba(232,236,233,.58)",
-  panel: "linear-gradient(180deg, rgba(22,25,22,.92), rgba(15,18,16,.96))",
-  panelDeep: "linear-gradient(135deg, rgba(15,61,46,.94), rgba(15,24,20,.98))",
-  primarySoft: "rgba(29,185,84,.18)",
-  highlightSoft: "rgba(124,255,107,.12)",
-  dangerSoft: "rgba(220,38,38,.12)",
-  warnSoft: "rgba(255,183,3,.12)",
-};
+import { COLORS } from "../../styles/colors";
 
 /** ✅ (0) TIPOS DO PLANO (usei na tabela “Visão geral”) */
 type UserPlan = PersonalDashboardPlan;
@@ -94,7 +81,7 @@ function Badge({
   children: React.ReactNode;
 }) {
   const map = {
-    success: { bd: COLORS.borderStrong, bg: COLORS.primarySoft, color: "#7CFF6B" },
+    success: { bd: COLORS.borderStrong, bg: COLORS.primarySoft, color: "#22C55E" },
     warn: { bd: "rgba(255,183,3,.35)", bg: COLORS.warnSoft, color: "#FFE082" },
     danger: { bd: "rgba(220,38,38,.35)", bg: COLORS.dangerSoft, color: "#FFB4B4" },
     neutral: { bd: COLORS.border, bg: COLORS.highlightSoft, color: COLORS.text },
@@ -110,7 +97,7 @@ function Badge({
         borderRadius: 999,
         border: `1px solid ${map[variant].bd}`,
         background: map[variant].bg,
-        fontWeight: 800,
+        fontWeight: 600,
         fontSize: 11,
         lineHeight: 1,
         color: map[variant].color,
@@ -142,7 +129,7 @@ function Card({
         border: `1px solid ${COLORS.border}`,
         borderRadius: 20,
         background: COLORS.panel,
-        boxShadow: "0 18px 44px rgba(0,0,0,.45)",
+        boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.05)",
         overflow: "hidden",
       }}
     >
@@ -158,7 +145,7 @@ function Card({
         }}
         >
         <div style={{ display: "grid", gap: 6 }}>
-          <div style={{ fontWeight: 1000, fontSize: 15, color: COLORS.text }}>{title}</div>
+          <div style={{ fontWeight: 700, fontSize: 15, color: COLORS.text }}>{title}</div>
           {subtitle ? (
             <div style={{ color: COLORS.mutedSoft, fontSize: 12, lineHeight: 1.4 }}>{subtitle}</div>
           ) : null}
@@ -178,7 +165,7 @@ function ProgressBar({ value }: { value: number }) {
       style={{
         height: 10,
         borderRadius: 999,
-        background: "rgba(255,255,255,.08)",
+        background: "#F9FAFB",
         border: `1px solid ${COLORS.border}`,
         overflow: "hidden",
       }}
@@ -189,7 +176,7 @@ function ProgressBar({ value }: { value: number }) {
         style={{
           height: "100%",
           width: `${pct}%`,
-          background: "linear-gradient(135deg, #1DB954 0%, #7CFF6B 100%)",
+          background: "#22C55E",
           transition: "width .25s ease",
         }}
       />
@@ -213,12 +200,12 @@ function ActionButton({
         padding: "12px 14px",
         borderRadius: 14,
         border: primary ? `1px solid ${COLORS.borderStrong}` : `1px solid ${COLORS.border}`,
-        background: primary ? "linear-gradient(135deg, #1DB954 0%, #7CFF6B 100%)" : "rgba(255,255,255,.03)",
-        color: primary ? "#082014" : COLORS.text,
+        background: primary ? "#22C55E" : "#FAFAFA",
+        color: primary ? "#FFFFFF" : COLORS.text,
         cursor: "pointer",
         fontWeight: primary ? 1000 : 900,
         fontSize: 14,
-        boxShadow: primary ? "0 14px 28px rgba(29,185,84,.22)" : "none",
+        boxShadow: primary ? "0 14px 28px rgba(34,197,94,.22)" : "none",
       }}
     >
       {children}
@@ -345,7 +332,7 @@ export default function DashboardPage() {
           borderRadius: 24,
           padding: 20,
           background: COLORS.panelDeep,
-          boxShadow: "0 18px 44px rgba(0,0,0,.45)",
+          boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.05)",
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
@@ -362,17 +349,17 @@ export default function DashboardPage() {
               gap: 8,
               borderRadius: 999,
               background: COLORS.highlightSoft,
-              color: "#7CFF6B",
+              color: "#22C55E",
               padding: "8px 12px",
               fontSize: 11,
-              fontWeight: 900,
+              fontWeight: 600,
               letterSpacing: 1.1,
               textTransform: "uppercase",
             }}
           >
             Painel do personal
           </div>
-          <div style={{ fontWeight: 1000, fontSize: 28, lineHeight: 1.08 }}>Priorize quem precisa de você agora.</div>
+          <div style={{ fontWeight: 700, fontSize: 28, lineHeight: 1.08 }}>Priorize quem precisa de você agora.</div>
           <div style={{ color: COLORS.muted, fontSize: 13, lineHeight: 1.5, maxWidth: 640 }}>
             Contato imediato, evolução recente e sinais de risco em uma leitura rápida.
           </div>
@@ -438,7 +425,7 @@ export default function DashboardPage() {
                 style={{
                   border: `1px solid ${s.risk === "critico" ? "rgba(220,38,38,.22)" : COLORS.border}`,
                   borderRadius: 18,
-                  background: s.risk === "critico" ? "rgba(220,38,38,.08)" : "rgba(255,255,255,.03)",
+                  background: s.risk === "critico" ? "rgba(220,38,38,.08)" : "#FAFAFA",
                   padding: 14,
                   display: "flex",
                   justifyContent: "space-between",
@@ -449,7 +436,7 @@ export default function DashboardPage() {
               >
                 <div style={{ display: "grid", gap: 6 }}>
                   <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-                    <div style={{ fontWeight: 1000 }}>{s.name}</div>
+                    <div style={{ fontWeight: 700 }}>{s.name}</div>
                     {riskBadge(s.risk)}
                     <Badge variant="neutral">{s.workouts7d}x semana</Badge>
                     <Badge variant="neutral">{s.streakDays} dias</Badge>
@@ -509,7 +496,7 @@ export default function DashboardPage() {
           right={<Badge variant="neutral">{stats.total7d} treinos</Badge>}
         >
           <div style={{ display: "grid", gap: 10 }}>
-            <div style={{ fontSize: 28, fontWeight: 1000 }}>{stats.avg7d}/sem</div>
+            <div style={{ fontSize: 28, fontWeight: 700 }}>{stats.avg7d}/sem</div>
             <div style={{ color: COLORS.mutedSoft, fontSize: 12 }}>Ritmo recente da carteira.</div>
           </div>
         </Card>
@@ -520,7 +507,7 @@ export default function DashboardPage() {
           right={<Badge variant="neutral">{stats.total30d} treinos</Badge>}
         >
           <div style={{ display: "grid", gap: 10 }}>
-            <div style={{ fontSize: 28, fontWeight: 1000 }}>{stats.avg30d}/mês</div>
+            <div style={{ fontSize: 28, fontWeight: 700 }}>{stats.avg30d}/mês</div>
             <div style={{ color: COLORS.mutedSoft, fontSize: 12 }}>Sinal de manutenção do plano.</div>
           </div>
         </Card>
@@ -531,7 +518,7 @@ export default function DashboardPage() {
           right={<Badge variant="warn">Alerta + crítico</Badge>}
         >
           <div style={{ display: "grid", gap: 10 }}>
-            <div style={{ fontSize: 28, fontWeight: 1000 }}>{stats.alertCount + stats.criticalCount}</div>
+            <div style={{ fontSize: 28, fontWeight: 700 }}>{stats.alertCount + stats.criticalCount}</div>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               <Badge variant="success">Ok: {stats.okCount}</Badge>
               <Badge variant="warn">Alerta: {stats.alertCount}</Badge>
@@ -551,7 +538,7 @@ export default function DashboardPage() {
           <div style={{ display: "grid", gap: 10 }}>
             <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
               <div style={{ display: "grid", gap: 4 }}>
-                <div style={{ fontWeight: 1000, fontSize: 16 }}>{stats.most?.name || "-"}</div>
+                <div style={{ fontWeight: 700, fontSize: 16 }}>{stats.most?.name || "-"}</div>
                 <div style={{ color: COLORS.muted, fontSize: 13 }}>
                   Último treino: {stats.most ? fmtDate(stats.most.lastWorkoutISO) : "--/--"} • Streak:{" "}
                   <b style={{ color: "#22C55E" }}>{stats.most?.streakDays || 0} dias</b>
@@ -578,7 +565,7 @@ export default function DashboardPage() {
           <div style={{ display: "grid", gap: 10 }}>
             <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
               <div style={{ display: "grid", gap: 4 }}>
-                <div style={{ fontWeight: 1000, fontSize: 16 }}>{stats.least?.name || "-"}</div>
+                <div style={{ fontWeight: 700, fontSize: 16 }}>{stats.least?.name || "-"}</div>
                 <div style={{ color: COLORS.muted, fontSize: 13 }}>
                   Último treino: {stats.least ? fmtDate(stats.least.lastWorkoutISO) : "--/--"} • Objetivo:{" "}
                   <b style={{ color: COLORS.text }}>{stats.least?.goal || "-"}</b>
@@ -615,7 +602,7 @@ export default function DashboardPage() {
                   padding: "8px 10px",
                   borderRadius: 999,
                   border: active ? `1px solid ${COLORS.borderStrong}` : `1px solid ${COLORS.border}`,
-                  background: active ? COLORS.primarySoft : "rgba(255,255,255,.03)",
+                  background: active ? COLORS.primarySoft : "#FAFAFA",
                   color: COLORS.text,
                   cursor: "pointer",
                   fontSize: 12,
@@ -636,7 +623,7 @@ export default function DashboardPage() {
                 style={{
                   border: `1px solid ${COLORS.border}`,
                   borderRadius: 18,
-                  background: "rgba(255,255,255,.03)",
+                  background: "#FAFAFA",
                   padding: 14,
                   display: "flex",
                   justifyContent: "space-between",
@@ -647,7 +634,7 @@ export default function DashboardPage() {
               >
                 <div style={{ display: "grid", gap: 8, minWidth: "min(260px, 100%)", flex: "1 1 260px" }}>
                   <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-                    <div style={{ fontWeight: 1000 }}>{s.name}</div>
+                    <div style={{ fontWeight: 700 }}>{s.name}</div>
                     {riskBadge(s.risk)}
                   </div>
                   <div style={{ color: COLORS.mutedSoft, fontSize: 12, lineHeight: 1.45 }}>
@@ -659,11 +646,11 @@ export default function DashboardPage() {
                   <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
                     <div style={{ display: "grid", gap: 4 }}>
                       <div style={{ color: COLORS.mutedSoft, fontSize: 12 }}>Semana</div>
-                      <div style={{ fontWeight: 1000 }}>{s.workouts7d} treinos</div>
+                      <div style={{ fontWeight: 700 }}>{s.workouts7d} treinos</div>
                     </div>
                     <div style={{ display: "grid", gap: 4 }}>
                       <div style={{ color: COLORS.mutedSoft, fontSize: 12 }}>Streak</div>
-                      <div style={{ fontWeight: 1000 }}>{s.streakDays} dias</div>
+                      <div style={{ fontWeight: 700 }}>{s.streakDays} dias</div>
                     </div>
                   </div>
                   <div style={{ display: "grid", gap: 6 }}>
@@ -696,7 +683,7 @@ export default function DashboardPage() {
               marginTop: 8,
               borderRadius: 16,
               border: `1px solid ${COLORS.border}`,
-              background: "rgba(255,255,255,.03)",
+              background: "#FAFAFA",
               padding: 14,
               color: COLORS.muted,
               fontSize: 13,

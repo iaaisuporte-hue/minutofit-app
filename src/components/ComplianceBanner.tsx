@@ -1,67 +1,61 @@
 import { Link } from "react-router-dom";
 import { motion, useReducedMotion } from "framer-motion";
 import { useAuth } from "../auth/AuthContext";
-import { useNeonTheme } from "../theme/minutofitNeonTheme";
 
 const MotionLink = motion(Link);
 
 export default function ComplianceBanner() {
   const { user, role } = useAuth();
-  const neon = useNeonTheme();
   const shouldReduceMotion = useReducedMotion();
+
   if (role !== "user" || !user?.id) return null;
   if (user.studentComplianceComplete) return null;
 
   return (
     <motion.div
       className="compliance-banner-root"
-      initial={shouldReduceMotion ? false : { opacity: 0, y: 12 }}
+      initial={shouldReduceMotion ? false : { opacity: 0, y: -8 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.45, ease: "easeOut" }}
+      transition={{ duration: 0.35, ease: "easeOut" }}
       style={{
-        margin: "0 0 12px",
-        padding: "12px 14px",
-        borderRadius: 14,
-        border: `1px solid ${neon.accentBorderStrong}`,
-        background: `linear-gradient(90deg, ${neon.accentSoft}, rgba(255,255,255,.04))`,
-        color: neon.text,
-        fontSize: 14,
-        lineHeight: 1.45,
+        margin: "0 0 var(--space-4)",
+        padding: "var(--space-3) var(--space-4)",
+        borderRadius: "var(--radius-lg)",
+        border: "1px solid var(--color-warn-border)",
+        background: "var(--color-warn-soft)",
+        color: "var(--color-warn-text-strong)",
+        fontSize: "var(--text-base)",
+        lineHeight: 1.5,
         display: "flex",
-        flexWrap: "wrap",
+        flexWrap: "wrap" as const,
         alignItems: "center",
-        gap: 12,
+        gap: "var(--space-3)",
         justifyContent: "space-between",
       }}
     >
       <span style={{ minWidth: 0 }}>
-        <b>Obrigatório:</b> complete triagem de saúde, preferências de treino e PAR-Q com assinatura em{" "}
+        <b style={{ color: "var(--color-warn-text)" }}>Obrigatório:</b> complete triagem de saúde,
+        preferências de treino e PAR-Q com assinatura em{" "}
         <strong>Configurações</strong> antes de usar o app com segurança jurídica e de saúde.
       </span>
       <MotionLink
         to="/app/user/settings?focus=compliance#compliance"
-        className="compliance-banner-cta"
+        className="compliance-banner-cta btn btn-primary"
         whileHover={shouldReduceMotion ? undefined : { scale: 1.02 }}
         whileTap={shouldReduceMotion ? undefined : { scale: 0.98 }}
-        animate={
-          shouldReduceMotion
-            ? undefined
-            : { boxShadow: ["0 8px 18px rgba(29,185,84,.20)", "0 10px 22px rgba(124,255,107,.32)", "0 8px 18px rgba(29,185,84,.20)"] }
-        }
-        transition={shouldReduceMotion ? undefined : { duration: 2.8, repeat: Infinity, ease: "easeInOut" }}
         style={{
-          color: neon.ctaText,
-          background: neon.ctaGradient,
-          fontWeight: 800,
-          padding: "10px 14px",
-          borderRadius: 10,
+          padding: "9px var(--space-4)",
+          borderRadius: "var(--radius-sm)",
           textDecoration: "none",
           whiteSpace: "nowrap",
-          minHeight: 44,
+          minHeight: 40,
           boxSizing: "border-box",
+          display: "inline-flex",
+          alignItems: "center",
+          fontSize: "var(--text-sm)",
         }}
       >
-        Abrir Configurações
+        Completar agora →
       </MotionLink>
     </motion.div>
   );

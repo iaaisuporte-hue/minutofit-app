@@ -66,10 +66,10 @@ function pillStyle(active: boolean, neon: NeonTheme) {
     padding: "10px 12px",
     borderRadius: 999,
     border: `1px solid ${active ? neon.accentBorder : neon.border}`,
-    background: active ? neon.accentSoft : "rgba(255,255,255,.03)",
+    background: active ? neon.accentSoft : "#FAFAFA",
     color: neon.text,
     cursor: "pointer" as const,
-    fontWeight: 800,
+    fontWeight: 600,
     minHeight: 44,
     boxShadow: active ? `inset 0 0 0 2px ${neon.strokeStrong}` : undefined,
   };
@@ -449,7 +449,7 @@ export default function StudentCompliancePanel() {
       }}
     >
       <div>
-        <div style={{ fontWeight: 1000, fontSize: 17 }}>Saúde, treino e PAR-Q</div>
+        <div style={{ fontWeight: 700, fontSize: 17 }}>Saúde, treino e PAR-Q</div>
         <div style={{ color: neon.muted, fontSize: 13, marginTop: 6, lineHeight: 1.45 }}>
           {isFreePlan ? (
             <>
@@ -469,7 +469,7 @@ export default function StudentCompliancePanel() {
         <div style={{ color: neon.muted, fontSize: 14 }}>
           Seu cadastro de compliance está completo.
           {user.parqAnyYes ? (
-            <div style={{ marginTop: 10, color: neon.danger, fontWeight: 800 }}>
+            <div style={{ marginTop: 10, color: neon.danger, fontWeight: 600 }}>
               Você respondeu “sim” a pelo menos uma pergunta do PAR-Q. Recomenda-se liberação médica antes de intensificar o treino.
             </div>
           ) : null}
@@ -478,7 +478,7 @@ export default function StudentCompliancePanel() {
 
       <form onSubmit={(e) => void handleSubmit(e)} style={{ display: "grid", gap: 18 }}>
         <section style={{ display: "grid", gap: 10 }}>
-          <div style={{ fontWeight: 900 }}>Declarações de saúde</div>
+          <div style={{ fontWeight: 600 }}>Declarações de saúde</div>
           {(
             [
               ["sem_historico_hipertensao", "Sem histórico de hipertensão."],
@@ -502,7 +502,7 @@ export default function StudentCompliancePanel() {
 
         {!isFreePlan ? (
         <section style={{ display: "grid", gap: 12 }}>
-          <div style={{ fontWeight: 900 }}>Onboarding de treino</div>
+          <div style={{ fontWeight: 600 }}>Onboarding de treino</div>
           <div>
             <div style={{ color: neon.muted, fontSize: 12, marginBottom: 6 }}>Onde você treina?</div>
             <SelectGroup neon={neon}
@@ -657,7 +657,7 @@ export default function StudentCompliancePanel() {
         ) : null}
 
         <section style={{ display: "grid", gap: 12 }}>
-          <div style={{ fontWeight: 900 }}>PAR-Q ({PARQ_FORM_VERSION})</div>
+          <div style={{ fontWeight: 600 }}>PAR-Q ({PARQ_FORM_VERSION})</div>
           {PARQ_ITEMS.map((q) => (
             <div key={q.id} style={{ display: "grid", gap: 8 }}>
               <div style={{ fontSize: 13, lineHeight: 1.4 }}>{q.text}</div>
@@ -686,7 +686,7 @@ export default function StudentCompliancePanel() {
         </section>
 
         <section style={{ display: "grid", gap: 8 }}>
-          <div style={{ fontWeight: 900 }}>Assinatura digital</div>
+          <div style={{ fontWeight: 600 }}>Assinatura digital</div>
           <div style={{ color: neon.muted, fontSize: 12 }}>
             Ao assinar, você confirma que leu e respondeu o PAR-Q acima. Versão registrada: {PARQ_FORM_VERSION}.
           </div>
@@ -716,7 +716,7 @@ export default function StudentCompliancePanel() {
               border: `1px solid ${neon.accentBorder}`,
               background: neon.ctaGradient,
               color: neon.ctaText,
-              fontWeight: 900,
+              fontWeight: 600,
               cursor: saving ? "wait" : "pointer",
               minHeight: 44,
             }}

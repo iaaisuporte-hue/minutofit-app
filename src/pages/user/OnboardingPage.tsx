@@ -10,22 +10,7 @@ import {
   setOnboardingDone,
   type OnboardingAnswers,
 } from "./onboarding/onboardingStorage";
-
-const COLORS = {
-  bg: "#121212",
-  panel: "linear-gradient(180deg, rgba(22,25,22,.92), rgba(15,18,16,.96))",
-  panelDeep: "linear-gradient(135deg, rgba(15,61,46,.94), rgba(15,24,20,.98))",
-  border: "rgba(124,255,107,.16)",
-  borderStrong: "rgba(29,185,84,.34)",
-  text: "#FFFFFF",
-  muted: "rgba(255,255,255,.72)",
-  mutedSoft: "rgba(232,236,233,.58)",
-  primary: "#1DB954",
-  primaryDeep: "#0F3D2E",
-  highlight: "#7CFF6B",
-  primarySoft: "rgba(29,185,84,.18)",
-  highlightSoft: "rgba(124,255,107,.12)",
-};
+import { COLORS } from "../../styles/colors";
 
 function Card({
   children,
@@ -40,7 +25,7 @@ function Card({
         border: `1px solid ${COLORS.border}`,
         borderRadius: 20,
         background: COLORS.panel,
-        boxShadow: "0 18px 44px rgba(0,0,0,.45)",
+        boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.05)",
         padding: 18,
         ...style,
       }}
@@ -76,14 +61,14 @@ function Section({
               color: COLORS.highlight,
               padding: "7px 12px",
               fontSize: 11,
-              fontWeight: 900,
+              fontWeight: 600,
               letterSpacing: 1.1,
               textTransform: "uppercase",
             }}
           >
             {eyebrow}
           </div>
-          <div style={{ fontSize: 20, fontWeight: 1000 }}>{title}</div>
+          <div style={{ fontSize: 20, fontWeight: 700 }}>{title}</div>
           <div style={{ color: COLORS.muted, fontSize: 13, lineHeight: 1.5 }}>{caption}</div>
         </div>
         <div style={{ display: "grid", gap: 16 }}>{children}</div>
@@ -117,7 +102,7 @@ function SelectRow({
   return (
     <div style={{ display: "grid", gap: 6 }}>
       <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
-        <div style={{ fontWeight: 1000 }}>{label}</div>
+        <div style={{ fontWeight: 700 }}>{label}</div>
         {value ? <div style={{ color: COLORS.muted, fontSize: 12 }}>{value}</div> : null}
       </div>
       {children}
@@ -142,11 +127,11 @@ function Pill({
         padding: "10px 12px",
         borderRadius: 999,
         border: active ? `1px solid ${COLORS.borderStrong}` : `1px solid ${COLORS.border}`,
-        background: active ? COLORS.primarySoft : "rgba(255,255,255,.03)",
+        background: active ? COLORS.primarySoft : "#FAFAFA",
         color: COLORS.text,
         cursor: "pointer",
-        fontWeight: 900,
-        boxShadow: active ? "0 12px 24px rgba(0,0,0,.18)" : "none",
+        fontWeight: 600,
+        boxShadow: active ? "0 2px 8px rgba(0,0,0,0.06)" : "none",
       }}
     >
       {children}
@@ -275,14 +260,14 @@ export default function OnboardingPage() {
               color: COLORS.highlight,
               padding: "8px 12px",
               fontSize: 11,
-              fontWeight: 900,
+              fontWeight: 600,
               letterSpacing: 1.2,
               textTransform: "uppercase",
             }}
           >
             Personalização inicial
           </div>
-          <div style={{ fontWeight: 1000, fontSize: 26, lineHeight: 1.1 }}>Ajuste sua rotina ideal de treino</div>
+          <div style={{ fontWeight: 700, fontSize: 26, lineHeight: 1.1 }}>Ajuste sua rotina ideal de treino</div>
           <div style={{ color: COLORS.muted, fontSize: 14, lineHeight: 1.55, maxWidth: 760 }}>
             Esta etapa deve ser rápida. Ela existe para adaptar seus treinos ao seu contexto real de rotina, disponibilidade e conforto, sem repetir dados que você já preencheu no perfil.
           </div>
@@ -292,7 +277,7 @@ export default function OnboardingPage() {
               marginTop: 6,
               borderRadius: 16,
               border: `1px solid ${COLORS.border}`,
-              background: "rgba(255,255,255,.04)",
+              background: "#FAFAFA",
               padding: 14,
               color: COLORS.muted,
               fontSize: 13,
@@ -321,7 +306,7 @@ export default function OnboardingPage() {
                 style={{
                   height: 10,
                   borderRadius: 999,
-                  background: "rgba(255,255,255,.08)",
+                  background: "#F9FAFB",
                   overflow: "hidden",
                 }}
               >
@@ -330,7 +315,7 @@ export default function OnboardingPage() {
                     width: `${completionScore}%`,
                     height: "100%",
                     borderRadius: 999,
-                    background: "linear-gradient(135deg, #1DB954 0%, #7CFF6B 100%)",
+                    background: "#22C55E",
                   }}
                 />
               </div>
@@ -343,11 +328,11 @@ export default function OnboardingPage() {
                 gap: 8,
                 borderRadius: 999,
                 border: `1px solid ${COLORS.border}`,
-                background: "rgba(255,255,255,.03)",
+                background: "#FAFAFA",
                 color: COLORS.text,
                 padding: "10px 14px",
                 fontSize: 12,
-                fontWeight: 900,
+                fontWeight: 600,
               }}
             >
               Aproximadamente 2 min
@@ -364,7 +349,7 @@ export default function OnboardingPage() {
                 background: "transparent",
                 color: COLORS.text,
                 cursor: "pointer",
-                fontWeight: 1000,
+                fontWeight: 700,
               }}
             >
               ← Voltar
@@ -377,10 +362,10 @@ export default function OnboardingPage() {
                 padding: "12px 14px",
                 borderRadius: 14,
                 border: `1px solid ${COLORS.borderStrong}`,
-                background: "linear-gradient(135deg, #1DB954 0%, #7CFF6B 100%)",
-                color: "#082014",
+                background: "#22C55E",
+                color: "#FFFFFF",
                 cursor: saving ? "not-allowed" : "pointer",
-                fontWeight: 1000,
+                fontWeight: 700,
                 boxShadow: "0 10px 24px rgba(0,0,0,.35)",
               }}
             >
@@ -397,7 +382,7 @@ export default function OnboardingPage() {
                 borderRadius: 12,
                 padding: 10,
                 color: COLORS.text,
-                fontWeight: 800,
+                fontWeight: 600,
               }}
             >
               {error}
@@ -558,7 +543,7 @@ export default function OnboardingPage() {
       <Card style={{ borderColor: COLORS.borderStrong }}>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "space-between", alignItems: "center" }}>
           <div style={{ display: "grid", gap: 4 }}>
-            <div style={{ fontWeight: 1000, fontSize: 16 }}>Tudo pronto para gerar sua base inicial</div>
+            <div style={{ fontWeight: 700, fontSize: 16 }}>Tudo pronto para gerar sua base inicial</div>
             <div style={{ color: COLORS.muted, fontSize: 13, lineHeight: 1.5 }}>
               Você poderá revisar essas escolhas depois. O importante agora é dar ao app contexto suficiente para sugerir treinos mais coerentes com sua rotina.
             </div>
@@ -571,10 +556,10 @@ export default function OnboardingPage() {
                 padding: "12px 14px",
                 borderRadius: 14,
                 border: `1px solid ${COLORS.borderStrong}`,
-                background: "linear-gradient(135deg, #1DB954 0%, #7CFF6B 100%)",
-                color: "#082014",
+                background: "#22C55E",
+                color: "#FFFFFF",
                 cursor: saving ? "not-allowed" : "pointer",
-                fontWeight: 1000,
+                fontWeight: 700,
                 boxShadow: "0 10px 24px rgba(0,0,0,.35)",
               }}
             >

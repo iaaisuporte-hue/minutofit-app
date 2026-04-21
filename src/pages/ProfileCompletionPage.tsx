@@ -126,7 +126,7 @@ export default function ProfileCompletionPage() {
         }}
       >
         <div style={{ marginBottom: 20 }}>
-          <div style={{ fontSize: 24, fontWeight: 800 }}>Complete seu Perfil</div>
+          <div style={{ fontSize: 24, fontWeight: 600 }}>Complete seu Perfil</div>
           <div style={{ color: neon.muted, marginTop: 8 }}>
             Precisamos de algumas informações para personalizar sua experiência
           </div>
@@ -320,7 +320,7 @@ export default function ProfileCompletionPage() {
               border: `1px solid ${neon.accentBorder}`,
               borderRadius: 12,
               padding: "14px 16px",
-              fontWeight: 800,
+              fontWeight: 600,
               fontSize: 16,
               cursor: isLoading ? "not-allowed" : "pointer",
               opacity: isLoading ? 0.7 : 1,

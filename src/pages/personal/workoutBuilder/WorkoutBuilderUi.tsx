@@ -6,7 +6,7 @@ export function pillStyle(bg: string, border: string): React.CSSProperties {
     padding: "6px 10px",
     borderRadius: 999,
     fontSize: 12,
-    fontWeight: 900,
+    fontWeight: 600,
     border: `1px solid ${border}`,
     background: bg,
     color: WB.text,
@@ -61,7 +61,7 @@ export function WbButton({
         background: isPrimary ? WB.primary : "transparent",
         color: isPrimary ? WB.ctaText : WB.text,
         cursor: disabled ? "not-allowed" : "pointer",
-        fontWeight: 1000,
+        fontWeight: 700,
         fontSize: 14,
         boxShadow: isPrimary ? "0 10px 24px rgba(0,0,0,.35)" : "none",
         opacity: disabled ? 0.55 : 1,
@@ -95,7 +95,7 @@ export function BuilderStepRail({
       {steps.map((s, i) => {
         const isDone = s.status === "done";
         const isCurrent = s.status === "current";
-        const bg = isDone ? WB.primarySoft : isCurrent ? "rgba(255,255,255,.06)" : "rgba(255,255,255,.02)";
+        const bg = isDone ? WB.primarySoft : isCurrent ? "#F9FAFB" : "#FFFFFF";
         const bd = isDone || isCurrent ? WB.primaryBorder : WB.border;
         return (
           <div
@@ -108,7 +108,7 @@ export function BuilderStepRail({
               background: bg,
               borderRight: i < steps.length - 1 ? `1px solid ${WB.border}` : undefined,
               fontSize: 13,
-              fontWeight: 800,
+              fontWeight: 600,
               color: WB.text,
               minWidth: 0,
             }}
@@ -123,7 +123,7 @@ export function BuilderStepRail({
                 display: "grid",
                 placeItems: "center",
                 fontSize: 11,
-                fontWeight: 900,
+                fontWeight: 600,
                 background: isDone ? WB.primary : "transparent",
                 color: isDone ? WB.ctaText : WB.muted,
               }}
@@ -147,7 +147,7 @@ export function SectionLabel({
 }) {
   return (
     <div style={{ marginBottom: 10 }}>
-      <div style={{ fontWeight: 1000, fontSize: 15, letterSpacing: "-0.02em" }}>{title}</div>
+      <div style={{ fontWeight: 700, fontSize: 15, letterSpacing: "-0.02em" }}>{title}</div>
       {hint ? (
         <div style={{ color: WB.muted, fontSize: 12, lineHeight: 1.45, marginTop: 4 }}>{hint}</div>
       ) : null}
@@ -194,7 +194,7 @@ export function FeedbackBanner({
             borderRadius: 8,
             padding: "6px 10px",
             cursor: "pointer",
-            fontWeight: 800,
+            fontWeight: 600,
           }}
         >
           Fechar

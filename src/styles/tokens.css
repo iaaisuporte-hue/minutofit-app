@@ -1,0 +1,166 @@
+/* ================================================================
+   MinutoFit Design Tokens
+   Single source of truth for all design values.
+   ================================================================ */
+
+:root {
+  /* ── Core Colors ──────────────────────────────────────────── */
+  --color-bg-main:              #F7F9F8;
+  --color-surface:              #FFFFFF;
+  --color-surface-raised:       #F9FAFB;
+  --color-surface-subtle:       #F3F4F6;
+
+  --color-text:                 #1F2937;
+  --color-text-muted:           #6B7280;
+  --color-text-subtle:          #9CA3AF;
+
+  /* ── Text aliases (nomes alternativos, não quebram consumidores atuais) ── */
+  --color-text-primary:         var(--color-text);
+  --color-text-secondary:       var(--color-text-muted);
+  --color-bg:                   var(--color-bg-main);
+
+  /* ── Brand / Primary (green) ──────────────────────────────── */
+  --color-primary:              #22C55E;
+  --color-primary-hover:        #16A34A;
+  --color-primary-deep:         #14532D;
+  --color-primary-soft:         rgba(34, 197, 94, 0.08);
+  --color-primary-soft-strong:  rgba(34, 197, 94, 0.14);
+  --color-primary-glow:         rgba(34, 197, 94, 0.12);
+  --color-primary-light:        rgba(34, 197, 94, 0.10);
+
+  /* ── Borders ──────────────────────────────────────────────── */
+  --color-border:               #E5E7EB;
+  --color-border-subtle:        #F3F4F6;
+  --color-border-strong:        rgba(34, 197, 94, 0.35);
+  --color-border-primary:       rgba(34, 197, 94, 0.30);
+
+  /* ── Semantic: Danger ─────────────────────────────────────── */
+  --color-danger:               #DC2626;
+  --color-danger-soft:          rgba(220, 38, 38, 0.08);
+  --color-danger-border:        rgba(220, 38, 38, 0.25);
+  --color-danger-text:          #B91C1C;
+
+  /* ── Semantic: Warning ────────────────────────────────────── */
+  --color-warn:                 #F59E0B;
+  --color-warn-soft:            rgba(245, 158, 11, 0.08);
+  --color-warn-border:          rgba(245, 158, 11, 0.28);
+  --color-warn-text:            #B45309;
+  --color-warn-text-strong:     #92400E;
+
+  /* ── Semantic: Success ────────────────────────────────────── */
+  --color-success:              #22C55E;
+  --color-success-soft:         rgba(34, 197, 94, 0.08);
+  --color-success-border:       rgba(34, 197, 94, 0.30);
+  --color-success-text:         #16A34A;
+
+  /* ── Semantic: Info ───────────────────────────────────────── */
+  --color-info:                 #3B82F6;
+  --color-info-soft:            rgba(59, 130, 246, 0.08);
+  --color-info-border:          rgba(59, 130, 246, 0.30);
+  --color-info-text:            #2563EB;
+
+  --color-white:                #FFFFFF;
+
+  /* ── Spacing (4 px base) ──────────────────────────────────── */
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-7:  32px;
+  --space-8:  32px;
+  --space-10: 40px;
+
+  /* ── Radius ───────────────────────────────────────────────── */
+  --radius-sm:   6px;
+  --radius-md:   10px;
+  --radius-lg:   14px;
+  --radius-xl:   20px;
+  --radius-pill: 999px;
+
+  /* ── Shadows ──────────────────────────────────────────────── */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 1px 3px rgba(0, 0, 0, 0.06), 0 4px 12px rgba(0, 0, 0, 0.05);
+  --shadow-lg: 0 4px 6px rgba(0, 0, 0, 0.05), 0 10px 24px rgba(0, 0, 0, 0.06);
+
+  /* ── Transitions ──────────────────────────────────────────── */
+  --transition-fast: 150ms ease;
+  --transition-base: 200ms ease;
+
+  /* ── Typography ───────────────────────────────────────────── */
+  --text-xs:       11px;
+  --text-sm:       13px;
+  --text-base:     14px;
+  --text-lg:       16px;
+  --text-xl:       18px;
+  --text-2xl:      22px;
+  --text-3xl:      26px;
+
+  --font-normal:   400;
+  --font-medium:   500;
+  --font-semibold: 600;
+  --font-bold:     700;
+
+  /* ── Layout ───────────────────────────────────────────────── */
+  --maxw-content: 1060px;
+  --maxw-wide:    1180px;
+  --maxw-auth:    400px;
+
+  /* ── Z-index ──────────────────────────────────────────────── */
+  --z-dropdown: 100;
+  --z-modal:    200;
+  --z-toast:    300;
+
+  /* ── Legacy aliases (preserve existing CSS & JS consumers) ── */
+  --primary:                   var(--color-primary);
+  --primary-deep:              var(--color-primary-deep);
+  --highlight:                 var(--color-primary-hover);
+  --black:                     var(--color-text);
+  --white:                     var(--color-white);
+  --gray-100:                  var(--color-surface-subtle);
+  --gray-900:                  #111827;
+  --success:                   var(--color-success);
+  --warn:                      var(--color-warn);
+  --danger:                    var(--color-danger);
+  --bg:                        var(--color-bg-main);
+  --panel:                     var(--color-surface);
+  --card:                      var(--color-surface);
+  --panel-strong:              var(--color-surface-raised);
+  --stroke:                    var(--color-border);
+  --stroke-subtle:             var(--color-border-subtle);
+  --stroke-strong:             var(--color-border-strong);
+  --muted:                     var(--color-text-muted);
+  --muted2:                    var(--color-text-subtle);
+  --neon-accent-soft:          var(--color-primary-soft);
+  --neon-accent-border:        var(--color-border-primary);
+  --neon-accent-border-strong: var(--color-border-strong);
+  --neon-cta-text:             var(--color-white);
+  --neon-primary-soft:         var(--color-primary-soft);
+  --neon-highlight-soft:       var(--color-primary-soft);
+  --neon-danger-soft:          var(--color-danger-soft);
+  --neon-danger-border:        var(--color-danger-border);
+  --radius:                    var(--radius-xl);
+  --shadow:                    var(--shadow-md);
+  --maxw:                      var(--maxw-content);
+}
+
+/* ── Daltonic mode (blue primary instead of green) ───────────── */
+html[data-color-mode="daltonic"] {
+  --color-primary:              #2D7FF9;
+  --color-primary-hover:        #1D6FD8;
+  --color-primary-deep:         #1B2F4B;
+  --color-primary-soft:         rgba(45, 127, 249, 0.10);
+  --color-primary-soft-strong:  rgba(45, 127, 249, 0.18);
+  --color-primary-glow:         rgba(45, 127, 249, 0.12);
+  --color-border-strong:        rgba(45, 127, 249, 0.40);
+  --color-border-primary:       rgba(45, 127, 249, 0.35);
+  --color-bg-main:              #F7F9FC;
+  --color-surface-raised:       #F0F5FF;
+  --color-border:               #DBEAFE;
+  --color-border-subtle:        #EFF6FF;
+  --color-success:              #38BDF8;
+  --color-success-soft:         rgba(56, 189, 248, 0.10);
+  --color-success-border:       rgba(56, 189, 248, 0.35);
+  --color-success-text:         #0369A1;
+}

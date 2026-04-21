@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useIsMobile } from "../../hooks/useIsMobile";
+import { COLORS } from "../../styles/colors";
 
 interface Video {
   id: number;
@@ -17,23 +18,6 @@ interface Tag {
   name: string;
   slug: string;
 }
-
-const COLORS = {
-  bg: "#0F1110",
-  panel: "linear-gradient(180deg, rgba(22,25,22,.92), rgba(15,18,16,.96))",
-  panelDeep: "linear-gradient(135deg, rgba(15,61,46,.94), rgba(15,24,20,.98))",
-  card: "rgba(255,255,255,.03)",
-  border: "rgba(124,255,107,.16)",
-  borderStrong: "rgba(29,185,84,.34)",
-  text: "#FFFFFF",
-  muted: "rgba(255,255,255,.70)",
-  muted2: "rgba(232,236,233,.58)",
-  green: "#1DB954",
-  greenSoft: "rgba(29,185,84,.18)",
-  greenSoftStrong: "rgba(29,185,84,.10)",
-  danger: "#FF6B6B",
-  dangerSoft: "rgba(255, 77, 77, .14)",
-};
 
 // Default tags - should match database
 const AVAILABLE_TAGS: Tag[] = [
@@ -74,14 +58,14 @@ function MetricCard({
         border: `1px solid ${COLORS.border}`,
         borderRadius: 18,
         background: COLORS.card,
-        boxShadow: "0 18px 44px rgba(0,0,0,.45)",
+        boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.05)",
         padding: 16,
         display: "grid",
         gap: 6,
       }}
     >
       <div style={{ color: COLORS.muted2, fontSize: 12, textTransform: "uppercase", letterSpacing: 0.9 }}>{label}</div>
-      <div style={{ fontSize: 28, fontWeight: 1000, color: COLORS.text }}>{value}</div>
+      <div style={{ fontSize: 28, fontWeight: 700, color: COLORS.text }}>{value}</div>
       <div style={{ color: COLORS.muted, fontSize: 12 }}>{helper}</div>
     </div>
   );
@@ -91,13 +75,13 @@ function TagPill({ children, active = false }: { children: React.ReactNode; acti
   return (
     <span
       style={{
-        background: active ? COLORS.greenSoft : "rgba(255,255,255,.04)",
+        background: active ? COLORS.greenSoft : "#FAFAFA",
         border: `1px solid ${active ? COLORS.borderStrong : COLORS.border}`,
         color: active ? COLORS.text : COLORS.muted,
         padding: "6px 10px",
         borderRadius: 999,
         fontSize: 11,
-        fontWeight: 800,
+        fontWeight: 600,
         display: "inline-flex",
         alignItems: "center",
       }}
@@ -257,7 +241,7 @@ export default function VideoLibraryPage() {
           border: `1px solid ${COLORS.border}`,
           borderRadius: 20,
           background: COLORS.panelDeep,
-          boxShadow: "0 18px 44px rgba(0,0,0,.45)",
+          boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.05)",
           padding: 18,
           display: "flex",
           justifyContent: "space-between",
@@ -267,7 +251,7 @@ export default function VideoLibraryPage() {
         }}
       >
         <div style={{ display: "grid", gap: 6 }}>
-          <div style={{ fontSize: 28, fontWeight: 1000 }}>Biblioteca de vídeos</div>
+          <div style={{ fontSize: 28, fontWeight: 700 }}>Biblioteca de vídeos</div>
           <div style={{ color: COLORS.muted, maxWidth: 720, fontSize: 14, lineHeight: 1.5 }}>
             Organize sua base de demonstrações, categorize por objetivo e deixe o material pronto para reutilizar na prescrição.
           </div>
@@ -275,12 +259,12 @@ export default function VideoLibraryPage() {
         <button
           onClick={() => setShowUploadForm(!showUploadForm)}
           style={{
-            background: "linear-gradient(135deg, #1DB954 0%, #7CFF6B 100%)",
+            background: "#22C55E",
             color: "#0B0B0B",
             border: `1px solid ${COLORS.borderStrong}`,
             borderRadius: 14,
             padding: "12px 20px",
-            fontWeight: 900,
+            fontWeight: 600,
             cursor: "pointer",
             boxShadow: "0 10px 24px rgba(0,0,0,.35)",
           }}
@@ -304,11 +288,11 @@ export default function VideoLibraryPage() {
             border: `1px solid ${COLORS.border}`,
             borderRadius: 20,
             padding: 24,
-            boxShadow: "0 18px 44px rgba(0,0,0,.45)",
+            boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.05)",
           }}
         >
           <div style={{ display: "grid", gap: 6, marginBottom: 20 }}>
-            <h2 style={{ fontSize: 20, fontWeight: 900, margin: 0 }}>Adicionar novo vídeo</h2>
+            <h2 style={{ fontSize: 20, fontWeight: 600, margin: 0 }}>Adicionar novo vídeo</h2>
             <div style={{ color: COLORS.muted, fontSize: 13 }}>Preencha os dados principais e marque as tags para facilitar busca e reutilização.</div>
           </div>
 
@@ -322,7 +306,7 @@ export default function VideoLibraryPage() {
                 onChange={(e) => setFormData((prev) => ({ ...prev, title: e.target.value }))}
                 placeholder="ex: Treino de Peito Iniciante"
                 style={{
-                  background: "rgba(255,255,255,.03)",
+                  background: "#FAFAFA",
                   color: COLORS.text,
                   border: `1px solid ${COLORS.border}`,
                   borderRadius: 12,
@@ -340,7 +324,7 @@ export default function VideoLibraryPage() {
                 onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
                 placeholder="Descreva o conteúdo do vídeo..."
                 style={{
-                  background: "rgba(255,255,255,.03)",
+                  background: "#FAFAFA",
                   color: COLORS.text,
                   border: `1px solid ${COLORS.border}`,
                   borderRadius: 12,
@@ -361,7 +345,7 @@ export default function VideoLibraryPage() {
                 accept="video/mp4,video/webm,video/quicktime,video/x-msvideo,.mp4,.webm,.mov,.avi"
                 onChange={(e) => setSelectedVideoFile(e.target.files?.[0] || null)}
                 style={{
-                  background: "rgba(255,255,255,.03)",
+                  background: "#FAFAFA",
                   color: COLORS.text,
                   border: `1px solid ${COLORS.border}`,
                   borderRadius: 12,
@@ -371,7 +355,7 @@ export default function VideoLibraryPage() {
                 }}
               />
               {selectedVideoFile && (
-                <div style={{ fontSize: 12, color: "#7CFF6B" }}>
+                <div style={{ fontSize: 12, color: "#22C55E" }}>
                   ✓ Arquivo selecionado: {selectedVideoFile.name} ({(selectedVideoFile.size / 1024 / 1024).toFixed(2)}MB)
                 </div>
               )}
@@ -407,7 +391,7 @@ export default function VideoLibraryPage() {
                     onMouseEnter={(e) => {
                       if (!selectedTags.includes(tag.slug)) {
                         e.currentTarget.style.borderColor = COLORS.borderStrong;
-                        e.currentTarget.style.background = "rgba(255,255,255,.03)";
+                        e.currentTarget.style.background = "#FAFAFA";
                       }
                     }}
                     onMouseLeave={(e) => {
@@ -459,7 +443,7 @@ export default function VideoLibraryPage() {
                           border: "none",
                           color: "#0B0B0B",
                           cursor: "pointer",
-                          fontWeight: 900,
+                          fontWeight: 600,
                         }}
                       >
                         ✕
@@ -475,12 +459,12 @@ export default function VideoLibraryPage() {
               type="submit"
               disabled={isUploading}
               style={{
-                background: "linear-gradient(135deg, #1DB954 0%, #7CFF6B 100%)",
+                background: "#22C55E",
                 color: "#0B0B0B",
                 border: `1px solid ${COLORS.borderStrong}`,
                 borderRadius: 14,
                 padding: "14px 20px",
-                fontWeight: 900,
+                fontWeight: 600,
                 cursor: isUploading ? "not-allowed" : "pointer",
                 opacity: isUploading ? 0.6 : 1,
                 boxShadow: "0 10px 24px rgba(0,0,0,.35)",
@@ -502,10 +486,10 @@ export default function VideoLibraryPage() {
             padding: 36,
             textAlign: "center",
             color: COLORS.muted,
-            boxShadow: "0 18px 44px rgba(0,0,0,.45)",
+            boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.05)",
           }}
         >
-          <div style={{ fontSize: 18, fontWeight: 1000, color: COLORS.text, marginBottom: 8 }}>Sua biblioteca ainda está vazia</div>
+          <div style={{ fontSize: 18, fontWeight: 700, color: COLORS.text, marginBottom: 8 }}>Sua biblioteca ainda está vazia</div>
           <p style={{ margin: 0 }}>Comece com vídeos de base para ganhar velocidade na montagem dos treinos.</p>
           <p style={{ fontSize: 12, marginTop: 8 }}>Use “Novo vídeo” para publicar o primeiro conteúdo.</p>
         </div>
@@ -523,13 +507,13 @@ export default function VideoLibraryPage() {
                 gridTemplateColumns: isMobile ? "1fr" : "120px 1fr auto",
                 gap: 16,
                 alignItems: "start",
-                boxShadow: "0 18px 44px rgba(0,0,0,.45)",
+                boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.05)",
               }}
             >
               {/* Thumbnail */}
               <div
                 style={{
-                  background: "rgba(255,255,255,.03)",
+                  background: "#FAFAFA",
                   borderRadius: 12,
                   minWidth: 120,
                   height: isMobile ? 180 : 90,
@@ -548,7 +532,7 @@ export default function VideoLibraryPage() {
 
               {/* Video Info */}
               <div>
-                <div style={{ fontWeight: 900, fontSize: 16, marginBottom: 4 }}>{video.title}</div>
+                <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 4 }}>{video.title}</div>
                 <p style={{ color: COLORS.muted, fontSize: 13, marginBottom: 10, lineHeight: 1.4 }}>
                   {video.description || "Sem descrição"}
                 </p>
@@ -572,7 +556,7 @@ export default function VideoLibraryPage() {
                 <button
                   onClick={() => playVideo(video)}
                   style={{
-                    background: "linear-gradient(135deg, #1DB954 0%, #7CFF6B 100%)",
+                    background: "#22C55E",
                     color: "#0B0B0B",
                     border: `1px solid ${COLORS.borderStrong}`,
                     borderRadius: 10,
@@ -587,7 +571,7 @@ export default function VideoLibraryPage() {
                 </button>
                 <button
                   style={{
-                    background: "rgba(255,255,255,.03)",
+                    background: "#FAFAFA",
                     color: COLORS.text,
                     border: `1px solid ${COLORS.border}`,
                     borderRadius: 10,
@@ -650,24 +634,24 @@ export default function VideoLibraryPage() {
               maxHeight: "90vh",
               overflow: "auto",
               border: `1px solid ${COLORS.border}`,
-              boxShadow: "0 18px 44px rgba(0,0,0,.45)",
+              boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.05)",
             }}
             onClick={(e) => e.stopPropagation()}
           >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
               <div style={{ display: "grid", gap: 6 }}>
-                <h2 style={{ fontSize: 22, fontWeight: 900, margin: 0 }}>{selectedVideoToPlay.title}</h2>
+                <h2 style={{ fontSize: 22, fontWeight: 600, margin: 0 }}>{selectedVideoToPlay.title}</h2>
                 <div style={{ color: COLORS.muted, fontSize: 13 }}>Visualização do acervo e revisão rápida do material</div>
               </div>
               <button
                 onClick={() => setSelectedVideoToPlay(null)}
                 style={{
-                  background: "rgba(255,255,255,.03)",
+                  background: "#FAFAFA",
                   border: `1px solid ${COLORS.border}`,
                   color: COLORS.text,
                   fontSize: 20,
                   cursor: "pointer",
-                  fontWeight: 900,
+                  fontWeight: 600,
                   padding: 0,
                   width: 40,
                   height: 40,
@@ -701,7 +685,7 @@ export default function VideoLibraryPage() {
                   style={{
                     width: "100%",
                     height: 400,
-                    background: "rgba(255,255,255,.05)",
+                    background: "#F9FAFB",
                     borderRadius: 12,
                     border: `1px solid ${COLORS.border}`,
                     display: "flex",
@@ -712,7 +696,7 @@ export default function VideoLibraryPage() {
                     gap: 12,
                   }}
                 >
-                  <div style={{ fontSize: 18, fontWeight: 900, color: COLORS.text }}>Vídeo não encontrado</div>
+                  <div style={{ fontSize: 18, fontWeight: 600, color: COLORS.text }}>Vídeo não encontrado</div>
                   <div style={{ fontSize: 12 }}>O arquivo pode ter sido removido ou não estar acessível</div>
                 </div>
               )}
@@ -726,7 +710,7 @@ export default function VideoLibraryPage() {
                     border: `1px solid ${COLORS.border}`,
                     borderRadius: 14,
                     padding: 14,
-                    background: "rgba(255,255,255,.02)",
+                    background: "#FFFFFF",
                   }}
                 >
                   <div style={{ fontSize: 12, color: COLORS.muted, fontWeight: 700, marginBottom: 6 }}>DESCRIÇÃO</div>
@@ -740,7 +724,7 @@ export default function VideoLibraryPage() {
                   border: `1px solid ${COLORS.border}`,
                   borderRadius: 14,
                   padding: 14,
-                  background: "rgba(255,255,255,.02)",
+                  background: "#FFFFFF",
                 }}
               >
                 <div style={{ fontSize: 12, color: COLORS.muted, fontWeight: 700, marginBottom: 6 }}>TAGS</div>

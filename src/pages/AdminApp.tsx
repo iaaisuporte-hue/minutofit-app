@@ -60,11 +60,9 @@ export default function AdminApp() {
     <AppShell
       sidebar={
         <>
-          <div className="heroPanel" style={{ padding: 18 }}>
-            <div className="shellTitle">Painel Admin</div>
-            <div className="shellSubtitle" style={{ marginTop: 8 }}>
-              Operação da plataforma, leitura rápida de saúde do negócio e gestão de usuários, personals e nutris.
-            </div>
+          <div style={{ padding: "8px 4px 16px" }}>
+            <div className="shellTitle">MinutoFit</div>
+            <div className="shellSubtitle">Admin</div>
           </div>
 
           <div className="navStack">
@@ -77,14 +75,16 @@ export default function AdminApp() {
 
           <div style={{ flex: 1 }} />
 
-          <button onClick={handleLogout} className="logoutButton">
-            Sair
-          </button>
+          <div className="sidebar-footer">
+            <button type="button" onClick={handleLogout} className="logoutButton">
+              Sair da conta
+            </button>
+          </div>
         </>
       }
     >
       <div style={{ display: "grid", gap: 16 }}>
-        <div className="pageSurface pageSurfacePad" style={{ maxWidth: 1180, margin: "0 auto" }}>
+        <div style={{ maxWidth: 1180, margin: "0 auto", width: "100%" }}>
           <Routes>
             <Route index element={<RedirectToDashboard />} />
             <Route

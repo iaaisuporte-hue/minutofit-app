@@ -36,7 +36,7 @@ function MenuCTA({ to, label }: { to: string; label: string }) {
       className={({ isActive }) => `navLink navLinkCta ${isActive ? "navLinkActive" : ""}`}
     >
       <span>{label}</span>
-      <span style={{ fontWeight: 1000 }}>→</span>
+      <span style={{ fontWeight: 700 }}>→</span>
     </NavLink>
   );
 }
@@ -61,14 +61,14 @@ function WorkoutBuilderPlaceholder() {
         borderRadius: 16,
         background: "#171717",
         padding: 16,
-        color: "#FFFFFF",
+        color: "#1F2937",
       }}
     >
-      <div style={{ fontWeight: 1000, fontSize: 18 }}>Workout Builder</div>
-      <div style={{ marginTop: 8, color: "rgba(255,255,255,.70)", fontSize: 13, lineHeight: 1.35 }}>
+      <div style={{ fontWeight: 700, fontSize: 18 }}>Workout Builder</div>
+      <div style={{ marginTop: 8, color: "#6B7280", fontSize: 13, lineHeight: 1.35 }}>
         {studentId ? (
           <>
-            Aluno selecionado: <b style={{ color: "#FFFFFF" }}>{studentId}</b>
+            Aluno selecionado: <b style={{ color: "#1F2937" }}>{studentId}</b>
           </>
         ) : (
           <>
@@ -112,32 +112,33 @@ export default function PersonalApp() {
     <AppShell
       sidebar={
         <>
-          <div className="heroPanel" style={{ padding: 18 }}>
-            <div className="shellTitle">Painel do Personal</div>
-            <div className="shellSubtitle" style={{ marginTop: 8 }}>
-              Gestão de alunos, treinos e biblioteca em uma navegação mais consistente e orientada à ação.
-            </div>
+          <div style={{ padding: "8px 4px 16px" }}>
+            <div className="shellTitle">MinutoFit</div>
+            <div className="shellSubtitle">Personal</div>
           </div>
 
           <div className="navStack">
             <MenuLink to="/app/personal/dashboard" label="Dashboard" />
-            <MenuLink to="/app/personal/students" label="Ver alunos" />
-            <MenuLink to="/app/personal/consulting" label="Alunos consultoria" />
+            <MenuLink to="/app/personal/students" label="Alunos" />
+            <MenuLink to="/app/personal/consulting" label="Consultoria" />
             <MenuLink to="/app/personal/messages" label="Mensagens" />
             <MenuLink to="/app/personal/review" label="Revisar treinos" />
-            <MenuLink to="/app/personal/library" label="Treinos gerais (Netflix)" />
-            <MenuLink to="/app/personal/videos" label="Biblioteca de Vídeos" />
+            <MenuLink to="/app/personal/library" label="Biblioteca de treinos" />
+            <MenuLink to="/app/personal/videos" label="Vídeos" />
 
-            <div style={{ height: 4 }} />
-            <div className="sectionLabel">Ação rápida</div>
+            <div style={{ paddingTop: 12, paddingBottom: 4 }}>
+              <div className="sectionLabel">Ação rápida</div>
+            </div>
             <MenuCTA to="/app/personal/workout-builder" label="Montar treino" />
           </div>
 
           <div style={{ flex: 1 }} />
 
-          <button onClick={handleLogout} className="logoutButton">
-            Sair
-          </button>
+          <div className="sidebar-footer">
+            <button type="button" onClick={handleLogout} className="logoutButton">
+              Sair da conta
+            </button>
+          </div>
         </>
       }
     >
@@ -147,7 +148,7 @@ export default function PersonalApp() {
         gap: 16,
       }}
     >
-        <div className="pageSurface pageSurfacePad" style={{ maxWidth: 1180, margin: "0 auto" }}>
+        <div style={{ maxWidth: 1180, margin: "0 auto", width: "100%" }}>
           <Routes>
             <Route index element={<RedirectToDashboard />} />
 

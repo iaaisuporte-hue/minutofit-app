@@ -18,18 +18,7 @@ import {
   HOME_EXTRA_YOUTUBE_BY_GROUP,
   type HomeExtraYoutubeGroup,
 } from "./homeWorkoutExtraYoutube";
-
-const COLORS = {
-  border: "rgba(124,255,107,.16)",
-  borderStrong: "rgba(29,185,84,.34)",
-  text: "#FFFFFF",
-  muted: "rgba(255,255,255,.72)",
-  mutedSoft: "rgba(232,236,233,.58)",
-  panel: "linear-gradient(180deg, rgba(22,25,22,.92), rgba(15,18,16,.96))",
-  panelDeep: "linear-gradient(180deg, rgba(15,61,46,.95), rgba(15,24,20,.98))",
-  primarySoft: "rgba(29,185,84,.18)",
-  highlightSoft: "rgba(124,255,107,.12)",
-};
+import { COLORS } from "../../styles/colors";
 
 const groupLabelMap: Record<MuscleGroup, string> = {
   chest: "Peito",
@@ -51,9 +40,9 @@ function Pill({ children }: { children: React.ReactNode }) {
         borderRadius: 999,
         border: `1px solid ${COLORS.border}`,
         fontSize: 11,
-        fontWeight: 800,
-        background: "rgba(255,255,255,.05)",
-        color: "rgba(255,255,255,.92)",
+        fontWeight: 600,
+        background: "#F9FAFB",
+        color: "#1F2937",
         lineHeight: "1",
         display: "inline-flex",
         alignItems: "center",
@@ -102,7 +91,7 @@ function ExtraYoutubeModal({
           width: "100%",
           maxHeight: "min(80vh, 640px)",
           overflow: "auto",
-          border: "1px solid rgba(124,255,107,.16)",
+          border: "1px solid rgba(34,197,94,.16)",
           boxShadow: "0 24px 60px rgba(0,0,0,.4)",
         }}
         onClick={(e) => e.stopPropagation()}
@@ -110,7 +99,7 @@ function ExtraYoutubeModal({
         aria-labelledby="extra-youtube-modal-title"
       >
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, gap: 12 }}>
-          <div id="extra-youtube-modal-title" style={{ fontSize: 20, fontWeight: 900, lineHeight: 1.25 }}>
+          <div id="extra-youtube-modal-title" style={{ fontSize: 20, fontWeight: 600, lineHeight: 1.25 }}>
             {title}
           </div>
           <motion.button
@@ -120,15 +109,15 @@ function ExtraYoutubeModal({
             whileHover={shouldReduceMotion ? undefined : subtleHoverScale}
             whileTap={shouldReduceMotion ? undefined : subtleTapScale}
             style={{
-              background: "rgba(255,255,255,.10)",
+              background: "#F3F4F6",
               border: "none",
-              color: "#FFFFFF",
+              color: "#1F2937",
               borderRadius: 8,
               width: 36,
               height: 36,
               cursor: "pointer",
               fontSize: 18,
-              fontWeight: 900,
+              fontWeight: 600,
               flexShrink: 0,
             }}
           >
@@ -149,8 +138,8 @@ function ExtraYoutubeModal({
                 display: "flex",
                 gap: 12,
                 padding: 12,
-                background: "rgba(29,185,84,.08)",
-                border: "1px solid rgba(29,185,84,.24)",
+                background: "rgba(34,197,94,.08)",
+                border: "1px solid rgba(34,197,94,.24)",
                 borderRadius: 12,
                 textDecoration: "none",
                 cursor: "pointer",
@@ -160,8 +149,8 @@ function ExtraYoutubeModal({
                 ▶️
               </div>
               <div>
-                <div style={{ fontWeight: 900, color: "#FFFFFF" }}>{video.title}</div>
-                <div style={{ fontSize: 12, color: "rgba(255,255,255,.60)", marginTop: 4 }}>{video.duration}</div>
+                <div style={{ fontWeight: 600, color: "#1F2937" }}>{video.title}</div>
+                <div style={{ fontSize: 12, color: "#6B7280", marginTop: 4 }}>{video.duration}</div>
               </div>
             </motion.a>
           ))}
@@ -173,7 +162,7 @@ function ExtraYoutubeModal({
             paddingTop: 16,
             borderTop: "1px solid rgba(255,255,255,.10)",
             fontSize: 12,
-            color: "rgba(255,255,255,.60)",
+            color: "#6B7280",
           }}
         >
           Lista curada de treinos mais longos. Toque em um item para abrir no YouTube.
@@ -189,10 +178,10 @@ function AccessibilityPill({ label, supported }: { label: string; supported: boo
       style={{
         padding: "6px 10px",
         borderRadius: 999,
-        border: `1px solid ${supported ? "rgba(124,255,107,.36)" : COLORS.border}`,
+        border: `1px solid ${supported ? "rgba(34,197,94,.36)" : COLORS.border}`,
         fontSize: 11,
-        fontWeight: 900,
-        background: supported ? "rgba(124,255,107,.16)" : "rgba(255,255,255,.05)",
+        fontWeight: 600,
+        background: supported ? "rgba(34,197,94,.16)" : "#F9FAFB",
         color: "rgba(255,255,255,.94)",
         lineHeight: "1",
         display: "inline-flex",
@@ -268,8 +257,8 @@ export default function HomeWorkoutsPage() {
             padding: 18,
             display: "grid",
             gap: 12,
-            background: "linear-gradient(180deg, rgba(15,61,46,.95), rgba(15,24,20,.98))",
-            boxShadow: "0 18px 44px rgba(0,0,0,.45)",
+            background: "#F9FAFB",
+            boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.05)",
           }}
         >
           <motion.div
@@ -279,7 +268,7 @@ export default function HomeWorkoutsPage() {
               inset: -24,
               y: heroMeshY,
               background:
-                "radial-gradient(circle at 18% 24%, rgba(124,255,107,.12), transparent 45%), radial-gradient(circle at 84% 20%, rgba(29,185,84,.12), transparent 42%)",
+                "radial-gradient(circle at 18% 24%, rgba(34,197,94,.12), transparent 45%), radial-gradient(circle at 84% 20%, rgba(34,197,94,.12), transparent 42%)",
               pointerEvents: "none",
             }}
           />
@@ -295,9 +284,9 @@ export default function HomeWorkoutsPage() {
                   borderRadius: 12,
                   border: `1px solid ${COLORS.border}`,
                   background: "transparent",
-                  color: "#FFFFFF",
+                  color: "#1F2937",
                   cursor: "pointer",
-                  fontWeight: 1000,
+                  fontWeight: 700,
                   fontSize: 14,
                   width: "fit-content",
                 }}
@@ -306,13 +295,13 @@ export default function HomeWorkoutsPage() {
               </motion.button>
 
               <div style={{ textAlign: "center" }}>
-                <div style={{ fontWeight: 1000, fontSize: 22 }}>Treinos em casa</div>
+                <div style={{ fontWeight: 700, fontSize: 22 }}>Treinos em casa</div>
                 <div style={{ marginTop: 6, color: COLORS.muted, fontSize: 13 }}>
                   Shorts rápidos com regra de recuperação por grupo muscular.
                 </div>
               </div>
 
-              <div style={{ color: COLORS.mutedSoft, fontSize: 12, fontWeight: 900, textTransform: "uppercase", letterSpacing: 1 }}>
+              <div style={{ color: COLORS.mutedSoft, fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1 }}>
                 Shorts ativos
               </div>
             </motion.div>
@@ -322,7 +311,7 @@ export default function HomeWorkoutsPage() {
               style={{
                 borderRadius: 16,
                 border: `1px solid ${COLORS.border}`,
-                background: "rgba(255,255,255,.04)",
+                background: "#FAFAFA",
                 padding: 14,
                 color: COLORS.muted,
                 fontSize: 13,
@@ -345,10 +334,10 @@ export default function HomeWorkoutsPage() {
             padding: "10px 12px",
             borderRadius: 999,
             border: `1px solid ${filter === "all" ? COLORS.borderStrong : COLORS.border}`,
-            background: filter === "all" ? COLORS.primarySoft : "rgba(255,255,255,.03)",
+            background: filter === "all" ? COLORS.primarySoft : "#FAFAFA",
             color: COLORS.text,
             cursor: "pointer",
-            fontWeight: 900,
+            fontWeight: 600,
           }}
         >
           Todos
@@ -364,10 +353,10 @@ export default function HomeWorkoutsPage() {
               padding: "10px 12px",
               borderRadius: 999,
               border: `1px solid ${filter === group ? COLORS.borderStrong : COLORS.border}`,
-              background: filter === group ? COLORS.primarySoft : "rgba(255,255,255,.03)",
+              background: filter === group ? COLORS.primarySoft : "#FAFAFA",
               color: COLORS.text,
               cursor: "pointer",
-              fontWeight: 900,
+              fontWeight: 600,
             }}
           >
             {groupLabelMap[group]}
@@ -379,7 +368,7 @@ export default function HomeWorkoutsPage() {
         {grouped.map((section) => (
           <motion.div key={section.key} variants={sectionRevealVariants} whileInView="show" initial={shouldReduceMotion ? false : "hidden"} viewport={{ once: true, amount: 0.12 }} style={{ display: "grid", gap: 12 }}>
             <motion.div variants={itemRevealVariants} style={{ display: "grid", gap: 4 }}>
-              <div style={{ fontSize: 18, fontWeight: 1000 }}>{section.title}</div>
+              <div style={{ fontSize: 18, fontWeight: 700 }}>{section.title}</div>
               <div style={{ color: COLORS.muted, fontSize: 13, lineHeight: 1.5 }}>{section.description}</div>
             </motion.div>
 
@@ -400,8 +389,8 @@ export default function HomeWorkoutsPage() {
                       border: `1px solid ${disabled ? "rgba(255,122,122,.22)" : COLORS.border}`,
                       borderRadius: 18,
                       padding: 16,
-                      background: disabled ? "rgba(255,255,255,.02)" : COLORS.panelDeep,
-                      boxShadow: "0 18px 44px rgba(0,0,0,.45)",
+                      background: disabled ? "#FFFFFF" : COLORS.panelDeep,
+                      boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.05)",
                       opacity: disabled ? 0.72 : 1,
                       display: "grid",
                       gap: 12,
@@ -409,7 +398,7 @@ export default function HomeWorkoutsPage() {
                   >
                     <div style={{ display: "flex", justifyContent: "space-between", gap: 16, alignItems: "flex-start", flexWrap: "wrap" }}>
                       <div style={{ display: "grid", gap: 8 }}>
-                        <div style={{ fontWeight: 1000, fontSize: 18 }}>{workout.title}</div>
+                        <div style={{ fontWeight: 700, fontSize: 18 }}>{workout.title}</div>
                         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                           {workout.badges.map((badge) => (
                             <Pill key={badge}>{badge}</Pill>
@@ -422,8 +411,8 @@ export default function HomeWorkoutsPage() {
                           borderRadius: 999,
                           padding: "8px 12px",
                           border: `1px solid ${disabled ? "rgba(255,122,122,.28)" : COLORS.border}`,
-                          background: disabled ? "rgba(255,122,122,.08)" : "rgba(255,255,255,.03)",
-                          fontWeight: 900,
+                          background: disabled ? "rgba(255,122,122,.08)" : "#FAFAFA",
+                          fontWeight: 600,
                           fontSize: 12,
                         }}
                       >
@@ -463,7 +452,7 @@ export default function HomeWorkoutsPage() {
                         whileTap={disabled ? undefined : subtleTapScale}
                         animate={
                           !disabled && shouldUsePulse
-                            ? { boxShadow: ["0 8px 18px rgba(29,185,84,.18)", "0 10px 22px rgba(124,255,107,.28)", "0 8px 18px rgba(29,185,84,.18)"] }
+                            ? { boxShadow: ["0 8px 18px rgba(34,197,94,.18)", "0 10px 22px rgba(34,197,94,.28)", "0 8px 18px rgba(34,197,94,.18)"] }
                             : undefined
                         }
                         transition={!disabled && shouldUsePulse ? { duration: 2.8, repeat: Infinity, ease: "easeInOut" } : undefined}
@@ -471,10 +460,10 @@ export default function HomeWorkoutsPage() {
                         style={{
                           padding: "12px 14px",
                           borderRadius: 14,
-                          border: `1px solid ${disabled ? "rgba(255,255,255,.12)" : COLORS.borderStrong}`,
-                          background: disabled ? "rgba(255,255,255,.03)" : "linear-gradient(135deg, #1DB954 0%, #7CFF6B 100%)",
-                          color: disabled ? COLORS.mutedSoft : "#082014",
-                          fontWeight: 1000,
+                          border: `1px solid ${disabled ? "#F3F4F6" : COLORS.borderStrong}`,
+                          background: disabled ? "#FAFAFA" : "#22C55E",
+                          color: disabled ? COLORS.mutedSoft : "#FFFFFF",
+                          fontWeight: 700,
                           cursor: disabled ? "not-allowed" : "pointer",
                           width: "fit-content",
                         }}
@@ -492,9 +481,9 @@ export default function HomeWorkoutsPage() {
                             padding: "12px 14px",
                             borderRadius: 14,
                             border: `1px solid ${COLORS.borderStrong}`,
-                            background: "rgba(124,255,107,.10)",
+                            background: "rgba(34,197,94,.10)",
                             color: COLORS.text,
-                            fontWeight: 1000,
+                            fontWeight: 700,
                             cursor: "pointer",
                             width: "fit-content",
                           }}
@@ -513,9 +502,9 @@ export default function HomeWorkoutsPage() {
                             padding: "12px 14px",
                             borderRadius: 14,
                             border: `1px solid ${COLORS.borderStrong}`,
-                            background: "rgba(124,255,107,.10)",
+                            background: "rgba(34,197,94,.10)",
                             color: COLORS.text,
-                            fontWeight: 1000,
+                            fontWeight: 700,
                             cursor: "pointer",
                             width: "fit-content",
                           }}

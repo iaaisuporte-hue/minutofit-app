@@ -3,19 +3,7 @@ import { Link } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext";
 import { adminStudents } from "./adminData";
 import { fetchAdminDashboardMetrics, type AdminDashboardMetrics } from "../../services/adminApi";
-
-const COLORS = {
-  border: "rgba(124,255,107,.16)",
-  borderStrong: "rgba(29,185,84,.34)",
-  text: "#FFFFFF",
-  muted: "rgba(255,255,255,.72)",
-  panel: "linear-gradient(180deg, rgba(22,25,22,.92), rgba(15,18,16,.96))",
-  panelDeep: "linear-gradient(135deg, rgba(15,61,46,.94), rgba(15,24,20,.98))",
-  panelSoft: "rgba(255,255,255,.04)",
-  primarySoft: "rgba(29,185,84,.18)",
-  redSoft: "rgba(255,110,110,.10)",
-  redBorder: "rgba(255,110,110,.28)",
-};
+import { COLORS } from "../../styles/colors";
 
 function Card({
   children,
@@ -30,7 +18,7 @@ function Card({
         border: `1px solid ${COLORS.border}`,
         borderRadius: 20,
         background: COLORS.panel,
-        boxShadow: "0 18px 44px rgba(0,0,0,.45)",
+        boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.05)",
         padding: 18,
         ...style,
       }}
@@ -158,29 +146,29 @@ export default function AdminDashboardPage() {
               gap: 8,
               borderRadius: 999,
               background: COLORS.primarySoft,
-              color: "#7CFF6B",
+              color: "#22C55E",
               padding: "8px 12px",
               fontSize: 11,
-              fontWeight: 900,
+              fontWeight: 600,
               letterSpacing: 1.2,
               textTransform: "uppercase",
             }}
           >
             Operação da plataforma
           </div>
-          <div style={{ fontSize: 30, fontWeight: 1000 }}>Visão geral do MinutoFit</div>
+          <div style={{ fontSize: 30, fontWeight: 700 }}>Visão geral do MinutoFit</div>
           <div style={{ color: COLORS.muted, lineHeight: 1.6, maxWidth: 840 }}>Cockpit operacional com leitura rápida do negócio, sinais prioritários e atalhos de ação.</div>
           <div style={{ color: COLORS.muted, fontSize: 13 }}>
-            Perfil de acesso atual: <b style={{ color: "#FFFFFF" }}>{auth.accessProfile ?? "sem perfil"}</b>
+            Perfil de acesso atual: <b style={{ color: "#1F2937" }}>{auth.accessProfile ?? "sem perfil"}</b>
           </div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <Link to="/app/admin/users" style={{ color: "#7CFF6B", fontWeight: 900, textDecoration: "none" }}>
+            <Link to="/app/admin/users" style={{ color: "#22C55E", fontWeight: 600, textDecoration: "none" }}>
               Ver alunos pendentes
             </Link>
-            <Link to="/app/admin/finance" style={{ color: "#7CFF6B", fontWeight: 900, textDecoration: "none" }}>
+            <Link to="/app/admin/finance" style={{ color: "#22C55E", fontWeight: 600, textDecoration: "none" }}>
               Abrir financeiro
             </Link>
-            <Link to="/app/admin/personals" style={{ color: "#7CFF6B", fontWeight: 900, textDecoration: "none" }}>
+            <Link to="/app/admin/personals" style={{ color: "#22C55E", fontWeight: 600, textDecoration: "none" }}>
               Revisar profissionais
             </Link>
           </div>
@@ -189,14 +177,14 @@ export default function AdminDashboardPage() {
 
       {loading && (
         <Card>
-          <div style={{ fontWeight: 1000, fontSize: 18 }}>Carregando visão do negócio...</div>
+          <div style={{ fontWeight: 700, fontSize: 18 }}>Carregando visão do negócio...</div>
           <div style={{ marginTop: 8, color: COLORS.muted, fontSize: 13 }}>Buscando métricas em tempo real do backend administrativo.</div>
         </Card>
       )}
 
       {error && (
         <Card style={{ border: `1px solid ${COLORS.redBorder}`, background: COLORS.redSoft }}>
-          <div style={{ fontWeight: 1000, fontSize: 18 }}>Não foi possível carregar o dashboard</div>
+          <div style={{ fontWeight: 700, fontSize: 18 }}>Não foi possível carregar o dashboard</div>
           <div style={{ marginTop: 8, color: COLORS.muted, fontSize: 13 }}>{error}</div>
           <button
             type="button"
@@ -206,9 +194,9 @@ export default function AdminDashboardPage() {
               padding: "10px 12px",
               borderRadius: 12,
               border: `1px solid ${COLORS.redBorder}`,
-              background: "rgba(255,255,255,.06)",
+              background: "#F9FAFB",
               color: COLORS.text,
-              fontWeight: 1000,
+              fontWeight: 700,
               cursor: "pointer",
             }}
           >
@@ -219,7 +207,7 @@ export default function AdminDashboardPage() {
 
       {hasEmptyState && (
         <Card>
-          <div style={{ fontWeight: 1000, fontSize: 18 }}>Ainda não há dados para exibir</div>
+          <div style={{ fontWeight: 700, fontSize: 18 }}>Ainda não há dados para exibir</div>
           <div style={{ marginTop: 8, color: COLORS.muted, fontSize: 13 }}>Quando usuários e assinaturas forem criados, as métricas aparecerão aqui automaticamente.</div>
         </Card>
       )}
@@ -228,7 +216,7 @@ export default function AdminDashboardPage() {
         {metrics.map((item) => (
           <Card key={item.title}>
             <div style={{ color: COLORS.muted, fontSize: 13 }}>{item.title}</div>
-            <div style={{ marginTop: 10, fontSize: 34, fontWeight: 1000 }}>{item.value}</div>
+            <div style={{ marginTop: 10, fontSize: 34, fontWeight: 700 }}>{item.value}</div>
             <div style={{ marginTop: 6, color: COLORS.muted, fontSize: 13 }}>{item.note}</div>
           </Card>
         ))}
@@ -238,12 +226,12 @@ export default function AdminDashboardPage() {
         <div style={{ display: "grid", gap: 14, gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))" }}>
           <Card>
             <div style={{ color: COLORS.muted, fontSize: 13 }}>MRR atual</div>
-            <div style={{ marginTop: 10, fontSize: 34, fontWeight: 1000 }}>{formatCurrency(currentMetrics.mrr)}</div>
+            <div style={{ marginTop: 10, fontSize: 34, fontWeight: 700 }}>{formatCurrency(currentMetrics.mrr)}</div>
             <div style={{ marginTop: 6, color: COLORS.muted, fontSize: 13 }}>receita recorrente mensal</div>
           </Card>
           <Card>
             <div style={{ color: COLORS.muted, fontSize: 13 }}>Receita acumulada</div>
-            <div style={{ marginTop: 10, fontSize: 34, fontWeight: 1000 }}>{formatCurrency(currentMetrics.totalRevenue)}</div>
+            <div style={{ marginTop: 10, fontSize: 34, fontWeight: 700 }}>{formatCurrency(currentMetrics.totalRevenue)}</div>
             <div style={{ marginTop: 6, color: COLORS.muted, fontSize: 13 }}>pagamentos aprovados</div>
           </Card>
         </div>
@@ -252,7 +240,7 @@ export default function AdminDashboardPage() {
       <div style={{ display: "grid", gap: 14, gridTemplateColumns: "1.35fr .95fr" }}>
         <Card>
           <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-            <div style={{ fontWeight: 1000, fontSize: 18 }}>Alertas que merecem atenção</div>
+            <div style={{ fontWeight: 700, fontSize: 18 }}>Alertas que merecem atenção</div>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               {[
                 { key: "all", label: "Todos" },
@@ -269,7 +257,7 @@ export default function AdminDashboardPage() {
                     border: `1px solid ${alertFilter === item.key ? COLORS.borderStrong : COLORS.border}`,
                     background: alertFilter === item.key ? COLORS.primarySoft : COLORS.panelSoft,
                     color: COLORS.text,
-                    fontWeight: 900,
+                    fontWeight: 600,
                     fontSize: 12,
                     cursor: "pointer",
                   }}
@@ -300,7 +288,7 @@ export default function AdminDashboardPage() {
                   lineHeight: 1.5,
                 }}
               >
-                <div style={{ fontSize: 12, fontWeight: 900, marginBottom: 4, color: alert.severity === "critical" ? "#FF9C9C" : "#FFD36C" }}>
+                <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 4, color: alert.severity === "critical" ? "#FF9C9C" : "#FFD36C" }}>
                   {alert.severity === "critical" ? "CRÍTICO" : "ATENÇÃO"}
                 </div>
                 {alert.text}
@@ -310,7 +298,7 @@ export default function AdminDashboardPage() {
         </Card>
 
         <Card>
-          <div style={{ fontWeight: 1000, fontSize: 18 }}>Operações rápidas</div>
+          <div style={{ fontWeight: 700, fontSize: 18 }}>Operações rápidas</div>
           <div style={{ marginTop: 6, color: COLORS.muted, fontSize: 13, lineHeight: 1.5 }}>
             Ações de suporte com feedback inline e sem interrupções de contexto.
           </div>
@@ -331,7 +319,7 @@ export default function AdminDashboardPage() {
 
           <div style={{ display: "grid", gap: 10, marginTop: 14 }}>
             <label style={{ display: "grid", gap: 6 }}>
-              <span style={{ fontWeight: 900, color: "rgba(255,255,255,.85)" }}>E-mail do usuário</span>
+              <span style={{ fontWeight: 600, color: "rgba(255,255,255,.85)" }}>E-mail do usuário</span>
               <input
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -370,9 +358,9 @@ export default function AdminDashboardPage() {
                   padding: "12px 14px",
                   borderRadius: 14,
                   border: `1px solid ${COLORS.borderStrong}`,
-                  background: "linear-gradient(135deg, #1DB954 0%, #7CFF6B 100%)",
-                  color: "#082014",
-                  fontWeight: 1000,
+                  background: "#22C55E",
+                  color: "#FFFFFF",
+                  fontWeight: 700,
                   cursor: "pointer",
                 }}
               >
@@ -388,7 +376,7 @@ export default function AdminDashboardPage() {
                   border: `1px solid ${COLORS.border}`,
                   background: COLORS.panelSoft,
                   color: COLORS.text,
-                  fontWeight: 1000,
+                  fontWeight: 700,
                   cursor: "pointer",
                 }}
               >

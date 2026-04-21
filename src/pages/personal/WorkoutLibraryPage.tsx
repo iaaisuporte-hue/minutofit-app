@@ -63,9 +63,9 @@ function chipBase(): React.CSSProperties {
     padding: "6px 10px",
     borderRadius: 999,
     border: "1px solid rgba(255,255,255,.10)",
-    background: "rgba(255,255,255,.06)",
-    color: "rgba(255,255,255,.92)",
-    fontWeight: 900,
+    background: "#F9FAFB",
+    color: "#1F2937",
+    fontWeight: 600,
     fontSize: 12,
     lineHeight: 1,
     whiteSpace: "nowrap",
@@ -88,7 +88,7 @@ function card(): React.CSSProperties {
     background: "#171717",
     border: "1px solid rgba(255,255,255,.10)",
     borderRadius: 16,
-    boxShadow: "0 18px 44px rgba(0,0,0,.45)",
+    boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.05)",
   };
 }
 
@@ -98,8 +98,8 @@ function btnBase(): React.CSSProperties {
     borderRadius: 12,
     border: "1px solid rgba(255,255,255,.12)",
     background: "transparent",
-    color: "#FFFFFF",
-    fontWeight: 1000,
+    color: "#1F2937",
+    fontWeight: 700,
     cursor: "pointer",
   };
 }
@@ -120,8 +120,8 @@ function inputStyle(): React.CSSProperties {
     borderRadius: 12,
     border: "1px solid rgba(255,255,255,.12)",
     background: "#0F0F0F",
-    color: "#FFFFFF",
-    fontWeight: 800,
+    color: "#1F2937",
+    fontWeight: 600,
     outline: "none",
   };
 }
@@ -315,13 +315,13 @@ export default function WorkoutLibraryPage() {
   }
 
   return (
-    <div style={{ display: "grid", gap: 14, color: "#FFFFFF" }}>
+    <div style={{ display: "grid", gap: 14, color: "#1F2937" }}>
       {/* ✅ Header com storytelling / decisões rápidas */}
       <div style={{ ...card(), padding: 16 }}>
         <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
           <div style={{ display: "grid", gap: 6 }}>
-            <div style={{ fontWeight: 1000, fontSize: 20 }}>Treinos gerais (Netflix)</div>
-            <div style={{ color: "rgba(255,255,255,.70)", fontSize: 14, lineHeight: 1.35 }}>
+            <div style={{ fontWeight: 700, fontSize: 20 }}>Treinos gerais (Netflix)</div>
+            <div style={{ color: "#6B7280", fontSize: 14, lineHeight: 1.35 }}>
               Crie treinos prontos (sequência de vídeos) e distribua em <b>1 clique</b> por plano, perfil e objetivo.
             </div>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 6 }}>
@@ -401,8 +401,8 @@ export default function WorkoutLibraryPage() {
           </select>
         </div>
 
-        <div style={{ marginTop: 10, color: "rgba(255,255,255,.65)", fontSize: 13 }}>
-          Mostrando <b style={{ color: "#FFFFFF" }}>{filteredWorkouts.length}</b> treino(s) filtrado(s).
+        <div style={{ marginTop: 10, color: "#6B7280", fontSize: 13 }}>
+          Mostrando <b style={{ color: "#1F2937" }}>{filteredWorkouts.length}</b> treino(s) filtrado(s).
         </div>
       </div>
 
@@ -412,7 +412,7 @@ export default function WorkoutLibraryPage() {
           <div key={w.id} style={{ ...card(), padding: 14 }}>
             <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
               <div style={{ display: "grid", gap: 8 }}>
-                <div style={{ fontWeight: 1000, fontSize: 16 }}>{w.title}</div>
+                <div style={{ fontWeight: 700, fontSize: 16 }}>{w.title}</div>
 
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                   <Chip>{GOAL_LABEL[w.goal]}</Chip>
@@ -423,8 +423,8 @@ export default function WorkoutLibraryPage() {
                   <Chip tone="orange">Distribuído: {w.assignedCount}</Chip>
                 </div>
 
-                <div style={{ color: "rgba(255,255,255,.60)", fontSize: 12 }}>
-                  Criado em: <b style={{ color: "#FFFFFF" }}>{formatDateBR(w.createdAtISO)}</b> • ID:{" "}
+                <div style={{ color: "#6B7280", fontSize: 12 }}>
+                  Criado em: <b style={{ color: "#1F2937" }}>{formatDateBR(w.createdAtISO)}</b> • ID:{" "}
                   <span style={{ opacity: 0.9 }}>{w.id}</span>
                 </div>
               </div>
@@ -480,8 +480,8 @@ export default function WorkoutLibraryPage() {
           >
             <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
               <div style={{ display: "grid", gap: 6 }}>
-                <div style={{ fontWeight: 1000, fontSize: 18 }}>Distribuir treino para alunos</div>
-                <div style={{ color: "rgba(255,255,255,.70)", fontSize: 13, lineHeight: 1.35 }}>
+                <div style={{ fontWeight: 700, fontSize: 18 }}>Distribuir treino para alunos</div>
+                <div style={{ color: "#6B7280", fontSize: 13, lineHeight: 1.35 }}>
                   Selecione um treino e filtre alunos por plano/perfil. <b>Sem vazamento:</b> no backend real, o servidor valida
                   se o aluno pertence ao seu perfil antes de aplicar.
                 </div>
@@ -494,7 +494,7 @@ export default function WorkoutLibraryPage() {
 
             {/* ✅ Escolha do treino (se abriu pelo botão do topo) */}
             <div style={{ marginTop: 12, ...card(), padding: 14, background: "#141414" }}>
-              <div style={{ fontWeight: 1000, marginBottom: 8 }}>1) Escolha o treino</div>
+              <div style={{ fontWeight: 700, marginBottom: 8 }}>1) Escolha o treino</div>
 
               <select
                 value={selectedWorkout?.id ?? "none"}
@@ -520,7 +520,7 @@ export default function WorkoutLibraryPage() {
                   <Chip>{selectedWorkout.equipment === "com_peso" ? "Com peso" : "Sem peso"}</Chip>
                 </div>
               ) : (
-                <div style={{ marginTop: 10, color: "rgba(255,255,255,.65)", fontSize: 13 }}>
+                <div style={{ marginTop: 10, color: "#6B7280", fontSize: 13 }}>
                   Dica: clique em “Distribuir” direto no card do treino pra abrir aqui já selecionado.
                 </div>
               )}
@@ -528,7 +528,7 @@ export default function WorkoutLibraryPage() {
 
             {/* ✅ Filtros de alunos */}
             <div style={{ marginTop: 12, ...card(), padding: 14, background: "#141414" }}>
-              <div style={{ fontWeight: 1000, marginBottom: 10 }}>2) Filtre os alunos (seleção rápida)</div>
+              <div style={{ fontWeight: 700, marginBottom: 10 }}>2) Filtre os alunos (seleção rápida)</div>
 
               {/* Atalhos */}
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 10 }}>
@@ -546,7 +546,7 @@ export default function WorkoutLibraryPage() {
                   onClick={() => setActiveOnly((v) => !v)}
                   style={{
                     ...btnBase(),
-                    borderColor: activeOnly ? "rgba(255,106,0,.35)" : "rgba(255,255,255,.12)",
+                    borderColor: activeOnly ? "rgba(255,106,0,.35)" : "#F3F4F6",
                     background: activeOnly ? "rgba(255,106,0,.14)" : "transparent",
                   }}
                 >
@@ -558,7 +558,7 @@ export default function WorkoutLibraryPage() {
               <div style={{ display: "grid", gap: 10, gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}>
                 {/* Planos */}
                 <div style={{ ...card(), padding: 12, background: "#171717" }}>
-                  <div style={{ fontWeight: 1000, marginBottom: 8 }}>Plano</div>
+                  <div style={{ fontWeight: 700, marginBottom: 8 }}>Plano</div>
                   {(["basic", "silver", "gold", "black"] as Plan[]).map((p) => (
                     <label key={p} style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 0" }}>
                       <input
@@ -566,14 +566,14 @@ export default function WorkoutLibraryPage() {
                         checked={planPick[p]}
                         onChange={(e) => setPlanPick((prev) => ({ ...prev, [p]: e.target.checked }))}
                       />
-                      <span style={{ fontWeight: 900 }}>{PLAN_LABEL[p]}</span>
+                      <span style={{ fontWeight: 600 }}>{PLAN_LABEL[p]}</span>
                     </label>
                   ))}
                 </div>
 
                 {/* Gênero */}
                 <div style={{ ...card(), padding: 12, background: "#171717" }}>
-                  <div style={{ fontWeight: 1000, marginBottom: 8 }}>Gênero</div>
+                  <div style={{ fontWeight: 700, marginBottom: 8 }}>Gênero</div>
                   {(
                     [
                       { k: "masc", label: "Masculino" },
@@ -587,14 +587,14 @@ export default function WorkoutLibraryPage() {
                         checked={genderPick[g.k]}
                         onChange={(e) => setGenderPick((prev) => ({ ...prev, [g.k]: e.target.checked }))}
                       />
-                      <span style={{ fontWeight: 900 }}>{g.label}</span>
+                      <span style={{ fontWeight: 600 }}>{g.label}</span>
                     </label>
                   ))}
                 </div>
 
                 {/* Idade */}
                 <div style={{ ...card(), padding: 12, background: "#171717" }}>
-                  <div style={{ fontWeight: 1000, marginBottom: 8 }}>Faixa etária</div>
+                  <div style={{ fontWeight: 700, marginBottom: 8 }}>Faixa etária</div>
                   <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
                     <input
                       type="number"
@@ -604,7 +604,7 @@ export default function WorkoutLibraryPage() {
                       min={10}
                       max={99}
                     />
-                    <span style={{ color: "rgba(255,255,255,.70)", fontWeight: 900 }}>até</span>
+                    <span style={{ color: "#6B7280", fontWeight: 600 }}>até</span>
                     <input
                       type="number"
                       value={ageMax}
@@ -614,14 +614,14 @@ export default function WorkoutLibraryPage() {
                       max={99}
                     />
                   </div>
-                  <div style={{ marginTop: 8, color: "rgba(255,255,255,.65)", fontSize: 12 }}>
+                  <div style={{ marginTop: 8, color: "#6B7280", fontSize: 12 }}>
                     Dica: deixe 16–80 e refine depois.
                   </div>
                 </div>
 
                 {/* Nível */}
                 <div style={{ ...card(), padding: 12, background: "#171717" }}>
-                  <div style={{ fontWeight: 1000, marginBottom: 8 }}>Nível</div>
+                  <div style={{ fontWeight: 700, marginBottom: 8 }}>Nível</div>
                   {(["iniciante", "intermediario", "avancado"] as WorkoutLevel[]).map((lv) => (
                     <label key={lv} style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 0" }}>
                       <input
@@ -629,7 +629,7 @@ export default function WorkoutLibraryPage() {
                         checked={studentLevelPick[lv]}
                         onChange={(e) => setStudentLevelPick((prev) => ({ ...prev, [lv]: e.target.checked }))}
                       />
-                      <span style={{ fontWeight: 900 }}>{LEVEL_LABEL[lv]}</span>
+                      <span style={{ fontWeight: 600 }}>{LEVEL_LABEL[lv]}</span>
                     </label>
                   ))}
                 </div>
@@ -640,9 +640,9 @@ export default function WorkoutLibraryPage() {
             <div style={{ marginTop: 12, ...card(), padding: 14, background: "#141414" }}>
               <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
                 <div style={{ display: "grid", gap: 6 }}>
-                  <div style={{ fontWeight: 1000 }}>3) Selecione os alunos</div>
-                  <div style={{ color: "rgba(255,255,255,.70)", fontSize: 13 }}>
-                    Elegíveis pelo filtro: <b style={{ color: "#FFFFFF" }}>{eligibleStudents.length}</b> • Selecionados:{" "}
+                  <div style={{ fontWeight: 700 }}>3) Selecione os alunos</div>
+                  <div style={{ color: "#6B7280", fontSize: 13 }}>
+                    Elegíveis pelo filtro: <b style={{ color: "#1F2937" }}>{eligibleStudents.length}</b> • Selecionados:{" "}
                     <b style={{ color: "#FF6A00" }}>{selectedCount}</b>
                   </div>
                 </div>
@@ -681,7 +681,7 @@ export default function WorkoutLibraryPage() {
                         />
 
                         <div style={{ display: "grid", gap: 6 }}>
-                          <div style={{ fontWeight: 1000 }}>{s.name}</div>
+                          <div style={{ fontWeight: 700 }}>{s.name}</div>
                           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                             <Chip>{PLAN_LABEL[s.plan]}</Chip>
                             <Chip>{s.age} anos</Chip>
@@ -705,7 +705,7 @@ export default function WorkoutLibraryPage() {
                 })}
 
                 {eligibleStudents.length === 0 ? (
-                  <div style={{ color: "rgba(255,255,255,.70)", fontWeight: 900, padding: 10 }}>
+                  <div style={{ color: "#6B7280", fontWeight: 600, padding: 10 }}>
                     Nenhum aluno encontrado com esses filtros. Ajuste plano, idade ou nível.
                   </div>
                 ) : null}
@@ -714,7 +714,7 @@ export default function WorkoutLibraryPage() {
 
             {/* ✅ Footer do modal */}
             <div style={{ marginTop: 12, display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-              <div style={{ color: "rgba(255,255,255,.70)", fontSize: 13, lineHeight: 1.35 }}>
+              <div style={{ color: "#6B7280", fontSize: 13, lineHeight: 1.35 }}>
                 ✅ Sugestão: distribua por objetivo e depois acompanhe check-ins na Dashboard.
               </div>
 

@@ -6,30 +6,9 @@ import {
   type PersonalConsultingNextAction,
   type PersonalConsultingStudent,
 } from "../../services/personalDashboardApi";
+import { COLORS } from "../../styles/colors";
 
 type ConsultingStudent = PersonalConsultingStudent;
-
-const COLORS = {
-  panel: "linear-gradient(180deg, rgba(22,25,22,.92), rgba(15,18,16,.96))",
-  panelDeep: "linear-gradient(135deg, rgba(15,61,46,.94), rgba(15,24,20,.98))",
-  card: "rgba(255,255,255,.03)",
-  border: "rgba(124,255,107,.16)",
-  borderStrong: "rgba(29,185,84,.34)",
-  text: "#FFFFFF",
-  muted: "rgba(255,255,255,.72)",
-  muted2: "rgba(232,236,233,.58)",
-  green: "#1DB954",
-  greenSoft: "rgba(29,185,84,.18)",
-  greenBorder: "rgba(29,185,84,.34)",
-  successBg: "rgba(46, 204, 113, .14)",
-  successBorder: "rgba(46, 204, 113, .35)",
-  warnBg: "rgba(255, 180, 0, .14)",
-  warnBorder: "rgba(255, 180, 0, .35)",
-  dangerBg: "rgba(255, 77, 77, .14)",
-  dangerBorder: "rgba(255, 77, 77, .35)",
-  blueBg: "rgba(120, 160, 255, .14)",
-  blueBorder: "rgba(120, 160, 255, .35)",
-};
 
 const PLAN_LABEL = {
   basic: "Básico",
@@ -56,7 +35,7 @@ function pillStyle(opts: { bg: string; border: string }): React.CSSProperties {
     padding: "6px 10px",
     borderRadius: 999,
     fontSize: 12,
-    fontWeight: 900,
+    fontWeight: 600,
     lineHeight: 1,
     color: COLORS.text,
     border: `1px solid ${opts.border}`,
@@ -79,7 +58,7 @@ function Pill({
   title?: string;
 }) {
   const map = {
-    neutral: { bg: "rgba(255,255,255,.06)", border: "rgba(255,255,255,.12)" },
+    neutral: { bg: "#F9FAFB", border: "#F3F4F6" },
     success: { bg: COLORS.successBg, border: COLORS.successBorder },
     warn: { bg: COLORS.warnBg, border: COLORS.warnBorder },
     danger: { bg: COLORS.dangerBg, border: COLORS.dangerBorder },
@@ -101,7 +80,7 @@ function Card({ children }: { children: React.ReactNode }) {
         border: `1px solid ${COLORS.border}`,
         borderRadius: 20,
         background: COLORS.card,
-        boxShadow: "0 18px 44px rgba(0,0,0,.45)",
+        boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.05)",
       }}
     >
       {children}
@@ -127,7 +106,7 @@ function ActionLink({
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
-    fontWeight: 1000,
+    fontWeight: 700,
     fontSize: 14,
     lineHeight: 1,
     cursor: "pointer",
@@ -137,7 +116,7 @@ function ActionLink({
   const variants: Record<typeof kind, React.CSSProperties> = {
     ghost: {
       border: `1px solid ${COLORS.border}`,
-      background: "rgba(255,255,255,.03)",
+      background: "#FAFAFA",
       color: COLORS.text,
     },
     primary: {
@@ -261,7 +240,7 @@ export default function ConsultingStudentsPage() {
           }}
         >
           <div style={{ display: "grid", gap: 6 }}>
-            <div style={{ fontWeight: 1000, fontSize: 22, letterSpacing: 0.2 }}>Alunos consultoria</div>
+            <div style={{ fontWeight: 700, fontSize: 22, letterSpacing: 0.2 }}>Alunos consultoria</div>
             <div style={{ color: COLORS.muted, fontSize: 13, lineHeight: 1.45, maxWidth: 680 }}>
               Carteira operacional da consultoria com prioridade, aderência e vencimento de ciclo em um só lugar.
             </div>
@@ -274,10 +253,10 @@ export default function ConsultingStudentsPage() {
                 padding: "12px 14px",
                 borderRadius: 12,
                 border: `1px solid ${COLORS.border}`,
-                background: onlyUrgent ? COLORS.warnBg : "rgba(255,255,255,.03)",
+                background: onlyUrgent ? COLORS.warnBg : "#FAFAFA",
                 color: COLORS.text,
                 cursor: "pointer",
-                fontWeight: 1000,
+                fontWeight: 700,
                 fontSize: 14,
               }}
               title="Mostrar somente alunos com ação imediata"
@@ -294,28 +273,28 @@ export default function ConsultingStudentsPage() {
         <Card>
           <div style={{ padding: 14, display: "grid", gap: 6 }}>
             <div style={{ color: COLORS.muted2, fontSize: 12, textTransform: "uppercase", letterSpacing: 0.9 }}>Carteira ativa</div>
-            <div style={{ fontSize: 28, fontWeight: 1000 }}>{summary.total}</div>
+            <div style={{ fontSize: 28, fontWeight: 700 }}>{summary.total}</div>
             <div style={{ color: COLORS.muted, fontSize: 12 }}>alunos em acompanhamento</div>
           </div>
         </Card>
         <Card>
           <div style={{ padding: 14, display: "grid", gap: 6 }}>
             <div style={{ color: COLORS.muted2, fontSize: 12, textTransform: "uppercase", letterSpacing: 0.9 }}>Urgente</div>
-            <div style={{ fontSize: 28, fontWeight: 1000 }}>{summary.urgent}</div>
+            <div style={{ fontSize: 28, fontWeight: 700 }}>{summary.urgent}</div>
             <div style={{ color: COLORS.muted, fontSize: 12 }}>pedem ajuste imediato</div>
           </div>
         </Card>
         <Card>
           <div style={{ padding: 14, display: "grid", gap: 6 }}>
             <div style={{ color: COLORS.muted2, fontSize: 12, textTransform: "uppercase", letterSpacing: 0.9 }}>Em atenção</div>
-            <div style={{ fontSize: 28, fontWeight: 1000 }}>{summary.warning}</div>
+            <div style={{ fontSize: 28, fontWeight: 700 }}>{summary.warning}</div>
             <div style={{ color: COLORS.muted, fontSize: 12 }}>pedem acompanhamento próximo</div>
           </div>
         </Card>
         <Card>
           <div style={{ padding: 14, display: "grid", gap: 6 }}>
             <div style={{ color: COLORS.muted2, fontSize: 12, textTransform: "uppercase", letterSpacing: 0.9 }}>No ritmo</div>
-            <div style={{ fontSize: 28, fontWeight: 1000 }}>{summary.onTrack}</div>
+            <div style={{ fontSize: 28, fontWeight: 700 }}>{summary.onTrack}</div>
             <div style={{ color: COLORS.muted, fontSize: 12 }}>seguem bem no ciclo</div>
           </div>
         </Card>
@@ -328,7 +307,7 @@ export default function ConsultingStudentsPage() {
       ) : error ? (
         <Card>
           <div style={{ padding: 18, display: "grid", gap: 12 }}>
-            <div style={{ fontWeight: 900 }}>Nao foi possivel carregar a consultoria.</div>
+            <div style={{ fontWeight: 600 }}>Nao foi possivel carregar a consultoria.</div>
             <div style={{ color: COLORS.muted, fontSize: 14 }}>{error}</div>
             <div>
               <button
@@ -340,7 +319,7 @@ export default function ConsultingStudentsPage() {
                   background: COLORS.green,
                   color: "#0F0F0F",
                   cursor: "pointer",
-                  fontWeight: 1000,
+                  fontWeight: 700,
                   fontSize: 14,
                 }}
               >
@@ -352,7 +331,7 @@ export default function ConsultingStudentsPage() {
       ) : filtered.length === 0 ? (
         <Card>
           <div style={{ padding: 18, display: "grid", gap: 6 }}>
-            <div style={{ fontWeight: 900 }}>Nenhum aluno encontrado neste recorte.</div>
+            <div style={{ fontWeight: 600 }}>Nenhum aluno encontrado neste recorte.</div>
             <div style={{ color: COLORS.muted, fontSize: 14 }}>
               {onlyUrgent ? "Sua carteira está estável neste momento." : "Ainda não há alunos disponíveis para consultoria."}
             </div>
@@ -375,7 +354,7 @@ export default function ConsultingStudentsPage() {
                   border: `1px solid ${COLORS.border}`,
                   borderRadius: 16,
                   background: COLORS.card,
-                  boxShadow: "0 18px 44px rgba(0,0,0,.45)",
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.05)",
                 }}
                 onMouseEnter={(event) => {
                   (event.currentTarget as HTMLDivElement).style.borderColor = COLORS.borderStrong;
@@ -396,7 +375,7 @@ export default function ConsultingStudentsPage() {
                 >
                   <div style={{ display: "grid", gap: 10, minWidth: 280, flex: 1 }}>
                     <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-                      <div style={{ fontWeight: 1000, fontSize: 16, letterSpacing: 0.2 }}>{student.name}</div>
+                      <div style={{ fontWeight: 700, fontSize: 16, letterSpacing: 0.2 }}>{student.name}</div>
 
                       <Pill variant={getPlanVariant(student.plan)}>{PLAN_LABEL[student.plan]}</Pill>
 
@@ -437,7 +416,7 @@ export default function ConsultingStudentsPage() {
                             ? COLORS.dangerBg
                             : actionMeta.variant === "warn"
                               ? COLORS.warnBg
-                              : "rgba(255,255,255,.03)",
+                              : "#FAFAFA",
                         padding: "10px 12px",
                       }}
                     >
@@ -459,10 +438,10 @@ export default function ConsultingStudentsPage() {
                         padding: "12px 14px",
                         borderRadius: 12,
                         border: `1px solid ${COLORS.border}`,
-                        background: "rgba(255,255,255,.03)",
+                        background: "#FAFAFA",
                         color: COLORS.text,
                         cursor: "pointer",
-                        fontWeight: 1000,
+                        fontWeight: 700,
                         fontSize: 14,
                       }}
                     >

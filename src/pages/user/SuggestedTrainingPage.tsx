@@ -5,6 +5,7 @@ import { getYesterdayMuscleGroups, type MuscleGroup } from "./workoutHistory";
 import { addXp, registerDailyCheckin } from "./gamification";
 import { persistGamificationCheckin } from "../../services/gamificationApi";
 import { addWorkoutHistoryEntry } from "./workoutHistory";
+import { COLORS } from "../../styles/colors";
 
 type ReadinessLevel = "green" | "yellow" | "red";
 type RecommendationMode =
@@ -49,26 +50,6 @@ type MetabolicRecommendation = {
   } | null;
 };
 
-const COLORS = {
-  border: "rgba(124,255,107,.16)",
-  borderStrong: "rgba(29,185,84,.34)",
-  text: "#FFFFFF",
-  muted: "rgba(255,255,255,.72)",
-  mutedSoft: "rgba(232,236,233,.58)",
-  panel: "linear-gradient(180deg, rgba(22,25,22,.92), rgba(15,18,16,.96))",
-  panelDeep: "linear-gradient(135deg, rgba(15,61,46,.94), rgba(15,24,20,.98))",
-  panelSoft: "rgba(255,255,255,.04)",
-  primarySoft: "rgba(29,185,84,.18)",
-  highlightSoft: "rgba(124,255,107,.12)",
-  lime: "#7CFF6B",
-  green: "#1DB954",
-  deep: "#0F3D2E",
-  redSoft: "rgba(255,110,110,.12)",
-  redBorder: "rgba(255,110,110,.28)",
-  yellowSoft: "rgba(255,200,80,.12)",
-  yellowBorder: "rgba(255,200,80,.28)",
-};
-
 const defaultSignals: DailySignals = {
   wokeUpFeeling: "ok",
   sleepQuality: "regular",
@@ -106,7 +87,7 @@ function Card({
         border: `1px solid ${COLORS.border}`,
         borderRadius: 20,
         background: COLORS.panel,
-        boxShadow: "0 18px 44px rgba(0,0,0,.45)",
+        boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.05)",
         padding: 18,
         ...style,
       }}
@@ -139,7 +120,7 @@ function SectionTitle({
             color: COLORS.lime,
             padding: "8px 12px",
             fontSize: 11,
-            fontWeight: 900,
+            fontWeight: 600,
             letterSpacing: 1.2,
             textTransform: "uppercase",
           }}
@@ -147,7 +128,7 @@ function SectionTitle({
           {eyebrow}
         </div>
       ) : null}
-      <div style={{ fontSize: 30, fontWeight: 1000, color: COLORS.text }}>{title}</div>
+      <div style={{ fontSize: 30, fontWeight: 700, color: COLORS.text }}>{title}</div>
       {subtitle ? <div style={{ color: COLORS.muted, lineHeight: 1.6, maxWidth: 780 }}>{subtitle}</div> : null}
     </div>
   );
@@ -170,10 +151,10 @@ function ChoicePill({
         padding: "10px 12px",
         borderRadius: 14,
         border: active ? `1px solid ${COLORS.borderStrong}` : `1px solid ${COLORS.border}`,
-        background: active ? COLORS.primarySoft : "rgba(255,255,255,.04)",
+        background: active ? COLORS.primarySoft : "#FAFAFA",
         color: COLORS.text,
         cursor: "pointer",
-        fontWeight: 900,
+        fontWeight: 600,
       }}
     >
       {children}
@@ -185,7 +166,7 @@ function getLevelVisual(level: ReadinessLevel) {
   if (level === "green") {
     return {
       label: "Prontidão alta",
-      background: "rgba(29,185,84,.14)",
+      background: "rgba(34,197,94,.14)",
       border: COLORS.borderStrong,
       color: COLORS.lime,
     };
@@ -1057,9 +1038,9 @@ export default function SuggestedTrainingPage() {
             padding: 14,
             borderRadius: 14,
             border: `1px solid ${COLORS.borderStrong}`,
-            background: "rgba(29,185,84,.12)",
+            background: "rgba(34,197,94,.12)",
             color: COLORS.text,
-            fontWeight: 800,
+            fontWeight: 600,
           }}
         >
           {trainingMessage}
@@ -1076,10 +1057,10 @@ export default function SuggestedTrainingPage() {
       <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.05fr) minmax(0, .95fr)", gap: 16 }}>
         <Card>
           <div style={{ display: "grid", gap: 18 }}>
-            <div style={{ fontSize: 20, fontWeight: 1000, color: COLORS.text }}>Estado de hoje</div>
+            <div style={{ fontSize: 20, fontWeight: 700, color: COLORS.text }}>Estado de hoje</div>
 
             <div style={{ display: "grid", gap: 10 }}>
-              <div style={{ color: COLORS.mutedSoft, fontSize: 12, fontWeight: 900, textTransform: "uppercase", letterSpacing: 1.1 }}>
+              <div style={{ color: COLORS.mutedSoft, fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1.1 }}>
                 Como você acordou?
               </div>
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
@@ -1101,7 +1082,7 @@ export default function SuggestedTrainingPage() {
 
             <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 14 }}>
               <div style={{ display: "grid", gap: 10 }}>
-                <div style={{ color: COLORS.mutedSoft, fontSize: 12, fontWeight: 900, textTransform: "uppercase", letterSpacing: 1.1 }}>
+                <div style={{ color: COLORS.mutedSoft, fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1.1 }}>
                   Sono
                 </div>
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -1122,7 +1103,7 @@ export default function SuggestedTrainingPage() {
               </div>
 
               <div style={{ display: "grid", gap: 10 }}>
-                <div style={{ color: COLORS.mutedSoft, fontSize: 12, fontWeight: 900, textTransform: "uppercase", letterSpacing: 1.1 }}>
+                <div style={{ color: COLORS.mutedSoft, fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1.1 }}>
                   Estresse
                 </div>
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -1143,7 +1124,7 @@ export default function SuggestedTrainingPage() {
               </div>
 
               <div style={{ display: "grid", gap: 10 }}>
-                <div style={{ color: COLORS.mutedSoft, fontSize: 12, fontWeight: 900, textTransform: "uppercase", letterSpacing: 1.1 }}>
+                <div style={{ color: COLORS.mutedSoft, fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1.1 }}>
                   Dor muscular
                 </div>
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -1164,7 +1145,7 @@ export default function SuggestedTrainingPage() {
               </div>
 
               <div style={{ display: "grid", gap: 10 }}>
-                <div style={{ color: COLORS.mutedSoft, fontSize: 12, fontWeight: 900, textTransform: "uppercase", letterSpacing: 1.1 }}>
+                <div style={{ color: COLORS.mutedSoft, fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1.1 }}>
                   Tempo disponível
                 </div>
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -1188,7 +1169,7 @@ export default function SuggestedTrainingPage() {
 
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 14 }}>
               <div style={{ display: "grid", gap: 10 }}>
-                <div style={{ color: COLORS.mutedSoft, fontSize: 12, fontWeight: 900, textTransform: "uppercase", letterSpacing: 1.1 }}>
+                <div style={{ color: COLORS.mutedSoft, fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1.1 }}>
                   Glicose
                 </div>
                 <div style={{ display: "grid", gap: 8 }}>
@@ -1209,7 +1190,7 @@ export default function SuggestedTrainingPage() {
               </div>
 
               <div style={{ display: "grid", gap: 10 }}>
-                <div style={{ color: COLORS.mutedSoft, fontSize: 12, fontWeight: 900, textTransform: "uppercase", letterSpacing: 1.1 }}>
+                <div style={{ color: COLORS.mutedSoft, fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1.1 }}>
                   Pressão
                 </div>
                 <div style={{ display: "grid", gap: 8 }}>
@@ -1232,7 +1213,7 @@ export default function SuggestedTrainingPage() {
               </div>
 
               <div style={{ display: "grid", gap: 10 }}>
-                <div style={{ color: COLORS.mutedSoft, fontSize: 12, fontWeight: 900, textTransform: "uppercase", letterSpacing: 1.1 }}>
+                <div style={{ color: COLORS.mutedSoft, fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1.1 }}>
                   Contexto
                 </div>
                 <div style={{ display: "grid", gap: 8 }}>
@@ -1254,7 +1235,7 @@ export default function SuggestedTrainingPage() {
             </div>
 
             <div style={{ display: "grid", gap: 10 }}>
-              <div style={{ color: COLORS.mutedSoft, fontSize: 12, fontWeight: 900, textTransform: "uppercase", letterSpacing: 1.1 }}>
+              <div style={{ color: COLORS.mutedSoft, fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1.1 }}>
                 Grupos musculares que você quer priorizar hoje
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 8 }}>
@@ -1271,15 +1252,15 @@ export default function SuggestedTrainingPage() {
                       style={{
                         padding: "12px 10px",
                         borderRadius: 14,
-                        border: active ? `1px solid ${COLORS.borderStrong}` : `1px solid ${disabled ? "rgba(255,255,255,.08)" : COLORS.border}`,
+                        border: active ? `1px solid ${COLORS.borderStrong}` : `1px solid ${disabled ? "#F9FAFB" : COLORS.border}`,
                         background: active
                           ? COLORS.primarySoft
                           : disabled
-                            ? "rgba(255,255,255,.03)"
-                            : "rgba(255,255,255,.04)",
+                            ? "#FAFAFA"
+                            : "#FAFAFA",
                         color: disabled ? COLORS.mutedSoft : COLORS.text,
                         cursor: disabled ? "not-allowed" : "pointer",
-                        fontWeight: 900,
+                        fontWeight: 600,
                         textTransform: "capitalize",
                         opacity: disabled ? 0.65 : 1,
                       }}
@@ -1298,7 +1279,7 @@ export default function SuggestedTrainingPage() {
             </div>
 
             <div style={{ display: "grid", gap: 10 }}>
-              <div style={{ color: COLORS.mutedSoft, fontSize: 12, fontWeight: 900, textTransform: "uppercase", letterSpacing: 1.1 }}>
+              <div style={{ color: COLORS.mutedSoft, fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1.1 }}>
                 Sintomas de hoje
               </div>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -1331,7 +1312,7 @@ export default function SuggestedTrainingPage() {
                   borderRadius: 999,
                   padding: "8px 12px",
                   fontSize: 12,
-                  fontWeight: 900,
+                  fontWeight: 600,
                   background: readinessVisual.background,
                   color: readinessVisual.color,
                   border: `1px solid ${readinessVisual.border}`,
@@ -1340,7 +1321,7 @@ export default function SuggestedTrainingPage() {
                 {readinessVisual.label}
               </div>
 
-              <div style={{ fontSize: 26, fontWeight: 1000, color: COLORS.text }}>{recommendation.title}</div>
+              <div style={{ fontSize: 26, fontWeight: 700, color: COLORS.text }}>{recommendation.title}</div>
               <div style={{ color: COLORS.muted, lineHeight: 1.7 }}>{recommendation.summary}</div>
             </div>
           </Card>
@@ -1370,21 +1351,21 @@ export default function SuggestedTrainingPage() {
                         display: "inline-flex",
                         width: "fit-content",
                         borderRadius: 999,
-                        background: "rgba(124,255,107,.14)",
+                        background: "rgba(34,197,94,.14)",
                         color: COLORS.lime,
                         padding: "8px 12px",
                         fontSize: 11,
-                        fontWeight: 900,
+                        fontWeight: 600,
                         textTransform: "uppercase",
                         letterSpacing: 1.1,
                       }}
                     >
                       Plano de hoje
                     </div>
-                    <div style={{ fontSize: 14, color: COLORS.mutedSoft, fontWeight: 900, textTransform: "uppercase", letterSpacing: 1.1 }}>
+                    <div style={{ fontSize: 14, color: COLORS.mutedSoft, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1.1 }}>
                       Treino prescrito pela IA
                     </div>
-                    <div style={{ fontSize: 30, fontWeight: 1000, color: COLORS.text, lineHeight: 1.15 }}>
+                    <div style={{ fontSize: 30, fontWeight: 700, color: COLORS.text, lineHeight: 1.15 }}>
                       {recommendation.workoutPlan.focus}
                     </div>
                     <div style={{ color: COLORS.muted, lineHeight: 1.7, maxWidth: 760 }}>
@@ -1398,45 +1379,45 @@ export default function SuggestedTrainingPage() {
                         padding: 14,
                         borderRadius: 16,
                         border: `1px solid ${COLORS.border}`,
-                        background: "rgba(255,255,255,.05)",
+                        background: "#F9FAFB",
                         display: "grid",
                         gap: 6,
                       }}
                     >
-                      <div style={{ color: COLORS.mutedSoft, fontSize: 11, fontWeight: 900, textTransform: "uppercase", letterSpacing: 1.1 }}>
+                      <div style={{ color: COLORS.mutedSoft, fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1.1 }}>
                         Duracao
                       </div>
-                      <div style={{ color: COLORS.text, fontSize: 20, fontWeight: 1000 }}>{recommendation.workoutPlan.duration}</div>
+                      <div style={{ color: COLORS.text, fontSize: 20, fontWeight: 700 }}>{recommendation.workoutPlan.duration}</div>
                     </div>
                     <div
                       style={{
                         padding: 14,
                         borderRadius: 16,
                         border: `1px solid ${COLORS.border}`,
-                        background: "rgba(255,255,255,.05)",
+                        background: "#F9FAFB",
                         display: "grid",
                         gap: 6,
                       }}
                     >
-                      <div style={{ color: COLORS.mutedSoft, fontSize: 11, fontWeight: 900, textTransform: "uppercase", letterSpacing: 1.1 }}>
+                      <div style={{ color: COLORS.mutedSoft, fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1.1 }}>
                         Intensidade
                       </div>
-                      <div style={{ color: COLORS.text, fontSize: 20, fontWeight: 1000 }}>{recommendation.workoutPlan.intensity}</div>
+                      <div style={{ color: COLORS.text, fontSize: 20, fontWeight: 700 }}>{recommendation.workoutPlan.intensity}</div>
                     </div>
                     <div
                       style={{
                         padding: 14,
                         borderRadius: 16,
                         border: `1px solid ${COLORS.border}`,
-                        background: "rgba(255,255,255,.05)",
+                        background: "#F9FAFB",
                         display: "grid",
                         gap: 6,
                       }}
                     >
-                      <div style={{ color: COLORS.mutedSoft, fontSize: 11, fontWeight: 900, textTransform: "uppercase", letterSpacing: 1.1 }}>
+                      <div style={{ color: COLORS.mutedSoft, fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1.1 }}>
                         Blocos
                       </div>
-                      <div style={{ color: COLORS.text, fontSize: 20, fontWeight: 1000 }}>{recommendation.workoutPlan.blocks.length}</div>
+                      <div style={{ color: COLORS.text, fontSize: 20, fontWeight: 700 }}>{recommendation.workoutPlan.blocks.length}</div>
                     </div>
                   </div>
 
@@ -1448,9 +1429,9 @@ export default function SuggestedTrainingPage() {
                         padding: "14px 16px",
                         borderRadius: 14,
                         border: `1px solid ${COLORS.borderStrong}`,
-                        background: "linear-gradient(135deg, #1DB954 0%, #7CFF6B 100%)",
+                        background: "#22C55E",
                         color: "#0A130D",
-                        fontWeight: 1000,
+                        fontWeight: 700,
                         cursor: "pointer",
                       }}
                     >
@@ -1461,9 +1442,9 @@ export default function SuggestedTrainingPage() {
                         padding: "14px 16px",
                         borderRadius: 14,
                         border: `1px solid ${COLORS.border}`,
-                        background: "rgba(255,255,255,.04)",
+                        background: "#FAFAFA",
                         color: COLORS.muted,
-                        fontWeight: 900,
+                        fontWeight: 600,
                       }}
                     >
                       {completedExercises.length}/{totalExercises} exercícios marcados
@@ -1476,7 +1457,7 @@ export default function SuggestedTrainingPage() {
 
           <Card>
             <div style={{ display: "grid", gap: 14 }}>
-              <div style={{ fontSize: 18, fontWeight: 1000, color: COLORS.text }}>Por que a IA chegou nisso</div>
+              <div style={{ fontSize: 18, fontWeight: 700, color: COLORS.text }}>Por que a IA chegou nisso</div>
               <div style={{ display: "grid", gap: 10 }}>
                 {recommendation.rationale.map((item) => (
                   <div
@@ -1498,7 +1479,7 @@ export default function SuggestedTrainingPage() {
 
           <Card>
             <div style={{ display: "grid", gap: 14 }}>
-              <div style={{ fontSize: 18, fontWeight: 1000, color: COLORS.text }}>Ação recomendada</div>
+              <div style={{ fontSize: 18, fontWeight: 700, color: COLORS.text }}>Ação recomendada</div>
               <div style={{ display: "grid", gap: 10 }}>
                 {recommendation.actions.map((item) => (
                   <div key={item} style={{ display: "flex", gap: 10, alignItems: "flex-start", color: COLORS.muted }}>
@@ -1512,7 +1493,7 @@ export default function SuggestedTrainingPage() {
                         display: "grid",
                         placeItems: "center",
                         fontSize: 12,
-                        fontWeight: 900,
+                        fontWeight: 600,
                         marginTop: 1,
                       }}
                     >
@@ -1528,7 +1509,7 @@ export default function SuggestedTrainingPage() {
           {recommendation.warnings.length ? (
             <Card style={{ borderColor: COLORS.redBorder, background: "linear-gradient(180deg, rgba(42,20,20,.92), rgba(18,14,14,.96))" }}>
               <div style={{ display: "grid", gap: 12 }}>
-                <div style={{ fontSize: 18, fontWeight: 1000, color: COLORS.text }}>Alertas do dia</div>
+                <div style={{ fontSize: 18, fontWeight: 700, color: COLORS.text }}>Alertas do dia</div>
                 <div style={{ display: "grid", gap: 10 }}>
                   {recommendation.warnings.map((warning) => (
                     <div
@@ -1590,18 +1571,18 @@ export default function SuggestedTrainingPage() {
                     display: "inline-flex",
                     width: "fit-content",
                     borderRadius: 999,
-                    background: "rgba(124,255,107,.14)",
+                    background: "rgba(34,197,94,.14)",
                     color: COLORS.lime,
                     padding: "8px 12px",
                     fontSize: 11,
-                    fontWeight: 900,
+                    fontWeight: 600,
                     textTransform: "uppercase",
                     letterSpacing: 1.1,
                   }}
                 >
                   Widget do treino
                 </div>
-                <div style={{ fontSize: 28, fontWeight: 1000, color: COLORS.text }}>{recommendation.workoutPlan.focus}</div>
+                <div style={{ fontSize: 28, fontWeight: 700, color: COLORS.text }}>{recommendation.workoutPlan.focus}</div>
                 <div style={{ color: COLORS.muted, lineHeight: 1.6 }}>
                   Treino do dia aberto em foco total para você seguir a sessão, marcar exercícios e concluir sem sair da tela.
                 </div>
@@ -1615,11 +1596,11 @@ export default function SuggestedTrainingPage() {
                   height: 40,
                   borderRadius: 999,
                   border: `1px solid ${COLORS.border}`,
-                  background: "rgba(255,255,255,.04)",
+                  background: "#FAFAFA",
                   color: COLORS.text,
                   cursor: "pointer",
                   fontSize: 18,
-                  fontWeight: 1000,
+                  fontWeight: 700,
                 }}
               >
                 ×
@@ -1632,33 +1613,33 @@ export default function SuggestedTrainingPage() {
                   padding: 14,
                   borderRadius: 16,
                   border: `1px solid ${COLORS.border}`,
-                  background: "rgba(255,255,255,.05)",
+                  background: "#F9FAFB",
                 }}
               >
-                <div style={{ color: COLORS.mutedSoft, fontSize: 11, fontWeight: 900, textTransform: "uppercase", letterSpacing: 1.1 }}>Duracao</div>
-                <div style={{ marginTop: 8, color: COLORS.text, fontSize: 20, fontWeight: 1000 }}>{recommendation.workoutPlan.duration}</div>
+                <div style={{ color: COLORS.mutedSoft, fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1.1 }}>Duracao</div>
+                <div style={{ marginTop: 8, color: COLORS.text, fontSize: 20, fontWeight: 700 }}>{recommendation.workoutPlan.duration}</div>
               </div>
               <div
                 style={{
                   padding: 14,
                   borderRadius: 16,
                   border: `1px solid ${COLORS.border}`,
-                  background: "rgba(255,255,255,.05)",
+                  background: "#F9FAFB",
                 }}
               >
-                <div style={{ color: COLORS.mutedSoft, fontSize: 11, fontWeight: 900, textTransform: "uppercase", letterSpacing: 1.1 }}>Intensidade</div>
-                <div style={{ marginTop: 8, color: COLORS.text, fontSize: 20, fontWeight: 1000 }}>{recommendation.workoutPlan.intensity}</div>
+                <div style={{ color: COLORS.mutedSoft, fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1.1 }}>Intensidade</div>
+                <div style={{ marginTop: 8, color: COLORS.text, fontSize: 20, fontWeight: 700 }}>{recommendation.workoutPlan.intensity}</div>
               </div>
               <div
                 style={{
                   padding: 14,
                   borderRadius: 16,
                   border: `1px solid ${COLORS.border}`,
-                  background: "rgba(255,255,255,.05)",
+                  background: "#F9FAFB",
                 }}
               >
-                <div style={{ color: COLORS.mutedSoft, fontSize: 11, fontWeight: 900, textTransform: "uppercase", letterSpacing: 1.1 }}>Blocos</div>
-                <div style={{ marginTop: 8, color: COLORS.text, fontSize: 20, fontWeight: 1000 }}>{recommendation.workoutPlan.blocks.length}</div>
+                <div style={{ color: COLORS.mutedSoft, fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1.1 }}>Blocos</div>
+                <div style={{ marginTop: 8, color: COLORS.text, fontSize: 20, fontWeight: 700 }}>{recommendation.workoutPlan.blocks.length}</div>
               </div>
             </div>
 
@@ -1686,12 +1667,12 @@ export default function SuggestedTrainingPage() {
                         display: "grid",
                         placeItems: "center",
                         fontSize: 12,
-                        fontWeight: 1000,
+                        fontWeight: 700,
                       }}
                     >
                       {blockIndex + 1}
                     </div>
-                    <div style={{ fontSize: 16, fontWeight: 1000, color: COLORS.text }}>{block.title}</div>
+                    <div style={{ fontSize: 16, fontWeight: 700, color: COLORS.text }}>{block.title}</div>
                   </div>
                   <div style={{ display: "grid", gap: 8 }}>
                     {block.exercises.map((exercise, exerciseIndex) => {
@@ -1711,8 +1692,8 @@ export default function SuggestedTrainingPage() {
                             borderRadius: 14,
                             border: `1px solid ${checked ? COLORS.borderStrong : COLORS.border}`,
                             background: checked
-                              ? "linear-gradient(135deg, rgba(29,185,84,.18), rgba(16,28,20,.88))"
-                              : "rgba(255,255,255,.03)",
+                              ? "linear-gradient(135deg, rgba(34,197,94,.18), rgba(16,28,20,.88))"
+                              : "#FAFAFA",
                             padding: "12px 14px",
                             cursor: "pointer",
                             textAlign: "left",
@@ -1729,7 +1710,7 @@ export default function SuggestedTrainingPage() {
                               display: "grid",
                               placeItems: "center",
                               fontSize: 11,
-                              fontWeight: 900,
+                              fontWeight: 600,
                               marginTop: 1,
                             }}
                           >
@@ -1754,7 +1735,7 @@ export default function SuggestedTrainingPage() {
                 padding: 12,
                 borderRadius: 14,
                 border: `1px solid ${COLORS.border}`,
-                background: "rgba(255,255,255,.03)",
+                background: "#FAFAFA",
                 color: COLORS.muted,
                 lineHeight: 1.6,
               }}
@@ -1775,7 +1756,7 @@ export default function SuggestedTrainingPage() {
               }}
             >
               <div style={{ display: "grid", gap: 6 }}>
-                <div style={{ color: COLORS.text, fontWeight: 1000, fontSize: 16 }}>
+                <div style={{ color: COLORS.text, fontWeight: 700, fontSize: 16 }}>
                   Progresso da sessão: {completedExercises.length}/{totalExercises} exercícios
                 </div>
                 <div style={{ color: COLORS.muted, fontSize: 13 }}>
@@ -1791,10 +1772,10 @@ export default function SuggestedTrainingPage() {
                   borderRadius: 14,
                   border: `1px solid ${allExercisesCompleted ? COLORS.borderStrong : COLORS.border}`,
                   background: allExercisesCompleted
-                    ? "linear-gradient(135deg, #1DB954 0%, #7CFF6B 100%)"
-                    : "rgba(255,255,255,.05)",
+                    ? "#22C55E"
+                    : "#F9FAFB",
                   color: allExercisesCompleted ? "#0A130D" : COLORS.muted,
-                  fontWeight: 1000,
+                  fontWeight: 700,
                   cursor: allExercisesCompleted ? "pointer" : "not-allowed",
                 }}
               >
