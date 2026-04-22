@@ -5,7 +5,7 @@
 
 :root {
   /* ── Core Colors ──────────────────────────────────────────── */
-  --color-bg-main:              #F7F9F8;
+  --color-bg-main:              #F8FAFC;
   --color-surface:              #FFFFFF;
   --color-surface-raised:       #F9FAFB;
   --color-surface-subtle:       #F3F4F6;
@@ -27,6 +27,18 @@
   --color-primary-soft-strong:  rgba(34, 197, 94, 0.14);
   --color-primary-glow:         rgba(34, 197, 94, 0.12);
   --color-primary-light:        rgba(34, 197, 94, 0.10);
+
+  /* ── Accent / Tech layer (cyan — data, insights, metabolism) ── */
+  --color-accent:               #06B6D4;
+  --color-accent-hover:         #0891B2;
+  --color-accent-deep:          #164E63;
+  --color-accent-soft:          rgba(6, 182, 212, 0.10);
+  --color-accent-soft-strong:   rgba(6, 182, 212, 0.18);
+  --color-accent-glow:          rgba(6, 182, 212, 0.14);
+  --color-accent-border:        rgba(6, 182, 212, 0.28);
+
+  /* ── Brand gradient (use sparingly — highlights + key cards) ─ */
+  --gradient-primary:           linear-gradient(135deg, #22C55E, #06B6D4);
 
   /* ── Borders ──────────────────────────────────────────────── */
   --color-border:               #E5E7EB;
@@ -80,9 +92,10 @@
   --radius-pill: 999px;
 
   /* ── Shadows ──────────────────────────────────────────────── */
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 1px 3px rgba(0, 0, 0, 0.06), 0 4px 12px rgba(0, 0, 0, 0.05);
-  --shadow-lg: 0 4px 6px rgba(0, 0, 0, 0.05), 0 10px 24px rgba(0, 0, 0, 0.06);
+  --shadow-sm:     0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md:     0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 16px rgba(0, 0, 0, 0.04);
+  --shadow-lg:     0 4px 8px rgba(0, 0, 0, 0.04), 0 12px 28px rgba(0, 0, 0, 0.05);
+  --shadow-accent: 0 4px 20px rgba(6, 182, 212, 0.18);
 
   /* ── Transitions ──────────────────────────────────────────── */
   --transition-fast: 150ms ease;
@@ -111,6 +124,9 @@
   --z-dropdown: 100;
   --z-modal:    200;
   --z-toast:    300;
+
+  /* ── Radius (slightly rounder for modern SaaS feel) ──────── */
+  --radius-card: 16px;
 
   /* ── Legacy aliases (preserve existing CSS & JS consumers) ── */
   --primary:                   var(--color-primary);
@@ -143,6 +159,13 @@
   --radius:                    var(--radius-xl);
   --shadow:                    var(--shadow-md);
   --maxw:                      var(--maxw-content);
+
+  /* Accent aliases */
+  --accent:                    var(--color-accent);
+  --accent-hover:              var(--color-accent-hover);
+  --accent-soft:               var(--color-accent-soft);
+  --accent-border:             var(--color-accent-border);
+  --gradient:                  var(--gradient-primary);
 }
 
 /* ── Daltonic mode (blue primary instead of green) ───────────── */

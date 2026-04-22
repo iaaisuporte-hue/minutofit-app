@@ -36,6 +36,27 @@ function Card({
   return <div style={baseStyle}>{children}</div>;
 }
 
+function calcMetaScore(streak: number, xp: number, checkedIn: boolean): number {
+  const streakScore  = Math.min(40, streak * 6);
+  const xpScore      = Math.min(40, Math.floor(xp / 8));
+  const checkinScore = checkedIn ? 20 : 0;
+  return Math.min(100, streakScore + xpScore + checkinScore);
+}
+
+function metaScoreInsight(score: number, streak: number): string {
+  if (score >= 85) return "Metabolismo em ritmo ideal — consistência sustentada por mais de 7 dias.";
+  if (score >= 65) return "Bom ritmo metabólico. Um check-in hoje consolida sua sequência.";
+  if (score >= 40) return "Recuperação em progresso. Cada treino conta para reativar o metabolismo.";
+  if (streak === 0) return "Sem sequência ativa. Um treino hoje reinicia sua curva metabólica.";
+  return "Metabolismo em modo de reinício — comece com um treino curto.";
+}
+
+function metaScoreTrend(score: number, streak: number): { label: string; icon: string; color: string } {
+  if (streak >= 7 || score >= 80) return { label: "Subindo", icon: "↑", color: "var(--color-primary)" };
+  if (streak >= 3 || score >= 50) return { label: "Estável",  icon: "→", color: "var(--color-accent)" };
+  return { label: "Atenção", icon: "↓", color: "var(--color-warn)" };
+}
+
 export default function TodayPage() {
   const navigate = useNavigate();
   const { id, user } = useAuth();
@@ -55,6 +76,10 @@ export default function TodayPage() {
   const mission = useMemo(() => getDailyMission(), []);
   const [quickGroups, setQuickGroups] = useState<MuscleGroup[]>([]);
   const [quickMessage, setQuickMessage] = useState<string | null>(null);
+
+  const metaScore = useMemo(() => calcMetaScore(streak, xp, todayCheckedIn), [streak, xp, todayCheckedIn]);
+  const metaInsight = useMemo(() => metaScoreInsight(metaScore, streak), [metaScore, streak]);
+  const metaTrend = useMemo(() => metaScoreTrend(metaScore, streak), [metaScore, streak]);
 
   const recommendationTags = recommendation?.tags?.slice(0, 3) || [];
   const groupLabelMap: Record<MuscleGroup, string> = {
@@ -145,103 +170,110 @@ export default function TodayPage() {
     >
       {/* ─── Header greeting ─────────────────────────────────── */}
       <motion.div variants={sectionRevealVariants}>
-        <div style={{ marginBottom: 4 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-            <span style={{
-              display: "inline-flex",
-              alignItems: "center",
-              padding: "3px 10px",
-              borderRadius: 999,
-              background: "rgba(34,197,94,0.1)",
-              color: "#16A34A",
-              fontSize: 11,
-              fontWeight: 600,
-              letterSpacing: "0.04em",
-              textTransform: "capitalize",
-            }}>
-              📅 {weekdayLabel}
-            </span>
-            {todayCheckedIn && (
-              <span style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 4,
-                padding: "3px 10px",
-                borderRadius: 999,
-                background: "rgba(34,197,94,0.1)",
-                color: "#16A34A",
-                fontSize: 11,
-                fontWeight: 600,
-              }}>
-                ✅ Dia garantido
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+          <span className="badge badge-accent">📅 {weekdayLabel}</span>
+          {todayCheckedIn && <span className="badge badge-success">✓ Dia garantido</span>}
+        </div>
+        <h1 style={{ fontSize: isMobile ? 22 : 26, fontWeight: 700, color: "#1F2937", margin: 0, letterSpacing: "-0.02em", lineHeight: 1.2 }}>
+          {user?.name ? `Olá, ${user.name.split(" ")[0]}.` : "Olá."}{" "}
+          <span style={{ color: "#6B7280", fontWeight: 400 }}>Hora de pontuar o dia.</span>
+        </h1>
+        <p style={{ color: "#6B7280", fontSize: 14, margin: "8px 0 0", lineHeight: 1.5, maxWidth: 560 }}>
+          {recommendation?.subtitle || "Menos decisão, mais execução: inicie o treino e mantenha sua sequência."}
+        </p>
+      </motion.div>
+
+      {/* ─── MetaScore ───────────────────────────────────────── */}
+      <motion.div variants={sectionRevealVariants}>
+        <div className="metaScoreCard" style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "auto 1fr", gap: 24, alignItems: "center" }}>
+          <div style={{ display: "grid", gap: 4 }}>
+            <div className="metaScoreLabel">MetaScore</div>
+            <div className="metaScoreValue">{metaScore}</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4 }}>
+              <span style={{ fontSize: 14, fontWeight: 700, color: metaTrend.color }}>
+                {metaTrend.icon} {metaTrend.label}
               </span>
-            )}
+              <span style={{ fontSize: 12, color: "#9CA3AF" }}>/ 100</span>
+            </div>
           </div>
-          <h1 style={{ fontSize: isMobile ? 22 : 26, fontWeight: 700, color: "#1F2937", margin: 0, letterSpacing: "-0.02em", lineHeight: 1.2 }}>
-            {user?.name ? `Olá, ${user.name.split(" ")[0]}.` : "Olá."}{" "}
-            <span style={{ color: "#6B7280", fontWeight: 400 }}>Hora de pontuar o dia.</span>
-          </h1>
-          <p style={{ color: "#6B7280", fontSize: 14, margin: "8px 0 0", lineHeight: 1.5, maxWidth: 600 }}>
-            {recommendation?.subtitle || "Menos decisão, mais execução: inicie o treino e mantenha sua sequência."}
-          </p>
+          <div>
+            <div className="metaScoreInsight">{metaInsight}</div>
+            <div style={{ marginTop: 14, display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+              {[
+                { label: "Constância", value: `${streak}d`, color: "var(--color-primary)" },
+                { label: "Nível",      value: `L${level}`,  color: "var(--color-accent)"  },
+                { label: "XP total",   value: `${xp}`,      color: "var(--color-text-muted)" },
+              ].map((item) => (
+                <div key={item.label} style={{ background: "rgba(255,255,255,0.65)", borderRadius: 10, padding: "8px 12px" }}>
+                  <div style={{ fontSize: 10, color: "#9CA3AF", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>{item.label}</div>
+                  <div style={{ fontSize: 18, fontWeight: 700, color: item.color, lineHeight: 1.2, marginTop: 2 }}>{item.value}</div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </motion.div>
 
       {/* ─── Stats row ───────────────────────────────────────── */}
       <motion.div variants={sectionRevealVariants} style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 10 }}>
-        <motion.div variants={itemRevealVariants} whileHover={subtleHoverScale} whileTap={subtleTapScale}>
-          <div style={{ background: "#FFFFFF", border: "1px solid #E5E7EB", borderRadius: 14, padding: "14px 16px", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
-            <div style={{ fontSize: 11, color: "#9CA3AF", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Constância</div>
-            <div style={{ fontSize: 26, fontWeight: 700, color: "#1F2937", lineHeight: 1 }}>🔥 {streak}</div>
-            <div style={{ color: "#6B7280", fontSize: 12, marginTop: 4 }}>dias seguidos</div>
-          </div>
-        </motion.div>
-
-        <motion.div variants={itemRevealVariants} whileHover={subtleHoverScale} whileTap={subtleTapScale}>
-          <div style={{ background: "#FFFFFF", border: "1px solid #E5E7EB", borderRadius: 14, padding: "14px 16px", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
-            <div style={{ fontSize: 11, color: "#9CA3AF", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Nível</div>
-            <div style={{ fontSize: 26, fontWeight: 700, color: "#1F2937", lineHeight: 1 }}>⭐ {level}</div>
-            <div style={{ color: "#6B7280", fontSize: 12, marginTop: 4 }}>{xp} XP</div>
-          </div>
-        </motion.div>
+        {[
+          {
+            label: "Constância",
+            value: `🔥 ${streak}`,
+            sub: "dias seguidos",
+            accent: streak >= 3,
+            accentColor: "var(--color-primary)",
+          },
+          {
+            label: "Nível",
+            value: `⭐ ${level}`,
+            sub: `${xp} XP`,
+            accent: false,
+            accentColor: "var(--color-accent)",
+          },
+          {
+            label: "Check-in",
+            value: todayCheckedIn ? "✓ Feito" : "⏳ Pendente",
+            sub: todayCheckedIn ? "Sequência protegida" : "Marque após o treino",
+            accent: todayCheckedIn,
+            accentColor: "var(--color-primary)",
+          },
+        ].map((stat) => (
+          <motion.div key={stat.label} variants={itemRevealVariants} whileHover={subtleHoverScale} whileTap={subtleTapScale}>
+            <div style={{
+              background: stat.accent ? "rgba(34,197,94,0.05)" : "#FFFFFF",
+              border: `1px solid ${stat.accent ? "rgba(34,197,94,0.22)" : "#E5E7EB"}`,
+              borderRadius: 14,
+              padding: "14px 16px",
+              boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+              height: "100%",
+            }}>
+              <div style={{ fontSize: 10, color: "#9CA3AF", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 6 }}>{stat.label}</div>
+              <div style={{ fontSize: 22, fontWeight: 700, color: stat.accent ? stat.accentColor : "#1F2937", lineHeight: 1 }}>{stat.value}</div>
+              <div style={{ color: "#9CA3AF", fontSize: 12, marginTop: 5 }}>{stat.sub}</div>
+            </div>
+          </motion.div>
+        ))}
 
         <motion.div variants={itemRevealVariants} whileHover={subtleHoverScale} whileTap={subtleTapScale}>
           <div style={{
-            background: todayCheckedIn ? "rgba(34,197,94,0.06)" : "#FFFFFF",
-            border: `1px solid ${todayCheckedIn ? "rgba(34,197,94,0.3)" : "#E5E7EB"}`,
+            background: mission.completed ? "rgba(34,197,94,0.05)" : "#FFFFFF",
+            border: `1px solid ${mission.completed ? "rgba(34,197,94,0.22)" : "#E5E7EB"}`,
             borderRadius: 14,
             padding: "14px 16px",
             boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
           }}>
-            <div style={{ fontSize: 11, color: "#9CA3AF", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Check-in</div>
-            <div style={{ fontSize: 20, fontWeight: 700, color: todayCheckedIn ? "#16A34A" : "#1F2937", lineHeight: 1 }}>
-              {todayCheckedIn ? "✅ Feito" : "⏳ Pendente"}
-            </div>
-            <div style={{ color: "#6B7280", fontSize: 12, marginTop: 4 }}>
-              {todayCheckedIn ? "Sequência protegida" : "Marque após o treino"}
-            </div>
-          </div>
-        </motion.div>
-
-        <motion.div variants={itemRevealVariants} whileHover={subtleHoverScale} whileTap={subtleTapScale}>
-          <div style={{
-            background: mission.completed ? "rgba(34,197,94,0.06)" : "#FFFFFF",
-            border: `1px solid ${mission.completed ? "rgba(34,197,94,0.3)" : "#E5E7EB"}`,
-            borderRadius: 14,
-            padding: "14px 16px",
-            boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
-          }}>
-            <div style={{ fontSize: 11, color: "#9CA3AF", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Missão</div>
-            <div style={{ fontSize: 14, fontWeight: 600, color: "#1F2937", lineHeight: 1.3, marginBottom: 6 }}>{mission.title}</div>
+            <div style={{ fontSize: 10, color: "#9CA3AF", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 6 }}>Missão</div>
+            <div style={{ fontSize: 14, fontWeight: 600, color: "#1F2937", lineHeight: 1.3, marginBottom: 8 }}>{mission.title}</div>
             <div style={{ height: 4, borderRadius: 999, background: "#F3F4F6", overflow: "hidden" }}>
               <motion.div
                 initial={shouldReduceMotion ? false : { scaleX: 0 }}
                 animate={{ scaleX: missionProgress }}
                 transition={{ duration: 0.65, ease: "easeOut", delay: 0.1 }}
-                style={{ height: "100%", borderRadius: 999, background: "#22C55E", transformOrigin: "left center" }}
+                style={{ height: "100%", borderRadius: 999, background: "linear-gradient(90deg, #22C55E, #06B6D4)", transformOrigin: "left center" }}
               />
             </div>
-            <div style={{ color: "#9CA3AF", fontSize: 11, marginTop: 4 }}>
+            <div style={{ color: "#9CA3AF", fontSize: 11, marginTop: 5 }}>
               {mission.progress}/{mission.target} · +{mission.rewardXp} XP
             </div>
           </div>
@@ -291,18 +323,8 @@ export default function TodayPage() {
                 onClick={() => navigate("/app/user/treinos/em-casa")}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                className="today-premium-cta"
-                style={{
-                  padding: "12px 20px",
-                  borderRadius: 12,
-                  border: "none",
-                  background: "#22C55E",
-                  color: "#FFFFFF",
-                  cursor: "pointer",
-                  fontWeight: 600,
-                  fontSize: 15,
-                  transition: "transform 0.15s ease, background 0.15s ease",
-                }}
+                className="btn btn-gradient"
+                style={{ padding: "12px 22px", fontSize: 15 }}
               >
                 ▶ Iniciar treino agora
               </motion.button>
@@ -333,17 +355,8 @@ export default function TodayPage() {
                     onClick={() => navigate("/app/user/activities")}
                     whileHover={{ scale: 1.01 }}
                     whileTap={{ scale: 0.99 }}
-                    style={{
-                      padding: "11px 16px",
-                      borderRadius: 12,
-                      border: "1px solid #E5E7EB",
-                      background: "#FFFFFF",
-                      color: "#6B7280",
-                      cursor: "pointer",
-                      fontWeight: 500,
-                      fontSize: 14,
-                      transition: "border-color 0.15s ease, background 0.15s ease",
-                    }}
+                    className="btn btn-accent-outline"
+                    style={{ padding: "11px 16px", fontSize: 14 }}
                   >
                     Registrar atividade
                   </motion.button>
