@@ -1,92 +1,77 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
+import type { MetabolicRecommendation } from './metabolism.types';
 
 interface Props {
-  recommendations: string[];
+  recommendations: MetabolicRecommendation[];
   loading: boolean;
 }
 
-function capitalize(str: string): string {
-  if (!str) return str;
-  return str.charAt(0).toUpperCase() + str.slice(1);
-}
-
-function SkeletonLine({ width }: { width: string }) {
+function SkeletonCard() {
   return (
-    <div
-      style={{
-        width,
-        height: 14,
-        borderRadius: 6,
-        background: 'var(--color-surface-subtle)',
-        animation: 'pulse 1.6s ease-in-out infinite',
-      }}
-    />
+    <div style={{ padding: '14px 16px', borderRadius: 12, border: '1px solid var(--color-border)', display: 'grid', gap: 8 }}>
+      <div style={{ width: '70%', height: 14, borderRadius: 6, background: 'var(--color-surface-subtle)', animation: 'pulse 1.6s ease-in-out infinite' }} />
+      <div style={{ width: '50%', height: 12, borderRadius: 6, background: 'var(--color-surface-subtle)', animation: 'pulse 1.6s ease-in-out infinite' }} />
+    </div>
   );
 }
 
 export function MetabolicInsights({ recommendations, loading }: Props) {
-  if (!loading && recommendations.length === 0) {
-    return null;
-  }
+  const navigate = useNavigate();
+
+  if (!loading && recommendations.length === 0) return null;
 
   return (
-    <div
-      style={{
-        background: '#FFFFFF',
-        borderRadius: 'var(--radius-card)',
-        border: '1px solid var(--color-border)',
-        boxShadow: 'var(--shadow-sm)',
-        padding: 20,
-      }}
-    >
-      <div
-        style={{
-          fontSize: 13,
-          fontWeight: 700,
-          color: 'var(--color-text-muted)',
-          textTransform: 'uppercase',
-          letterSpacing: '0.07em',
-          marginBottom: 12,
-        }}
-      >
-        Recomendações
+    <div style={{ background: '#FFFFFF', borderRadius: 'var(--radius-card)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-sm)', padding: 20 }}>
+      <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 12 }}>
+        Como subir seu score hoje
       </div>
 
       {loading ? (
         <div style={{ display: 'grid', gap: 10 }}>
-          <SkeletonLine width="80%" />
-          <SkeletonLine width="65%" />
-          <SkeletonLine width="72%" />
+          <SkeletonCard />
+          <SkeletonCard />
         </div>
       ) : (
-        <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'grid', gap: 8 }}>
-          {recommendations.map((rec, i) => (
-            <li
-              key={i}
+        <div style={{ display: 'grid', gap: 10 }}>
+          {recommendations.map((rec) => (
+            <div
+              key={rec.id}
               style={{
-                display: 'flex',
-                alignItems: 'flex-start',
-                gap: 10,
-                fontSize: 14,
-                color: 'var(--color-text)',
-                lineHeight: 1.5,
+                padding: '14px 16px',
+                borderRadius: 12,
+                border: '1px solid var(--color-border)',
+                background: '#FAFAFA',
+                display: 'grid',
+                gap: 4,
               }}
             >
-              <span
-                style={{
-                  flexShrink: 0,
-                  fontSize: 13,
-                  fontWeight: 700,
-                  color: 'var(--color-primary)',
-                  marginTop: 1,
-                }}
-              >
-                ✓
-              </span>
-              {capitalize(rec)}
-            </li>
+              <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--color-text)' }}>{rec.title}</div>
+              <div style={{ fontSize: 13, color: 'var(--color-text-muted)', lineHeight: 1.4 }}>{rec.reason}</div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 6, flexWrap: 'wrap', gap: 8 }}>
+                <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-primary)' }}>{rec.impact}</span>
+                {rec.cta && (
+                  <button
+                    type="button"
+                    onClick={() => navigate(rec.cta!.route)}
+                    style={{
+                      padding: '6px 14px',
+                      borderRadius: 8,
+                      border: 'none',
+                      background: 'var(--color-primary)',
+                      color: '#fff',
+                      fontSize: 12,
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {rec.cta.label} →
+                  </button>
+                )}
+              </div>
+            </div>
           ))}
-        </ul>
+        </div>
       )}
     </div>
   );

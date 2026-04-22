@@ -42,6 +42,25 @@ const tooltipStyle: React.CSSProperties = {
   boxShadow: 'var(--shadow-sm)',
 };
 
+function LastDot(props: { cx?: number; cy?: number; index?: number; dataLength: number }) {
+  const { cx, cy, index, dataLength } = props;
+  if (index !== dataLength - 1 || cx == null || cy == null) return null;
+  return (
+    <g>
+      <style>{`
+        @keyframes metaDotPulse {
+          0%   { r: 4;  opacity: 0.6; }
+          70%  { r: 11; opacity: 0;   }
+          100% { r: 11; opacity: 0;   }
+        }
+        .meta-dot-ring { animation: metaDotPulse 1.8s ease-out infinite; }
+      `}</style>
+      <circle className="meta-dot-ring" cx={cx} cy={cy} r={4} fill="#06B6D4" />
+      <circle cx={cx} cy={cy} r={4} fill="#06B6D4" stroke="#fff" strokeWidth={2} />
+    </g>
+  );
+}
+
 export function MetabolicChart({ data, loading }: Props) {
   if (!loading && data.length === 0) return null;
 
@@ -106,8 +125,8 @@ export function MetabolicChart({ data, loading }: Props) {
               dataKey="score"
               stroke="#06B6D4"
               strokeWidth={2}
-              dot={false}
-              activeDot={{ r: 4, fill: '#06B6D4', strokeWidth: 0 }}
+              dot={(props) => <LastDot {...props} dataLength={chartData.length} />}
+              activeDot={{ r: 6, fill: '#06B6D4', strokeWidth: 0 }}
             />
           </LineChart>
         </ResponsiveContainer>
