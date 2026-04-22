@@ -16,6 +16,11 @@ No deploy na **Vercel**, a versão do Node segue o campo `engines` em [`package.
 - **Senha**: mínimo 8 caracteres, 1 letra maiúscula (A–Z) e 1 símbolo não alfanumérico; a mesma regra vale no backend.
 - **Turnstile**: defina `VITE_TURNSTILE_SITE_KEY` no front (Vercel) e `TURNSTILE_SECRET_KEY` no backend. Em local, pode usar `SKIP_CAPTCHA=true` no servidor (veja `.env.example` no backend) enquanto não há chaves.
 
+### Aluno: Tracker e Lab de Movimento (web)
+
+* **Activity Tracker (GPS)** — `src/pages/user/ActivityTrackerPage.tsx`, estilos `activityTracker.css` (prefixo `tr-`), tokens em `src/styles/tokens.css`. Mapa, histórico de sessões, métricas e validação heurística de velocidade.
+* **Lab de Movimento** — `src/pages/user/MovementLabPage.tsx`, `movementLab.css` (prefixo `ml-`), regras em `src/pages/user/lib/` (exercícios, analytics, contexto). Webcam + MediaPipe via CDN; dados de sessão opcionais em `localStorage` (`minutofit:movement:sessions`).
+
 ---
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
