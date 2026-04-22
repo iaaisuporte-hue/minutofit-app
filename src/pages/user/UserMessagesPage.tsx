@@ -1,31 +1,17 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "../../auth/AuthContext";
 import { COLORS } from "../../styles/colors";
+import {
+  ensureChatConversation,
+  fetchChatConversations,
+  fetchConversationMessages,
+  markChatConversationRead,
+  sendChatMessage,
+  type ChatConversation,
+  type ChatMessage,
+} from "../../services/messagesApi";
 
 type Role = "user" | "personal" | "admin" | "nutri";
-
-type ChatMessage = {
-  id: string;
-  conversationId: string;
-  senderId: string;
-  senderRole: Role;
-  text: string;
-  createdAt: string;
-};
-
-type ChatConversation = {
-  id: string;
-  studentId: string;
-  personalId: string;
-  createdAt: string;
-  updatedAt: string;
-  lastReadAtByStudent?: string;
-  lastReadAtByPersonal?: string;
-};
-
-const CONVERSATIONS_KEY = "treinai_chat_conversations_v1";
-const MESSAGES_KEY_PREFIX = "treinai_chat_messages_v1__";
-const DEFAULT_PERSONAL_ID = "personal@treinai.com";
 
 function Card({
   children,
@@ -49,99 +35,6 @@ function Card({
   );
 }
 
-function nowISO() {
-  return new Date().toISOString();
-}
-
-function uid(prefix = "m") {
-  return `${prefix}_${Math.random().toString(36).slice(2)}_${Date.now().toString(36)}`;
-}
-
-function conversationIdOf(studentId: string, personalId: string) {
-  return `c_${encodeURIComponent(studentId)}__${encodeURIComponent(personalId)}`;
-}
-
-function readConversations(): ChatConversation[] {
-  try {
-    const raw = localStorage.getItem(CONVERSATIONS_KEY);
-    return raw ? (JSON.parse(raw) as ChatConversation[]) : [];
-  } catch {
-    return [];
-  }
-}
-
-function writeConversations(list: ChatConversation[]) {
-  localStorage.setItem(CONVERSATIONS_KEY, JSON.stringify(list));
-}
-
-function readMessages(conversationId: string): ChatMessage[] {
-  try {
-    const raw = localStorage.getItem(MESSAGES_KEY_PREFIX + conversationId);
-    return raw ? (JSON.parse(raw) as ChatMessage[]) : [];
-  } catch {
-    return [];
-  }
-}
-
-function writeMessages(conversationId: string, list: ChatMessage[]) {
-  localStorage.setItem(MESSAGES_KEY_PREFIX + conversationId, JSON.stringify(list));
-}
-
-function getDisplayNameFromEmail(email: string) {
-  if (email === DEFAULT_PERSONAL_ID) {
-    return "Seu personal";
-  }
-  const head = email.split("@")[0] || "Contato";
-  return head
-    .split(/[._-]/)
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(" ");
-}
-
-function ensureStudentConversation(studentId: string, studentName?: string) {
-  const conversationId = conversationIdOf(studentId, DEFAULT_PERSONAL_ID);
-  const conversations = readConversations();
-  const existing = conversations.find((conversation) => conversation.id === conversationId);
-
-  if (!existing) {
-    const createdAt = nowISO();
-    const nextConversation: ChatConversation = {
-      id: conversationId,
-      studentId,
-      personalId: DEFAULT_PERSONAL_ID,
-      createdAt,
-      updatedAt: createdAt,
-    };
-    writeConversations([nextConversation, ...conversations]);
-
-    const starterMessages: ChatMessage[] = [
-      {
-        id: uid("m"),
-        conversationId,
-        senderId: DEFAULT_PERSONAL_ID,
-        senderRole: "personal",
-        text: `Olá${studentName ? `, ${studentName.split(" ")[0]}` : ""}. Este espaço serve para alinhar treinos, dúvidas e ajustes rápidos do seu plano.`,
-        createdAt,
-      },
-    ];
-    writeMessages(conversationId, starterMessages);
-    return nextConversation;
-  }
-
-  return existing;
-}
-
-function countUnreadForStudent(conversation: ChatConversation, messages: ChatMessage[]) {
-  const lastRead = conversation.lastReadAtByStudent
-    ? new Date(conversation.lastReadAtByStudent).getTime()
-    : 0;
-  return messages.filter((message) => {
-    const createdAt = new Date(message.createdAt).getTime();
-    return createdAt > lastRead && message.senderRole === "personal";
-  }).length;
-}
-
 function formatTimeLabel(iso: string) {
   return new Date(iso).toLocaleString("pt-BR", {
     day: "2-digit",
@@ -152,15 +45,16 @@ function formatTimeLabel(iso: string) {
 }
 
 export default function UserMessagesPage() {
-  const { user } = useAuth() as any;
-  const myId: string = user?.email || "teste1@treinai.com";
+  const { user } = useAuth();
   const myRole: Role = user?.role || "user";
-  const myName: string = user?.name || "Aluno";
 
   const [conversations, setConversations] = useState<ChatConversation[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [text, setText] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const endRef = useRef<HTMLDivElement | null>(null);
 
   const selectedConversation = useMemo(
@@ -168,18 +62,45 @@ export default function UserMessagesPage() {
     [conversations, selectedId]
   );
 
-  useEffect(() => {
-    if (myRole !== "user") {
-      return;
-    }
+  const loadConversations = useCallback(async (preferredConversationId?: string | null) => {
+    setLoading(true);
+    try {
+      let list = await fetchChatConversations();
+      if (myRole === "user" && list.length === 0) {
+        await ensureChatConversation();
+        list = await fetchChatConversations();
+      }
 
-    const ensured = ensureStudentConversation(myId, myName);
-    const list = readConversations()
-      .filter((conversation) => conversation.studentId === myId)
-      .sort((first, second) => new Date(second.updatedAt).getTime() - new Date(first.updatedAt).getTime());
-    setConversations(list);
-    setSelectedId(ensured.id);
-  }, [myId, myName, myRole]);
+      setConversations(list);
+      setSelectedId((current) => preferredConversationId ?? current ?? list[0]?.id ?? null);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Nao foi possivel carregar o chat.");
+      setConversations([]);
+      setSelectedId(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [myRole]);
+
+  const loadMessages = useCallback(async (conversationId: string) => {
+    try {
+      const nextMessages = await fetchConversationMessages(conversationId);
+      setMessages(nextMessages);
+      await markChatConversationRead(conversationId);
+      const refreshed = await fetchChatConversations();
+      setConversations(refreshed);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Nao foi possivel carregar as mensagens.");
+      setMessages([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (myRole !== "user") return;
+    void loadConversations();
+  }, [loadConversations, myRole]);
 
   useEffect(() => {
     if (!selectedId || myRole !== "user") {
@@ -187,29 +108,29 @@ export default function UserMessagesPage() {
       return;
     }
 
-    const nextMessages = readMessages(selectedId);
-    setMessages(nextMessages);
-
-    const updatedConversations = readConversations().map((conversation) => {
-      if (conversation.id !== selectedId) {
-        return conversation;
-      }
-      return {
-        ...conversation,
-        lastReadAtByStudent: nowISO(),
-      };
-    });
-    writeConversations(updatedConversations);
-    setConversations(
-      updatedConversations
-        .filter((conversation) => conversation.studentId === myId)
-        .sort((first, second) => new Date(second.updatedAt).getTime() - new Date(first.updatedAt).getTime())
-    );
-  }, [myId, myRole, selectedId]);
+    void loadMessages(selectedId);
+  }, [loadMessages, myRole, selectedId]);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages.length]);
+
+  async function handleSendMessage() {
+    if (!selectedConversation || !text.trim()) {
+      return;
+    }
+
+    setSending(true);
+    try {
+      await sendChatMessage(selectedConversation.id, text.trim());
+      setText("");
+      await loadMessages(selectedConversation.id);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Nao foi possivel enviar a mensagem.");
+    } finally {
+      setSending(false);
+    }
+  }
 
   if (myRole !== "user") {
     return (
@@ -220,48 +141,6 @@ export default function UserMessagesPage() {
         </div>
       </Card>
     );
-  }
-
-  function refreshConversationState(conversationId: string) {
-    const nextConversations = readConversations()
-      .filter((conversation) => conversation.studentId === myId)
-      .sort((first, second) => new Date(second.updatedAt).getTime() - new Date(first.updatedAt).getTime());
-    setConversations(nextConversations);
-    setSelectedId(conversationId);
-    setMessages(readMessages(conversationId));
-  }
-
-  function handleSendMessage() {
-    if (!selectedConversation || !text.trim()) {
-      return;
-    }
-
-    const cleanText = text.trim();
-    const nextMessage: ChatMessage = {
-      id: uid("m"),
-      conversationId: selectedConversation.id,
-      senderId: myId,
-      senderRole: "user",
-      text: cleanText,
-      createdAt: nowISO(),
-    };
-
-    const existingMessages = readMessages(selectedConversation.id);
-    writeMessages(selectedConversation.id, [...existingMessages, nextMessage]);
-
-    const updatedConversations = readConversations().map((conversation) => {
-      if (conversation.id !== selectedConversation.id) {
-        return conversation;
-      }
-      return {
-        ...conversation,
-        updatedAt: nextMessage.createdAt,
-        lastReadAtByStudent: nextMessage.createdAt,
-      };
-    });
-    writeConversations(updatedConversations);
-    setText("");
-    refreshConversationState(selectedConversation.id);
   }
 
   return (
@@ -301,6 +180,13 @@ export default function UserMessagesPage() {
         </div>
       </Card>
 
+      {error ? (
+        <Card style={{ padding: 14, color: COLORS.text }}>
+          <div style={{ fontWeight: 700 }}>Falha ao carregar mensagens</div>
+          <div style={{ marginTop: 6, color: COLORS.muted }}>{error}</div>
+        </Card>
+      ) : null}
+
       <div
         style={{
           display: "grid",
@@ -310,55 +196,63 @@ export default function UserMessagesPage() {
       >
         <Card style={{ padding: 14, display: "grid", gap: 12, alignSelf: "start" }}>
           <div style={{ fontWeight: 700, color: COLORS.text, fontSize: 16 }}>Conversas</div>
-          {conversations.map((conversation) => {
-            const conversationMessages = readMessages(conversation.id);
-            const unread = countUnreadForStudent(conversation, conversationMessages);
-            const lastMessage = conversationMessages[conversationMessages.length - 1];
-            const active = conversation.id === selectedId;
 
-            return (
-              <button
-                key={conversation.id}
-                type="button"
-                onClick={() => setSelectedId(conversation.id)}
-                style={{
-                  textAlign: "left",
-                  padding: 14,
-                  borderRadius: 16,
-                  border: active ? `1px solid ${COLORS.borderStrong}` : `1px solid ${COLORS.border}`,
-                  background: active ? COLORS.primarySoft : "#FAFAFA",
-                  color: COLORS.text,
-                  cursor: "pointer",
-                  display: "grid",
-                  gap: 8,
-                }}
-              >
-                <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center" }}>
-                  <div style={{ fontWeight: 600 }}>{getDisplayNameFromEmail(conversation.personalId)}</div>
-                  {unread ? (
-                    <span
-                      style={{
-                        borderRadius: 999,
-                        background: COLORS.highlightSoft,
-                        color: "#22C55E",
-                        padding: "4px 8px",
-                        fontSize: 11,
-                        fontWeight: 600,
-                      }}
-                    >
-                      {unread} nova{unread > 1 ? "s" : ""}
-                    </span>
-                  ) : null}
-                </div>
-                <div style={{ color: COLORS.muted, fontSize: 13, lineHeight: 1.5 }}>
-                  {lastMessage?.text || "Conversa pronta para você começar."}
-                </div>
-                <div style={{ color: COLORS.mutedSoft, fontSize: 12 }}>
-                  {lastMessage ? formatTimeLabel(lastMessage.createdAt) : "Agora mesmo"}
-                </div>
-              </button>
-            );
-          })}
+          {loading ? (
+            <div style={{ color: COLORS.muted, fontSize: 13 }}>Carregando conversas...</div>
+          ) : conversations.length === 0 ? (
+            <div style={{ color: COLORS.muted, fontSize: 13, lineHeight: 1.5 }}>
+              Ainda não há conversas disponíveis para a sua conta.
+            </div>
+          ) : (
+            conversations.map((conversation) => {
+              const active = conversation.id === selectedId;
+              const lastMessage = conversation.lastMessage;
+              const unread = conversation.unreadCount;
+
+              return (
+                <button
+                  key={conversation.id}
+                  type="button"
+                  onClick={() => setSelectedId(conversation.id)}
+                  style={{
+                    textAlign: "left",
+                    padding: 14,
+                    borderRadius: 16,
+                    border: active ? `1px solid ${COLORS.borderStrong}` : `1px solid ${COLORS.border}`,
+                    background: active ? COLORS.primarySoft : "#FAFAFA",
+                    color: COLORS.text,
+                    cursor: "pointer",
+                    display: "grid",
+                    gap: 8,
+                  }}
+                >
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center" }}>
+                    <div style={{ fontWeight: 600 }}>{conversation.personalName}</div>
+                    {unread ? (
+                      <span
+                        style={{
+                          borderRadius: 999,
+                          background: COLORS.highlightSoft,
+                          color: "#22C55E",
+                          padding: "4px 8px",
+                          fontSize: 11,
+                          fontWeight: 600,
+                        }}
+                      >
+                        {unread} nova{unread > 1 ? "s" : ""}
+                      </span>
+                    ) : null}
+                  </div>
+                  <div style={{ color: COLORS.muted, fontSize: 13, lineHeight: 1.5 }}>
+                    {lastMessage?.text || "Conversa pronta para você começar."}
+                  </div>
+                  <div style={{ color: COLORS.mutedSoft, fontSize: 12 }}>
+                    {lastMessage ? formatTimeLabel(lastMessage.createdAt) : "Agora mesmo"}
+                  </div>
+                </button>
+              );
+            })
+          )}
         </Card>
 
         <Card style={{ display: "grid", gridTemplateRows: "auto minmax(360px, 1fr) auto" }}>
@@ -375,7 +269,7 @@ export default function UserMessagesPage() {
           >
             <div style={{ display: "grid", gap: 6 }}>
               <div style={{ fontSize: 18, fontWeight: 700, color: COLORS.text }}>
-                {selectedConversation ? getDisplayNameFromEmail(selectedConversation.personalId) : "Seu personal"}
+                {selectedConversation ? selectedConversation.personalName : "Seu personal"}
               </div>
               <div style={{ color: COLORS.muted, fontSize: 13 }}>
                 Respostas rápidas, avisos de treino e alinhamentos do seu acompanhamento.
@@ -392,7 +286,7 @@ export default function UserMessagesPage() {
                 fontWeight: 600,
               }}
             >
-              Canal ativo
+              {selectedConversation ? "Canal ativo" : "Sem conversa"}
             </div>
           </div>
 
@@ -405,7 +299,24 @@ export default function UserMessagesPage() {
               minHeight: 420,
             }}
           >
-            {messages.length === 0 ? (
+            {!selectedConversation ? (
+              <div
+                style={{
+                  margin: "auto",
+                  maxWidth: 420,
+                  textAlign: "center",
+                  color: COLORS.muted,
+                  display: "grid",
+                  gap: 10,
+                }}
+              >
+                <div style={{ fontSize: 30 }}>💬</div>
+                <div style={{ fontWeight: 700, color: COLORS.text }}>Nenhuma conversa selecionada.</div>
+                <div style={{ fontSize: 14 }}>
+                  Escolha uma conversa na coluna da esquerda para acompanhar suas mensagens com o personal.
+                </div>
+              </div>
+            ) : messages.length === 0 ? (
               <div
                 style={{
                   margin: "auto",
@@ -470,8 +381,9 @@ export default function UserMessagesPage() {
             <textarea
               value={text}
               onChange={(event) => setText(event.target.value)}
-              placeholder="Escreva sua mensagem para o personal..."
+              placeholder={selectedConversation ? "Escreva sua mensagem para o personal..." : "Selecione uma conversa primeiro"}
               rows={4}
+              disabled={!selectedConversation || sending}
               style={{
                 width: "100%",
                 resize: "vertical",
@@ -482,6 +394,7 @@ export default function UserMessagesPage() {
                 padding: 14,
                 fontSize: 14,
                 outline: "none",
+                opacity: !selectedConversation || sending ? 0.7 : 1,
               }}
             />
             <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
@@ -491,20 +404,18 @@ export default function UserMessagesPage() {
               <button
                 type="button"
                 onClick={handleSendMessage}
-                disabled={!text.trim()}
+                disabled={!selectedConversation || !text.trim() || sending}
                 style={{
                   padding: "12px 16px",
                   borderRadius: 14,
                   border: `1px solid ${text.trim() ? COLORS.borderStrong : COLORS.border}`,
-                  background: text.trim()
-                    ? "#22C55E"
-                    : "#F9FAFB",
+                  background: text.trim() ? "#22C55E" : "#F9FAFB",
                   color: text.trim() ? "#0A130D" : COLORS.muted,
                   fontWeight: 700,
-                  cursor: text.trim() ? "pointer" : "not-allowed",
+                  cursor: !selectedConversation || !text.trim() || sending ? "not-allowed" : "pointer",
                 }}
               >
-                Enviar mensagem
+                {sending ? "Enviando..." : "Enviar mensagem"}
               </button>
             </div>
           </div>

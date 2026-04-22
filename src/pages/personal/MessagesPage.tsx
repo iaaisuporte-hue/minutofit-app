@@ -1,123 +1,25 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext";
-import { PERSONAL_STUDENTS, resolvePersonalStudentReference } from "./personalStudentsMock";
 import { COLORS } from "../../styles/colors";
-
-/**
- * =========================
- * ✅ MODELO DE DADOS (MVP)
- * =========================
- * Mesma estrutura que a tela do aluno vai usar.
- */
+import {
+  ensureChatConversation,
+  fetchChatConversations,
+  fetchConversationMessages,
+  markChatConversationRead,
+  sendChatMessage,
+  type ChatConversation,
+  type ChatMessage,
+} from "../../services/messagesApi";
+import { fetchPersonalConsulting, type PersonalConsultingStudent } from "../../services/personalDashboardApi";
 
 type Role = "user" | "personal" | "admin" | "nutri";
 
-type ChatMessage = {
-  id: string;
-  conversationId: string;
-
-  senderId: string; // email (MVP)
-  senderRole: Role;
-
-  text: string;
-  createdAt: string; // ISO
-};
-
-type ChatConversation = {
-  id: string;
-
-  studentId: string; // email (MVP)
-  personalId: string; // email (MVP)
-
-  createdAt: string; // ISO
-  updatedAt: string; // ISO
-
-  // controle simples de “lido” por participante
-  lastReadAtByStudent?: string;
-  lastReadAtByPersonal?: string;
-};
-
 type StudentMini = {
   id: string;
-  chatParticipantId: string;
   name: string;
 };
 
-/**
- * ✅ Storage keys (centralizado)
- * - Conversas: lista de conversas
- * - Mensagens: lista de mensagens (por conversa)
- */
-const CONVERSATIONS_KEY = "treinai_chat_conversations_v1";
-const MESSAGES_KEY_PREFIX = "treinai_chat_messages_v1__"; // + conversationId
-
-/** ✅ Helpers */
-function nowISO() {
-  return new Date().toISOString();
-}
-
-function uid(prefix = "m") {
-  return `${prefix}_${Math.random().toString(36).slice(2)}_${Date.now().toString(36)}`;
-}
-
-/** ✅ Cria um id estável (mesmo para aluno e personal) */
-function conversationIdOf(studentId: string, personalId: string) {
-  // ✅ ordem fixa evita duplicar conversas invertidas
-  return `c_${encodeURIComponent(studentId)}__${encodeURIComponent(personalId)}`;
-}
-
-function readConversations(): ChatConversation[] {
-  try {
-    const raw = localStorage.getItem(CONVERSATIONS_KEY);
-    return raw ? (JSON.parse(raw) as ChatConversation[]) : [];
-  } catch {
-    return [];
-  }
-}
-
-function writeConversations(list: ChatConversation[]) {
-  localStorage.setItem(CONVERSATIONS_KEY, JSON.stringify(list));
-}
-
-function readMessages(conversationId: string): ChatMessage[] {
-  try {
-    const raw = localStorage.getItem(MESSAGES_KEY_PREFIX + conversationId);
-    return raw ? (JSON.parse(raw) as ChatMessage[]) : [];
-  } catch {
-    return [];
-  }
-}
-
-function writeMessages(conversationId: string, list: ChatMessage[]) {
-  localStorage.setItem(MESSAGES_KEY_PREFIX + conversationId, JSON.stringify(list));
-}
-
-function sortConversationsByRecency(list: ChatConversation[]) {
-  return [...list].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
-}
-
-/**
- * ✅ Garante que só os participantes vejam
- * (MVP “seguro” na UI)
- */
-function canAccessConversation(conv: ChatConversation, viewerId: string, viewerRole: Role) {
-  if (viewerRole === "personal") return conv.personalId === viewerId;
-  if (viewerRole === "user") return conv.studentId === viewerId;
-  // admin/nutri: você pode decidir permitir ou não (aqui: NÃO)
-  return false;
-}
-
-/** ✅ Unread count (simples) */
-function countUnreadForPersonal(conv: ChatConversation, messages: ChatMessage[]) {
-  const lastRead = conv.lastReadAtByPersonal ? new Date(conv.lastReadAtByPersonal).getTime() : 0;
-  return messages.filter((m) => {
-    const t = new Date(m.createdAt).getTime();
-    return t > lastRead && m.senderRole === "user";
-  }).length;
-}
-
-/** ✅ Badge UI */
 function Pill({
   children,
   variant = "neutral",
@@ -139,7 +41,7 @@ function Pill({
     <span
       title={title}
       style={{
-        padding: "6px 10px", // ✅ tamanho do pill
+        padding: "6px 10px",
         borderRadius: 999,
         border: `1px solid ${map[variant].bd}`,
         background: map[variant].bg,
@@ -159,7 +61,6 @@ function Pill({
   );
 }
 
-/** ✅ Card base */
 function Card({ children }: { children: React.ReactNode }) {
   return (
     <div
@@ -176,14 +77,138 @@ function Card({ children }: { children: React.ReactNode }) {
 }
 
 export default function MessagesPage() {
-  const { user } = useAuth() as any; // 👈 MVP: depende do seu AuthContext
+  const { user } = useAuth();
   const location = useLocation();
-  const myId: string = user?.email || "personal@treinai.com"; // ✅ (MVP) usa email como ID
   const myRole: Role = user?.role || "personal";
   const preselectedStudentId = (location.state as { studentId?: string; studentName?: string } | null)?.studentId;
-  const preselectedStudentName = (location.state as { studentId?: string; studentName?: string } | null)?.studentName;
 
-  // ✅ segurança (UI): se não for personal, não mostra
+  const [students, setStudents] = useState<StudentMini[]>([]);
+  const [conversations, setConversations] = useState<ChatConversation[]>([]);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [text, setText] = useState("");
+  const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const endRef = useRef<HTMLDivElement | null>(null);
+
+  const selectedConv = useMemo(
+    () => conversations.find((conversation) => conversation.id === selectedId) || null,
+    [conversations, selectedId]
+  );
+
+  const selectedStudent = useMemo(() => {
+    if (!selectedConv) return null;
+    return {
+      id: selectedConv.studentId,
+      name: selectedConv.studentName,
+    };
+  }, [selectedConv]);
+
+  const filteredInbox = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return conversations;
+
+    return conversations.filter((conversation) => {
+      const label = conversation.studentName.toLowerCase();
+      return label.includes(q);
+    });
+  }, [conversations, search]);
+
+  const loadStudents = useCallback(async () => {
+    const data = await fetchPersonalConsulting();
+    const list = (data?.students ?? []).map((student: PersonalConsultingStudent) => ({
+      id: student.id,
+      name: student.name,
+    }));
+    setStudents(list);
+  }, []);
+
+  const loadConversations = useCallback(async (preferredConversationId?: string | null) => {
+    const list = await fetchChatConversations();
+    setConversations(list);
+    setSelectedId((current) => preferredConversationId ?? current ?? list[0]?.id ?? null);
+  }, []);
+
+  const loadMessages = useCallback(async (conversationId: string) => {
+    const nextMessages = await fetchConversationMessages(conversationId);
+    setMessages(nextMessages);
+    await markChatConversationRead(conversationId);
+    const refreshed = await fetchChatConversations();
+    setConversations(refreshed);
+  }, []);
+
+  const openConversationWithStudent = useCallback(async (studentId: string) => {
+    const conversation = await ensureChatConversation({ studentId });
+    await loadConversations(conversation?.id ?? null);
+  }, [loadConversations]);
+
+  useEffect(() => {
+    if (myRole !== "personal") return;
+
+    let cancelled = false;
+
+    void (async () => {
+      setLoading(true);
+      try {
+        await Promise.all([loadStudents(), loadConversations()]);
+        setError(null);
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : "Nao foi possivel carregar o chat do personal.");
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [loadConversations, loadStudents, myRole]);
+
+  useEffect(() => {
+    if (!preselectedStudentId || myRole !== "personal") return;
+    void openConversationWithStudent(preselectedStudentId).catch((err) => {
+      setError(err instanceof Error ? err.message : "Nao foi possivel abrir a conversa.");
+    });
+  }, [myRole, openConversationWithStudent, preselectedStudentId]);
+
+  useEffect(() => {
+    if (!selectedId || myRole !== "personal") {
+      setMessages([]);
+      return;
+    }
+
+    void loadMessages(selectedId).catch((err) => {
+      setError(err instanceof Error ? err.message : "Nao foi possivel carregar as mensagens.");
+      setMessages([]);
+    });
+  }, [loadMessages, myRole, selectedId]);
+
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages.length]);
+
+  async function handleSendMessage() {
+    if (!selectedConv || !text.trim()) return;
+
+    setSending(true);
+    try {
+      await sendChatMessage(selectedConv.id, text.trim());
+      setText("");
+      await loadMessages(selectedConv.id);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Nao foi possivel enviar a mensagem.");
+    } finally {
+      setSending(false);
+    }
+  }
+
   if (myRole !== "personal") {
     return (
       <Card>
@@ -197,206 +222,8 @@ export default function MessagesPage() {
     );
   }
 
-  /**
-   * ✅ Mock de alunos (até você ligar no banco / students list real)
-   * - Importante: o "id" aqui deve ser o mesmo usado no login do aluno (email).
-   * - Assim a conversa “encaixa” automaticamente.
-   */
-  const students: StudentMini[] = useMemo(
-    () =>
-      PERSONAL_STUDENTS.map((student) => ({
-        id: student.id,
-        chatParticipantId: student.chatParticipantId,
-        name: student.name,
-      })),
-    []
-  );
-
-  // ✅ Estado principal
-  const [conversations, setConversations] = useState<ChatConversation[]>([]);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-
-  // ✅ Mensagens do chat atual
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [text, setText] = useState("");
-  const [search, setSearch] = useState("");
-
-  // ✅ scroll pro final
-  const endRef = useRef<HTMLDivElement | null>(null);
-
-  function loadMyConversations() {
-    return sortConversationsByRecency(readConversations().filter((c) => canAccessConversation(c, myId, myRole)));
-  }
-
-  /** ✅ Carregar conversas do storage */
-  useEffect(() => {
-    const mine = loadMyConversations();
-    setConversations(mine);
-
-    // seleciona a primeira se nada selecionado
-    if (!selectedId && mine.length) setSelectedId(mine[0].id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [myId, myRole]);
-
-  useEffect(() => {
-    if (!preselectedStudentId && !preselectedStudentName) return;
-    const student = resolvePersonalStudentReference({ id: preselectedStudentId, name: preselectedStudentName });
-    if (!student) return;
-    openConversationWithStudent(student.id);
-  }, [preselectedStudentId, preselectedStudentName]);
-
-  /** ✅ Sempre que selecionar conversa, carregar mensagens */
-  useEffect(() => {
-    if (!selectedId) {
-      setMessages([]);
-      return;
-    }
-
-    const conv = readConversations().find((c) => c.id === selectedId);
-    if (!conv) {
-      setMessages([]);
-      return;
-    }
-
-    // segurança: checa acesso
-    if (!canAccessConversation(conv, myId, myRole)) {
-      setMessages([]);
-      return;
-    }
-
-    const list = readMessages(selectedId);
-    setMessages(list);
-
-    // marca como lida (personal)
-    const updated = readConversations().map((c) => {
-      if (c.id !== selectedId) return c;
-      return { ...c, lastReadAtByPersonal: nowISO() };
-    });
-    writeConversations(updated);
-
-    // atualiza state local
-    setConversations(sortConversationsByRecency(updated.filter((c) => canAccessConversation(c, myId, myRole))));
-  }, [selectedId, myId, myRole]);
-
-  /** ✅ Scroll sempre que mensagens mudarem */
-  useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages.length]);
-
-  /** ✅ “Realtime” simples (MVP): escuta storage */
-  useEffect(() => {
-    function onStorage(e: StorageEvent) {
-      if (!e.key) return;
-
-      // conversas mudaram
-      if (e.key === CONVERSATIONS_KEY) {
-        setConversations(loadMyConversations());
-      }
-
-      // mensagens da conversa aberta mudaram
-      if (selectedId && e.key === MESSAGES_KEY_PREFIX + selectedId) {
-        setMessages(readMessages(selectedId));
-      }
-    }
-
-    window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
-  }, [selectedId, myId, myRole]);
-
-  /** ✅ Abrir (ou criar) conversa com um aluno */
-  function openConversationWithStudent(studentId: string) {
-    const student = students.find((item) => item.id === studentId);
-    if (!student) return;
-
-    const convId = conversationIdOf(student.chatParticipantId, myId);
-
-    const all = readConversations();
-    let conv = all.find((c) => c.id === convId);
-
-    // cria se não existir
-    if (!conv) {
-      conv = {
-        id: convId,
-        studentId: student.chatParticipantId,
-        personalId: myId,
-        createdAt: nowISO(),
-        updatedAt: nowISO(),
-        lastReadAtByStudent: undefined,
-        lastReadAtByPersonal: nowISO(),
-      };
-      all.push(conv);
-      writeConversations(all);
-    }
-
-    // atualiza state e seleciona
-    setConversations(sortConversationsByRecency(all.filter((c) => canAccessConversation(c, myId, myRole))));
-    setSelectedId(convId);
-  }
-
-  /** ✅ Enviar mensagem */
-  function sendMessage() {
-    const body = text.trim();
-    if (!selectedId || !body) return;
-
-    const conv = readConversations().find((c) => c.id === selectedId);
-    if (!conv) return;
-
-    // segurança: checa acesso
-    if (!canAccessConversation(conv, myId, myRole)) return;
-
-    const list = readMessages(selectedId);
-
-    const msg: ChatMessage = {
-      id: uid("msg"),
-      conversationId: selectedId,
-      senderId: myId,
-      senderRole: "personal",
-      text: body,
-      createdAt: nowISO(),
-    };
-
-    const next = [...list, msg];
-    writeMessages(selectedId, next);
-    setMessages(next);
-    setText("");
-
-    // atualiza conversa (updatedAt e lastRead)
-    const all = readConversations().map((c) => {
-      if (c.id !== selectedId) return c;
-      return { ...c, updatedAt: nowISO(), lastReadAtByPersonal: nowISO() };
-    });
-    writeConversations(all);
-
-    setConversations(sortConversationsByRecency(all.filter((c) => canAccessConversation(c, myId, myRole))));
-  }
-
-  const selectedConv = useMemo(() => conversations.find((c) => c.id === selectedId) || null, [conversations, selectedId]);
-
-  const selectedStudent = useMemo(() => {
-    if (!selectedConv) return null;
-    return (
-      students.find((s) => s.chatParticipantId === selectedConv.studentId) || {
-        id: selectedConv.studentId,
-        chatParticipantId: selectedConv.studentId,
-        name: selectedConv.studentId,
-      }
-    );
-  }, [selectedConv, students]);
-
-  const filteredInbox = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return conversations;
-
-    return conversations.filter((c) => {
-      const stu = students.find((s) => s.chatParticipantId === c.studentId);
-      const label = (stu?.name || c.studentId).toLowerCase();
-      return label.includes(q);
-    });
-  }, [conversations, search, students]);
-
   return (
     <div style={{ display: "grid", gap: 16, color: "#1F2937" }}>
-      {/* ✅ Top header */}
       <Card>
         <div
           style={{
@@ -420,24 +247,24 @@ export default function MessagesPage() {
         </div>
       </Card>
 
-      {/* ✅ Layout: Inbox + Chat */}
+      {error ? (
+        <Card>
+          <div style={{ padding: 14, color: COLORS.text }}>
+            <div style={{ fontWeight: 700 }}>Falha ao carregar mensagens</div>
+            <div style={{ marginTop: 6, color: COLORS.muted }}>{error}</div>
+          </div>
+        </Card>
+      ) : null}
+
       <div
         style={{
           display: "grid",
-
-          // ✅ (LAYOUT) responsivo:
-          // - desktop: 340px + chat
-          // - mobile: 1 coluna (inbox em cima)
           gridTemplateColumns: "minmax(280px, 340px) 1fr",
           gap: 12,
         }}
       >
-        {/* =====================
-            ✅ INBOX (ESQUERDA)
-            ===================== */}
         <Card>
           <div style={{ padding: 14, display: "grid", gap: 12 }}>
-            {/* ✅ Search */}
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -454,17 +281,16 @@ export default function MessagesPage() {
               }}
             />
 
-            {/* ✅ Atalho: abrir conversa (criar) */}
             <div style={{ display: "grid", gap: 8 }}>
               <div style={{ fontSize: 12, fontWeight: 600, color: "#6B7280" }}>
                 INICIAR CONVERSA
               </div>
 
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                {students.slice(0, 4).map((s) => (
+                {students.slice(0, 4).map((student) => (
                   <button
-                    key={s.id}
-                    onClick={() => openConversationWithStudent(s.id)}
+                    key={student.id}
+                    onClick={() => void openConversationWithStudent(student.id)}
                     style={{
                       padding: "10px 12px",
                       borderRadius: 12,
@@ -475,41 +301,38 @@ export default function MessagesPage() {
                       fontWeight: 600,
                       fontSize: 13,
                     }}
-                    title={`Abrir chat com ${s.name}`}
+                    title={`Abrir chat com ${student.name}`}
                   >
-                    + {s.name}
+                    + {student.name}
                   </button>
                 ))}
               </div>
             </div>
 
-            {/* ✅ Lista de conversas */}
             <div style={{ display: "grid", gap: 8 }}>
               <div style={{ fontSize: 12, fontWeight: 600, color: "#6B7280" }}>
                 CONVERSAS
               </div>
 
               <div style={{ display: "grid", gap: 8 }}>
-                {filteredInbox.length === 0 ? (
+                {loading ? (
+                  <div style={{ color: "#6B7280", fontSize: 13 }}>
+                    Carregando conversas...
+                  </div>
+                ) : filteredInbox.length === 0 ? (
                   <div style={{ color: "#6B7280", fontSize: 13 }}>
                     Nenhuma conversa ainda. Crie uma acima.
                   </div>
                 ) : (
-                  filteredInbox.map((c) => {
-                    const stu = students.find((s) => s.chatParticipantId === c.studentId);
-                    const label = stu?.name || c.studentId;
-
-                    const msgs = readMessages(c.id);
-                    const last = msgs[msgs.length - 1];
-
-                    const unread = countUnreadForPersonal(c, msgs);
-
-                    const active = c.id === selectedId;
+                  filteredInbox.map((conversation) => {
+                    const active = conversation.id === selectedId;
+                    const unread = conversation.unreadCount;
+                    const last = conversation.lastMessage;
 
                     return (
                       <button
-                        key={c.id}
-                        onClick={() => setSelectedId(c.id)}
+                        key={conversation.id}
+                        onClick={() => setSelectedId(conversation.id)}
                         style={{
                           width: "100%",
                           textAlign: "left",
@@ -522,18 +345,19 @@ export default function MessagesPage() {
                         }}
                       >
                         <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center" }}>
-                          <div style={{ fontWeight: 700, fontSize: 14 }}>{label}</div>
+                          <div style={{ fontWeight: 700, fontSize: 14 }}>
+                            {conversation.studentName}
+                          </div>
 
-                          {unread > 0 ? (
+                          {unread ? (
                             <span
                               style={{
-                                padding: "4px 8px",
                                 borderRadius: 999,
-                                background: COLORS.primarySoft,
-                                border: `1px solid ${COLORS.borderStrong}`,
+                                background: COLORS.highlightSoft,
+                                color: "#22C55E",
+                                padding: "4px 8px",
+                                fontSize: 11,
                                 fontWeight: 700,
-                                fontSize: 12,
-                                lineHeight: 1,
                               }}
                             >
                               {unread}
@@ -559,20 +383,11 @@ export default function MessagesPage() {
                 )}
               </div>
             </div>
-
-            {/* ✅ Dica */}
-            <div style={{ marginTop: 6, color: "#9CA3AF", fontSize: 12, lineHeight: 1.4 }}>
-              As mensagens desta etapa ainda ficam no navegador enquanto o backend de chat não entra.
-            </div>
           </div>
         </Card>
 
-        {/* =====================
-            ✅ CHAT (DIREITA)
-            ===================== */}
         <Card>
           <div style={{ display: "grid", gridTemplateRows: "auto 1fr auto", minHeight: 520 }}>
-            {/* ✅ Header do chat */}
             <div
               style={{
                 padding: 14,
@@ -589,14 +404,13 @@ export default function MessagesPage() {
                   {selectedStudent ? selectedStudent.name : "Selecione uma conversa"}
                 </div>
                 <div style={{ color: COLORS.mutedSoft, fontSize: 12 }}>
-                  {selectedStudent ? selectedStudent.id : "Inbox → escolha um aluno para abrir"}
+                  {selectedStudent ? `Aluno ${selectedStudent.id}` : "Inbox → escolha um aluno para abrir"}
                 </div>
               </div>
 
               {selectedConv ? <Pill variant="orange">Conversa ativa</Pill> : <Pill variant="neutral">Sem conversa</Pill>}
             </div>
 
-            {/* ✅ Mensagens */}
             <div
               style={{
                 padding: 14,
@@ -614,11 +428,11 @@ export default function MessagesPage() {
                 </div>
               ) : (
                 <div style={{ display: "grid", gap: 10 }}>
-                  {messages.map((m) => {
-                    const mine = m.senderRole === "personal";
+                  {messages.map((message) => {
+                    const mine = message.senderRole === "personal";
                     return (
                       <div
-                        key={m.id}
+                        key={message.id}
                         style={{
                           display: "flex",
                           justifyContent: mine ? "flex-end" : "flex-start",
@@ -635,9 +449,9 @@ export default function MessagesPage() {
                             boxShadow: "0 10px 24px rgba(0,0,0,.25)",
                           }}
                         >
-                          <div style={{ fontSize: 13, lineHeight: 1.45, whiteSpace: "pre-wrap" }}>{m.text}</div>
+                          <div style={{ fontSize: 13, lineHeight: 1.45, whiteSpace: "pre-wrap" }}>{message.text}</div>
                           <div style={{ marginTop: 6, fontSize: 11, color: "#9CA3AF" }}>
-                            {new Date(m.createdAt).toLocaleString("pt-BR")}
+                            {new Date(message.createdAt).toLocaleString("pt-BR")}
                           </div>
                         </div>
                       </div>
@@ -648,14 +462,13 @@ export default function MessagesPage() {
               )}
             </div>
 
-            {/* ✅ Composer */}
             <div style={{ padding: 14, borderTop: "1px solid rgba(255,255,255,.10)" }}>
               <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
                 <textarea
                   value={text}
                   onChange={(e) => setText(e.target.value)}
                   placeholder={selectedConv ? "Digite sua mensagem…" : "Selecione uma conversa primeiro"}
-                  disabled={!selectedConv}
+                  disabled={!selectedConv || sending}
                   rows={2}
                   style={{
                     flex: 1,
@@ -668,26 +481,27 @@ export default function MessagesPage() {
                     outline: "none",
                     fontWeight: 700,
                     lineHeight: 1.35,
+                    opacity: !selectedConv || sending ? 0.7 : 1,
                   }}
                 />
 
                 <button
-                  onClick={sendMessage}
-                  disabled={!selectedConv || !text.trim()}
+                  onClick={() => void handleSendMessage()}
+                  disabled={!selectedConv || !text.trim() || sending}
                   style={{
                     padding: "12px 14px",
                     borderRadius: 12,
                     border: `1px solid ${COLORS.borderStrong}`,
                     background: "#22C55E",
                     color: "#FFFFFF",
-                    cursor: !selectedConv || !text.trim() ? "not-allowed" : "pointer",
+                    cursor: !selectedConv || !text.trim() || sending ? "not-allowed" : "pointer",
                     fontWeight: 700,
                     fontSize: 14,
                     boxShadow: "0 14px 28px rgba(34,197,94,.22)",
-                    opacity: !selectedConv || !text.trim() ? 0.6 : 1,
+                    opacity: !selectedConv || !text.trim() || sending ? 0.6 : 1,
                   }}
                 >
-                  Enviar
+                  {sending ? "Enviando..." : "Enviar"}
                 </button>
               </div>
 
@@ -698,15 +512,6 @@ export default function MessagesPage() {
           </div>
         </Card>
       </div>
-
-      {/* ✅ Responsivo simples (1 coluna no mobile) */}
-      <style>{`
-        @media (max-width: 980px){
-          div[style*="grid-template-columns: minmax(280px, 340px) 1fr"]{
-            grid-template-columns: 1fr !important;
-          }
-        }
-      `}</style>
     </div>
   );
 }
