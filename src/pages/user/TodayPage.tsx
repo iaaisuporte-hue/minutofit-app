@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext";
@@ -6,9 +6,8 @@ import { useFeatureFlags } from "../../auth/FeatureFlagsContext";
 import { useIsMobile } from "../../hooks/useIsMobile";
 import { persistGamificationCheckin } from "../../services/gamificationApi";
 import { getDailyMission } from "./gamification";
-import { loadRecommendation } from "./onboarding/onboardingStorage";
+import { loadAnswers } from "./onboarding/onboardingStorage";
 import {
-  itemRevealVariants,
   pageStaggerVariants,
   sectionRevealVariants,
   subtleHoverScale,
@@ -18,7 +17,6 @@ import {
 import { getYesterdayMuscleGroups, type MuscleGroup } from "./workoutHistory";
 import {
   MetabolicChart,
-  MetabolicInsights,
   MetabolicScoreCard,
   useMetabolism,
   useMetabolismHistory,
@@ -29,12 +27,14 @@ import {
   deriveHistoryMarkers,
   deriveMetabolicForecast,
   deriveQuickAction,
-  deriveSmartInsight,
   type QuickActionModel,
 } from "../../features/metabolism/metabolismDerivations";
 import { useGamificationSummary } from "../../features/gamification/useGamificationSummary";
 import { DailyCheckin } from "../../features/dailyCheckin/DailyCheckin";
 import { getDailyConditionState, useDailyCondition } from "../../features/dailyCheckin/useDailyCondition";
+import { buildDailyWorkoutRecommendation, getWorkoutRoute } from "../../features/training/dailyWorkoutAdapter";
+import type { WorkoutGoal } from "../../features/training/generateDailyWorkout";
+import { resolveSupportVideoForActivity } from "./trainingSupportVideos";
 import "./todayPage.css";
 
 const GROUP_LABEL: Record<MuscleGroup, string> = {
@@ -61,13 +61,18 @@ const GROUP_ICON: Record<MuscleGroup, string> = {
   mobility: "🧘",
 };
 
+const GOAL_LABEL: Record<WorkoutGoal, string> = {
+  "reactivate metabolism": "Reativar metabolismo",
+  "build momentum": "Ganhar ritmo",
+  "raise metabolic output": "Elevar rendimento",
+};
+
 const ALWAYS_AVAILABLE: MuscleGroup[] = ["cardio", "mobility"];
 const ALL_GROUPS: MuscleGroup[] = ["chest", "back", "legs", "shoulders", "arms", "core", "cardio", "mobility"];
 
 const SURFACE = {
   page: "#F7FAFC",
   card: "#FFFFFF",
-  cardSoft: "#FBFDFF",
   border: "#E2E8F0",
   borderStrong: "rgba(34,197,94,0.24)",
   text: "#0F172A",
@@ -83,31 +88,6 @@ const SURFACE = {
 
 function SectionEyebrow({ children }: { children: React.ReactNode }) {
   return <div className="today-eyebrow">{children}</div>;
-}
-
-function CompactStat({
-  label,
-  value,
-  helper,
-  accent = false,
-}: {
-  label: string;
-  value: string;
-  helper: string;
-  accent?: boolean;
-}) {
-  return (
-    <div
-      className={`today-compact-stat${accent ? " today-compact-stat-accent" : ""}`}
-      style={{
-        borderColor: accent ? SURFACE.borderStrong : SURFACE.border,
-      }}
-    >
-      <SectionEyebrow>{label}</SectionEyebrow>
-      <div className="today-compact-stat-value">{value}</div>
-      <div className="today-compact-stat-helper">{helper}</div>
-    </div>
-  );
 }
 
 function ActionButton({
@@ -160,7 +140,6 @@ function ActionButton({
 
 export default function TodayPage() {
   const navigate = useNavigate();
-  const checkinSectionRef = useRef<HTMLDivElement | null>(null);
   const { id, user } = useAuth();
   const { planName } = useFeatureFlags();
   const isMobile = useIsMobile(720);
@@ -171,21 +150,20 @@ export default function TodayPage() {
   const { data: metabolism, loading: metabolismLoading, error: metabolismError, refetch: refetchMetabolism } = useMetabolism();
   const { data: metabolismHistory, loading: historyLoading } = useMetabolismHistory();
 
-  const recommendation = userId ? loadRecommendation(userId) : null;
+  const onboarding = useMemo(() => (userId ? loadAnswers(userId) : null), [userId]);
   const yesterdayMuscleGroups = getYesterdayMuscleGroups();
   const mission = getDailyMission();
 
   const streak = gamification?.streak ?? 0;
-  const xp = gamification?.xp ?? 0;
-  const level = gamification?.level ?? 1;
   const todayCheckedIn = gamification?.todayCheckedIn ?? false;
-  const lastWorkout = gamification?.lastWorkout ?? null;
 
   const [quickGroups, setQuickGroups] = useState<MuscleGroup[]>([]);
   const [checkinMessage, setCheckinMessage] = useState<string | null>(null);
   const [scoreImpactPreview, setScoreImpactPreview] = useState<number | null>(null);
+  const [workoutMode, setWorkoutMode] = useState<"home" | "gym">("home");
+  const [showCheckin, setShowCheckin] = useState(false);
 
-  const { condition: dailyCondition } = useDailyCondition();
+  const { condition: dailyCondition, setCondition: setDailyCondition, clearCondition: clearDailyCondition } = useDailyCondition();
   const conditionState = getDailyConditionState(dailyCondition);
 
   const { shouldReduceMotion } = useTodayMotionSafe({ isMobile });
@@ -196,40 +174,53 @@ export default function TodayPage() {
   const defaultImpact = estimateCheckinImpact(Math.max(1, quickGroups.length || 2), streak);
 
   const derivedEnergy = useMemo(() => deriveEnergyStatus(metabolism), [metabolism]);
+
+  const adjustedEnergy = useMemo(() => {
+    if (!derivedEnergy || !dailyCondition) return derivedEnergy;
+    const tone = conditionState.messagingTone;
+    if (tone === "push") {
+      return {
+        ...derivedEnergy,
+        energyLabel: derivedEnergy.band === "high" ? "Alto" : "Moderado para alto",
+        metabolicState: (derivedEnergy.metabolicState === "Ativo" ? "Pico" : derivedEnergy.metabolicState) as typeof derivedEnergy.metabolicState,
+        energy: Math.min(100, derivedEnergy.energy + 10),
+        focus: Math.min(100, derivedEnergy.focus + 8),
+        fatBurn: Math.min(100, derivedEnergy.fatBurn + 5),
+      };
+    }
+    if (tone === "recovery") {
+      return {
+        ...derivedEnergy,
+        energyLabel: "Recuperação",
+        metabolicState: "Aquecendo" as typeof derivedEnergy.metabolicState,
+        energy: Math.max(10, derivedEnergy.energy - 12),
+        focus: Math.max(10, derivedEnergy.focus - 10),
+        fatBurn: Math.max(10, derivedEnergy.fatBurn - 6),
+      };
+    }
+    return derivedEnergy;
+  }, [dailyCondition, conditionState.messagingTone, derivedEnergy]);
+
   const forecast = useMemo(
-    () =>
-      deriveMetabolicForecast(metabolism, {
-        streak,
-        todayCheckedIn,
-        activityImpact: defaultImpact,
-      }),
+    () => deriveMetabolicForecast(metabolism, { streak, todayCheckedIn, activityImpact: defaultImpact }),
     [defaultImpact, metabolism, streak, todayCheckedIn]
   );
   const markers = useMemo(
     () => deriveHistoryMarkers(metabolismHistory, { todayCheckedIn }),
     [metabolismHistory, todayCheckedIn]
   );
-  const smartInsight = useMemo(
-    () =>
-      deriveSmartInsight({
-        data: metabolism,
-        streak,
-        todayCheckedIn,
-        mission,
-        yesterdayMuscleGroups,
-      }),
-    [metabolism, mission, streak, todayCheckedIn, yesterdayMuscleGroups]
-  );
   const quickAction = useMemo<QuickActionModel>(
-    () =>
-      deriveQuickAction({
-        data: metabolism,
-        missionId: mission.id,
-        todayCheckedIn,
-        isFreePlan,
-      }),
+    () => deriveQuickAction({ data: metabolism, missionId: mission.id, todayCheckedIn, isFreePlan }),
     [isFreePlan, metabolism, mission.id, todayCheckedIn]
   );
+
+  const adaptiveWorkout = useMemo(
+    () => buildDailyWorkoutRecommendation({ condition: dailyCondition, user, onboarding }),
+    [dailyCondition, onboarding, user]
+  );
+  const homeWorkout = adaptiveWorkout.recommendations.find((r) => r.type === "home") ?? adaptiveWorkout.recommendations[0];
+  const gymWorkout = adaptiveWorkout.recommendations.find((r) => r.type === "gym") ?? adaptiveWorkout.recommendations[1] ?? adaptiveWorkout.recommendations[0];
+  const currentWorkout = workoutMode === "home" ? homeWorkout : gymWorkout;
 
   const primaryMissionLabel = todayCheckedIn
     ? quickAction.label
@@ -245,19 +236,25 @@ export default function TodayPage() {
         : primaryMissionLabel
     : primaryMissionLabel;
 
-  function scrollToCheckin() {
-    checkinSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }
-
   function runQuickAction(action: QuickActionModel) {
     if (action.kind === "checkin") {
-      scrollToCheckin();
+      setShowCheckin(true);
       return;
     }
-
     if (action.route) {
       navigate(action.route);
     }
+  }
+
+  function openSupportVideo(activity: string, workoutTitle: string) {
+    const support = resolveSupportVideoForActivity(activity, workoutTitle);
+    if (!support) return;
+
+    navigate(
+      `/app/user/treinos/player/support-video?videoId=${encodeURIComponent(support.video.videoId)}&title=${encodeURIComponent(
+        `${activity} · apoio`
+      )}&durationMin=${support.video.durationMin}&returnTo=${encodeURIComponent("/app/user/today")}`
+    );
   }
 
   function toggleQuickGroup(group: MuscleGroup) {
@@ -278,7 +275,7 @@ export default function TodayPage() {
 
     const impact = estimateCheckinImpact(quickGroups.length, streak);
     setScoreImpactPreview(impact);
-    setCheckinMessage(`Projeção rápida: +${impact} no score com esse treino.`);
+    setCheckinMessage(`Projeção: +${impact} no score com esse treino.`);
 
     try {
       await persistGamificationCheckin({
@@ -290,8 +287,9 @@ export default function TodayPage() {
           muscleGroups: quickGroups,
         },
       });
-      setCheckinMessage("Treino registrado. Seu status metabólico será recalculado.");
+      setCheckinMessage("Treino registrado. Score será recalculado.");
       setQuickGroups([]);
+      setShowCheckin(false);
       refetchGamification();
       refetchMetabolism();
     } catch {
@@ -305,49 +303,75 @@ export default function TodayPage() {
   }
 
   return (
-    <motion.div className="today-dashboard" variants={pageStaggerVariants} initial={shouldReduceMotion ? false : "hidden"} animate="show">
+    <motion.div
+      className="today-dashboard"
+      variants={pageStaggerVariants}
+      initial={shouldReduceMotion ? false : "hidden"}
+      animate="show"
+    >
+      {/* 1. Check-in de estado */}
       <motion.div variants={sectionRevealVariants}>
-        <DailyCheckin />
+        <DailyCheckin
+          condition={dailyCondition}
+          setCondition={setDailyCondition}
+          clearCondition={clearDailyCondition}
+        />
       </motion.div>
 
+      {/* 2. Hero: score + missão */}
       <motion.div variants={sectionRevealVariants}>
-        <div className="today-hero" style={{ borderColor: SURFACE.border, padding: isMobile ? 18 : 24, boxShadow: SURFACE.shadow }}>
+        <div
+          className="today-hero"
+          style={{ borderColor: SURFACE.border, padding: isMobile ? 18 : 24, boxShadow: SURFACE.shadow }}
+        >
           <div aria-hidden className="today-hero-glow" style={{ background: SURFACE.heroGlow }} />
 
           <div className="today-hero-content">
             <div className="today-badge-row">
               <span className="badge badge-accent">📅 {weekdayCapitalized}</span>
               {todayCheckedIn && <span className="badge badge-success">✓ Dia garantido</span>}
-              {derivedEnergy && <span className="badge badge-accent">{derivedEnergy.metabolicState}</span>}
+              {adjustedEnergy && <span className="badge badge-accent">{adjustedEnergy.metabolicState}</span>}
             </div>
 
-            <div className="today-hero-copy">
-              <h1 className="today-hero-title" style={{ fontSize: isMobile ? 24 : 30 }}>
-                {user?.name ? `${user.name.split(" ")[0]},` : "Hoje,"} seu metabolismo pode render mais com a ação certa.
-              </h1>
-              <p className="today-hero-description" style={{ color: SURFACE.muted }}>
-                Seu painel agora prioriza o que aumenta retorno: missão do dia, previsão para amanhã, impacto do treino e a recomendação mais inteligente neste momento.
-              </p>
+            {/* Score + streak inline */}
+            <div style={{ display: "flex", alignItems: "center", gap: 18, flexWrap: "wrap" }}>
+              {metabolism && !metabolismLoading ? (
+                <div style={{ display: "flex", alignItems: "baseline", gap: 7 }}>
+                  <span style={{ fontSize: isMobile ? 40 : 52, fontWeight: 700, letterSpacing: "-0.03em", color: SURFACE.text, lineHeight: 1 }}>
+                    {metabolism.score}
+                  </span>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: SURFACE.mutedSoft, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                    score
+                  </span>
+                  <span style={{
+                    fontSize: 18,
+                    color: metabolism.trend === "up" ? SURFACE.success : metabolism.trend === "down" ? SURFACE.warning : SURFACE.mutedSoft,
+                  }}>
+                    {metabolism.trend === "up" ? "↑" : metabolism.trend === "down" ? "↓" : "→"}
+                  </span>
+                </div>
+              ) : (
+                <div style={{ width: 90, height: 48, borderRadius: 10, background: SURFACE.page, animation: "pulse 1.6s ease-in-out infinite" }} />
+              )}
+              {streak > 0 && (
+                <div style={{ fontSize: 14, fontWeight: 700, color: streak >= 3 ? SURFACE.warning : SURFACE.muted }}>
+                  🔥 {streak} {streak === 1 ? "dia" : "dias"} seguidos
+                </div>
+              )}
             </div>
 
-            <div
-              className="today-hero-grid"
-              style={{ gridTemplateColumns: isMobile ? "1fr" : "minmax(0, 1.45fr) minmax(260px, 0.9fr)" }}
+            {/* Missão do dia */}
+            <motion.div
+              whileHover={subtleHoverScale}
+              whileTap={subtleTapScale}
+              className="today-card today-mission-card"
+              style={{ borderColor: mission.completed ? SURFACE.borderStrong : SURFACE.border, padding: isMobile ? 14 : 18 }}
             >
-              <motion.div
-                variants={itemRevealVariants}
-                whileHover={subtleHoverScale}
-                whileTap={subtleTapScale}
-                className="today-card today-mission-card"
-                style={{
-                  borderColor: mission.completed ? SURFACE.borderStrong : SURFACE.border,
-                  padding: isMobile ? 18 : 20,
-                }}
-              >
-                <div className="today-card-header">
-                  <div className="today-card-copy">
-                    <SectionEyebrow>Daily Mission</SectionEyebrow>
-                    <div className="today-card-title" style={{ fontSize: isMobile ? 22 : 26 }}>{mission.title}</div>
+              <div style={{ display: "grid", gap: 14 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "start", flexWrap: "wrap" }}>
+                  <div style={{ display: "grid", gap: 4 }}>
+                    <SectionEyebrow>Missão de hoje</SectionEyebrow>
+                    <div className="today-card-title" style={{ fontSize: isMobile ? 18 : 22 }}>{mission.title}</div>
                     <div className="today-card-description" style={{ color: SURFACE.muted }}>{mission.description}</div>
                   </div>
                   <div className="today-reward-pill" style={{ borderColor: SURFACE.borderStrong, color: SURFACE.success }}>
@@ -355,12 +379,12 @@ export default function TodayPage() {
                   </div>
                 </div>
 
-                <div className="today-progress-block">
-                  <div className="today-progress-head">
-                    <span className="today-progress-label" style={{ color: SURFACE.muted }}>
-                      {mission.completed ? "Concluída hoje" : "Progressão da missão"}
+                <div style={{ display: "grid", gap: 6 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center" }}>
+                    <span style={{ fontSize: 12, color: SURFACE.muted, fontWeight: 600 }}>
+                      {mission.completed ? "Concluída hoje" : "Progresso"}
                     </span>
-                    <span className="today-progress-value">
+                    <span style={{ fontSize: 12, color: SURFACE.text, fontWeight: 700 }}>
                       {mission.progress}/{mission.target}
                     </span>
                   </div>
@@ -375,272 +399,256 @@ export default function TodayPage() {
                   </div>
                 </div>
 
-                <div className="today-action-row">
-                  <ActionButton onClick={() => runQuickAction(quickAction)} fullWidth={isMobile}>
-                    {tonedMissionLabel}
-                  </ActionButton>
-                  <ActionButton onClick={() => navigate(recommendation?.route || "/app/user/suggested-training")} variant="secondary">
-                    Ver plano do dia
-                  </ActionButton>
-                </div>
-
-                <div className="today-footnote" style={{ color: SURFACE.muted }}>
-                  Preview de impacto: se você agir hoje, a projeção tende a levar seu score para{" "}
-                  <strong style={{ color: SURFACE.text }}>{forecast?.tomorrowWithActivity ?? "—"}</strong> amanhã.
-                </div>
-              </motion.div>
-
-              <div className="today-stats-column">
-                <CompactStat label="Constância" value={`🔥 ${streak}`} helper="dias seguidos em construção" accent={streak >= 3} />
-                <CompactStat label="Nível" value={`⭐ ${level}`} helper={`${xp} XP acumulado`} />
-                <CompactStat
-                  label="Forecast"
-                  value={forecast ? `${forecast.tomorrowWithActivity}/${forecast.tomorrowWithoutActivity}` : "—"}
-                  helper="com ação / sem ação amanhã"
-                  accent={Boolean(forecast && forecast.withActivityDelta > forecast.withoutActivityDelta)}
-                />
+                <ActionButton onClick={() => runQuickAction(quickAction)} fullWidth={isMobile}>
+                  {tonedMissionLabel}
+                </ActionButton>
               </div>
+            </motion.div>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* 3. Treino de hoje — toggle home/gym */}
+      <motion.div variants={sectionRevealVariants}>
+        <div
+          className="today-card"
+          style={{ borderColor: SURFACE.border, boxShadow: SURFACE.shadow, padding: isMobile ? 18 : 22 }}
+        >
+          <div style={{ display: "grid", gap: 18 }}>
+
+            {/* Header + toggle */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+              <div style={{ display: "grid", gap: 3 }}>
+                <SectionEyebrow>Treino de hoje</SectionEyebrow>
+                <div style={{ fontSize: isMobile ? 16 : 18, fontWeight: 700, color: SURFACE.text }}>
+                  {currentWorkout?.title ?? "Treino recomendado"}
+                </div>
+              </div>
+
+              <div style={{
+                display: "flex",
+                background: SURFACE.page,
+                borderRadius: 10,
+                padding: 3,
+                gap: 2,
+                border: `1px solid ${SURFACE.border}`,
+                flexShrink: 0,
+              }}>
+                {(["home", "gym"] as const).map((mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    onClick={() => setWorkoutMode(mode)}
+                    style={{
+                      padding: "6px 14px",
+                      borderRadius: 8,
+                      fontSize: 12,
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      border: "none",
+                      background: workoutMode === mode ? SURFACE.card : "transparent",
+                      color: workoutMode === mode ? SURFACE.text : SURFACE.muted,
+                      boxShadow: workoutMode === mode ? "0 1px 4px rgba(15,23,42,0.08)" : "none",
+                      transition: "all 0.15s ease",
+                    }}
+                  >
+                    {mode === "home" ? "🏠 Em casa" : "🏋️ Academia"}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Detalhes do treino */}
+            {currentWorkout && (
+              <div style={{ display: "grid", gap: 14 }}>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                  <span style={{
+                    fontSize: 12, fontWeight: 700, color: SURFACE.muted,
+                    padding: "3px 10px", borderRadius: 999,
+                    border: `1px solid ${SURFACE.border}`, background: SURFACE.page,
+                  }}>
+                    {currentWorkout.duration} min
+                  </span>
+                  <span style={{
+                    fontSize: 12, fontWeight: 700, color: SURFACE.muted,
+                    padding: "3px 10px", borderRadius: 999,
+                    border: `1px solid ${SURFACE.border}`, background: SURFACE.page,
+                  }}>
+                    {GOAL_LABEL[currentWorkout.goal]}
+                  </span>
+                  <span style={{
+                    fontSize: 12, fontWeight: 700, color: SURFACE.info,
+                    padding: "3px 10px", borderRadius: 999,
+                    border: "1px solid rgba(8,145,178,0.2)", background: "rgba(8,145,178,0.05)",
+                  }}>
+                    {currentWorkout.scoreImpact}
+                  </span>
+                </div>
+
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                  {currentWorkout.exercises.map((ex) => (
+                    <button
+                      key={ex}
+                      type="button"
+                      onClick={() => openSupportVideo(ex, currentWorkout.title)}
+                      className="today-tag"
+                      style={{
+                        borderColor: SURFACE.border,
+                        color: SURFACE.info,
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 4,
+                        cursor: "pointer",
+                        background: "#FFFFFF",
+                      }}
+                    >
+                      {ex}
+                      <span style={{ fontSize: 9, opacity: 0.7 }}>▶</span>
+                    </button>
+                  ))}
+                </div>
+
+                {forecast && (
+                  <div style={{
+                    fontSize: 13, color: SURFACE.muted,
+                    padding: "9px 14px",
+                    background: "rgba(34,197,94,0.05)",
+                    borderRadius: 10,
+                    border: "1px solid rgba(34,197,94,0.14)",
+                    display: "flex", gap: 6, alignItems: "center",
+                  }}>
+                    Amanhã com treino:
+                    <strong style={{ color: SURFACE.success, fontSize: 15 }}>
+                      {forecast.tomorrowWithActivity}
+                    </strong>
+                    {forecast.withActivityDelta > 0 && (
+                      <span style={{ color: SURFACE.success, fontWeight: 700 }}>
+                        (+{forecast.withActivityDelta})
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                <ActionButton onClick={() => navigate(getWorkoutRoute(workoutMode))} fullWidth={isMobile}>
+                  Começar treino agora
+                </ActionButton>
+              </div>
+            )}
+
+            {/* Registrar treino (expansível) */}
+            <div>
+              <button
+                type="button"
+                onClick={() => setShowCheckin((v) => !v)}
+                style={{
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: showCheckin ? SURFACE.text : SURFACE.muted,
+                  padding: 0,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  transition: "color 0.15s ease",
+                }}
+              >
+                <span style={{ fontSize: 10 }}>{showCheckin ? "▲" : "▼"}</span>
+                Já treinou? Registre aqui
+              </button>
+
+              <AnimatePresence>
+                {showCheckin && (
+                  <motion.div
+                    key="checkin-inline"
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1, transition: { duration: 0.28, ease: [0.4, 0, 0.2, 1] } }}
+                    exit={{ height: 0, opacity: 0, transition: { duration: 0.2 } }}
+                    style={{ overflow: "hidden" }}
+                  >
+                    <div style={{ paddingTop: 16, display: "grid", gap: 12 }}>
+                      <div
+                        className="today-group-grid"
+                        style={{ gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(4, minmax(0, 1fr))" }}
+                      >
+                        {ALL_GROUPS.map((group) => {
+                          const disabled = yesterdayMuscleGroups.includes(group) && !ALWAYS_AVAILABLE.includes(group);
+                          const active = quickGroups.includes(group);
+                          return (
+                            <motion.button
+                              key={group}
+                              type="button"
+                              disabled={disabled}
+                              onClick={() => toggleQuickGroup(group)}
+                              whileHover={disabled ? undefined : { scale: 1.015, y: -1 }}
+                              whileTap={disabled ? undefined : { scale: 0.985 }}
+                              className={`today-group-button${active ? " is-active" : ""}${disabled ? " is-disabled" : ""}`}
+                              style={{
+                                borderColor: active ? "rgba(34,197,94,0.4)" : SURFACE.border,
+                                background: active ? "rgba(34,197,94,0.08)" : disabled ? "#F8FAFC" : SURFACE.card,
+                                color: disabled ? SURFACE.mutedSoft : SURFACE.text,
+                              }}
+                            >
+                              <span className="today-group-icon">{GROUP_ICON[group]}</span>
+                              <span className="today-group-copy">
+                                <span className="today-group-label" style={{ fontWeight: active ? 700 : 500 }}>
+                                  {GROUP_LABEL[group]}
+                                </span>
+                                <span className="today-group-helper" style={{ color: SURFACE.mutedSoft }}>
+                                  {disabled ? "Descansando" : "Disponível"}
+                                </span>
+                              </span>
+                            </motion.button>
+                          );
+                        })}
+                      </div>
+
+                      <AnimatePresence>
+                        {checkinMessage && (
+                          <motion.div
+                            initial={{ opacity: 0, y: -6 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0 }}
+                            className="today-feedback-banner"
+                            style={{
+                              background: scoreImpactPreview ? "rgba(6,182,212,0.06)" : "#F8FAFC",
+                              borderColor: scoreImpactPreview ? "rgba(6,182,212,0.25)" : SURFACE.border,
+                              color: scoreImpactPreview ? SURFACE.info : SURFACE.muted,
+                              fontWeight: scoreImpactPreview ? 700 : 500,
+                            }}
+                          >
+                            {checkinMessage}
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+
+                      <ActionButton onClick={handleQuickCheckin} fullWidth>
+                        Confirmar treino
+                      </ActionButton>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           </div>
         </div>
       </motion.div>
 
+      {/* 4. Status de energia (abaixo da dobra) */}
       <motion.div variants={sectionRevealVariants}>
         <MetabolicScoreCard
           data={metabolism}
           loading={metabolismLoading}
           error={metabolismError}
-          derivedStatus={derivedEnergy}
+          derivedStatus={adjustedEnergy}
           forecast={forecast}
         />
       </motion.div>
 
-      <motion.div
-        variants={sectionRevealVariants}
-        className="today-secondary-grid"
-        style={{ gridTemplateColumns: isMobile ? "1fr" : "minmax(0, 1fr) minmax(280px, 360px)" }}
-      >
-        <motion.div
-          variants={itemRevealVariants}
-          whileHover={subtleHoverScale}
-          whileTap={subtleTapScale}
-          className="today-card today-panel-card"
-          style={{ borderColor: SURFACE.border, boxShadow: SURFACE.shadow }}
-        >
-          <div className="today-card-copy">
-            <SectionEyebrow>Smart Insight</SectionEyebrow>
-            <div className="today-panel-title">{smartInsight?.title || "Seu momento metabólico de hoje"}</div>
-            <div className="today-card-description" style={{ color: SURFACE.muted }}>
-              {smartInsight?.message || "Seu painel vai destacar aqui a próxima melhor leitura baseada no seu comportamento."}
-            </div>
-          </div>
-
-          <div
-            className={`today-quick-action-card${quickAction.kind === "suggested_training" ? " today-quick-action-card-highlight" : ""}`}
-            style={{
-              borderColor: quickAction.kind === "suggested_training" ? "rgba(6,182,212,0.18)" : SURFACE.border,
-            }}
-          >
-            <div className="today-card-copy">
-              <SectionEyebrow>Quick Action</SectionEyebrow>
-              <div className="today-quick-action-title">{quickAction.label}</div>
-              <div className="today-quick-action-helper" style={{ color: SURFACE.muted }}>{quickAction.helper}</div>
-            </div>
-            <ActionButton onClick={() => runQuickAction(quickAction)}>{quickAction.label}</ActionButton>
-          </div>
-        </motion.div>
-
-        <motion.div
-          variants={itemRevealVariants}
-          whileHover={subtleHoverScale}
-          whileTap={subtleTapScale}
-          className="today-card today-panel-card"
-          style={{ borderColor: SURFACE.border, boxShadow: SURFACE.shadow }}
-        >
-          <div className="today-card-copy">
-            <SectionEyebrow>Forecast</SectionEyebrow>
-            <div className="today-panel-title">Seu amanhã metabólico</div>
-            <div className="today-forecast-copy" style={{ color: SURFACE.muted }}>
-              Projeção comportamental baseada em score, tendência, fatores e impacto esperado do treino de hoje.
-            </div>
-          </div>
-
-          {forecast ? (
-            <div className="today-forecast-grid-wrapper">
-              <div className="today-forecast-grid">
-                <div className="today-forecast-metric today-forecast-metric-positive" style={{ borderColor: SURFACE.borderStrong }}>
-                  <div className="today-forecast-label" style={{ color: SURFACE.mutedSoft }}>Com atividade</div>
-                  <div className="today-forecast-value-row">
-                    <div className="today-forecast-value">{forecast.tomorrowWithActivity}</div>
-                    <div className="today-forecast-delta today-forecast-delta-positive" style={{ color: SURFACE.success }}>
-                      {forecast.withActivityDelta >= 0 ? "+" : ""}
-                      {forecast.withActivityDelta}
-                    </div>
-                  </div>
-                </div>
-                <div className="today-forecast-metric" style={{ borderColor: SURFACE.border }}>
-                  <div className="today-forecast-label" style={{ color: SURFACE.mutedSoft }}>Sem atividade</div>
-                  <div className="today-forecast-value-row">
-                    <div className="today-forecast-value">{forecast.tomorrowWithoutActivity}</div>
-                    <div className="today-forecast-delta" style={{ color: forecast.withoutActivityDelta < 0 ? SURFACE.warning : SURFACE.info }}>
-                      {forecast.withoutActivityDelta >= 0 ? "+" : ""}
-                      {forecast.withoutActivityDelta}
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className="today-footnote" style={{ color: SURFACE.muted }}>
-                Leitura interpretativa: agir hoje tende a deixar amanhã em um estado mais responsivo do que manter inatividade.
-              </div>
-            </div>
-          ) : (
-            <div style={{ fontSize: 13, color: SURFACE.muted }}>Forecast indisponível até o score ser carregado.</div>
-          )}
-        </motion.div>
-      </motion.div>
-
+      {/* 5. Histórico 14 dias */}
       <motion.div variants={sectionRevealVariants}>
         <MetabolicChart data={metabolismHistory} loading={historyLoading} forecast={forecast} markers={markers} />
-      </motion.div>
-
-      <motion.div variants={sectionRevealVariants}>
-        <MetabolicInsights recommendations={metabolism?.recommendations ?? []} loading={metabolismLoading} />
-      </motion.div>
-
-      <motion.div variants={sectionRevealVariants} ref={checkinSectionRef}>
-        <div
-          className="today-card today-checkin-card"
-          style={{ borderColor: SURFACE.border, boxShadow: SURFACE.shadow, padding: isMobile ? 18 : 20 }}
-        >
-          <div className="today-card-copy">
-            <SectionEyebrow>Impact Preview</SectionEyebrow>
-            <div className="today-card-title">Registre o que você fez hoje</div>
-            <div className="today-card-description" style={{ color: SURFACE.muted }}>
-              Antes de confirmar, o painel já projeta como esse treino tende a mexer no seu score e na energia de amanhã.
-            </div>
-          </div>
-
-          <div
-            className={`today-impact-preview${scoreImpactPreview ? " today-impact-preview-active" : ""}`}
-            style={{ borderColor: scoreImpactPreview ? "rgba(6,182,212,0.22)" : SURFACE.borderStrong }}
-          >
-            <div className="today-impact-label" style={{ color: SURFACE.mutedSoft }}>
-              Preview before action
-            </div>
-            <div className="today-impact-title">
-              {quickGroups.length
-                ? `Se você confirmar esse treino agora: +${estimateCheckinImpact(quickGroups.length, streak)} no score estimado.`
-                : `Um treino curto hoje tende a gerar +${defaultImpact} no score estimado e melhorar seu forecast de amanhã.`}
-            </div>
-            <div className="today-footnote" style={{ color: SURFACE.muted }}>
-              A projeção muda conforme grupos selecionados, streak atual e tendência metabólica.
-            </div>
-          </div>
-
-          <div className="today-group-grid" style={{ gridTemplateColumns: isMobile ? "1fr" : "repeat(4, minmax(0, 1fr))" }}>
-            {ALL_GROUPS.map((group) => {
-              const disabled = yesterdayMuscleGroups.includes(group) && !ALWAYS_AVAILABLE.includes(group);
-              const active = quickGroups.includes(group);
-              return (
-                <motion.button
-                  key={group}
-                  type="button"
-                  disabled={disabled}
-                  onClick={() => toggleQuickGroup(group)}
-                  whileHover={disabled ? undefined : { scale: 1.015, y: -1 }}
-                  whileTap={disabled ? undefined : { scale: 0.985 }}
-                  className={`today-group-button${active ? " is-active" : ""}${disabled ? " is-disabled" : ""}`}
-                  style={{
-                    borderColor: active ? "rgba(34,197,94,0.4)" : SURFACE.border,
-                    background: active ? "rgba(34,197,94,0.08)" : disabled ? "#F8FAFC" : SURFACE.card,
-                    color: disabled ? SURFACE.mutedSoft : SURFACE.text,
-                  }}
-                >
-                  <span className="today-group-icon">{GROUP_ICON[group]}</span>
-                  <span className="today-group-copy">
-                    <span className="today-group-label" style={{ fontWeight: active ? 700 : 500 }}>{GROUP_LABEL[group]}</span>
-                    <span className="today-group-helper" style={{ color: SURFACE.mutedSoft }}>{disabled ? "Descansando" : "Disponível"}</span>
-                  </span>
-                </motion.button>
-              );
-            })}
-          </div>
-
-          <AnimatePresence>
-            {checkinMessage && (
-              <motion.div
-                initial={{ opacity: 0, y: -6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0 }}
-                className="today-feedback-banner"
-                style={{
-                  background: scoreImpactPreview ? "rgba(6,182,212,0.06)" : "#F8FAFC",
-                  borderColor: scoreImpactPreview ? "rgba(6,182,212,0.25)" : SURFACE.border,
-                  color: scoreImpactPreview ? SURFACE.info : SURFACE.muted,
-                  fontWeight: scoreImpactPreview ? 700 : 500,
-                }}
-              >
-                {checkinMessage}
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          <div className="today-action-row">
-            <ActionButton onClick={handleQuickCheckin} fullWidth={isMobile}>
-              Confirmar treino de hoje
-            </ActionButton>
-            <ActionButton onClick={() => navigate(recommendation?.route || "/app/user/treinos/em-casa")} variant="secondary">
-              Abrir treino base
-            </ActionButton>
-          </div>
-        </div>
-      </motion.div>
-
-      <motion.div variants={sectionRevealVariants}>
-        <div
-          className="today-card today-recommended-card"
-          style={{ borderColor: SURFACE.border, boxShadow: SURFACE.shadow, padding: isMobile ? 18 : 20 }}
-        >
-          <div className="today-card-copy">
-            <SectionEyebrow>Recommended Action</SectionEyebrow>
-            <div className="today-card-title">{recommendation?.title || "Treino recomendado de hoje"}</div>
-            <div className="today-card-description" style={{ color: SURFACE.muted }}>
-              {recommendation?.subtitle || "Use essa trilha como ação principal para transformar energia em consistência e retorno amanhã."}
-            </div>
-          </div>
-
-          {lastWorkout ? (
-            <div className="today-last-workout" style={{ borderColor: SURFACE.border, color: SURFACE.muted }}>
-              Último treino: <span style={{ color: SURFACE.text, fontWeight: 700 }}>{lastWorkout.title}</span>
-            </div>
-          ) : null}
-
-          <div className="today-action-row">
-            <ActionButton onClick={() => navigate(recommendation?.route || "/app/user/suggested-training")}>
-              Iniciar treino recomendado
-            </ActionButton>
-            {!isFreePlan && (
-              <>
-                <ActionButton onClick={() => navigate("/app/user/onboarding")} variant="secondary">
-                  Ajustar rotina
-                </ActionButton>
-                <ActionButton onClick={() => navigate("/app/user/activities")} variant="ghost">
-                  Registrar atividade
-                </ActionButton>
-              </>
-            )}
-          </div>
-
-          {!isFreePlan && recommendation?.tags?.length ? (
-            <div className="today-tag-row">
-              {recommendation.tags.slice(0, 4).map((tag) => (
-                <span key={tag} className="today-tag" style={{ borderColor: SURFACE.border, color: SURFACE.muted }}>
-                  {tag}
-                </span>
-              ))}
-            </div>
-          ) : null}
-        </div>
       </motion.div>
 
       {gamificationLoading && (

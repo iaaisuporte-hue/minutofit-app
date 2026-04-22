@@ -1,12 +1,11 @@
 import { useState } from 'react';
 import { AnimatePresence, motion, type Variants } from 'framer-motion';
-import {
-  type DailyConditionDetails,
-  type DailyFeeling,
-  useDailyCondition,
-} from './useDailyCondition';
+import type { DailyCondition, DailyConditionDetails, DailyFeeling } from './useDailyCondition';
 
 interface Props {
+  condition: DailyCondition | null;
+  setCondition: (feeling: DailyFeeling, details?: DailyConditionDetails) => void;
+  clearCondition: () => void;
   onConditionSet?: () => void;
 }
 
@@ -69,8 +68,7 @@ function ToggleRow({
   );
 }
 
-export function DailyCheckin({ onConditionSet }: Props) {
-  const { condition, setCondition, clearCondition } = useDailyCondition();
+export function DailyCheckin({ condition, setCondition, clearCondition, onConditionSet }: Props) {
   const [pendingFeeling, setPendingFeeling] = useState<DailyFeeling | null>(null);
   const [details, setDetails] = useState<DailyConditionDetails>({
     sleptWell: true,

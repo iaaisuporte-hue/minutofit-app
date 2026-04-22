@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { addWorkoutHistoryEntry, wasMuscleGroupTrainedYesterday, type MuscleGroup } from "./workoutHistory";
 import { getStreak, registerDailyCheckin } from "./gamification";
 import { persistGamificationCheckin } from "../../services/gamificationApi";
@@ -20,6 +20,7 @@ type Workout = {
   nextSuggestionId?: string;
   alwaysAvailable?: boolean;
   accessibility?: HomeWorkoutAccessibility;
+  supportOnly?: boolean;
 };
 
 const MOCK_WORKOUTS: Record<string, Workout> = {
@@ -73,9 +74,30 @@ export default function WorkoutPlayerPage() {
   const neon = useNeonTheme();
   const { workoutId } = useParams<{ workoutId: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const supportVideoId = searchParams.get("videoId");
+  const supportTitle = searchParams.get("title");
+  const supportDuration = Number(searchParams.get("durationMin") ?? "1");
+  const returnTo = searchParams.get("returnTo") || "/app/user/treinos";
 
   const workout = useMemo(() => {
     if (!workoutId) return null;
+    if (workoutId === "support-video" && supportVideoId) {
+      return {
+        title: supportTitle || "Vídeo de apoio",
+        muscleGroup: "mobility",
+        alwaysAvailable: true,
+        supportOnly: true,
+        steps: [
+          {
+            id: "support-step-1",
+            title: supportTitle || "Vídeo de apoio",
+            videoId: supportVideoId,
+            durationMin: Number.isFinite(supportDuration) && supportDuration > 0 ? supportDuration : 1,
+          },
+        ],
+      } satisfies Workout;
+    }
     const predefined = MOCK_WORKOUTS[workoutId];
     if (predefined) return predefined;
 
@@ -96,7 +118,7 @@ export default function WorkoutPlayerPage() {
         },
       ],
     } satisfies Workout;
-  }, [workoutId]);
+  }, [supportDuration, supportTitle, supportVideoId, workoutId]);
 
   const storageKey = `workout_progress_${workoutId}`;
 
@@ -113,21 +135,27 @@ export default function WorkoutPlayerPage() {
 
   // Restaurar progresso salvo
   useEffect(() => {
+    if (workout?.supportOnly) return;
     if (!workoutId) return;
     const raw = localStorage.getItem(storageKey);
     if (raw) {
       const idx = Number(raw);
       if (!isNaN(idx)) setCurrentIndex(idx);
     }
-  }, [storageKey, workoutId]);
+  }, [storageKey, workout?.supportOnly, workoutId]);
 
   // Salvar progresso
   useEffect(() => {
+    if (workout?.supportOnly) return;
     if (!workoutId) return;
     localStorage.setItem(storageKey, String(currentIndex));
-  }, [currentIndex, storageKey, workoutId]);
+  }, [currentIndex, storageKey, workout?.supportOnly, workoutId]);
 
   async function finishWorkout() {
+    if (workout?.supportOnly) {
+      navigate(returnTo);
+      return;
+    }
     if (isFinishing || isFinished) return;
     setIsFinishing(true);
     setCountdownActive(false);
@@ -344,8 +372,8 @@ export default function WorkoutPlayerPage() {
           minWidth: 0,
         }}
       >
-        <Link to="/app/user/treinos" style={{ textDecoration: "none", color: neon.highlight, fontWeight: 600 }}>
-          ← Treinos
+        <Link to={workout.supportOnly ? returnTo : "/app/user/treinos"} style={{ textDecoration: "none", color: neon.highlight, fontWeight: 600 }}>
+          ← {workout.supportOnly ? "Voltar" : "Treinos"}
         </Link>
         <div style={{ fontWeight: 600, minWidth: 0, textAlign: "center", flex: "1 1 120px" }}>{workout.title}</div>
         <div style={{ fontSize: 12, color: neon.muted }}>{progressPct}%</div>
@@ -416,8 +444,8 @@ export default function WorkoutPlayerPage() {
           </div>
         ) : null}
 
-        {!finished ? (
-          <button
+      {!finished && !workout.supportOnly ? (
+        <button
             onClick={goNext}
             aria-label="Avancar para o proximo video do treino"
             style={{
@@ -571,31 +599,57 @@ export default function WorkoutPlayerPage() {
               {safeIndex + 1}/{steps.length} — {current?.title ?? ""}
             </div>
             <div style={{ fontSize: 13, color: neon.muted }}>
-              Embed direto do YouTube para funcionar melhor no mobile. Se o player do navegador travar, abra no app do YouTube.
+              {workout.supportOnly
+                ? "Vídeo de apoio aberto no player interno do app. Se quiser, você também pode abrir no YouTube."
+                : "Embed direto do YouTube para funcionar melhor no mobile. Se o player do navegador travar, abra no app do YouTube."}
             </div>
           </div>
 
-          <a
-            href={currentYoutubeUrl}
-            target="_blank"
-            rel="noreferrer"
-            aria-label={`Abrir ${current.title} no YouTube em nova aba`}
-            style={{
-              padding: "10px 14px",
-              borderRadius: 12,
-              border: `1px solid ${neon.accentBorder}`,
-              background: neon.ctaGradient,
-              textDecoration: "none",
-              fontWeight: 600,
-              color: neon.ctaText,
-              width: "fit-content",
-              minHeight: 44,
-              display: "inline-flex",
-              alignItems: "center",
-            }}
-          >
-            Abrir no YouTube
-          </a>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            {workout.supportOnly ? (
+              <button
+                type="button"
+                onClick={() => navigate(returnTo)}
+                style={{
+                  padding: "10px 14px",
+                  borderRadius: 12,
+                  border: `1px solid ${neon.stroke}`,
+                  background: "#FAFAFA",
+                  fontWeight: 600,
+                  color: neon.text,
+                  width: "fit-content",
+                  minHeight: 44,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  cursor: "pointer",
+                }}
+              >
+                Voltar para o treino
+              </button>
+            ) : null}
+
+            <a
+              href={currentYoutubeUrl}
+              target="_blank"
+              rel="noreferrer"
+              aria-label={`Abrir ${current.title} no YouTube em nova aba`}
+              style={{
+                padding: "10px 14px",
+                borderRadius: 12,
+                border: `1px solid ${neon.accentBorder}`,
+                background: neon.ctaGradient,
+                textDecoration: "none",
+                fontWeight: 600,
+                color: neon.ctaText,
+                width: "fit-content",
+                minHeight: 44,
+                display: "inline-flex",
+                alignItems: "center",
+              }}
+            >
+              Abrir no YouTube
+            </a>
+          </div>
         </div>
       ) : null}
 

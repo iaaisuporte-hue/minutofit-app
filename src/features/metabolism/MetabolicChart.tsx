@@ -153,8 +153,8 @@ export function MetabolicChart({ data, loading, forecast, markers }: Props) {
               cursor={{ stroke: '#06B6D4', strokeWidth: 1, strokeDasharray: '4 2' }}
               formatter={(value, name, item) => {
                 const numeric = typeof value === 'number' ? value : Number(value ?? 0);
-                if (name === 'scoreWithActivity') return [numeric, 'Tomorrow with activity'];
-                if (name === 'scoreWithoutActivity') return [numeric, 'Tomorrow without activity'];
+                if (name === 'scoreWithActivity') return [numeric, 'Amanhã com atividade'];
+                if (name === 'scoreWithoutActivity') return [numeric, 'Amanhã sem atividade'];
                 const payload = item?.payload as { score: number; markerLabel?: string } | undefined;
                 const extras = payload?.markerLabel ? ` · ${payload.markerLabel}` : '';
                 return [`${numeric}${extras}`, 'Score'];
@@ -163,7 +163,7 @@ export function MetabolicChart({ data, loading, forecast, markers }: Props) {
                 const raw = payload?.[0]?.payload as { score: number; isForecast?: boolean } | undefined;
                 if (!raw) return String(label);
                 const state = getStateLabelForScore(raw.score, 'stable');
-                return `${label} · ${state}${raw.isForecast ? ' · forecast' : ''}`;
+                return `${label} · ${state}${raw.isForecast ? ' · previsão' : ''}`;
               }}
             />
             <Line
@@ -218,7 +218,7 @@ export function MetabolicChart({ data, loading, forecast, markers }: Props) {
                 fontWeight: 700,
               }}
             >
-              {marker.kind === 'workout' ? 'Workout marker' : 'Inactivity drop'} · {formatDate(marker.date)}
+              {marker.kind === 'workout' ? 'Treino registrado' : 'Queda por inatividade'} · {formatDate(marker.date)}
             </span>
           ))}
         </div>

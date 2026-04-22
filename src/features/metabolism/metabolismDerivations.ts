@@ -7,7 +7,7 @@ import type {
 } from "./metabolism.types";
 
 type EnergyBand = "low" | "moderate" | "high";
-type MetabolicStateLabel = "Sleeping" | "Warming up" | "Active" | "Peak";
+type MetabolicStateLabel = "Dormindo" | "Aquecendo" | "Ativo" | "Pico";
 type InsightTone = "positive" | "neutral" | "alert";
 type QuickActionKind = "suggested_training" | "recovery" | "checkin" | "home_workout";
 type HistoryMarkerKind = "workout" | "drop";
@@ -58,9 +58,9 @@ function getBand(score: number): EnergyBand {
 }
 
 function getLabelForBand(band: EnergyBand) {
-  if (band === "low") return "Low energy";
-  if (band === "moderate") return "Moderate";
-  return "High";
+  if (band === "low") return "Energia baixa";
+  if (band === "moderate") return "Moderado";
+  return "Alto";
 }
 
 function sumFactorDelta(factors: MetabolicFactor[]) {
@@ -74,13 +74,13 @@ export function deriveEnergyStatus(data: MetabolicData | null): DerivedEnergySta
   const band = getBand(score);
   const factorDelta = sumFactorDelta(data.factors);
 
-  let metabolicState: MetabolicStateLabel = "Active";
+  let metabolicState: MetabolicStateLabel = "Ativo";
   if (score <= 32 && data.trend !== "up") {
-    metabolicState = "Sleeping";
+    metabolicState = "Dormindo";
   } else if (score <= 55 || (score <= 62 && data.trend === "down")) {
-    metabolicState = "Warming up";
+    metabolicState = "Aquecendo";
   } else if (score >= 80 && data.trend !== "down") {
-    metabolicState = "Peak";
+    metabolicState = "Pico";
   }
 
   const focusBase = score + (data.trend === "up" ? 6 : data.trend === "down" ? -7 : 0);
@@ -152,13 +152,13 @@ export function deriveHistoryMarkers(
       markers.push({
         date: current.date,
         kind: "workout",
-        label: "Workout lift",
+        label: "Treino registrado",
       });
     } else if (delta <= -5) {
       markers.push({
         date: current.date,
         kind: "drop",
-        label: "Inactivity drop",
+        label: "Queda por inatividade",
       });
     }
   }
@@ -169,7 +169,7 @@ export function deriveHistoryMarkers(
       markers.push({
         date: lastDate,
         kind: "workout",
-        label: "Workout logged",
+        label: "Treino registrado",
       });
     }
   }

@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext";
 import { loadAnswers } from "./onboarding/onboardingStorage";
 import { getYesterdayMuscleGroups, type MuscleGroup } from "./workoutHistory";
@@ -6,6 +7,9 @@ import { addXp, registerDailyCheckin } from "./gamification";
 import { persistGamificationCheckin } from "../../services/gamificationApi";
 import { addWorkoutHistoryEntry } from "./workoutHistory";
 import { COLORS } from "../../styles/colors";
+import { useDailyCondition } from "../../features/dailyCheckin/useDailyCondition";
+import { buildDailyWorkoutRecommendation, getWorkoutRoute } from "../../features/training/dailyWorkoutAdapter";
+import { resolveSupportVideoForActivity } from "./trainingSupportVideos";
 
 type ReadinessLevel = "green" | "yellow" | "red";
 type RecommendationMode =
@@ -896,7 +900,9 @@ function buildMetabolicRecommendation(
 }
 
 export default function SuggestedTrainingPage() {
+  const navigate = useNavigate();
   const { user, id } = useAuth();
+  const { condition } = useDailyCondition();
   const userId = (id ?? "").trim().toLowerCase();
   const onboarding = useMemo(() => (userId ? loadAnswers(userId) : null), [userId]);
   const yesterdayGroups = useMemo(() => getYesterdayMuscleGroups(), []);
@@ -927,6 +933,21 @@ export default function SuggestedTrainingPage() {
       }),
     [onboarding?.daysPerWeek, onboarding?.trainingPlace, selectedGroups, signals, user?.experienceLevel, user?.fitnessGoal, yesterdayGroups]
   );
+  const adaptiveWorkout = useMemo(
+    () =>
+      buildDailyWorkoutRecommendation({
+        condition,
+        user,
+        onboarding,
+      }),
+    [condition, onboarding, user]
+  );
+  const primaryAdaptiveWorkout =
+    adaptiveWorkout.recommendations.find((item) => item.type === adaptiveWorkout.primaryRecommendationType) ??
+    adaptiveWorkout.recommendations[0];
+  const alternativeAdaptiveWorkout =
+    adaptiveWorkout.recommendations.find((item) => item.type !== adaptiveWorkout.primaryRecommendationType) ??
+    adaptiveWorkout.recommendations[1];
 
   const readinessVisual = getLevelVisual(recommendation.level);
   const maxSelectableGroups =
@@ -935,6 +956,17 @@ export default function SuggestedTrainingPage() {
     ? recommendation.workoutPlan.blocks.reduce((sum, block) => sum + block.exercises.length, 0)
     : 0;
   const allExercisesCompleted = totalExercises > 0 && completedExercises.length === totalExercises;
+
+  function openSupportVideo(activity: string, workoutFocus?: string) {
+    const support = resolveSupportVideoForActivity(activity, workoutFocus);
+    if (!support) return;
+
+    navigate(
+      `/app/user/treinos/player/support-video?videoId=${encodeURIComponent(support.video.videoId)}&title=${encodeURIComponent(
+        `${activity} · apoio`
+      )}&durationMin=${support.video.durationMin}&returnTo=${encodeURIComponent("/app/user/suggested-training")}`
+    );
+  }
 
   function toggleSymptom(symptom: Exclude<DailySignals["symptoms"][number], "none">) {
     setSignals((current) => {
@@ -1052,6 +1084,216 @@ export default function SuggestedTrainingPage() {
           title="Seu treino de hoje começa com leitura do estado do corpo."
           subtitle="O plano Black transforma sinais do dia em decisão. Aqui a IA não só escolhe um treino: ela decide se hoje vale acelerar, reduzir, recuperar ou pausar com segurança."
         />
+      </Card>
+
+      <Card
+        style={{
+          borderColor: COLORS.borderStrong,
+          background: "linear-gradient(135deg, rgba(34,197,94,.10), rgba(6,182,212,.08), rgba(255,255,255,.98))",
+          boxShadow: "0 18px 40px rgba(6,182,212,.08)",
+        }}
+      >
+        <div style={{ display: "grid", gap: 18 }}>
+          <div style={{ display: "grid", gap: 8 }}>
+            <div
+              style={{
+                display: "inline-flex",
+                width: "fit-content",
+                alignItems: "center",
+                gap: 8,
+                borderRadius: 999,
+                background: "rgba(34,197,94,.12)",
+                color: COLORS.lime,
+                padding: "8px 12px",
+                fontSize: 11,
+                fontWeight: 700,
+                textTransform: "uppercase",
+                letterSpacing: 1.1,
+              }}
+            >
+              Today's adaptive recommendation
+            </div>
+            <div style={{ fontSize: 28, fontWeight: 700, color: COLORS.text, lineHeight: 1.15 }}>
+              {primaryAdaptiveWorkout.title}
+            </div>
+            <div style={{ color: COLORS.muted, lineHeight: 1.7, maxWidth: 760 }}>
+              {adaptiveWorkout.message}
+            </div>
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.2fr) minmax(280px, .8fr)", gap: 14 }}>
+            <div
+              style={{
+                padding: 18,
+                borderRadius: 18,
+                border: `1px solid ${COLORS.borderStrong}`,
+                background: "#FFFFFF",
+                display: "grid",
+                gap: 14,
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+                <div
+                  style={{
+                    display: "inline-flex",
+                    borderRadius: 999,
+                    padding: "6px 10px",
+                    background: "rgba(34,197,94,.12)",
+                    color: COLORS.lime,
+                    fontSize: 12,
+                    fontWeight: 700,
+                  }}
+                >
+                  Recommended · {primaryAdaptiveWorkout.type === "home" ? "Home workout" : "Gym workout"}
+                </div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.lime }}>
+                  {primaryAdaptiveWorkout.scoreImpact} score
+                </div>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 10 }}>
+                <div style={{ padding: 12, borderRadius: 14, border: `1px solid ${COLORS.border}`, background: "#F9FAFB" }}>
+                  <div style={{ color: COLORS.mutedSoft, fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.1 }}>Duration</div>
+                  <div style={{ marginTop: 6, color: COLORS.text, fontSize: 18, fontWeight: 700 }}>{primaryAdaptiveWorkout.duration} min</div>
+                </div>
+                <div style={{ padding: 12, borderRadius: 14, border: `1px solid ${COLORS.border}`, background: "#F9FAFB" }}>
+                  <div style={{ color: COLORS.mutedSoft, fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.1 }}>Goal</div>
+                  <div style={{ marginTop: 6, color: COLORS.text, fontSize: 18, fontWeight: 700 }}>{primaryAdaptiveWorkout.goal}</div>
+                </div>
+                <div style={{ padding: 12, borderRadius: 14, border: `1px solid ${COLORS.border}`, background: "#F9FAFB" }}>
+                  <div style={{ color: COLORS.mutedSoft, fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.1 }}>Intensity</div>
+                  <div style={{ marginTop: 6, color: COLORS.text, fontSize: 18, fontWeight: 700 }}>{adaptiveWorkout.intensity}</div>
+                </div>
+              </div>
+
+              <div style={{ display: "grid", gap: 10 }}>
+                {primaryAdaptiveWorkout.exercises.map((exercise) => (
+                  <div
+                    key={exercise}
+                    style={{
+                      display: "flex",
+                      gap: 10,
+                      alignItems: "flex-start",
+                      padding: "12px 14px",
+                      borderRadius: 14,
+                      border: `1px solid ${COLORS.border}`,
+                      background: "#FAFAFA",
+                      color: COLORS.muted,
+                    }}
+                    >
+                    <div
+                      style={{
+                        width: 8,
+                        height: 8,
+                        marginTop: 7,
+                        borderRadius: 999,
+                        background: "#22C55E",
+                        flex: "0 0 auto",
+                      }}
+                    />
+                    <div style={{ display: "grid", gap: 8, width: "100%" }}>
+                      <div>{exercise}</div>
+                      <button
+                        type="button"
+                        onClick={() => openSupportVideo(exercise, primaryAdaptiveWorkout.title)}
+                        style={{
+                          padding: "8px 10px",
+                          borderRadius: 10,
+                          border: `1px solid ${COLORS.borderStrong}`,
+                          background: "rgba(34,197,94,.08)",
+                          color: COLORS.text,
+                          fontWeight: 700,
+                          width: "fit-content",
+                          cursor: "pointer",
+                        }}
+                      >
+                        Ver vídeo de apoio no app
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                <button
+                  type="button"
+                  onClick={() => navigate(getWorkoutRoute(primaryAdaptiveWorkout.type))}
+                  style={{
+                    padding: "14px 16px",
+                    borderRadius: 14,
+                    border: `1px solid ${COLORS.borderStrong}`,
+                    background: "#22C55E",
+                    color: "#0A130D",
+                    fontWeight: 700,
+                    cursor: "pointer",
+                  }}
+                >
+                  {primaryAdaptiveWorkout.type === "home" ? `Start ${primaryAdaptiveWorkout.duration} min home workout` : "Go to gym session"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => navigate(getWorkoutRoute(alternativeAdaptiveWorkout.type))}
+                  style={{
+                    padding: "14px 16px",
+                    borderRadius: 14,
+                    border: `1px solid ${COLORS.border}`,
+                    background: "#FAFAFA",
+                    color: COLORS.text,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                  }}
+                >
+                  {alternativeAdaptiveWorkout.type === "home" ? "Use home alternative" : "Use gym alternative"}
+                </button>
+              </div>
+            </div>
+
+            <div
+              style={{
+                padding: 18,
+                borderRadius: 18,
+                border: `1px solid ${COLORS.border}`,
+                background: "#FFFFFF",
+                display: "grid",
+                gap: 14,
+                alignContent: "start",
+              }}
+            >
+              <div style={{ display: "grid", gap: 8 }}>
+                <div style={{ color: COLORS.mutedSoft, fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.1 }}>
+                  Alternative option
+                </div>
+                <div style={{ fontSize: 20, fontWeight: 700, color: COLORS.text }}>{alternativeAdaptiveWorkout.title}</div>
+                <div style={{ color: COLORS.muted, lineHeight: 1.6 }}>
+                  {alternativeAdaptiveWorkout.duration} min · {alternativeAdaptiveWorkout.goal} · {alternativeAdaptiveWorkout.scoreImpact}
+                </div>
+              </div>
+
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                {alternativeAdaptiveWorkout.exercises.slice(0, 5).map((exercise) => (
+                  <div
+                    key={exercise}
+                    style={{
+                      padding: "6px 10px",
+                      borderRadius: 999,
+                      border: `1px solid ${COLORS.border}`,
+                      background: "#FAFAFA",
+                      color: COLORS.muted,
+                      fontSize: 12,
+                      fontWeight: 600,
+                    }}
+                  >
+                    {exercise}
+                  </div>
+                ))}
+              </div>
+
+              <div style={{ color: COLORS.muted, fontSize: 13, lineHeight: 1.6 }}>
+                Esta camada rápida existe para reduzir fricção: você escolhe entre casa e academia sem precisar passar pelo fluxo completo primeiro.
+              </div>
+            </div>
+          </div>
+        </div>
       </Card>
 
       <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.05fr) minmax(0, .95fr)", gap: 16 }}>
@@ -1721,6 +1963,25 @@ export default function SuggestedTrainingPage() {
                             <div style={{ fontSize: 11, color: checked ? COLORS.text : COLORS.mutedSoft, marginTop: 4 }}>
                               {checked ? "Exercício concluído • +5 XP" : "Marcar como concluído • +5 XP"}
                             </div>
+                            <button
+                              type="button"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                openSupportVideo(exercise, recommendation.workoutPlan?.focus);
+                              }}
+                              style={{
+                                marginTop: 8,
+                                padding: "8px 10px",
+                                borderRadius: 10,
+                                border: `1px solid ${COLORS.borderStrong}`,
+                                background: "rgba(34,197,94,.08)",
+                                color: COLORS.text,
+                                fontWeight: 700,
+                                cursor: "pointer",
+                              }}
+                            >
+                              Ver vídeo de apoio
+                            </button>
                           </div>
                         </button>
                       );
