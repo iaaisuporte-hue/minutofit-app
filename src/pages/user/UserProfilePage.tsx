@@ -127,7 +127,7 @@ function maskPhone(phone?: string) {
   return phone || "Nao informado";
 }
 
-export default function UserProfilePage({ onLogout: _onLogout }: Props) {
+export default function UserProfilePage({ onLogout: _onLogout }: Props) { // eslint-disable-line @typescript-eslint/no-unused-vars
   const { user, email, profileCompleted } = useAuth();
   const { planName } = useFeatureFlags();
   const isMobile = useIsMobile(720);

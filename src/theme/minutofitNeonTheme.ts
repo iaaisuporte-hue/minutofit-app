@@ -96,9 +96,11 @@ export function getNeonTheme(): NeonTheme {
   };
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useNeonTheme(): NeonTheme {
   const [theme, setTheme] = useState(() => getNeonTheme());
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setTheme(getNeonTheme());
     const mo = new MutationObserver(() => setTheme(getNeonTheme()));
     mo.observe(document.documentElement, { attributes: true, attributeFilter: ["data-color-mode"] });

@@ -35,7 +35,7 @@ export function useMetabolism(): UseMetabolismResult {
       } else {
         setData(payload as MetabolicData);
       }
-    } catch (err) {
+    } catch {
       if (signal.aborted) return;
       setError('Unable to load metabolic data');
       setData(null);

@@ -54,6 +54,7 @@ export function FeatureFlagsProvider({ children }: { children: React.ReactNode }
   return <FeatureFlagsContext.Provider value={value}>{children}</FeatureFlagsContext.Provider>;
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useFeatureFlags() {
   const ctx = useContext(FeatureFlagsContext);
   if (!ctx) throw new Error("useFeatureFlags must be used within FeatureFlagsProvider");
