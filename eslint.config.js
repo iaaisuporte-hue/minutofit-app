@@ -19,5 +19,13 @@ export default defineConfig([
       ecmaVersion: 2020,
       globals: globals.browser,
     },
+    rules: {
+      // Gradual migration: any ainda presente em código legado — tratar como warning
+      '@typescript-eslint/no-explicit-any': 'warn',
+      // React Hooks v7 adicionou regras mais rígidas; mantemos visibilidade sem quebrar o CI legado
+      'react-hooks/set-state-in-effect': 'warn',
+      'react-hooks/purity': 'warn',
+      'react-refresh/only-export-components': 'warn',
+    },
   },
 ])

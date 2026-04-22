@@ -118,7 +118,7 @@ export function MetabolicChart({ data, loading }: Props) {
             <Tooltip
               contentStyle={tooltipStyle}
               cursor={{ stroke: '#06B6D4', strokeWidth: 1, strokeDasharray: '4 2' }}
-              formatter={(value: number) => [value, 'Score']}
+              formatter={(value) => [typeof value === 'number' ? value : Number(value ?? 0), 'Score']}
             />
             <Line
               type="monotone"
