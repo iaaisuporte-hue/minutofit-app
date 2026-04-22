@@ -13,6 +13,19 @@ export default {
   theme: {
     extend: {
       colors: {
+        // Semantic design tokens (Apple Fitness redesign)
+        ink:         "#111827",
+        "ink-muted": "#6B7280",
+        "ink-subtle":"#9CA3AF",
+        divider:     "#F3F4F6",
+        canvas:      "#FAFAFA",
+        brand:       "#16A34A",
+        "brand-light":"#22C55E",
+        // Ring chart data colors
+        "ring-energy":  "#16A34A",
+        "ring-recover": "#F59E0B",
+        "ring-ready":   "#3B82F6",
+        // Legacy tokens kept for compatibility
         primary:     "var(--color-primary)",
         "primary-hover": "var(--color-primary-hover)",
         "primary-soft":  "var(--color-primary-soft)",
