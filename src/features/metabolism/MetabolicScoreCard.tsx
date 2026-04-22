@@ -1,11 +1,14 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import type { MetabolicData, MetabolicFactor, MetabolicTrend } from './metabolism.types';
+import type { DerivedEnergyStatus, MetabolicForecast } from './metabolismDerivations';
 
 interface Props {
   data: MetabolicData | null;
   loading: boolean;
   error: string | null;
+  derivedStatus: DerivedEnergyStatus | null;
+  forecast: MetabolicForecast | null;
 }
 
 const STATUS_LABEL: Record<string, string> = {
@@ -51,8 +54,48 @@ function FactorChip({ factor }: { factor: MetabolicFactor }) {
   );
 }
 
-export function MetabolicScoreCard({ data, loading, error }: Props) {
+function IndicatorBar({ label, value }: { label: string; value: number }) {
+  return (
+    <div style={{ display: 'grid', gap: 6 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'center' }}>
+        <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</span>
+        <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-text)' }}>{value}</span>
+      </div>
+      <div style={{ height: 7, borderRadius: 999, background: 'rgba(148,163,184,0.14)', overflow: 'hidden' }}>
+        <div style={{ width: `${value}%`, height: '100%', borderRadius: 999, background: 'linear-gradient(90deg, #22C55E, #06B6D4)', transition: 'width 0.55s ease' }} />
+      </div>
+    </div>
+  );
+}
+
+export function MetabolicScoreCard({ data, loading, error, derivedStatus, forecast }: Props) {
   const isMobile = useIsMobile(720);
+  const [animatedScore, setAnimatedScore] = useState(0);
+  const animatedScoreRef = useRef(0);
+
+  useEffect(() => {
+    const target = data?.score ?? 0;
+    let frame = 0;
+    const startValue = animatedScoreRef.current;
+    const totalFrames = 18;
+
+    if (startValue === target) return;
+
+    const timer = window.setInterval(() => {
+      frame += 1;
+      const progress = frame / totalFrames;
+      const eased = 1 - (1 - progress) * (1 - progress);
+      const nextValue = Math.round(startValue + (target - startValue) * eased);
+      animatedScoreRef.current = nextValue;
+      setAnimatedScore(nextValue);
+
+      if (frame >= totalFrames) {
+        window.clearInterval(timer);
+      }
+    }, 24);
+
+    return () => window.clearInterval(timer);
+  }, [data?.score]);
 
   const cardStyle: React.CSSProperties = {
     background: '#FFFFFF',
@@ -63,6 +106,7 @@ export function MetabolicScoreCard({ data, loading, error }: Props) {
   };
 
   const topBar: React.CSSProperties = { height: 4, background: 'var(--gradient-primary)' };
+  const clampFallback = (value: number) => Math.max(0, Math.min(100, value));
 
   if (loading) {
     return (
@@ -106,49 +150,92 @@ export function MetabolicScoreCard({ data, loading, error }: Props) {
   const topFactors = [...data.factors]
     .sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta))
     .slice(0, 4);
+  const energyStatus = derivedStatus ?? {
+    energyLabel: STATUS_LABEL[data.status] ?? data.status,
+    metabolicState: 'Active',
+    focus: clampFallback(data.score),
+    energy: clampFallback(data.score),
+    fatBurn: clampFallback(data.score),
+  };
 
   return (
     <div style={cardStyle}>
       <div style={topBar} />
-      <div style={{ padding: 24, display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'auto 1fr', gap: 24, alignItems: 'start' }}>
-
-        {/* Score */}
-        <div style={{ display: 'grid', gap: 6, minWidth: 120 }}>
-          <div className="metaScoreLabel">MetaCore Score</div>
-          <div className="metaScoreValue">{data.score}</div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginTop: 2 }}>
-            <span className="badge badge-accent" style={{ fontSize: 11, padding: '3px 8px' }}>
-              {STATUS_LABEL[data.status] ?? data.status}
-            </span>
-            <span style={{ fontSize: 13, fontWeight: 700, color: trend.color }}>
-              {trend.icon} {trend.label}
-            </span>
-          </div>
-        </div>
-
-        {/* Barra + fatores */}
-        <div style={{ display: 'grid', gap: 14 }}>
-          <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-              <span style={{ fontSize: 12, color: 'var(--color-text-subtle)', fontWeight: 500 }}>Score metabólico</span>
-              <span style={{ fontSize: 12, color: 'var(--color-text-muted)', fontWeight: 600 }}>{data.score} / 100</span>
+      <div style={{ padding: isMobile ? 18 : 22, display: 'grid', gap: 18 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'minmax(180px, 220px) 1fr', gap: 18, alignItems: 'start' }}>
+          <div style={{ display: 'grid', gap: 8 }}>
+            <div className="metaScoreLabel">Daily Energy Status</div>
+            <div style={{ fontSize: isMobile ? 28 : 34, fontWeight: 700, color: 'var(--color-text)', letterSpacing: '-0.03em', lineHeight: 1 }}>
+              {energyStatus.energyLabel}
             </div>
-            <div style={{ height: 8, borderRadius: 999, background: 'var(--color-surface-subtle)', overflow: 'hidden' }}>
-              <div style={{ height: '100%', width: progressPct, borderRadius: 999, background: 'var(--gradient-primary)', transition: 'width 0.6s ease' }} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginTop: 2 }}>
+              <span className="badge badge-accent" style={{ fontSize: 11, padding: '3px 8px' }}>
+                {energyStatus.metabolicState}
+              </span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: trend.color }}>
+                {trend.icon} {trend.label}
+              </span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 2 }}>
+              <div className="metaScoreValue" style={{ fontSize: isMobile ? 42 : 52 }}>{animatedScore}</div>
+              <div style={{ fontSize: 12, color: 'var(--color-text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                score
+              </div>
             </div>
           </div>
 
-          {topFactors.length > 0 && (
+          <div style={{ display: 'grid', gap: 16 }}>
             <div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>
-                O que está movendo seu score
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                <span style={{ fontSize: 12, color: 'var(--color-text-subtle)', fontWeight: 500 }}>Energy readiness</span>
+                <span style={{ fontSize: 12, color: 'var(--color-text-muted)', fontWeight: 600 }}>{data.score} / 100</span>
               </div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                {topFactors.map((f) => <FactorChip key={f.id} factor={f} />)}
+              <div style={{ height: 10, borderRadius: 999, background: 'var(--color-surface-subtle)', overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: progressPct, borderRadius: 999, background: 'var(--gradient-primary)', transition: 'width 0.6s ease' }} />
               </div>
             </div>
-          )}
+
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, minmax(0, 1fr))', gap: 12 }}>
+              <IndicatorBar label="Focus" value={energyStatus.focus} />
+              <IndicatorBar label="Energy" value={energyStatus.energy} />
+              <IndicatorBar label="Fat burn" value={energyStatus.fatBurn} />
+            </div>
+          </div>
         </div>
+
+        {forecast ? (
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, minmax(0, 1fr))', gap: 12 }}>
+            <div style={{ padding: '14px 16px', borderRadius: 14, border: '1px solid rgba(34,197,94,0.18)', background: 'rgba(34,197,94,0.05)', display: 'grid', gap: 6 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Tomorrow with activity</div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+                <div style={{ fontSize: 28, fontWeight: 700, color: 'var(--color-text)' }}>{forecast.tomorrowWithActivity}</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#16a34a' }}>
+                  {forecast.withActivityDelta >= 0 ? '+' : ''}{forecast.withActivityDelta}
+                </div>
+              </div>
+            </div>
+            <div style={{ padding: '14px 16px', borderRadius: 14, border: '1px solid rgba(148,163,184,0.2)', background: '#F8FAFC', display: 'grid', gap: 6 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Tomorrow without activity</div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+                <div style={{ fontSize: 28, fontWeight: 700, color: 'var(--color-text)' }}>{forecast.tomorrowWithoutActivity}</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: forecast.withoutActivityDelta >= 0 ? '#0891b2' : '#f97316' }}>
+                  {forecast.withoutActivityDelta >= 0 ? '+' : ''}{forecast.withoutActivityDelta}
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        {topFactors.length > 0 && (
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>
+              O que está mexendo com seu dia
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {topFactors.map((f) => <FactorChip key={f.id} factor={f} />)}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

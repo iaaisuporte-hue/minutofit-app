@@ -9,10 +9,14 @@ import {
   YAxis,
 } from 'recharts';
 import type { MetabolicHistory } from './metabolism.types';
+import type { HistoryMarker, MetabolicForecast } from './metabolismDerivations';
+import { buildForecastHistory, getStateLabelForScore } from './metabolismDerivations';
 
 interface Props {
   data: MetabolicHistory;
   loading: boolean;
+  forecast: MetabolicForecast | null;
+  markers: HistoryMarker[];
 }
 
 function formatDate(iso: string): string {
@@ -42,9 +46,9 @@ const tooltipStyle: React.CSSProperties = {
   boxShadow: 'var(--shadow-sm)',
 };
 
-function LastDot(props: { cx?: number; cy?: number; index?: number; dataLength: number }) {
-  const { cx, cy, index, dataLength } = props;
-  if (index !== dataLength - 1 || cx == null || cy == null) return null;
+function ActualLastDot(props: { cx?: number; cy?: number; payload?: { isForecast?: boolean; isLastActual?: boolean } }) {
+  const { cx, cy, payload } = props;
+  if (!payload?.isLastActual || payload?.isForecast || cx == null || cy == null) return null;
   return (
     <g>
       <style>{`
@@ -61,10 +65,39 @@ function LastDot(props: { cx?: number; cy?: number; index?: number; dataLength: 
   );
 }
 
-export function MetabolicChart({ data, loading }: Props) {
+function MarkerDot(props: {
+  cx?: number;
+  cy?: number;
+  payload?: { markerKind?: HistoryMarker['kind'] | null; isForecast?: boolean };
+}) {
+  const { cx, cy, payload } = props;
+  if (!payload?.markerKind || payload.isForecast || cx == null || cy == null) return null;
+
+  const fill = payload.markerKind === 'workout' ? '#22C55E' : '#F97316';
+  const label = payload.markerKind === 'workout' ? 'W' : '!';
+
+  return (
+    <g>
+      <circle cx={cx} cy={cy} r={9} fill="#fff" stroke={fill} strokeWidth={2} />
+      <text x={cx} y={cy + 4} textAnchor="middle" fontSize="9" fontWeight="700" fill={fill}>
+        {label}
+      </text>
+    </g>
+  );
+}
+
+export function MetabolicChart({ data, loading, forecast, markers }: Props) {
   if (!loading && data.length === 0) return null;
 
-  const chartData = data.map((p) => ({ ...p, date: formatDate(p.date) }));
+  const markerMap = new Map(markers.map((marker) => [marker.date, marker]));
+  const lastActualDate = data[data.length - 1]?.date;
+  const chartData = buildForecastHistory(data, forecast).map((point) => ({
+    ...point,
+    dateLabel: formatDate(point.date),
+    markerKind: markerMap.get(point.date)?.kind ?? null,
+    markerLabel: markerMap.get(point.date)?.label ?? null,
+    isLastActual: point.date === lastActualDate,
+  }));
 
   return (
     <div
@@ -92,8 +125,8 @@ export function MetabolicChart({ data, loading }: Props) {
       {loading ? (
         <Skeleton />
       ) : (
-        <ResponsiveContainer width="100%" height={180}>
-          <LineChart data={chartData} margin={{ top: 4, right: 8, bottom: 0, left: -20 }}>
+        <ResponsiveContainer width="100%" height={220}>
+          <LineChart data={chartData} margin={{ top: 8, right: 16, bottom: 0, left: -20 }}>
             <CartesianGrid
               horizontal
               vertical={false}
@@ -102,7 +135,7 @@ export function MetabolicChart({ data, loading }: Props) {
               strokeOpacity={0.5}
             />
             <XAxis
-              dataKey="date"
+              dataKey="dateLabel"
               tickLine={false}
               axisLine={false}
               tick={{ fontSize: 11, fill: 'var(--color-text-muted)' }}
@@ -118,19 +151,78 @@ export function MetabolicChart({ data, loading }: Props) {
             <Tooltip
               contentStyle={tooltipStyle}
               cursor={{ stroke: '#06B6D4', strokeWidth: 1, strokeDasharray: '4 2' }}
-              formatter={(value) => [typeof value === 'number' ? value : Number(value ?? 0), 'Score']}
+              formatter={(value, name, item) => {
+                const numeric = typeof value === 'number' ? value : Number(value ?? 0);
+                if (name === 'scoreWithActivity') return [numeric, 'Tomorrow with activity'];
+                if (name === 'scoreWithoutActivity') return [numeric, 'Tomorrow without activity'];
+                const payload = item?.payload as { score: number; markerLabel?: string } | undefined;
+                const extras = payload?.markerLabel ? ` · ${payload.markerLabel}` : '';
+                return [`${numeric}${extras}`, 'Score'];
+              }}
+              labelFormatter={(label, payload) => {
+                const raw = payload?.[0]?.payload as { score: number; isForecast?: boolean } | undefined;
+                if (!raw) return String(label);
+                const state = getStateLabelForScore(raw.score, 'stable');
+                return `${label} · ${state}${raw.isForecast ? ' · forecast' : ''}`;
+              }}
             />
             <Line
               type="monotone"
               dataKey="score"
               stroke="#06B6D4"
               strokeWidth={2}
-              dot={(props) => <LastDot {...props} dataLength={chartData.length} />}
+              dot={(props) => (
+                <>
+                  <ActualLastDot {...props} />
+                  <MarkerDot {...props} />
+                </>
+              )}
               activeDot={{ r: 6, fill: '#06B6D4', strokeWidth: 0 }}
+            />
+            <Line
+              type="monotone"
+              dataKey="scoreWithActivity"
+              stroke="#22C55E"
+              strokeWidth={2}
+              strokeDasharray="6 4"
+              dot={false}
+              activeDot={{ r: 5, fill: '#22C55E', strokeWidth: 0 }}
+              connectNulls
+            />
+            <Line
+              type="monotone"
+              dataKey="scoreWithoutActivity"
+              stroke="#94A3B8"
+              strokeWidth={2}
+              strokeDasharray="6 4"
+              dot={false}
+              activeDot={{ r: 5, fill: '#94A3B8', strokeWidth: 0 }}
+              connectNulls
             />
           </LineChart>
         </ResponsiveContainer>
       )}
+
+      {!loading && markers.length > 0 ? (
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+          {markers.slice(-3).map((marker) => (
+            <span
+              key={`${marker.date}-${marker.kind}`}
+              style={{
+                padding: '4px 10px',
+                borderRadius: 999,
+                border: `1px solid ${marker.kind === 'workout' ? 'rgba(34,197,94,0.25)' : 'rgba(249,115,22,0.25)'}`,
+                background: marker.kind === 'workout' ? 'rgba(34,197,94,0.07)' : 'rgba(249,115,22,0.08)',
+                color: marker.kind === 'workout' ? '#15803d' : '#c2410c',
+                fontSize: 11,
+                fontWeight: 700,
+              }}
+            >
+              {marker.kind === 'workout' ? 'Workout marker' : 'Inactivity drop'} · {formatDate(marker.date)}
+            </span>
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }
