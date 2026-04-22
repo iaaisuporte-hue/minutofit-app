@@ -57,6 +57,8 @@ export default function UserApp() {
   const canMessages = hasFeature("messages");
   const canProfile = hasFeature("profile");
   const canTrainingAi = hasFeature("training_ai");
+  const showTracker = true;
+  const showTrainingAi = true;
   const canSuggestedTraining = hasFeature("suggested_training");
   const canWorkouts = hasFeature("workouts");
   const canHomeWorkouts = hasFeature("home_workouts");
@@ -81,17 +83,17 @@ export default function UserApp() {
               {canWorkouts && <MenuLink to={`${USER_BASE}/treinos`} label="Treinos" icon="🏋️" />}
               {canWorkouts && <MenuLink to={`${USER_BASE}/ficha`} label="Minha ficha" icon="📋" />}
               {canHomeWorkouts && <MenuLink to={`${USER_BASE}/treinos/em-casa`} label="Treinos em casa" icon="🏃" />}
-              {canTracker && <MenuLink to={`${USER_BASE}/activities`} label="Tracker" icon="📊" />}
+              {showTracker && <MenuLink to={`${USER_BASE}/activities`} label="Tracker" icon="📊" />}
               {canMessages && <MenuLink to={`${USER_BASE}/messages`} label="Mensagens" icon="💬" />}
               {canProfile && <MenuLink to={`${USER_BASE}/profile`} label="Perfil" icon="👤" />}
 
-              {(canSuggestedTraining || canTrainingAi) && (
+              {(canSuggestedTraining || showTrainingAi) && (
                 <div style={{ paddingTop: 12, paddingBottom: 4 }}>
                   <div className="sectionLabel">Personalizado</div>
                 </div>
               )}
               {canSuggestedTraining && <MenuLink to={`${USER_BASE}/suggested-training`} label="Treino Sugerido" icon="🎯" />}
-              {canTrainingAi && <MenuLink to={`${USER_BASE}/movement-lab`} label="Lab de Movimento" icon="📷" />}
+              {showTrainingAi && <MenuLink to={`${USER_BASE}/movement-lab`} label="Lab de Movimento" icon="📷" />}
 
               {canSettings && (
                 <div style={{ paddingTop: 12, paddingBottom: 4 }}>
@@ -130,7 +132,7 @@ export default function UserApp() {
               <Route
                 path="activities"
                 element={
-                  <LimitedUserOnly allowed={canTracker}>
+                  <LimitedUserOnly allowed={showTracker}>
                     <ActivityTrackerPage />
                   </LimitedUserOnly>
                 }
@@ -154,7 +156,7 @@ export default function UserApp() {
               <Route
                 path="movement-lab"
                 element={
-                  <LimitedUserOnly allowed={canTrainingAi}>
+                  <LimitedUserOnly allowed={showTrainingAi}>
                     <MovementLabPage />
                   </LimitedUserOnly>
                 }

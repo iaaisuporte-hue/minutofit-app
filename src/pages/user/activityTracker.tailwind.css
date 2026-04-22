@@ -1,0 +1,10 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Score bar gradient overrides – used inline but defined here for reference */
+@layer utilities {
+  .tw-score-high  { background: linear-gradient(90deg, #22C55E, #16A34A); }
+  .tw-score-mid   { background: linear-gradient(90deg, #F59E0B, #D97706); }
+  .tw-score-low   { background: linear-gradient(90deg, #EF4444, #DC2626); }
+}
