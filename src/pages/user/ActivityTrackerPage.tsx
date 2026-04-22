@@ -2,13 +2,13 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { MapContainer, Marker, Polyline, Popup, TileLayer } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import "./activityTracker.tailwind.css";
 import { registerDailyCheckin } from "./gamification";
 import { persistGamificationCheckin } from "../../services/gamificationApi";
+import "./activityTracker.css";
 
-// ─────────────────────────────────────────────────────────────
-// Types
-// ─────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// Interfaces
+// ─────────────────────────────────────────────────────────────────────────────
 
 interface Activity {
   id: string;
@@ -19,11 +19,22 @@ interface Activity {
   pace: number;
   duration: number;
   routeCoordinates: Array<{ lat: number; lng: number }>;
+  // Extended fields (optional for backward-compat with persisted data)
+  calories?: number;
+  intensity?: "low" | "moderate" | "high";
+  validationFlag?: boolean; // true when saved despite suspicious speed signals
 }
 
-// ─────────────────────────────────────────────────────────────
+interface ValidationResult {
+  isSuspicious: boolean;
+  reason: string | null;
+  avgSpeed: number;
+  peakSpeed: number;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Leaflet icon fix
-// ─────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
 
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -32,37 +43,190 @@ L.Icon.Default.mergeOptions({
   shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
 });
 
-// ─────────────────────────────────────────────────────────────
-// Activity metadata (no emoji icons — SVG used instead)
-// ─────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// Constants
+// ─────────────────────────────────────────────────────────────────────────────
 
 const ACTIVITY_META = {
-  walk: {
-    label: "Caminhada",
-    helper: "Baixo impacto · ideal para recuperação",
-    primaryMetric: "duration" as const,
-    primaryLabel: "Duração",
-  },
-  run: {
-    label: "Corrida",
-    helper: "Alta intensidade · melhora cardiovascular",
-    primaryMetric: "pace" as const,
-    primaryLabel: "Ritmo",
-  },
-  cycling: {
-    label: "Ciclismo",
-    helper: "Baixo impacto articular · ganhe volume cardio",
-    primaryMetric: "distance" as const,
-    primaryLabel: "Distância",
-  },
-} satisfies Record<
-  Activity["type"],
-  { label: string; helper: string; primaryMetric: "duration" | "pace" | "distance"; primaryLabel: string }
->;
+  walk: { label: "Caminhada", helper: "Baixo impacto" },
+  run: { label: "Corrida", helper: "Alta intensidade" },
+  cycling: { label: "Ciclismo", helper: "Cardio contínuo" },
+} satisfies Record<Activity["type"], { label: string; helper: string }>;
 
-// ─────────────────────────────────────────────────────────────
-// Pure utility functions (unchanged)
-// ─────────────────────────────────────────────────────────────
+// MET values per activity type (metabolic equivalent of task)
+const ACTIVITY_MET: Record<Activity["type"], number> = {
+  walk: 3.8,
+  run: 10.0,
+  cycling: 6.8,
+};
+
+// Speed thresholds (km/h) per activity type for validation
+const SPEED_THRESHOLDS: Record<Activity["type"], { avgMax: number; peakMax: number }> = {
+  walk: { avgMax: 7, peakMax: 15 },
+  run: { avgMax: 20, peakMax: 30 },
+  cycling: { avgMax: 35, peakMax: 50 },
+};
+
+const UNIVERSAL_PEAK_LIMIT = 50; // km/h — above this for any type → vehicle
+const ACCELERATION_LIMIT = 20; // km/h delta in one segment → suspicious
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Helper functions — Metrics
+// ─────────────────────────────────────────────────────────────────────────────
+
+function estimateCalories(
+  type: Activity["type"],
+  durationSeconds: number,
+  distanceKm: number
+): number {
+  const durationHours = durationSeconds / 3600;
+  const met = ACTIVITY_MET[type];
+  // MET × body weight (70 kg default) × hours
+  const byMet = met * 70 * durationHours;
+  // Cross-check with distance-based estimate (avoid inflating short/fast sessions)
+  const byDist = distanceKm * 60; // ~60 kcal/km average
+  // Use the lower of the two estimates as a conservative figure
+  const cal = Math.round(Math.min(byMet, byDist) || byMet);
+  return Math.max(0, cal);
+}
+
+function classifyIntensity(
+  type: Activity["type"],
+  pace: number // min/km
+): "low" | "moderate" | "high" {
+  if (!pace || !Number.isFinite(pace) || pace <= 0) return "low";
+
+  if (type === "walk") {
+    if (pace > 15) return "low";
+    if (pace >= 10) return "moderate";
+    return "high";
+  }
+  if (type === "run") {
+    if (pace > 7) return "low";
+    if (pace >= 4.5) return "moderate";
+    return "high";
+  }
+  // cycling
+  if (pace > 6) return "low";
+  if (pace >= 3) return "moderate";
+  return "high";
+}
+
+const INTENSITY_LABELS: Record<"low" | "moderate" | "high", string> = {
+  low: "Leve",
+  moderate: "Moderado",
+  high: "Intenso",
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Helper functions — Validation
+// ─────────────────────────────────────────────────────────────────────────────
+
+function analyzeActivityValidity(
+  type: Activity["type"],
+  speeds: number[]
+): ValidationResult {
+  if (speeds.length < 3) {
+    return { isSuspicious: false, reason: null, avgSpeed: 0, peakSpeed: 0 };
+  }
+
+  const avgSpeed = speeds.reduce((s, v) => s + v, 0) / speeds.length;
+  const peakSpeed = Math.max(...speeds);
+  const thresholds = SPEED_THRESHOLDS[type];
+
+  // Universal vehicle signal
+  if (peakSpeed > UNIVERSAL_PEAK_LIMIT) {
+    return {
+      isSuspicious: true,
+      reason: "Velocidade incomum detectada para essa atividade",
+      avgSpeed,
+      peakSpeed,
+    };
+  }
+
+  // Per-type thresholds
+  if (avgSpeed > thresholds.avgMax || peakSpeed > thresholds.peakMax) {
+    return {
+      isSuspicious: true,
+      reason: "Velocidade incomum detectada para essa atividade",
+      avgSpeed,
+      peakSpeed,
+    };
+  }
+
+  // Abrupt acceleration between consecutive segments
+  for (let i = 1; i < speeds.length; i++) {
+    if (speeds[i] - speeds[i - 1] > ACCELERATION_LIMIT) {
+      return {
+        isSuspicious: true,
+        reason: "Aceleração brusca detectada — padrão incompatível com atividade física",
+        avgSpeed,
+        peakSpeed,
+      };
+    }
+  }
+
+  return { isSuspicious: false, reason: null, avgSpeed, peakSpeed };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Helper functions — Existing
+// ─────────────────────────────────────────────────────────────────────────────
+
+function clamp(value: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, value));
+}
+
+function getTodayStatus(activities: Activity[]) {
+  const recent = activities.slice(0, 5);
+  const totalDuration = recent.reduce((sum, item) => sum + item.duration, 0);
+  const avgDurationMin = recent.length > 0 ? totalDuration / recent.length / 60 : 0;
+  const lastActivity = recent[0];
+  const hoursSinceLast = lastActivity
+    ? (Date.now() - new Date(lastActivity.startTime).getTime()) / 3_600_000
+    : 72;
+
+  const energy = clamp(Math.round(62 + Math.min(avgDurationMin, 40) * 0.35), 45, 92);
+  const recovery = clamp(Math.round(84 - Math.min(hoursSinceLast, 72) * 0.45), 48, 90);
+  const readiness = clamp(Math.round(energy * 0.4 + recovery * 0.6), 42, 93);
+  const metabolism = clamp(Math.round((energy + recovery + readiness) / 3), 45, 92);
+
+  return { energy, recovery, readiness, metabolism };
+}
+
+function getReadinessAdvice(metabolism: number): string {
+  if (metabolism >= 80) return "Zona verde: sessão intensa liberada";
+  if (metabolism >= 60) return "Moderado sustentável";
+  return "Prefira recuperação ativa hoje";
+}
+
+function getPerformanceSignal(activity: Activity) {
+  const durationMin = activity.duration / 60;
+  const pace = activity.pace || 0;
+  let score = 52;
+
+  if (durationMin >= 30) score += 15;
+  else if (durationMin >= 18) score += 8;
+
+  if (activity.distance >= 4) score += 12;
+  else if (activity.distance >= 2) score += 6;
+
+  if (activity.type === "run" && pace > 0 && pace <= 6.2) score += 13;
+  if (activity.type === "walk" && durationMin >= 35) score += 8;
+  if (activity.type === "cycling" && activity.distance >= 6) score += 10;
+
+  score = clamp(score, 38, 96);
+
+  const tag = score >= 80 ? "Intenso" : score >= 62 ? "Bom" : "Leve";
+  const insight =
+    score >= 80
+      ? "Boa consistência para evolução progressiva."
+      : score >= 62
+        ? "Ritmo estável durante a maior parte da sessão."
+        : "Ritmo caiu no final. Mantenha intensidade gradual.";
+
+  return { score, tag, insight };
+}
 
 function getDistanceBetweenPointsKm(
   first: { lat: number; lng: number },
@@ -84,8 +248,8 @@ function getDistanceBetweenPointsKm(
 function calculateRouteDistanceKm(coordinates: Array<{ lat: number; lng: number }>) {
   if (coordinates.length < 2) return 0;
   let total = 0;
-  for (let index = 1; index < coordinates.length; index += 1) {
-    total += getDistanceBetweenPointsKm(coordinates[index - 1], coordinates[index]);
+  for (let i = 1; i < coordinates.length; i++) {
+    total += getDistanceBetweenPointsKm(coordinates[i - 1], coordinates[i]);
   }
   return total;
 }
@@ -107,406 +271,187 @@ function calculatePace(durationSeconds: number, distanceKm: number) {
   return parseFloat((((durationSeconds / 60) || 0) / distanceKm).toFixed(2));
 }
 
-function parseStoredActivities(raw: string | null) {
-  if (!raw) return [] as Activity[];
+function parseStoredActivities(raw: string | null): Activity[] {
+  if (!raw) return [];
   try {
     const parsed = JSON.parse(raw) as Activity[];
-    return parsed.map((activity) => ({
-      ...activity,
-      startTime: new Date(activity.startTime),
-      endTime: activity.endTime ? new Date(activity.endTime) : undefined,
-      routeCoordinates: activity.routeCoordinates || [],
+    return parsed.map((a) => ({
+      ...a,
+      startTime: new Date(a.startTime),
+      endTime: a.endTime ? new Date(a.endTime) : undefined,
+      routeCoordinates: a.routeCoordinates || [],
     }));
-  } catch (error) {
-    console.error("Failed to parse stored activities:", error);
-    return [] as Activity[];
+  } catch {
+    return [];
   }
 }
 
-// ─────────────────────────────────────────────────────────────
-// Metabolic intelligence helpers (UI-only heuristics)
-// ─────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// Sub-components
+// ─────────────────────────────────────────────────────────────────────────────
 
-interface MetabolicStatus {
-  energy: number;
-  recovery: number;
-  readiness: number;
-  score: number;
-  interpretation: string;
-  readinessLabel: string;
-}
-
-function clamp(v: number, min: number, max: number) {
-  return Math.max(min, Math.min(max, v));
-}
-
-function deriveMetabolicStatus(activities: Activity[]): MetabolicStatus {
-  const hour = new Date().getHours();
-
-  const hourScore =
-    hour >= 6 && hour <= 10 ? 80 :
-    hour >= 14 && hour <= 18 ? 75 :
-    hour >= 11 && hour <= 13 ? 65 :
-    hour >= 19 && hour <= 21 ? 55 : 40;
-
-  const lastActivity = activities[0];
-  let recoveryScore = 70;
-  if (lastActivity) {
-    const hoursSinceLast = (Date.now() - new Date(lastActivity.startTime).getTime()) / 3_600_000;
-    if (hoursSinceLast < 12) recoveryScore = 45;
-    else if (hoursSinceLast < 24) recoveryScore = 62;
-    else if (hoursSinceLast < 48) recoveryScore = 75;
-    else if (hoursSinceLast < 72) recoveryScore = 88;
-    else recoveryScore = 92;
+function ActivityIcon({ type, size = 20 }: { type: Activity["type"]; size?: number }) {
+  if (type === "walk") {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="4" r="2" />
+        <path d="M9 8l-2 4h4l1 4-3 4" />
+        <path d="M15 8l2 4h-4l-1 4 3 4" />
+        <path d="M10 12l2-1 2 1" />
+      </svg>
+    );
   }
-
-  const last7DaysActivities = activities.filter(
-    (a) => Date.now() - new Date(a.startTime).getTime() < 7 * 86_400_000
-  ).length;
-  const volumeBoost = clamp(last7DaysActivities * 4, 0, 20);
-  const readinessScore = clamp(Math.round((hourScore * 0.4 + recoveryScore * 0.4) + volumeBoost), 0, 100);
-
-  const energy = clamp(hourScore + Math.round((Math.random() - 0.5) * 6), 0, 100);
-  const recovery = clamp(recoveryScore + Math.round((Math.random() - 0.5) * 4), 0, 100);
-  const readiness = readinessScore;
-  const score = clamp(Math.round(energy * 0.35 + recovery * 0.35 + readiness * 0.30), 0, 100);
-
-  let interpretation: string;
-  let readinessLabel: string;
-
-  if (score >= 80) {
-    interpretation = "Ótimas condições para treino intenso hoje.";
-    readinessLabel = "Ótimo";
-  } else if (score >= 65) {
-    interpretation = "Condições favoráveis para treino moderado a intenso.";
-    readinessLabel = "Bom";
-  } else if (score >= 50) {
-    interpretation = "Boas condições para um treino moderado.";
-    readinessLabel = "Moderado";
-  } else if (score >= 35) {
-    interpretation = "Fadiga leve detectada. Prefira ritmo leve hoje.";
-    readinessLabel = "Leve";
-  } else {
-    interpretation = "Corpo pedindo recuperação. Caminhada leve ou descanso ativo.";
-    readinessLabel = "Recuperação";
+  if (type === "run") {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="13" cy="4" r="2" />
+        <path d="M7 22l2.5-5.5 2.5 2 2-5" />
+        <path d="M6.5 10.5l3-3 3.5 1 2.5-2.5" />
+        <path d="M17 22l-2.5-5.5" />
+      </svg>
+    );
   }
-
-  return { energy, recovery, readiness, score, interpretation, readinessLabel };
-}
-
-// ─────────────────────────────────────────────────────────────
-// Session intelligence helpers
-// ─────────────────────────────────────────────────────────────
-
-function deriveSessionPerformance(activity: Activity): {
-  score: number;
-  tag: string;
-  tagClass: string;
-  insight: string;
-} {
-  const mins = activity.duration / 60;
-  const distOk = activity.distance >= 1;
-
-  let score = 50;
-  if (mins >= 30) score += 20;
-  else if (mins >= 15) score += 10;
-  if (distOk && activity.pace > 0 && activity.pace < 7) score += 15;
-  if (activity.type === "run" && activity.pace > 0 && activity.pace < 6) score += 10;
-  score = clamp(score, 20, 100);
-
-  let tag: string;
-  let tagClass: string;
-  if (score >= 80) {
-    tag = "Alta intensidade";
-    tagClass = "tw-bg-red-50 tw-text-red-600";
-  } else if (score >= 60) {
-    tag = "Bom treino";
-    tagClass = "tw-bg-green-50 tw-text-green-700";
-  } else if (mins < 15) {
-    tag = "Curto";
-    tagClass = "tw-bg-gray-100 tw-text-ink-muted";
-  } else {
-    tag = "Leve";
-    tagClass = "tw-bg-blue-50 tw-text-blue-600";
-  }
-
-  let insight = "";
-  if (activity.type === "run") {
-    if (activity.pace > 0 && activity.pace < 5.5) insight = "Ritmo sólido, bom condicionamento.";
-    else if (activity.pace > 8) insight = "Ritmo conservador. Tente aumentar gradualmente.";
-    else if (mins >= 30) insight = "Consistência boa. Continue assim.";
-  } else if (activity.type === "walk") {
-    if (mins >= 30) insight = "Ótima duração para ativação metabólica.";
-    else insight = "Boa caminhada de recuperação ativa.";
-  } else if (activity.type === "cycling") {
-    if (activity.distance >= 5) insight = "Distância expressiva. Bom volume cardio.";
-    else insight = "Sessão de aquecimento e mobilidade.";
-  }
-
-  return { score, tag, tagClass, insight };
-}
-
-function scoreColor(value: number): string {
-  if (value >= 65) return "#16A34A";
-  if (value >= 40) return "#F59E0B";
-  return "#EF4444";
-}
-
-// ─────────────────────────────────────────────────────────────
-// SVG icon components — Lucide-style (stroke 1.75, no emoji)
-// ─────────────────────────────────────────────────────────────
-
-function IconWalk({ size = 18 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <circle cx="12" cy="4.5" r="1.5" />
-      <path d="M9 21l1.5-5.5 2 2.5 2.5-8" />
-      <path d="M8 10.5l4 1.5 3.5-1.5" />
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="6.5" cy="16" r="3.5" />
+      <circle cx="17.5" cy="16" r="3.5" />
+      <path d="M6.5 16l4-8h4l3 8" />
+      <circle cx="14" cy="7" r="1.5" />
     </svg>
   );
 }
 
-function IconRun({ size = 18 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <circle cx="13" cy="4" r="1.5" />
-      <path d="M7 20l3-8 2 3 3-7" />
-      <path d="M9 11.5l3.5-2 2.5 1" />
-    </svg>
-  );
-}
-
-function IconBike({ size = 18 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <circle cx="18.5" cy="17.5" r="3.5" />
-      <circle cx="5.5" cy="17.5" r="3.5" />
-      <circle cx="15" cy="5" r="1" />
-      <path d="M12 17.5V14l-3-3 4-3 2 3h2" />
-    </svg>
-  );
-}
-
-function IconPlay({ size = 28 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-      <polygon points="6,3 20,12 6,21" />
-    </svg>
-  );
-}
-
-function IconStop({ size = 22 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-      <rect x="4" y="4" width="16" height="16" rx="2.5" />
-    </svg>
-  );
-}
-
-function IconClock({ size = 14 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" aria-hidden="true">
-      <circle cx="12" cy="12" r="10" />
-      <path d="M12 6v6l4 2" />
-    </svg>
-  );
-}
-
-function IconMapPin({ size = 14 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
-      <circle cx="12" cy="10" r="3" />
-    </svg>
-  );
-}
-
-function IconZap({ size = 14 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-    </svg>
-  );
-}
-
-function IconGps({ size = 40 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" aria-hidden="true">
-      <circle cx="12" cy="12" r="3" />
-      <path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
-      <circle cx="12" cy="12" r="8" />
-    </svg>
-  );
-}
-
-function IconTrash({ size = 14 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M3 6h18M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
-    </svg>
-  );
-}
-
-function IconChevronDown({ size = 14 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="m6 9 6 6 6-6" />
-    </svg>
-  );
-}
-
-function IconChevronUp({ size = 14 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="m18 15-6-6-6 6" />
-    </svg>
-  );
-}
-
-function IconBrain({ size = 14 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96-.46 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z" />
-      <path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96-.46 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2Z" />
-    </svg>
-  );
-}
-
-const ACTIVITY_ICON: Record<Activity["type"], (size?: number) => React.ReactElement> = {
-  walk: (size) => <IconWalk size={size} />,
-  run: (size) => <IconRun size={size} />,
-  cycling: (size) => <IconBike size={size} />,
-};
-
-// ─────────────────────────────────────────────────────────────
-// Hero Ring Chart
-// ─────────────────────────────────────────────────────────────
-
-const RING_CONFIG = [
-  { key: "energy",   label: "Energia",      r: 100, color: "#16A34A", track: "#DCFCE7" },
-  { key: "recovery", label: "Recuperação",  r: 78,  color: "#F59E0B", track: "#FEF3C7" },
-  { key: "readiness",label: "Prontidão",    r: 56,  color: "#3B82F6", track: "#DBEAFE" },
-] as const;
-
-function HeroRingChart({ activities }: { activities: Activity[] }) {
-  const status = useMemo(() => deriveMetabolicStatus(activities), [activities]);
-  const cx = 120;
-  const cy = 120;
-
-  return (
-    <div className="tw-bg-white tw-rounded-2xl tw-p-6 tw-flex tw-flex-col sm:tw-flex-row tw-items-center tw-gap-6" style={{ boxShadow: "0 1px 2px rgba(0,0,0,0.04)" }}>
-      {/* Ring SVG */}
-      <div className="tw-flex-shrink-0">
-        <svg viewBox="0 0 240 240" width={200} height={200} role="img" aria-label="Score metabólico">
-          {RING_CONFIG.map(({ key, r, color, track }) => {
-            const value = status[key as keyof Pick<MetabolicStatus, "energy" | "recovery" | "readiness">];
-            const C = 2 * Math.PI * r;
-            const offset = C * (1 - value / 100);
-            return (
-              <g key={key} transform={`rotate(-90, ${cx}, ${cy})`}>
-                <circle cx={cx} cy={cy} r={r} fill="none" stroke={track} strokeWidth={16} />
-                <circle
-                  cx={cx} cy={cy} r={r}
-                  fill="none"
-                  stroke={color}
-                  strokeWidth={16}
-                  strokeLinecap="round"
-                  strokeDasharray={C}
-                  strokeDashoffset={offset}
-                  style={{ transition: "stroke-dashoffset 0.9s ease" }}
-                />
-              </g>
-            );
-          })}
-          {/* Center score */}
-          <text x={cx} y={108} textAnchor="middle" fontSize="11" fill="#9CA3AF" letterSpacing="2.5" fontFamily="Inter, sans-serif" fontWeight="600">SCORE</text>
-          <text x={cx} y={148} textAnchor="middle" fontSize="52" fontWeight="700" fill="#111827" fontFamily="Inter, sans-serif">{status.score}</text>
-        </svg>
-      </div>
-
-      {/* Legend + interpretation */}
-      <div className="tw-flex tw-flex-col tw-gap-4 tw-flex-1 tw-min-w-0">
-        <div>
-          <h2 className="tw-text-[22px] tw-font-semibold tw-text-ink tw-leading-tight">Status metabólico</h2>
-          <p className="tw-text-[15px] tw-text-ink-muted tw-mt-1 tw-leading-relaxed">{status.interpretation}</p>
-        </div>
-
-        {/* Ring legend */}
-        <div className="tw-flex tw-flex-col tw-gap-2.5">
-          {RING_CONFIG.map(({ key, label, color }) => {
-            const value = status[key as keyof Pick<MetabolicStatus, "energy" | "recovery" | "readiness">];
-            return (
-              <div key={key} className="tw-flex tw-items-center tw-gap-3">
-                <div className="tw-w-3 tw-h-3 tw-rounded-full tw-flex-shrink-0" style={{ background: color }} />
-                <span className="tw-text-[13px] tw-text-ink-muted tw-flex-1">{label}</span>
-                <span className="tw-text-[13px] tw-font-semibold tw-tabular-nums" style={{ color }}>{value}</span>
-                <div className="tw-w-20 tw-h-1.5 tw-rounded-full tw-bg-divider tw-overflow-hidden">
-                  <div className="tw-h-full tw-rounded-full tw-transition-all tw-duration-700" style={{ width: `${value}%`, background: color }} />
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Readiness badge */}
-        <div className="tw-flex tw-items-center tw-gap-2">
-          <span className="tw-inline-flex tw-items-center tw-rounded-full tw-px-2.5 tw-py-1 tw-text-xs tw-font-semibold tw-bg-canvas tw-border tw-border-divider tw-text-ink-muted">
-            Treino: {status.readinessLabel}
-          </span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────
-// Segmented control for activity type
-// ─────────────────────────────────────────────────────────────
-
-function SegmentedControl({
-  selected,
-  onSelect,
+function Card({
+  children,
+  className = "",
+  style,
 }: {
-  selected: Activity["type"];
-  onSelect: (type: Activity["type"]) => void;
+  children: React.ReactNode;
+  className?: string;
+  style?: React.CSSProperties;
 }) {
   return (
-    <div className="tw-flex tw-rounded-full tw-bg-gray-100 tw-p-1 tw-gap-0.5">
-      {(Object.keys(ACTIVITY_META) as Activity["type"][]).map((type) => (
-        <button
-          key={type}
-          type="button"
-          onClick={() => onSelect(type)}
-          className={`tw-flex-1 tw-flex tw-items-center tw-justify-center tw-gap-2 tw-h-11 tw-rounded-full tw-text-sm tw-font-medium tw-cursor-pointer tw-transition-all tw-duration-200 ${
-            selected === type
-              ? "tw-bg-ink tw-text-white tw-shadow-sm"
-              : "tw-text-ink-muted hover:tw-text-ink"
-          }`}
-          style={{ outline: "none", border: "none" }}
-          aria-pressed={selected === type}
-        >
-          {ACTIVITY_ICON[type](18)}
-          <span className="tw-hidden sm:tw-inline">{ACTIVITY_META[type].label}</span>
-        </button>
-      ))}
+    <div className={`tr-card ${className}`} style={style}>
+      {children}
     </div>
   );
 }
 
-// ─────────────────────────────────────────────────────────────
-// MapViewer (Leaflet — functional contract unchanged)
-// ─────────────────────────────────────────────────────────────
+function MiniProgress({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="tr-mini">
+      <div className="tr-mini-row">
+        <span className="tr-mini-label">{label}</span>
+        <span className="tr-mini-value">{value}%</span>
+      </div>
+      <div className="tr-mini-track">
+        <div className="tr-mini-fill" style={{ width: `${value}%` }} />
+      </div>
+    </div>
+  );
+}
 
-function MapViewer({ coordinates, height = 240 }: { coordinates: Array<{ lat: number; lng: number }>; height?: number }) {
+function IntensityChip({ level }: { level: "low" | "moderate" | "high" }) {
+  return (
+    <span className={`tr-intensity-chip tr-intensity-chip--${level}`}>
+      {INTENSITY_LABELS[level]}
+    </span>
+  );
+}
+
+function WeekSparkline({ activities }: { activities: Activity[] }) {
+  const days = useMemo(() => {
+    const result = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const dayStr = d.toDateString();
+      const dayActivities = activities.filter(
+        (a) => new Date(a.startTime).toDateString() === dayStr
+      );
+      const score =
+        dayActivities.length > 0
+          ? Math.round(
+              dayActivities.reduce((sum, a) => sum + getPerformanceSignal(a).score, 0) /
+                dayActivities.length
+            )
+          : 0;
+      result.push({ score, hasActivity: dayActivities.length > 0 });
+    }
+    return result;
+  }, [activities]);
+
+  const activeDays = days.filter((d) => d.hasActivity).length;
+  const avgScore =
+    activeDays > 0
+      ? Math.round(days.filter((d) => d.hasActivity).reduce((s, d) => s + d.score, 0) / activeDays)
+      : 0;
+  const trend =
+    activeDays >= 5
+      ? "Consistência em alta"
+      : activeDays >= 3
+        ? "Estável"
+        : activeDays >= 1
+          ? "Queda leve detectada"
+          : "Nenhuma atividade esta semana";
+
+  const maxScore = Math.max(...days.map((d) => d.score), 1);
+  const barH = 36;
+
+  return (
+    <div className="tr-trend">
+      <div className="tr-trend-bars">
+        {days.map((day, i) => {
+          const height = day.hasActivity
+            ? Math.max(5, Math.round((day.score / maxScore) * barH))
+            : 4;
+          const barClass = day.hasActivity
+            ? day.score >= 75
+              ? "tr-trend-bar tr-trend-bar--good"
+              : day.score >= 50
+                ? "tr-trend-bar tr-trend-bar--mid"
+                : "tr-trend-bar tr-trend-bar--weak"
+            : "tr-trend-bar tr-trend-bar--empty";
+          return (
+            <div key={i} className={barClass} style={day.hasActivity ? { height } : undefined} />
+          );
+        })}
+      </div>
+      <div className="tr-trend-text">
+        <div className="tr-trend-title">{trend}</div>
+        <div className="tr-trend-caption">
+          Tendência 7 dias
+          {activeDays > 0
+            ? ` · ${activeDays} ativo${activeDays !== 1 ? "s" : ""} · score médio ${avgScore}`
+            : ""}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MapViewer({ coordinates }: { coordinates: Array<{ lat: number; lng: number }> }) {
   if (coordinates.length === 0) {
     return (
       <div
-        className="tw-rounded-xl tw-bg-canvas tw-border tw-border-dashed tw-border-divider tw-flex tw-flex-col tw-items-center tw-justify-center tw-gap-3 tw-text-center tw-py-10"
+        style={{
+          width: "100%",
+          minHeight: 220,
+          background: "linear-gradient(180deg, rgba(14,18,16,.96), rgba(12,14,13,.98))",
+          borderRadius: 18,
+          border: "1px solid rgba(255,255,255,0.08)",
+          display: "grid",
+          placeItems: "center",
+          color: "rgba(255,255,255,0.5)",
+          textAlign: "center",
+          padding: 24,
+        }}
       >
-        <span className="tw-text-ink-subtle"><IconGps size={36} /></span>
-        <div>
-          <p className="tw-text-[14px] tw-font-semibold tw-text-ink">Aguardando GPS</p>
-          <p className="tw-text-[12px] tw-text-ink-subtle tw-mt-0.5">A rota aparece em tempo real assim que a localização chegar</p>
+        <div style={{ display: "grid", gap: 8 }}>
+          <div style={{ fontWeight: 600 }}>Aguardando os primeiros pontos do GPS</div>
+          <div style={{ fontSize: 14, color: "rgba(255,255,255,0.35)" }}>
+            Assim que a localização começar a chegar, a rota aparece aqui em tempo real.
+          </div>
         </div>
       </div>
     );
@@ -519,15 +464,15 @@ function MapViewer({ coordinates, height = 240 }: { coordinates: Array<{ lat: nu
   const startPoint: [number, number] = [coordinates[0].lat, coordinates[0].lng];
 
   return (
-    <div className="tw-rounded-xl tw-overflow-hidden">
-      <MapContainer center={center} zoom={15} style={{ width: "100%", height }}>
+    <div style={{ borderRadius: 18, overflow: "hidden", border: "1px solid rgba(255,255,255,0.10)" }}>
+      <MapContainer center={center} zoom={15} style={{ width: "100%", height: 300 }}>
         <TileLayer
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           attribution="&copy; OpenStreetMap contributors"
         />
         <Polyline
           positions={coordinates.map((c) => [c.lat, c.lng])}
-          pathOptions={{ color: "#16A34A", weight: 5, opacity: 0.92 }}
+          pathOptions={{ color: "#22C55E", weight: 5, opacity: 0.92 }}
         />
         <Marker position={startPoint}><Popup>Início</Popup></Marker>
         <Marker position={center}><Popup>Posição atual</Popup></Marker>
@@ -536,185 +481,74 @@ function MapViewer({ coordinates, height = 240 }: { coordinates: Array<{ lat: nu
   );
 }
 
-// ─────────────────────────────────────────────────────────────
-// Collapsible map for history items
-// ─────────────────────────────────────────────────────────────
-
-function CollapsibleMap({ coordinates }: { coordinates: Array<{ lat: number; lng: number }> }) {
-  const [open, setOpen] = useState(false);
+function HistoryMapViewer({ coordinates }: { coordinates: Array<{ lat: number; lng: number }> }) {
   if (coordinates.length === 0) return null;
+  const center: [number, number] = [
+    coordinates[coordinates.length - 1].lat,
+    coordinates[coordinates.length - 1].lng,
+  ];
+  const startPoint: [number, number] = [coordinates[0].lat, coordinates[0].lng];
   return (
-    <div className="tw-mt-2">
-      <button
-        type="button"
-        onClick={() => setOpen((prev) => !prev)}
-        className="tw-flex tw-items-center tw-gap-1.5 tw-text-[13px] tw-font-medium tw-text-brand tw-cursor-pointer hover:tw-opacity-75 tw-transition-opacity tw-duration-150"
-        style={{ background: "none", border: "none", padding: 0 }}
-      >
-        {open ? <IconChevronUp size={13} /> : <IconChevronDown size={13} />}
-        {open ? "Ocultar rota" : "Ver rota"}
-      </button>
-      {open && (
-        <div className="tw-mt-2">
-          <MapViewer coordinates={coordinates} height={200} />
-        </div>
-      )}
+    <div style={{ borderRadius: 14, overflow: "hidden", border: "1px solid var(--color-border)" }}>
+      <MapContainer center={center} zoom={15} style={{ width: "100%", height: 210 }}>
+        <TileLayer
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution="&copy; OpenStreetMap contributors"
+        />
+        <Polyline
+          positions={coordinates.map((c) => [c.lat, c.lng])}
+          pathOptions={{ color: "#22C55E", weight: 5, opacity: 0.92 }}
+        />
+        <Marker position={startPoint}><Popup>Início</Popup></Marker>
+        <Marker position={center}><Popup>Posição atual</Popup></Marker>
+      </MapContainer>
     </div>
   );
 }
 
-// ─────────────────────────────────────────────────────────────
-// Live stat block
-// ─────────────────────────────────────────────────────────────
-
-function LiveStat({
-  label,
-  value,
-  unit,
-  hero,
-}: {
-  label: string;
-  value: string;
-  unit?: string;
-  hero?: boolean;
-}) {
-  return (
-    <div className={`tw-flex tw-flex-col ${hero ? "tw-items-center" : ""}`}>
-      <span className="tw-text-[11px] tw-font-semibold tw-uppercase tw-tracking-widest tw-text-ink-subtle">{label}</span>
-      <div className="tw-flex tw-items-baseline tw-gap-1.5 tw-mt-0.5">
-        <span
-          className={`tw-font-bold tw-tabular-nums tw-leading-none ${hero ? "tw-text-[56px]" : "tw-text-[32px]"} tw-text-ink`}
-          style={{ fontVariantNumeric: "tabular-nums" }}
-        >
-          {value}
-        </span>
-        {unit && <span className="tw-text-[14px] tw-text-ink-muted">{unit}</span>}
-      </div>
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────
-// Performance timeline row
-// ─────────────────────────────────────────────────────────────
-
-function TimelineRow({
-  activity,
-  onDelete,
-  isLast,
-}: {
-  activity: Activity;
-  onDelete: () => void;
-  isLast: boolean;
-}) {
-  const perf = useMemo(() => deriveSessionPerformance(activity), [activity]);
-
-  return (
-    <div className={`tw-py-4 tw-flex tw-flex-col tw-gap-3 ${isLast ? "" : "tw-border-b tw-border-divider"}`}>
-      {/* Top row: icon + label + date + score + delete */}
-      <div className="tw-flex tw-items-center tw-gap-3">
-        {/* Activity icon */}
-        <div
-          className="tw-w-9 tw-h-9 tw-rounded-xl tw-flex tw-items-center tw-justify-center tw-flex-shrink-0 tw-bg-canvas tw-border tw-border-divider tw-text-ink-muted"
-        >
-          {ACTIVITY_ICON[activity.type](18)}
-        </div>
-
-        {/* Label + date */}
-        <div className="tw-flex-1 tw-min-w-0">
-          <div className="tw-flex tw-items-center tw-gap-2 tw-flex-wrap">
-            <span className="tw-text-[15px] tw-font-semibold tw-text-ink">{ACTIVITY_META[activity.type].label}</span>
-            <span className={`tw-rounded-full tw-px-2 tw-py-0.5 tw-text-[11px] tw-font-semibold ${perf.tagClass}`}>
-              {perf.tag}
-            </span>
-          </div>
-          <span className="tw-text-[12px] tw-text-ink-subtle">
-            {new Date(activity.startTime).toLocaleDateString("pt-BR", {
-              weekday: "short", day: "numeric", month: "short",
-            })}
-          </span>
-        </div>
-
-        {/* Score */}
-        <div className="tw-text-right tw-flex-shrink-0">
-          <span className="tw-text-[18px] tw-font-bold tw-tabular-nums" style={{ color: scoreColor(perf.score) }}>{perf.score}</span>
-          <p className="tw-text-[10px] tw-text-ink-subtle tw-uppercase tw-tracking-wide">pts</p>
-        </div>
-
-        {/* Delete */}
-        <button
-          type="button"
-          onClick={onDelete}
-          className="tw-flex-shrink-0 tw-w-8 tw-h-8 tw-flex tw-items-center tw-justify-center tw-rounded-lg tw-text-ink-subtle hover:tw-text-red-500 hover:tw-bg-red-50 tw-cursor-pointer tw-transition-all tw-duration-150"
-          style={{ background: "none", border: "none" }}
-          aria-label="Excluir atividade"
-        >
-          <IconTrash size={15} />
-        </button>
-      </div>
-
-      {/* Stats inline */}
-      <div className="tw-flex tw-items-center tw-gap-4 tw-ml-12 tw-flex-wrap">
-        <span className="tw-flex tw-items-center tw-gap-1.5 tw-text-[13px] tw-text-ink-muted">
-          <span className="tw-text-ink-subtle"><IconClock size={13} /></span>
-          {formatTime(activity.duration)}
-        </span>
-        <span className="tw-flex tw-items-center tw-gap-1.5 tw-text-[13px] tw-text-ink-muted">
-          <span className="tw-text-ink-subtle"><IconMapPin size={13} /></span>
-          {activity.distance.toFixed(2)} km
-        </span>
-        <span className="tw-flex tw-items-center tw-gap-1.5 tw-text-[13px] tw-text-ink-muted">
-          <span className="tw-text-ink-subtle"><IconZap size={13} /></span>
-          {formatPace(activity.pace)} min/km
-        </span>
-      </div>
-
-      {/* Insight */}
-      {perf.insight && (
-        <p className="tw-text-[12px] tw-text-ink-subtle tw-ml-12 tw-leading-relaxed">{perf.insight}</p>
-      )}
-
-      {/* Collapsible map */}
-      <div className="tw-ml-12">
-        <CollapsibleMap coordinates={activity.routeCoordinates} />
-      </div>
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────
-// Main page
-// ─────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// Main component
+// ─────────────────────────────────────────────────────────────────────────────
 
 export default function ActivityTrackerPage() {
-  // ── State (unchanged) ──────────────────────────────────────
+  // ── Core tracking state ──────────────────────────────────────────────────
   const [isTracking, setIsTracking] = useState(false);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [currentActivity, setCurrentActivity] = useState<Partial<Activity> | null>(null);
   const [selectedType, setSelectedType] = useState<Activity["type"]>("run");
   const [elapsedTime, setElapsedTime] = useState(0);
   const [rewardMessage, setRewardMessage] = useState<string | null>(null);
+  const [expandedMapId, setExpandedMapId] = useState<string | null>(null);
+
+  // ── Validation state ─────────────────────────────────────────────────────
+  const [liveValidation, setLiveValidation] = useState<{
+    isSuspicious: boolean;
+    reason: string;
+  } | null>(null);
+  const [pendingActivity, setPendingActivity] = useState<Activity | null>(null);
+
+  // ── Refs ─────────────────────────────────────────────────────────────────
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const geolocationRef = useRef<number | null>(null);
+  const speedsRef = useRef<number[]>([]);
+  const lastGpsTsRef = useRef<number | null>(null);
 
-  // ── Effects (unchanged) ───────────────────────────────────
+  // ── Persist / load ───────────────────────────────────────────────────────
   useEffect(() => {
     setActivities(parseStoredActivities(localStorage.getItem("activities")));
   }, []);
 
+  // ── Timer ────────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!isTracking) {
       if (timerRef.current) clearInterval(timerRef.current);
       return;
     }
-    timerRef.current = setInterval(() => {
-      setElapsedTime((previous) => previous + 1);
-    }, 1000);
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
+    timerRef.current = setInterval(() => setElapsedTime((p) => p + 1), 1000);
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, [isTracking]);
 
+  // ── GPS watch ────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!isTracking || !navigator.geolocation) {
       if (geolocationRef.current) {
@@ -730,23 +564,55 @@ export default function ActivityTrackerPage() {
           lat: position.coords.latitude,
           lng: position.coords.longitude,
         };
-        setCurrentActivity((previous) => {
-          if (!previous) return previous;
-          const previousCoordinates = previous.routeCoordinates || [];
-          const lastPoint = previousCoordinates[previousCoordinates.length - 1];
-          const nextCoordinates =
+
+        setCurrentActivity((prev) => {
+          if (!prev) return prev;
+          const prevCoords = prev.routeCoordinates || [];
+          const lastPoint = prevCoords[prevCoords.length - 1];
+
+          // ── Speed segment tracking ──────────────────────────────────────
+          if (lastPoint) {
+            const timeDeltaSec = lastGpsTsRef.current
+              ? (position.timestamp - lastGpsTsRef.current) / 1000
+              : null;
+            if (timeDeltaSec && timeDeltaSec > 0) {
+              const segDistKm = getDistanceBetweenPointsKm(lastPoint, nextPoint);
+              const segSpeedKmh = (segDistKm / timeDeltaSec) * 3600;
+              // Ignore outlier GPS noise (> 200 km/h is clearly bad signal)
+              if (segSpeedKmh < 200) {
+                speedsRef.current.push(segSpeedKmh);
+              }
+            }
+          }
+          lastGpsTsRef.current = position.timestamp;
+
+          // ── Route update ────────────────────────────────────────────────
+          const nextCoords =
             lastPoint && getDistanceBetweenPointsKm(lastPoint, nextPoint) < 0.01
-              ? previousCoordinates
-              : [...previousCoordinates, nextPoint];
-          const distance = parseFloat(calculateRouteDistanceKm(nextCoordinates).toFixed(2));
-          const duration = elapsedTime;
-          const pace = calculatePace(duration, distance);
-          return { ...previous, routeCoordinates: nextCoordinates, distance, pace };
+              ? prevCoords
+              : [...prevCoords, nextPoint];
+          const distance = parseFloat(calculateRouteDistanceKm(nextCoords).toFixed(2));
+
+          // ── Validation check every 5 speed samples ──────────────────────
+          if (speedsRef.current.length >= 3 && speedsRef.current.length % 5 === 0) {
+            const type = (prev.type || "run") as Activity["type"];
+            const analysis = analyzeActivityValidity(type, speedsRef.current);
+            if (analysis.isSuspicious && analysis.reason) {
+              setLiveValidation({ isSuspicious: true, reason: analysis.reason });
+            } else {
+              setLiveValidation(null);
+            }
+          }
+
+          return {
+            ...prev,
+            routeCoordinates: nextCoords,
+            distance,
+            pace: calculatePace(elapsedTime, distance),
+          };
         });
       },
-      (error) => {
-        console.error("Geolocation error:", error);
-      },
+      (err) => console.error("Geolocation error:", err),
       { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
     );
 
@@ -758,19 +624,16 @@ export default function ActivityTrackerPage() {
     };
   }, [isTracking, elapsedTime]);
 
+  // ── Pace update on tick ──────────────────────────────────────────────────
   useEffect(() => {
-    setCurrentActivity((previous) => {
-      if (!previous) return previous;
-      const distance = previous.distance || 0;
-      return {
-        ...previous,
-        duration: elapsedTime,
-        pace: calculatePace(elapsedTime, distance),
-      };
+    setCurrentActivity((prev) => {
+      if (!prev) return prev;
+      const distance = prev.distance || 0;
+      return { ...prev, duration: elapsedTime, pace: calculatePace(elapsedTime, distance) };
     });
   }, [elapsedTime]);
 
-  // ── Derived stats (unchanged) ─────────────────────────────
+  // ── Derived stats ────────────────────────────────────────────────────────
   const stats = useMemo(() => {
     if (activities.length === 0) {
       return { totalDistance: 0, totalTime: 0, avgPace: 0, totalSessions: 0 };
@@ -786,9 +649,34 @@ export default function ActivityTrackerPage() {
     };
   }, [activities]);
 
-  // ── Handlers (unchanged) ──────────────────────────────────
+  const todayStatus = useMemo(() => getTodayStatus(activities), [activities]);
+
+  // ── Live metrics (derived from currentActivity) ─────────────────────────
+  const liveCalories = useMemo(() => {
+    if (!currentActivity) return 0;
+    return estimateCalories(
+      currentActivity.type || "run",
+      elapsedTime,
+      currentActivity.distance || 0
+    );
+  }, [currentActivity, elapsedTime]);
+
+  const liveIntensity = useMemo((): "low" | "moderate" | "high" => {
+    if (!currentActivity) return "low";
+    return classifyIntensity(currentActivity.type || "run", currentActivity.pace || 0);
+  }, [currentActivity]);
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Actions
+  // ─────────────────────────────────────────────────────────────────────────
+
   function startActivity() {
     setRewardMessage(null);
+    setLiveValidation(null);
+    setPendingActivity(null);
+    speedsRef.current = [];
+    lastGpsTsRef.current = null;
+
     setCurrentActivity({
       id: Date.now().toString(),
       type: selectedType,
@@ -802,34 +690,78 @@ export default function ActivityTrackerPage() {
     setIsTracking(true);
   }
 
-  async function stopActivity() {
+  /** Step 1: stop GPS/timer and decide whether to save or ask for confirmation */
+  function requestStop() {
     if (!currentActivity) return;
+
+    // Stop timer and GPS immediately
+    if (timerRef.current) clearInterval(timerRef.current);
+    if (geolocationRef.current) {
+      navigator.geolocation.clearWatch(geolocationRef.current);
+      geolocationRef.current = null;
+    }
+
+    const pace = currentActivity.pace || 0;
+    const type = (currentActivity.type || selectedType) as Activity["type"];
 
     const endActivity: Activity = {
       id: currentActivity.id || Date.now().toString(),
-      type: currentActivity.type || selectedType,
+      type,
       startTime: currentActivity.startTime || new Date(),
       endTime: new Date(),
       distance: currentActivity.distance || 0,
-      pace: currentActivity.pace || 0,
+      pace,
       duration: elapsedTime,
       routeCoordinates: currentActivity.routeCoordinates || [],
+      calories: estimateCalories(type, elapsedTime, currentActivity.distance || 0),
+      intensity: classifyIntensity(type, pace),
     };
-
-    const updatedActivities = [endActivity, ...activities];
-    setActivities(updatedActivities);
-    localStorage.setItem("activities", JSON.stringify(updatedActivities));
 
     setIsTracking(false);
     setCurrentActivity(null);
     setElapsedTime(0);
 
+    // Final validation check using full speeds array
+    const finalValidation = analyzeActivityValidity(type, speedsRef.current);
+    if (finalValidation.isSuspicious) {
+      setPendingActivity(endActivity);
+    } else {
+      saveActivity(endActivity, false);
+    }
+  }
+
+  /** Step 2a: user confirms the suspicious activity (saves it with a flag) */
+  function confirmActivity() {
+    if (!pendingActivity) return;
+    saveActivity({ ...pendingActivity, validationFlag: true }, true);
+    setPendingActivity(null);
+    setLiveValidation(null);
+  }
+
+  /** Step 2b: user discards the suspicious activity */
+  function discardActivity() {
+    setPendingActivity(null);
+    setLiveValidation(null);
+    setRewardMessage(null);
+  }
+
+  /** Internal: persist activity, update state, trigger gamification */
+  async function saveActivity(endActivity: Activity, confirmed: boolean) {
+    const updatedActivities = [endActivity, ...activities];
+    setActivities(updatedActivities);
+    localStorage.setItem("activities", JSON.stringify(updatedActivities));
+
     const xpEarned = Math.max(10, Math.min(40, Math.round((endActivity.duration / 60) * 2)));
     const checkin = registerDailyCheckin("activity", xpEarned);
+    const signal = getPerformanceSignal(endActivity);
+    const insightPrefix =
+      signal.tag === "Intenso" ? "Sessão intensa. " : signal.tag === "Bom" ? "Boa sessão. " : "Sessão leve. ";
+    const confirmSuffix = confirmed ? " Atividade confirmada manualmente." : "";
+
     setRewardMessage(
       checkin.alreadyCheckedIn
-        ? "Atividade salva. Check-in de hoje já garantido."
-        : `Atividade salva. +${xpEarned} XP — check-in do dia concluído.`
+        ? `${insightPrefix}${signal.insight}${confirmSuffix} Check-in de hoje já garantido.`
+        : `${insightPrefix}${signal.insight}${confirmSuffix} +${xpEarned} XP e check-in do dia concluído.`
     );
 
     try {
@@ -846,221 +778,362 @@ export default function ActivityTrackerPage() {
     } catch (error) {
       console.error("Failed to persist activity gamification:", error);
     }
-
-    if (geolocationRef.current) {
-      navigator.geolocation.clearWatch(geolocationRef.current);
-      geolocationRef.current = null;
-    }
   }
 
   function deleteActivity(id: string) {
-    const updatedActivities = activities.filter((a) => a.id !== id);
-    setActivities(updatedActivities);
-    localStorage.setItem("activities", JSON.stringify(updatedActivities));
+    const updated = activities.filter((a) => a.id !== id);
+    setActivities(updated);
+    localStorage.setItem("activities", JSON.stringify(updated));
   }
 
-  const activityType = (isTracking && currentActivity?.type) ? currentActivity.type : selectedType;
-  const primaryMeta = ACTIVITY_META[activityType];
+  // ─────────────────────────────────────────────────────────────────────────
+  // Render
+  // ─────────────────────────────────────────────────────────────────────────
 
-  // ── Render ────────────────────────────────────────────────
   return (
-    <div className="tw-flex tw-flex-col tw-gap-8 tw-max-w-[880px]">
-
+    <div className="tr-page">
       {/* Reward banner */}
-      {rewardMessage ? (
-        <div
-          className="tw-rounded-xl tw-px-4 tw-py-3 tw-text-[14px] tw-font-medium tw-text-brand tw-bg-green-50 tw-border tw-border-green-100"
-        >
-          {rewardMessage}
-        </div>
-      ) : null}
+      {rewardMessage && <div className="tr-reward">{rewardMessage}</div>}
 
-      {/* ① Hero ring chart */}
-      <HeroRingChart activities={activities} />
-
-      {/* ② Unified session card — idle / live */}
-      <div className="tw-bg-white tw-rounded-2xl tw-overflow-hidden" style={{ boxShadow: "0 1px 2px rgba(0,0,0,0.04)" }}>
-
-        {isTracking && currentActivity ? (
-          /* ── LIVE ──────────────────────────────────────── */
-          <div className="tw-flex tw-flex-col tw-gap-5 tw-p-6">
-            {/* Live badge + activity label */}
-            <div className="tw-flex tw-items-center tw-justify-between">
-              <div className="tw-flex tw-items-center tw-gap-3">
-                <span
-                  className="tw-inline-flex tw-items-center tw-gap-1.5 tw-rounded-full tw-px-3 tw-py-1 tw-text-[11px] tw-font-bold tw-uppercase tw-tracking-widest tw-text-brand"
-                  style={{ background: "#DCFCE7" }}
-                >
-                  <span
-                    className="tw-w-1.5 tw-h-1.5 tw-rounded-full tw-bg-brand tw-animate-pulse tw-inline-block"
-                  />
-                  Ao vivo
-                </span>
-                <div className="tw-flex tw-items-center tw-gap-2 tw-text-ink">
-                  {ACTIVITY_ICON[currentActivity.type || "run"](20)}
-                  <span className="tw-text-[16px] tw-font-semibold">{ACTIVITY_META[currentActivity.type || "run"].label}</span>
-                </div>
-              </div>
+      {/* ── Today Status ────────────────────────────────────────────── */}
+      <Card>
+        <div className="tr-status">
+          <div className="tr-status-left">
+            <div className="tr-status-label">Metabolismo hoje</div>
+            <div className="tr-status-score-value">
+              {todayStatus.metabolism}
+              <span className="tr-status-score-unit">%</span>
             </div>
-
-            {/* Hero metric (primary for type) */}
-            <div className="tw-text-center tw-py-2">
-              {activityType === "walk" && (
-                <LiveStat label="Duração" value={formatTime(elapsedTime)} hero />
-              )}
-              {activityType === "run" && (
-                <LiveStat label="Ritmo" value={formatPace(currentActivity.pace || 0)} unit="min/km" hero />
-              )}
-              {activityType === "cycling" && (
-                <LiveStat label="Distância" value={(currentActivity.distance || 0).toFixed(2)} unit="km" hero />
-              )}
-            </div>
-
-            {/* Secondary metrics */}
-            <div className="tw-grid tw-grid-cols-2 tw-gap-3">
-              {activityType !== "walk" && (
-                <div className="tw-rounded-xl tw-bg-canvas tw-p-4">
-                  <LiveStat label="Duração" value={formatTime(elapsedTime)} />
-                </div>
-              )}
-              {activityType !== "cycling" && (
-                <div className="tw-rounded-xl tw-bg-canvas tw-p-4">
-                  <LiveStat label="Distância" value={(currentActivity.distance || 0).toFixed(2)} unit="km" />
-                </div>
-              )}
-              {activityType !== "run" && (
-                <div className="tw-rounded-xl tw-bg-canvas tw-p-4">
-                  <LiveStat label="Ritmo" value={formatPace(currentActivity.pace || 0)} unit="min/km" />
-                </div>
-              )}
-              {/* Filler if only 1 secondary */}
-              {activityType === "walk" && (
-                <div className="tw-rounded-xl tw-bg-canvas tw-p-4">
-                  <LiveStat label="Ritmo" value={formatPace(currentActivity.pace || 0)} unit="min/km" />
-                </div>
-              )}
-            </div>
-
-            {/* Map */}
-            <MapViewer coordinates={currentActivity.routeCoordinates || []} height={240} />
-
-            {/* Stop button below map */}
-            <button
-              type="button"
-              onClick={stopActivity}
-              className="tw-w-full tw-h-12 tw-rounded-xl tw-flex tw-items-center tw-justify-center tw-gap-2 tw-text-[14px] tw-font-semibold tw-cursor-pointer tw-transition-all tw-duration-150 hover:tw-bg-red-100 tw-text-red-600"
-              style={{ background: "#FEF2F2", border: "1px solid #FECACA" }}
-            >
-              <IconStop size={16} />
-              Encerrar sessão
-            </button>
+            <div className="tr-status-advice">{getReadinessAdvice(todayStatus.metabolism)}</div>
           </div>
+          <div className="tr-status-divider" />
+          <div className="tr-status-bars">
+            <MiniProgress label="Energia" value={todayStatus.energy} />
+            <MiniProgress label="Recuperação" value={todayStatus.recovery} />
+            <MiniProgress label="Prontidão" value={todayStatus.readiness} />
+          </div>
+        </div>
+      </Card>
 
-        ) : (
-          /* ── IDLE ──────────────────────────────────────── */
-          <div className="tw-flex tw-flex-col tw-gap-6 tw-p-6">
-            {/* Header */}
-            <div>
-              <h2 className="tw-text-[22px] tw-font-semibold tw-text-ink">Iniciar sessão</h2>
-              <p className="tw-text-[14px] tw-text-ink-muted tw-mt-0.5">Escolha o tipo de atividade e comece a rastrear sua rota.</p>
-            </div>
-
-            {/* Segmented control */}
-            <SegmentedControl selected={selectedType} onSelect={setSelectedType} />
-
-            {/* Context helper */}
-            <p className="tw-text-[13px] tw-text-ink-muted tw-text-center -tw-mt-3">{primaryMeta.helper}</p>
-
-            {/* CTA circular button */}
-            <div className="tw-flex tw-flex-col tw-items-center tw-gap-3 tw-py-2">
-              <button
-                type="button"
-                onClick={startActivity}
-                className="tw-w-[88px] tw-h-[88px] tw-rounded-full tw-flex tw-items-center tw-justify-center tw-cursor-pointer tw-transition-all tw-duration-200 hover:tw-scale-105 tw-text-white"
-                style={{
-                  background: "linear-gradient(135deg, #22C55E, #16A34A)",
-                  boxShadow: "0 8px 24px rgba(22,163,74,0.35)",
-                  border: "none",
-                }}
-                aria-label="Iniciar sessão"
-              >
-                <IconPlay size={30} />
-              </button>
-              <div className="tw-text-center">
-                <p className="tw-text-[16px] tw-font-medium tw-text-ink">Iniciar</p>
-                <p className="tw-text-[12px] tw-text-ink-subtle">Treino recomendado para hoje</p>
+      {/* ── Hero: accumulated session stats ─────────────────────────── */}
+      <Card>
+        <div className="tr-hero">
+          <div className="tr-hero-title">Sua sessão de hoje</div>
+          <div className="tr-stats-grid">
+            <div className="tr-stat-card">
+              <div className="tr-stat-label">Distância total</div>
+              <div className="tr-stat-value">
+                {stats.totalDistance.toFixed(2)}
+                <span className="tr-stat-unit"> km</span>
               </div>
             </div>
+            <div className="tr-stat-card">
+              <div className="tr-stat-label">Tempo acumulado</div>
+              <div className="tr-stat-value">{formatTime(stats.totalTime)}</div>
+            </div>
+            <div className="tr-stat-card">
+              <div className="tr-stat-label">Ritmo médio</div>
+              <div className="tr-stat-value">
+                {formatPace(stats.avgPace)}
+                <span className="tr-stat-unit"> min/km</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Card>
 
-            {/* Stats strip (only when history exists) */}
-            {stats.totalSessions > 0 && (
-              <div className="tw-grid tw-grid-cols-3 tw-gap-3 tw-pt-2 tw-border-t tw-border-divider">
-                {[
-                  { label: "Sessões", value: String(stats.totalSessions), unit: "" },
-                  { label: "Distância", value: stats.totalDistance.toFixed(1), unit: "km" },
-                  { label: "Tempo total", value: formatTime(stats.totalTime), unit: "" },
-                ].map(({ label, value, unit }) => (
-                  <div key={label} className="tw-flex tw-flex-col tw-gap-0.5">
-                    <span className="tw-text-[11px] tw-font-medium tw-uppercase tw-tracking-wide tw-text-ink-subtle">{label}</span>
-                    <div className="tw-flex tw-items-baseline tw-gap-1">
-                      <span className="tw-text-[20px] tw-font-bold tw-text-ink tw-tabular-nums">{value}</span>
-                      {unit && <span className="tw-text-[12px] tw-text-ink-muted">{unit}</span>}
-                    </div>
-                  </div>
-                ))}
+      {/* ── Tracking state ───────────────────────────────────────────── */}
+      {isTracking && currentActivity ? (
+        /* ─── Live mode ─────────────────────────────────────────────── */
+        <Card className="tr-live">
+          <div className="tr-live-inner">
+            {/* Header */}
+            <div className="tr-live-header">
+              <div className="tr-live-title-block">
+                <div className="tr-live-chip">Ao vivo</div>
+                <div className="tr-live-title">
+                  <ActivityIcon type={currentActivity.type || "run"} size={28} />
+                  {ACTIVITY_META[currentActivity.type || "run"].label} em andamento
+                </div>
+                {/* Intensity chip in header */}
+                <div className="tr-live-intensity-row">
+                  <IntensityChip level={liveIntensity} />
+                </div>
+              </div>
+              <button type="button" onClick={requestStop} className="tr-stop-button">
+                Encerrar sessão
+              </button>
+            </div>
+
+            {/* Validation warning — non-intrusive, appears during live */}
+            {liveValidation?.isSuspicious && (
+              <div className="tr-validation-warning">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="tr-validation-warning-icon">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                  <line x1="12" y1="9" x2="12" y2="13" />
+                  <line x1="12" y1="17" x2="12.01" y2="17" />
+                </svg>
+                {liveValidation.reason}
               </div>
             )}
-          </div>
-        )}
-      </div>
 
-      {/* ③ Performance timeline */}
-      <div>
-        <div className="tw-flex tw-items-baseline tw-justify-between tw-mb-4">
-          <h2 className="tw-text-[22px] tw-font-semibold tw-text-ink">Histórico</h2>
-          {activities.length > 0 && (
-            <span className="tw-text-[13px] tw-text-ink-subtle">
-              {activities.length} sessão{activities.length !== 1 ? "ões" : ""}
-            </span>
-          )}
+            <MapViewer coordinates={currentActivity.routeCoordinates || []} />
+
+            {/* 5 metrics grid */}
+            <div className="tr-live-metrics">
+              <div className="tr-live-metric-card">
+                <div className="tr-live-metric-label">Duração</div>
+                <div className="tr-live-metric-value" style={{ fontFamily: "monospace" }}>
+                  {formatTime(elapsedTime)}
+                </div>
+              </div>
+              <div className="tr-live-metric-card">
+                <div className="tr-live-metric-label">Distância</div>
+                <div className="tr-live-metric-value">
+                  {(currentActivity.distance || 0).toFixed(2)}
+                  <span className="tr-live-metric-unit"> km</span>
+                </div>
+              </div>
+              <div className="tr-live-metric-card">
+                <div className="tr-live-metric-label">Ritmo</div>
+                <div className="tr-live-metric-value">
+                  {formatPace(currentActivity.pace || 0)}
+                  <span className="tr-live-metric-unit"> min/km</span>
+                </div>
+              </div>
+              <div className="tr-live-metric-card">
+                <div className="tr-live-metric-label">Calorias (est.)</div>
+                <div className="tr-live-metric-value">
+                  {liveCalories}
+                  <span className="tr-live-metric-unit"> kcal</span>
+                </div>
+              </div>
+              <div className="tr-live-metric-card tr-live-metric-card--secondary">
+                <div className="tr-live-metric-label">Score</div>
+                <div className="tr-live-metric-value">
+                  {getPerformanceSignal({
+                    ...currentActivity,
+                    id: currentActivity.id || "",
+                    type: currentActivity.type || "run",
+                    startTime: currentActivity.startTime || new Date(),
+                    distance: currentActivity.distance || 0,
+                    pace: currentActivity.pace || 0,
+                    duration: elapsedTime,
+                    routeCoordinates: currentActivity.routeCoordinates || [],
+                  }).score}
+                </div>
+              </div>
+            </div>
+          </div>
+        </Card>
+      ) : pendingActivity ? (
+        /* ─── Validation confirmation panel ─────────────────────────── */
+        <Card className="tr-confirm-panel">
+          <div className="tr-confirm-inner">
+            <div className="tr-confirm-icon-wrap">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                <line x1="12" y1="9" x2="12" y2="13" />
+                <line x1="12" y1="17" x2="12.01" y2="17" />
+              </svg>
+            </div>
+            <div className="tr-confirm-title">Possível atividade inválida</div>
+            <div className="tr-confirm-desc">
+              Detectamos velocidade incompatível com{" "}
+              <strong>{ACTIVITY_META[pendingActivity.type].label.toLowerCase()}</strong>. Pode ter
+              sido um trajeto de carro ou bicicleta elétrica.
+            </div>
+
+            <div className="tr-confirm-stats">
+              <div className="tr-confirm-stat">
+                <span className="tr-confirm-stat-label">Duração</span>
+                <span className="tr-confirm-stat-value">{formatTime(pendingActivity.duration)}</span>
+              </div>
+              <div className="tr-confirm-stat">
+                <span className="tr-confirm-stat-label">Distância</span>
+                <span className="tr-confirm-stat-value">{pendingActivity.distance.toFixed(2)} km</span>
+              </div>
+              <div className="tr-confirm-stat">
+                <span className="tr-confirm-stat-label">Ritmo médio</span>
+                <span className="tr-confirm-stat-value">{formatPace(pendingActivity.pace)} min/km</span>
+              </div>
+              <div className="tr-confirm-stat">
+                <span className="tr-confirm-stat-label">Calorias est.</span>
+                <span className="tr-confirm-stat-value">{pendingActivity.calories ?? 0} kcal</span>
+              </div>
+            </div>
+
+            <div className="tr-confirm-actions">
+              <button type="button" className="tr-confirm-btn tr-confirm-btn--discard" onClick={discardActivity}>
+                Descartar sessão
+              </button>
+              <button type="button" className="tr-confirm-btn tr-confirm-btn--confirm" onClick={confirmActivity}>
+                Confirmar mesmo assim
+              </button>
+            </div>
+          </div>
+        </Card>
+      ) : (
+        /* ─── Idle: activity selection ───────────────────────────────── */
+        <Card>
+          <div className="tr-hero">
+            <div className="tr-selection-title">Como seu corpo vai se movimentar hoje?</div>
+
+            <div className="tr-selection-grid">
+              {(Object.keys(ACTIVITY_META) as Activity["type"][]).map((type) => {
+                const active = selectedType === type;
+                return (
+                  <button
+                    key={type}
+                    type="button"
+                    onClick={() => setSelectedType(type)}
+                    className={`tr-activity-card${active ? " tr-activity-card--active" : ""}`}
+                  >
+                    <div className="tr-activity-card-header">
+                      <div className="tr-activity-card-left">
+                        <div className={`tr-activity-icon${active ? " tr-activity-icon--active" : ""}`}>
+                          <ActivityIcon type={type} size={20} />
+                        </div>
+                        <span className="tr-activity-label">{ACTIVITY_META[type].label}</span>
+                      </div>
+                      {active && <span className="tr-activity-badge">Selecionado</span>}
+                    </div>
+                    <div className="tr-activity-helper">{ACTIVITY_META[type].helper}</div>
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="tr-cta-bar">
+              <div className="tr-cta-left">
+                <div className="tr-cta-icon">
+                  <ActivityIcon type={selectedType} size={20} />
+                </div>
+                <div className="tr-cta-label">{ACTIVITY_META[selectedType].label}</div>
+              </div>
+              <div className="tr-cta-right">
+                <button type="button" onClick={startActivity} className="tr-cta-button">
+                  ▶ Iniciar sessão
+                </button>
+                <div className="tr-cta-caption">Baseado no seu estado de hoje</div>
+              </div>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {/* ── Performance Timeline ─────────────────────────────────────── */}
+      <div style={{ display: "grid", gap: 14 }}>
+        <div className="tr-timeline-header">
+          <div className="tr-timeline-title">Performance Timeline</div>
+          <div className="tr-timeline-caption">Distância, duração, ritmo e rota de cada sessão.</div>
         </div>
 
         {activities.length === 0 ? (
-          <div className="tw-bg-white tw-rounded-2xl tw-py-12 tw-flex tw-flex-col tw-items-center tw-gap-2 tw-text-center" style={{ boxShadow: "0 1px 2px rgba(0,0,0,0.04)" }}>
-            <span className="tw-text-ink-subtle"><IconMapPin size={32} /></span>
-            <p className="tw-text-[15px] tw-font-semibold tw-text-ink tw-mt-1">Nenhuma sessão ainda</p>
-            <p className="tw-text-[13px] tw-text-ink-subtle">Inicie uma atividade acima — ela aparece aqui ao encerrar.</p>
-          </div>
+          <Card>
+            <div className="tr-empty">
+              Nenhuma atividade registrada ainda. Sua primeira caminhada, corrida ou pedal aparece
+              aqui assim que a sessão terminar.
+            </div>
+          </Card>
         ) : (
-          <div className="tw-bg-white tw-rounded-2xl tw-px-6" style={{ boxShadow: "0 1px 2px rgba(0,0,0,0.04)" }}>
-            {activities.map((activity, idx) => (
-              <TimelineRow
-                key={activity.id}
-                activity={activity}
-                onDelete={() => deleteActivity(activity.id)}
-                isLast={idx === activities.length - 1}
-              />
-            ))}
+          <div className="tr-timeline-list">
+            {activities.map((activity) => {
+              const signal = getPerformanceSignal(activity);
+              const dotClass =
+                signal.score >= 75
+                  ? "tr-score-dot tr-score-dot--good"
+                  : signal.score >= 50
+                    ? "tr-score-dot tr-score-dot--mid"
+                    : "tr-score-dot tr-score-dot--weak";
+              const tagClass =
+                signal.tag === "Intenso"
+                  ? "tr-score-tag tr-score-tag--intenso"
+                  : signal.tag === "Bom"
+                    ? "tr-score-tag tr-score-tag--bom"
+                    : "tr-score-tag tr-score-tag--leve";
+              const isMapExpanded = expandedMapId === activity.id;
+
+              // Compute derived metrics for legacy activities (no persisted fields)
+              const calories =
+                activity.calories ?? estimateCalories(activity.type, activity.duration, activity.distance);
+              const intensity =
+                activity.intensity ?? classifyIntensity(activity.type, activity.pace);
+
+              return (
+                <Card key={activity.id} className="tr-timeline-item">
+                  <div className="tr-timeline-head">
+                    <div className="tr-timeline-meta">
+                      <div className="tr-timeline-icon">
+                        <ActivityIcon type={activity.type} size={22} />
+                      </div>
+                      <div className="tr-timeline-info">
+                        <div className="tr-timeline-name-row">
+                          <span className="tr-timeline-name">
+                            {ACTIVITY_META[activity.type].label}
+                            {" · "}
+                            {new Date(activity.startTime).toLocaleDateString("pt-BR")}
+                          </span>
+                          {/* Validation flag badge */}
+                          {activity.validationFlag && (
+                            <span className="tr-validation-flag-badge">Confirmado manualmente</span>
+                          )}
+                        </div>
+
+                        {/* Score row */}
+                        <div className="tr-timeline-score-row">
+                          <div className={dotClass} />
+                          <span className="tr-score-number">{signal.score}</span>
+                          <span className={tagClass}>{signal.tag}</span>
+                          <IntensityChip level={intensity} />
+                        </div>
+
+                        {/* Stats */}
+                        <div className="tr-timeline-stats">
+                          <span>{formatTime(activity.duration)}</span>
+                          <span>{activity.distance.toFixed(2)} km</span>
+                          <span>{formatPace(activity.pace)} min/km</span>
+                          <span>{calories} kcal</span>
+                        </div>
+
+                        <div className="tr-timeline-insight">{signal.insight}</div>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => deleteActivity(activity.id)}
+                      className="tr-delete-button"
+                    >
+                      Excluir
+                    </button>
+                  </div>
+
+                  {activity.routeCoordinates && activity.routeCoordinates.length > 0 ? (
+                    <div style={{ display: "grid", gap: 10 }}>
+                      <button
+                        type="button"
+                        onClick={() => setExpandedMapId(isMapExpanded ? null : activity.id)}
+                        className="tr-map-toggle"
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="tr-map-toggle-icon">
+                          <path d="M3 7l6-3 6 3 6-3v13l-6 3-6-3-6 3V7z" />
+                          <path d="M9 4v13M15 7v13" />
+                        </svg>
+                        {isMapExpanded ? "Ocultar rota" : "Ver rota"}
+                      </button>
+                      {isMapExpanded && <HistoryMapViewer coordinates={activity.routeCoordinates} />}
+                    </div>
+                  ) : (
+                    <div className="tr-no-route">Sem pontos de rota registrados nesta sessão.</div>
+                  )}
+                </Card>
+              );
+            })}
           </div>
         )}
-      </div>
 
-      {/* ④ Qualidade de movimento (IA) — teaser discreto */}
-      <div className="tw-flex tw-items-start tw-justify-between tw-gap-4 tw-flex-wrap tw-py-5 tw-px-6 tw-bg-white tw-rounded-2xl" style={{ boxShadow: "0 1px 2px rgba(0,0,0,0.04)" }}>
-        <div className="tw-flex tw-items-start tw-gap-3">
-          <span className="tw-text-ink-subtle tw-mt-0.5"><IconBrain size={16} /></span>
-          <div>
-            <span className="tw-text-[14px] tw-font-semibold tw-text-ink">Qualidade de movimento</span>
-            <p className="tw-text-[13px] tw-text-ink-muted tw-mt-0.5 tw-leading-relaxed">
-              Análise de postura e amplitude em tempo real via câmera. Integra com o Lab de Movimento.
-            </p>
-          </div>
-        </div>
-        <span className="tw-flex-shrink-0 tw-rounded-full tw-px-2.5 tw-py-1 tw-text-[11px] tw-font-semibold tw-bg-canvas tw-border tw-border-divider tw-text-ink-subtle">
-          Em breve
-        </span>
+        {activities.length > 0 && <WeekSparkline activities={activities} />}
       </div>
-
     </div>
   );
 }

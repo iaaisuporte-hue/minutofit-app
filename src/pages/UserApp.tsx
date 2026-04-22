@@ -53,7 +53,6 @@ export default function UserApp() {
   const navigate = useNavigate();
   const { logout } = useAuth();
   const { hasFeature, loading } = useFeatureFlags();
-  const canTracker = hasFeature("tracker");
   const canMessages = hasFeature("messages");
   const canProfile = hasFeature("profile");
   const canTrainingAi = hasFeature("training_ai");

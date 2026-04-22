@@ -1,33 +1,66 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { COLORS } from "../../styles/colors";
+import "./movementLab.css";
+import {
+  EXERCISE_CATALOG,
+  EXERCISE_GROUPS,
+  avgAngles,
+  type ExerciseId,
+  type ExerciseCategory,
+  type PoseLandmark,
+  type Stage,
+} from "./lib/exerciseRules";
+import {
+  computeFormScore,
+  computeSymmetry,
+  generateInsight,
+  rankCorrections,
+  scoreToTone,
+  type Correction,
+} from "./lib/movementAnalytics";
+import {
+  assessContext,
+  assessInactive,
+  assessOutOfFrame,
+  assessPartialReps,
+  handleDeviceMotion,
+  isDeviceMoving,
+  type ContextAssessment,
+} from "./lib/motionContext";
+
+// ── Types ────────────────────────────────────────────────────
 
 type CameraStatus = "idle" | "loading" | "ready" | "error";
-type Stage = "down" | "up";
-type ExerciseMode = "biceps_curl" | "shoulder_press" | "squat";
+type CalibrationState = "idle" | "countdown" | "tracking" | "paused";
 
-type PoseLandmark = {
-  x: number;
-  y: number;
-  z?: number;
-  visibility?: number;
-};
-
-type PoseResult = {
-  poseLandmarks?: PoseLandmark[];
-};
-
-type CurlAnalysis = {
+type AnalysisState = {
   leftAngle: number | null;
   rightAngle: number | null;
   repCount: number;
   stage: Stage;
-  feedback: string[];
+  feedback: Correction[];
   confidence: "low" | "medium" | "high";
+  formScore: number;
+  symmetry: number;
 };
 
-type MovementAnalysis = CurlAnalysis & {
-  label: string;
+type MovementSession = {
+  id: string;
+  exerciseId: ExerciseId;
+  exerciseLabel: string;
+  timestamp: number;
+  repCount: number;
+  avgFormScore: number;
+  bestRepScore: number;
+  worstRepScore: number;
+  avgSymmetry: number;
+  insight: string;
 };
+
+type SessionSummaryData = MovementSession & {
+  repScores: number[];
+};
+
+// ── Globals (MediaPipe loaded via CDN) ───────────────────────
 
 declare global {
   interface Window {
@@ -39,85 +72,41 @@ declare global {
   }
 }
 
+// ── Constants ────────────────────────────────────────────────
+
 const MEDIAPIPE_SCRIPTS = [
   "https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js",
   "https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js",
   "https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js",
 ];
 
-function Card({
-  children,
-  style,
-}: {
-  children: React.ReactNode;
-  style?: React.CSSProperties;
-}) {
-  return (
-    <div
-      style={{
-        border: `1px solid ${COLORS.border}`,
-        borderRadius: 20,
-        background: COLORS.panel,
-        boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.05)",
-        padding: 18,
-        ...style,
-      }}
-    >
-      {children}
-    </div>
-  );
-}
+const STORAGE_KEY = "minutofit:movement:sessions";
 
-function SectionTitle({
-  eyebrow,
-  title,
-  subtitle,
-}: {
-  eyebrow?: string;
-  title: string;
-  subtitle?: string;
-}) {
-  return (
-    <div style={{ display: "grid", gap: 8 }}>
-      {eyebrow ? (
-        <div
-          style={{
-            display: "inline-flex",
-            width: "fit-content",
-            alignItems: "center",
-            gap: 8,
-            borderRadius: 999,
-            background: COLORS.highlightSoft,
-            color: COLORS.lime,
-            padding: "8px 12px",
-            fontSize: 11,
-            fontWeight: 600,
-            letterSpacing: 1.2,
-            textTransform: "uppercase",
-          }}
-        >
-          {eyebrow}
-        </div>
-      ) : null}
-      <div style={{ fontSize: 30, fontWeight: 700, color: COLORS.text }}>{title}</div>
-      {subtitle ? <div style={{ color: COLORS.muted, lineHeight: 1.6 }}>{subtitle}</div> : null}
-    </div>
-  );
-}
+// Skeleton colors by form score range (must be literal values, not CSS vars)
+const SKELETON_COLOR_HIGH = "#22C55E";
+const SKELETON_COLOR_MID = "#F59E0B";
+const SKELETON_COLOR_LOW = "#DC2626";
 
-function loadScript(src: string) {
-  return new Promise<void>((resolve, reject) => {
-    const existing = document.querySelector(`script[src="${src}"]`) as HTMLScriptElement | null;
+// ── Helpers ──────────────────────────────────────────────────
+
+function loadScript(src: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const existing = document.querySelector(
+      `script[src="${src}"]`
+    ) as HTMLScriptElement | null;
     if (existing) {
       if (existing.dataset.loaded === "true") {
         resolve();
         return;
       }
       existing.addEventListener("load", () => resolve(), { once: true });
-      existing.addEventListener("error", () => reject(new Error(`Failed to load ${src}`)), { once: true });
+      existing.addEventListener(
+        "error",
+        () => reject(new Error(`Failed to load ${src}`)),
+        { once: true }
+      );
       return;
     }
-
     const script = document.createElement("script");
     script.src = src;
     script.async = true;
@@ -130,311 +119,196 @@ function loadScript(src: string) {
   });
 }
 
-function angleBetween(
-  first: PoseLandmark,
-  mid: PoseLandmark,
-  last: PoseLandmark
+function loadHistory(): MovementSession[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? (JSON.parse(raw) as MovementSession[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveHistory(sessions: MovementSession[]): void {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions.slice(-30)));
+  } catch {
+    // storage might be unavailable
+  }
+}
+
+function skeletonColor(formScore: number, confidence: string): string {
+  if (confidence === "low") return SKELETON_COLOR_HIGH;
+  if (formScore >= 80) return SKELETON_COLOR_HIGH;
+  if (formScore >= 60) return SKELETON_COLOR_MID;
+  return SKELETON_COLOR_LOW;
+}
+
+function drawAngleLabel(
+  ctx: CanvasRenderingContext2D,
+  lm: PoseLandmark,
+  canvasW: number,
+  canvasH: number,
+  angle: number | null,
+  side: string
 ) {
-  const radians =
-    Math.atan2(last.y - mid.y, last.x - mid.x) -
-    Math.atan2(first.y - mid.y, first.x - mid.x);
-  let degrees = Math.abs((radians * 180) / Math.PI);
-  if (degrees > 180) {
-    degrees = 360 - degrees;
-  }
-  return degrees;
+  if (angle === null) return;
+  const x = lm.x * canvasW;
+  const y = lm.y * canvasH;
+  const text = `${angle}° ${side}`;
+  ctx.save();
+  ctx.font = "bold 12px system-ui, sans-serif";
+  ctx.textAlign = "center";
+  const tw = ctx.measureText(text).width;
+  ctx.fillStyle = "rgba(0,0,0,0.55)";
+  ctx.fillRect(x - tw / 2 - 5, y - 28, tw + 10, 18);
+  ctx.fillStyle = "rgba(255,255,255,0.92)";
+  ctx.fillText(text, x, y - 15);
+  ctx.restore();
 }
 
-function average(values: Array<number | null>) {
-  const valid = values.filter((value): value is number => typeof value === "number");
-  if (!valid.length) {
-    return null;
-  }
-  return valid.reduce((sum, value) => sum + value, 0) / valid.length;
+// ── Sparkline ────────────────────────────────────────────────
+
+function Sparkline({ scores }: { scores: number[] }) {
+  if (scores.length < 2) return null;
+  const h = 36;
+  const barW = 12;
+  const gap = 4;
+  const w = scores.length * (barW + gap) - gap;
+  return (
+    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} aria-hidden>
+      {scores.map((s, i) => {
+        const barH = Math.max(4, Math.round((s / 100) * h));
+        const color =
+          s >= 80
+            ? SKELETON_COLOR_HIGH
+            : s >= 60
+              ? SKELETON_COLOR_MID
+              : SKELETON_COLOR_LOW;
+        return (
+          <rect
+            key={i}
+            x={i * (barW + gap)}
+            y={h - barH}
+            width={barW}
+            height={barH}
+            fill={color}
+            rx="3"
+            opacity="0.85"
+          />
+        );
+      })}
+    </svg>
+  );
 }
 
-function buildCurlFeedback(
-  landmarks: PoseLandmark[],
-  leftAngle: number | null,
-  rightAngle: number | null
-) {
-  const feedback = new Set<string>();
+// ── Initial analysis ─────────────────────────────────────────
 
-  const leftShoulder = landmarks[11];
-  const rightShoulder = landmarks[12];
-  const leftElbow = landmarks[13];
-  const rightElbow = landmarks[14];
-  const leftWrist = landmarks[15];
-  const rightWrist = landmarks[16];
-  const leftHip = landmarks[23];
-  const rightHip = landmarks[24];
-
-  if (!leftShoulder || !rightShoulder || !leftElbow || !rightElbow || !leftWrist || !rightWrist || !leftHip || !rightHip) {
-    feedback.add("Posicione o corpo inteiro dentro da câmera.");
-    return Array.from(feedback);
-  }
-
-  const torsoCenterX = (leftShoulder.x + rightShoulder.x + leftHip.x + rightHip.x) / 4;
-  const shoulderCenterX = (leftShoulder.x + rightShoulder.x) / 2;
-  if (Math.abs(torsoCenterX - shoulderCenterX) > 0.06) {
-    feedback.add("Evite balançar o tronco durante a rosca.");
-  }
-
-  const leftElbowDrift = Math.abs(leftElbow.x - leftHip.x);
-  const rightElbowDrift = Math.abs(rightElbow.x - rightHip.x);
-  if (leftElbowDrift > 0.13 || rightElbowDrift > 0.13) {
-    feedback.add("Mantenha os cotovelos mais próximos do tronco.");
-  }
-
-  const leftWristTravel = Math.abs(leftWrist.x - leftElbow.x);
-  const rightWristTravel = Math.abs(rightWrist.x - rightElbow.x);
-  if (leftWristTravel > 0.18 || rightWristTravel > 0.18) {
-    feedback.add("Controle o punho e evite abrir demais os braços.");
-  }
-
-  const avgAngle = average([leftAngle, rightAngle]);
-  if (avgAngle !== null && avgAngle > 135) {
-    feedback.add("Suba mais o movimento para fechar melhor a rosca.");
-  }
-
-  if (!feedback.size) {
-    feedback.add("Execução estável. Continue controlando o tempo da repetição.");
-  }
-
-  return Array.from(feedback);
-}
-
-function buildShoulderPressFeedback(
-  landmarks: PoseLandmark[],
-  leftAngle: number | null,
-  rightAngle: number | null
-) {
-  const feedback = new Set<string>();
-
-  const leftShoulder = landmarks[11];
-  const rightShoulder = landmarks[12];
-  const leftElbow = landmarks[13];
-  const rightElbow = landmarks[14];
-  const leftWrist = landmarks[15];
-  const rightWrist = landmarks[16];
-  const leftHip = landmarks[23];
-  const rightHip = landmarks[24];
-
-  if (!leftShoulder || !rightShoulder || !leftElbow || !rightElbow || !leftWrist || !rightWrist || !leftHip || !rightHip) {
-    feedback.add("Ajuste a câmera para mostrar braços e tronco inteiros.");
-    return Array.from(feedback);
-  }
-
-  const hipDrift = Math.abs(((leftShoulder.x + rightShoulder.x) / 2) - ((leftHip.x + rightHip.x) / 2));
-  if (hipDrift > 0.08) {
-    feedback.add("Evite compensar com a lombar. Mantenha o tronco mais neutro.");
-  }
-
-  const leftWristOverElbow = leftWrist.y < leftElbow.y;
-  const rightWristOverElbow = rightWrist.y < rightElbow.y;
-  if (!(leftWristOverElbow || rightWristOverElbow)) {
-    feedback.add("Leve as mãos mais acima da linha dos ombros na subida.");
-  }
-
-  if (leftWristOverElbow !== rightWristOverElbow) {
-    feedback.add("A subida está assimétrica. Evite levantar apenas um braço.");
-  }
-
-  const leftElbowWidth = Math.abs(leftElbow.x - leftShoulder.x);
-  const rightElbowWidth = Math.abs(rightElbow.x - rightShoulder.x);
-  if (leftElbowWidth > 0.2 || rightElbowWidth > 0.2) {
-    feedback.add("Não abra demais os cotovelos. Procure uma linha mais estável.");
-  }
-
-  if (leftAngle !== null && rightAngle !== null && Math.abs(leftAngle - rightAngle) > 18) {
-    feedback.add("Os braços não estão subindo juntos. Tente manter a mesma amplitude nos dois lados.");
-  }
-
-  const avgAngle = average([leftAngle, rightAngle]);
-  if (avgAngle !== null && avgAngle < 60) {
-    feedback.add("Desça um pouco mais para ganhar amplitude no desenvolvimento.");
-  }
-
-  if (!feedback.size) {
-    feedback.add("Boa linha de subida. Continue estabilizando punhos e tronco.");
-  }
-
-  return Array.from(feedback);
-}
-
-function buildSquatFeedback(
-  landmarks: PoseLandmark[],
-  leftAngle: number | null,
-  rightAngle: number | null
-) {
-  const feedback = new Set<string>();
-
-  const leftShoulder = landmarks[11];
-  const rightShoulder = landmarks[12];
-  const leftHip = landmarks[23];
-  const rightHip = landmarks[24];
-  const leftKnee = landmarks[25];
-  const rightKnee = landmarks[26];
-  const leftAnkle = landmarks[27];
-  const rightAnkle = landmarks[28];
-
-  if (!leftShoulder || !rightShoulder || !leftHip || !rightHip || !leftKnee || !rightKnee || !leftAnkle || !rightAnkle) {
-    feedback.add("Ajuste a câmera para enquadrar quadril, joelhos e tornozelos.");
-    return Array.from(feedback);
-  }
-
-  const avgKneeAngle = average([leftAngle, rightAngle]);
-  if (avgKneeAngle !== null && avgKneeAngle > 125) {
-    feedback.add("Desça um pouco mais se estiver confortável para melhorar a amplitude.");
-  }
-
-  const torsoLeanLeft = Math.abs(leftShoulder.x - leftHip.x);
-  const torsoLeanRight = Math.abs(rightShoulder.x - rightHip.x);
-  if (torsoLeanLeft > 0.14 || torsoLeanRight > 0.14) {
-    feedback.add("Evite inclinar demais o tronco. Tente manter o peito mais aberto.");
-  }
-
-  const leftKneeInside = leftKnee.x > leftAnkle.x + 0.03;
-  const rightKneeInside = rightKnee.x < rightAnkle.x - 0.03;
-  if (leftKneeInside || rightKneeInside) {
-    feedback.add("Empurre os joelhos levemente para fora para evitar valgo dinâmico.");
-  }
-
-  if (!feedback.size) {
-    feedback.add("Agachamento estável. Continue controlando joelhos e tronco.");
-  }
-
-  return Array.from(feedback);
-}
-
-function buildAnalysisForExercise(
-  exerciseMode: ExerciseMode,
-  landmarks: PoseLandmark[],
-  repCount: number,
-  stage: Stage,
-  confidence: "low" | "medium" | "high"
-): MovementAnalysis {
-  if (exerciseMode === "squat") {
-    const leftAngle = angleBetween(landmarks[23], landmarks[25], landmarks[27]);
-    const rightAngle = angleBetween(landmarks[24], landmarks[26], landmarks[28]);
-    return {
-      label: "Agachamento",
-      leftAngle: Number.isFinite(leftAngle) ? Math.round(leftAngle) : null,
-      rightAngle: Number.isFinite(rightAngle) ? Math.round(rightAngle) : null,
-      repCount,
-      stage,
-      feedback: buildSquatFeedback(landmarks, leftAngle, rightAngle),
-      confidence,
-    };
-  }
-
-  if (exerciseMode === "shoulder_press") {
-    const leftAngle = angleBetween(landmarks[11], landmarks[13], landmarks[15]);
-    const rightAngle = angleBetween(landmarks[12], landmarks[14], landmarks[16]);
-    return {
-      label: "Desenvolvimento de Ombros",
-      leftAngle: Number.isFinite(leftAngle) ? Math.round(leftAngle) : null,
-      rightAngle: Number.isFinite(rightAngle) ? Math.round(rightAngle) : null,
-      repCount,
-      stage,
-      feedback: buildShoulderPressFeedback(landmarks, leftAngle, rightAngle),
-      confidence,
-    };
-  }
-
-  const leftAngle = angleBetween(landmarks[11], landmarks[13], landmarks[15]);
-  const rightAngle = angleBetween(landmarks[12], landmarks[14], landmarks[16]);
+function makeInitialAnalysis(): AnalysisState {
   return {
-    label: "Rosca Direta",
-    leftAngle: Number.isFinite(leftAngle) ? Math.round(leftAngle) : null,
-    rightAngle: Number.isFinite(rightAngle) ? Math.round(rightAngle) : null,
-    repCount,
-    stage,
-    feedback: buildCurlFeedback(landmarks, leftAngle, rightAngle),
-    confidence,
-  };
-}
-
-export default function MovementLabPage() {
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const poseRef = useRef<any>(null);
-  const cameraRef = useRef<any>(null);
-  const stageRef = useRef<Stage>("down");
-  const repCountRef = useRef(0);
-  const lastRepAtRef = useRef(0);
-
-  const [exerciseMode, setExerciseMode] = useState<ExerciseMode>("biceps_curl");
-  const [cameraStatus, setCameraStatus] = useState<CameraStatus>("idle");
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [analysis, setAnalysis] = useState<MovementAnalysis>({
-    label: "Rosca Direta",
     leftAngle: null,
     rightAngle: null,
     repCount: 0,
     stage: "down",
-    feedback: ["Permita o acesso à câmera e fique de frente para o celular ou notebook."],
+    feedback: [],
     confidence: "low",
-  });
+    formScore: 0,
+    symmetry: 0,
+  };
+}
 
-  const confidenceVisual = useMemo(() => {
-    if (analysis.confidence === "high") {
-      return { bg: COLORS.primarySoft, border: COLORS.borderStrong, color: COLORS.lime, label: "Leitura boa" };
-    }
-    if (analysis.confidence === "medium") {
-      return { bg: COLORS.yellowSoft, border: COLORS.yellowBorder, color: "#FFD36C", label: "Leitura razoável" };
-    }
-    return { bg: COLORS.redSoft, border: COLORS.redBorder, color: "#FFB4B4", label: "Ajuste a câmera" };
-  }, [analysis.confidence]);
+// ── Main component ───────────────────────────────────────────
 
-  const metricLabels = useMemo(() => {
-    if (exerciseMode === "shoulder_press") {
-      return {
-        left: "Braco esquerdo",
-        right: "Braco direito",
-        stageUp: "Press",
-        stageDown: "Base",
-      };
-    }
+export default function MovementLabPage() {
+  // ── State ──────────────────────────────────────────────────
+  const [exerciseId, setExerciseId] = useState<ExerciseId>("biceps_curl");
+  const [activeCategory, setActiveCategory] =
+    useState<ExerciseCategory>("gym");
+  const [cameraStatus, setCameraStatus] = useState<CameraStatus>("idle");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [calibrationState, setCalibrationState] =
+    useState<CalibrationState>("idle");
+  const [countdown, setCountdown] = useState(3);
+  const [analysis, setAnalysis] = useState<AnalysisState>(
+    makeInitialAnalysis()
+  );
+  const [repPulse, setRepPulse] = useState(false);
+  const [coachingKey, setCoachingKey] = useState(0);
+  const [seriesQuality, setSeriesQuality] = useState(0);
+  const [contextWarning, setContextWarning] =
+    useState<ContextAssessment | null>(null);
+  const [sessionSummary, setSessionSummary] =
+    useState<SessionSummaryData | null>(null);
+  const [history, setHistory] = useState<MovementSession[]>(loadHistory);
 
-    if (exerciseMode === "squat") {
-      return {
-        left: "Joelho esquerdo",
-        right: "Joelho direito",
-        stageUp: "Subida",
-        stageDown: "Descida",
-      };
-    }
+  // ── Refs (accessed inside callbacks without stale closures) ─
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const poseRef = useRef<any>(null);
+  const cameraRef = useRef<any>(null);
 
-    return {
-      left: "Cotovelo esquerdo",
-      right: "Cotovelo direito",
-      stageUp: "Subida",
-      stageDown: "Descida",
-    };
-  }, [exerciseMode]);
+  const exerciseIdRef = useRef<ExerciseId>(exerciseId);
+  const stageRef = useRef<Stage>("down");
+  const repCountRef = useRef(0);
+  const lastRepAtRef = useRef(0);
 
+  const calibrationStateRef = useRef<CalibrationState>("idle");
+  const countdownValueRef = useRef(3);
+  const countdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(
+    null
+  );
+  const lastHighConfidenceRef = useRef<number>(0);
+
+  const repScoresRef = useRef<number[]>([]);
+  const repSymmetriesRef = useRef<number[]>([]);
+  const repAmplitudesRef = useRef<number[]>([]);
+  const repMinAngleRef = useRef<number | null>(null);
+  const repMaxAngleRef = useRef<number | null>(null);
+  const firstRepAtRef = useRef<number>(0);
+
+  const frameCountRef = useRef(0);
+  const angleHistoryRef = useRef<number[]>([]);
+  const prevCoachingMsgRef = useRef<string>("");
+  const repPulseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const formScoreRef = useRef(0);
+
+  // ── Sync exerciseIdRef when state changes ──────────────────
   useEffect(() => {
-    repCountRef.current = 0;
+    exerciseIdRef.current = exerciseId;
+    // Reset all per-series state when exercise changes
     stageRef.current = "down";
+    repCountRef.current = 0;
     lastRepAtRef.current = 0;
-    setAnalysis((current) => ({
-      ...current,
-      label:
-        exerciseMode === "biceps_curl"
-          ? "Rosca Direta"
-          : exerciseMode === "shoulder_press"
-            ? "Desenvolvimento de Ombros"
-            : "Agachamento",
-      leftAngle: null,
-      rightAngle: null,
-      repCount: 0,
-      stage: "down",
-      feedback: ["Preparando leitura do novo exercício..."],
-      confidence: "low",
-    }));
-  }, [exerciseMode]);
+    repScoresRef.current = [];
+    repSymmetriesRef.current = [];
+    repAmplitudesRef.current = [];
+    repMinAngleRef.current = null;
+    repMaxAngleRef.current = null;
+    firstRepAtRef.current = 0;
+    angleHistoryRef.current = [];
+    formScoreRef.current = 0;
+    prevCoachingMsgRef.current = "";
 
+    // Stop countdown if running
+    if (countdownIntervalRef.current) {
+      clearInterval(countdownIntervalRef.current);
+      countdownIntervalRef.current = null;
+    }
+
+    calibrationStateRef.current = "idle";
+    setCalibrationState("idle");
+    setCountdown(3);
+    setAnalysis(makeInitialAnalysis());
+    setSeriesQuality(0);
+    setContextWarning(null);
+  }, [exerciseId]);
+
+  // ── Device motion (once on mount) ─────────────────────────
+  useEffect(() => {
+    window.addEventListener("devicemotion", handleDeviceMotion);
+    return () => window.removeEventListener("devicemotion", handleDeviceMotion);
+  }, []);
+
+  // ── Camera initialization (once on mount) ─────────────────
   useEffect(() => {
     let cancelled = false;
 
@@ -442,23 +316,26 @@ export default function MovementLabPage() {
       try {
         setCameraStatus("loading");
         setErrorMessage(null);
-        await Promise.all(MEDIAPIPE_SCRIPTS.map((src) => loadScript(src)));
+        await Promise.all(MEDIAPIPE_SCRIPTS.map(loadScript));
         if (cancelled) return;
 
         const videoElement = videoRef.current;
         const canvasElement = canvasRef.current;
-
-        if (!videoElement || !canvasElement || !window.Pose || !window.Camera) {
-          throw new Error("Nao foi possivel preparar a webcam ou o MediaPipe.");
+        if (
+          !videoElement ||
+          !canvasElement ||
+          !window.Pose ||
+          !window.Camera
+        ) {
+          throw new Error("Não foi possível preparar a webcam ou o MediaPipe.");
         }
 
         const ctx = canvasElement.getContext("2d");
-        if (!ctx) {
-          throw new Error("Nao foi possivel preparar o canvas de desenho.");
-        }
+        if (!ctx) throw new Error("Não foi possível preparar o canvas.");
 
         const pose = new window.Pose({
-          locateFile: (file: string) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`,
+          locateFile: (file: string) =>
+            `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`,
         });
 
         pose.setOptions({
@@ -469,125 +346,285 @@ export default function MovementLabPage() {
           minTrackingConfidence: 0.6,
         });
 
-        pose.onResults((results: PoseResult) => {
+        pose.onResults((results: { poseLandmarks?: PoseLandmark[]; image?: any }) => {
+          const canvasEl = canvasRef.current;
+          if (!canvasEl) return;
+          const cw = canvasEl.width;
+          const ch = canvasEl.height;
+
           ctx.save();
-          ctx.clearRect(0, 0, canvasElement.width, canvasElement.height);
-          if ((results as any).image) {
-            ctx.drawImage((results as any).image, 0, 0, canvasElement.width, canvasElement.height);
+          ctx.clearRect(0, 0, cw, ch);
+          if (results.image) {
+            ctx.drawImage(results.image, 0, 0, cw, ch);
           }
 
-          const landmarks = results.poseLandmarks || [];
-          if (landmarks.length && window.drawConnectors && window.drawLandmarks && window.POSE_CONNECTIONS) {
+          const landmarks = results.poseLandmarks ?? [];
+          const hasLandmarks = landmarks.length >= 25;
+
+          // ── Determine confidence ───────────────────────────
+          let confidence: "low" | "medium" | "high" = "low";
+          if (hasLandmarks) {
+            const vis = avgAngles([
+              landmarks[11]?.visibility ?? null,
+              landmarks[12]?.visibility ?? null,
+              landmarks[13]?.visibility ?? null,
+              landmarks[14]?.visibility ?? null,
+            ]);
+            confidence =
+              vis && vis > 0.8
+                ? "high"
+                : vis && vis > 0.55
+                  ? "medium"
+                  : "low";
+          }
+
+          // ── Skeleton color from live form score ────────────
+          const color = skeletonColor(formScoreRef.current, confidence);
+
+          if (
+            hasLandmarks &&
+            window.drawConnectors &&
+            window.drawLandmarks &&
+            window.POSE_CONNECTIONS
+          ) {
             window.drawConnectors(ctx, landmarks, window.POSE_CONNECTIONS, {
-              color: "#22C55E",
+              color,
               lineWidth: 4,
             });
             window.drawLandmarks(ctx, landmarks, {
-              color: "#22C55E",
+              color,
               lineWidth: 1,
               radius: 4,
             });
           }
 
-          if (landmarks.length >= 25) {
-            const leftAngle =
-              exerciseMode === "squat"
-                ? angleBetween(landmarks[23], landmarks[25], landmarks[27])
-                : angleBetween(landmarks[11], landmarks[13], landmarks[15]);
-            const rightAngle =
-              exerciseMode === "squat"
-                ? angleBetween(landmarks[24], landmarks[26], landmarks[28])
-                : angleBetween(landmarks[12], landmarks[14], landmarks[16]);
-            const avgAngle = average([leftAngle, rightAngle]);
-            let nextStage = stageRef.current;
+          const rule = EXERCISE_CATALOG[exerciseIdRef.current];
 
-            const now = Date.now();
-            const cooldownMs = 900;
+          if (hasLandmarks) {
+            // ── Angles ────────────────────────────────────────
+            const { left: leftAngle, right: rightAngle } =
+              rule.detectAngles(landmarks);
+            const av = avgAngles([leftAngle, rightAngle]);
 
-            if (avgAngle !== null) {
-              if (exerciseMode === "squat") {
-                const kneesBalanced = leftAngle !== null && rightAngle !== null && Math.abs(leftAngle - rightAngle) < 18;
-                if (avgAngle > 155 && kneesBalanced) {
-                  nextStage = "down";
-                }
-                if (
-                  avgAngle < 95 &&
-                  kneesBalanced &&
-                  stageRef.current === "down" &&
-                  now - lastRepAtRef.current > cooldownMs
-                ) {
-                  nextStage = "up";
-                  repCountRef.current += 1;
-                  lastRepAtRef.current = now;
-                }
-              } else if (exerciseMode === "shoulder_press") {
-                const balancedPress = leftAngle !== null && rightAngle !== null && Math.abs(leftAngle - rightAngle) < 16;
-                const bothAtBottom =
-                  leftAngle !== null &&
-                  rightAngle !== null &&
-                  leftAngle < 95 &&
-                  rightAngle < 95;
-                const bothAtTop =
-                  leftAngle !== null &&
-                  rightAngle !== null &&
-                  leftAngle > 150 &&
-                  rightAngle > 150;
-
-                if (bothAtBottom && balancedPress) {
-                  nextStage = "down";
-                }
-                if (
-                  bothAtTop &&
-                  balancedPress &&
-                  stageRef.current === "down" &&
-                  now - lastRepAtRef.current > cooldownMs
-                ) {
-                  nextStage = "up";
-                  repCountRef.current += 1;
-                  lastRepAtRef.current = now;
-                }
-              } else {
-                const balancedCurl = leftAngle !== null && rightAngle !== null && Math.abs(leftAngle - rightAngle) < 20;
-                if (avgAngle > 150 && balancedCurl) {
-                  nextStage = "down";
-                }
-                if (
-                  avgAngle < 55 &&
-                  balancedCurl &&
-                  stageRef.current === "down" &&
-                  now - lastRepAtRef.current > cooldownMs
-                ) {
-                  nextStage = "up";
-                  repCountRef.current += 1;
-                  lastRepAtRef.current = now;
-                }
+            // Draw angle labels on primary joints
+            if (confidence !== "low") {
+              const [lIdx, rIdx] = rule.primaryJoints;
+              if (landmarks[lIdx] && leftAngle !== null) {
+                drawAngleLabel(ctx, landmarks[lIdx], cw, ch, leftAngle, "E");
+              }
+              if (landmarks[rIdx] && rightAngle !== null) {
+                drawAngleLabel(ctx, landmarks[rIdx], cw, ch, rightAngle, "D");
               }
             }
 
-            stageRef.current = nextStage;
-            const visibility = average([
-              landmarks[11]?.visibility ?? null,
-              landmarks[12]?.visibility ?? null,
-              landmarks[13]?.visibility ?? null,
-              landmarks[14]?.visibility ?? null,
-              landmarks[15]?.visibility ?? null,
-              landmarks[16]?.visibility ?? null,
-            ]);
+            // ── Calibration state machine ─────────────────────
+            const calState = calibrationStateRef.current;
+            if (confidence === "high") {
+              lastHighConfidenceRef.current = Date.now();
+              if (calState === "idle") {
+                // Start 3-2-1 countdown
+                calibrationStateRef.current = "countdown";
+                setCalibrationState("countdown");
+                countdownValueRef.current = 3;
+                setCountdown(3);
+                if (countdownIntervalRef.current)
+                  clearInterval(countdownIntervalRef.current);
+                countdownIntervalRef.current = setInterval(() => {
+                  countdownValueRef.current--;
+                  setCountdown(countdownValueRef.current);
+                  if (countdownValueRef.current <= 0) {
+                    clearInterval(countdownIntervalRef.current!);
+                    countdownIntervalRef.current = null;
+                    calibrationStateRef.current = "tracking";
+                    setCalibrationState("tracking");
+                  }
+                }, 1000);
+              } else if (calState === "paused") {
+                // Resume immediately (no countdown)
+                calibrationStateRef.current = "tracking";
+                setCalibrationState("tracking");
+              }
+            } else if (
+              calState === "tracking" &&
+              Date.now() - lastHighConfidenceRef.current > 4000
+            ) {
+              // Pose lost for 4s → pause
+              calibrationStateRef.current = "paused";
+              setCalibrationState("paused");
+            } else if (
+              calState === "countdown" &&
+              Date.now() - lastHighConfidenceRef.current > 1500
+            ) {
+              // Confidence dropped during countdown → cancel
+              if (countdownIntervalRef.current) {
+                clearInterval(countdownIntervalRef.current);
+                countdownIntervalRef.current = null;
+              }
+              calibrationStateRef.current = "idle";
+              setCalibrationState("idle");
+            }
 
-            setAnalysis(
-              buildAnalysisForExercise(
-                exerciseMode,
-                landmarks,
-                repCountRef.current,
-                nextStage,
-                visibility && visibility > 0.8 ? "high" : visibility && visibility > 0.55 ? "medium" : "low"
-              )
+            // ── Rep counting (only when tracking) ─────────────
+            const isTracking = calibrationStateRef.current === "tracking";
+            let nextStage = stageRef.current;
+            let repCounted = false;
+
+            if (isTracking && av !== null) {
+              // Track angle range for this rep
+              if (repMinAngleRef.current === null || av < repMinAngleRef.current)
+                repMinAngleRef.current = av;
+              if (repMaxAngleRef.current === null || av > repMaxAngleRef.current)
+                repMaxAngleRef.current = av;
+
+              const transition = rule.detectRep({
+                avgAngle: av,
+                leftAngle,
+                rightAngle,
+                stage: stageRef.current,
+                lastRepAt: lastRepAtRef.current,
+              });
+              nextStage = transition.nextStage;
+              repCounted = transition.counted;
+
+              if (repCounted) {
+                repCountRef.current++;
+                lastRepAtRef.current = Date.now();
+                if (firstRepAtRef.current === 0)
+                  firstRepAtRef.current = Date.now();
+                stageRef.current = nextStage;
+
+                // Store rep metrics
+                const sym = computeSymmetry(leftAngle, rightAngle);
+                const amp =
+                  repMaxAngleRef.current !== null &&
+                  repMinAngleRef.current !== null
+                    ? repMaxAngleRef.current - repMinAngleRef.current
+                    : 0;
+                repAmplitudesRef.current.push(amp);
+                repSymmetriesRef.current.push(sym);
+
+                const repFeedback = rule.buildFeedback(
+                  landmarks,
+                  leftAngle,
+                  rightAngle
+                );
+                const repFS = computeFormScore({
+                  corrections: repFeedback,
+                  leftAngle,
+                  rightAngle,
+                  confidence,
+                });
+                repScoresRef.current.push(repFS);
+
+                // Update series quality
+                const avg2 =
+                  repScoresRef.current.reduce((s, v) => s + v, 0) /
+                  repScoresRef.current.length;
+                setSeriesQuality(Math.round(avg2));
+
+                // Reset rep tracking
+                repMinAngleRef.current = null;
+                repMaxAngleRef.current = null;
+
+                // Rep pulse
+                setRepPulse(true);
+                if (repPulseTimerRef.current)
+                  clearTimeout(repPulseTimerRef.current);
+                repPulseTimerRef.current = setTimeout(
+                  () => setRepPulse(false),
+                  400
+                );
+              } else {
+                stageRef.current = nextStage;
+              }
+            }
+
+            // ── Feedback & form score ──────────────────────────
+            const corrections = rule.buildFeedback(
+              landmarks,
+              leftAngle,
+              rightAngle
             );
+            const ranked = rankCorrections(corrections);
+            const fs = computeFormScore({
+              corrections: ranked,
+              leftAngle,
+              rightAngle,
+              confidence,
+            });
+            const sym = computeSymmetry(leftAngle, rightAngle);
+            formScoreRef.current = fs;
+
+            // ── Coaching message change → re-animate card ──────
+            const topMsg = ranked[0]?.message ?? "";
+            if (topMsg !== prevCoachingMsgRef.current) {
+              prevCoachingMsgRef.current = topMsg;
+              setCoachingKey((k) => k + 1);
+            }
+
+            // ── Angle history for inactivity detection ─────────
+            if (av !== null) {
+              angleHistoryRef.current.push(av);
+              if (angleHistoryRef.current.length > 30)
+                angleHistoryRef.current.shift();
+            }
+
+            // ── Context check (every 60 frames ≈ 2s at 30fps) ──
+            frameCountRef.current++;
+            if (frameCountRef.current % 60 === 0) {
+              const outOfFrame = assessOutOfFrame([
+                landmarks[11]?.visibility,
+                landmarks[12]?.visibility,
+                landmarks[13]?.visibility,
+                landmarks[14]?.visibility,
+                landmarks[23]?.visibility,
+                landmarks[24]?.visibility,
+              ]);
+              const inactive = assessInactive(angleHistoryRef.current);
+              const partialReps = assessPartialReps(
+                repAmplitudesRef.current
+              );
+              const deviceMoving = isDeviceMoving();
+              const ctx2 = assessContext({
+                outOfFrame,
+                inactive,
+                deviceMoving,
+                partialReps,
+              });
+              setContextWarning(ctx2.valid && !ctx2.reason ? null : ctx2);
+            }
+
+            // ── Update React state ─────────────────────────────
+            setAnalysis({
+              leftAngle,
+              rightAngle,
+              repCount: repCountRef.current,
+              stage: stageRef.current,
+              feedback: ranked,
+              confidence,
+              formScore: fs,
+              symmetry: sym,
+            });
           } else {
-            setAnalysis((current) => ({
-              ...current,
+            // No landmarks detected
+            formScoreRef.current = 0;
+
+            if (
+              calibrationStateRef.current === "tracking" &&
+              Date.now() - lastHighConfidenceRef.current > 4000
+            ) {
+              calibrationStateRef.current = "paused";
+              setCalibrationState("paused");
+            }
+
+            setAnalysis((prev) => ({
+              ...prev,
+              leftAngle: null,
+              rightAngle: null,
               confidence: "low",
-              feedback: ["Ajuste o enquadramento para aparecer dos ombros ao quadril."],
+              formScore: 0,
+              symmetry: 0,
+              feedback: [],
             }));
           }
 
@@ -597,10 +634,10 @@ export default function MovementLabPage() {
         const camera = new window.Camera(videoElement, {
           onFrame: async () => {
             if (videoElement.readyState >= 2) {
-              const canvas = canvasRef.current;
-              if (canvas) {
-                canvas.width = videoElement.videoWidth || 960;
-                canvas.height = videoElement.videoHeight || 540;
+              const canvasEl = canvasRef.current;
+              if (canvasEl) {
+                canvasEl.width = videoElement.videoWidth || 960;
+                canvasEl.height = videoElement.videoHeight || 540;
               }
               await pose.send({ image: videoElement });
             }
@@ -612,14 +649,14 @@ export default function MovementLabPage() {
         poseRef.current = pose;
         cameraRef.current = camera;
         await camera.start();
-        if (!cancelled) {
-          setCameraStatus("ready");
-        }
-      } catch (error: any) {
-        console.error(error);
+        if (!cancelled) setCameraStatus("ready");
+      } catch (err: any) {
+        console.error(err);
         if (!cancelled) {
           setCameraStatus("error");
-          setErrorMessage(error?.message || "Nao foi possivel iniciar a webcam experimental.");
+          setErrorMessage(
+            err?.message || "Não foi possível iniciar a webcam."
+          );
         }
       }
     }
@@ -628,285 +665,467 @@ export default function MovementLabPage() {
 
     return () => {
       cancelled = true;
-      const mediaStream = videoRef.current?.srcObject as MediaStream | null;
-      mediaStream?.getTracks().forEach((track) => track.stop());
-      if (cameraRef.current?.stop) {
-        cameraRef.current.stop();
-      }
+      if (countdownIntervalRef.current)
+        clearInterval(countdownIntervalRef.current);
+      if (repPulseTimerRef.current) clearTimeout(repPulseTimerRef.current);
+      const stream = videoRef.current?.srcObject as MediaStream | null;
+      stream?.getTracks().forEach((t) => t.stop());
+      if (cameraRef.current?.stop) cameraRef.current.stop();
       poseRef.current = null;
       cameraRef.current = null;
     };
-  }, [exerciseMode]);
+  }, []);
 
+  // ── Derived values ────────────────────────────────────────
+  const currentRule = EXERCISE_CATALOG[exerciseId];
+
+  const activeGroups = useMemo(
+    () => EXERCISE_GROUPS.filter((g) => g.category === activeCategory),
+    [activeCategory]
+  );
+
+  const confidenceTone = useMemo(() => {
+    if (analysis.confidence === "high") return "high";
+    if (analysis.confidence === "medium") return "mid";
+    return "low";
+  }, [analysis.confidence]);
+
+  const confidenceLabel = useMemo(() => {
+    if (analysis.confidence === "high") return "leitura boa";
+    if (analysis.confidence === "medium") return "leitura razoável";
+    if (cameraStatus === "loading") return "inicializando...";
+    if (cameraStatus === "error") return "falha";
+    return "aguardando câmera";
+  }, [analysis.confidence, cameraStatus]);
+
+  const topCorrection: Correction | null =
+    analysis.feedback.length > 0 ? analysis.feedback[0] : null;
+
+  const exerciseHistory = useMemo(
+    () =>
+      history
+        .filter((s) => s.exerciseId === exerciseId)
+        .slice(-5),
+    [history, exerciseId]
+  );
+
+  // ── Handlers ──────────────────────────────────────────────
+  function handleExerciseSelect(id: ExerciseId) {
+    setSessionSummary(null);
+    setExerciseId(id);
+  }
+
+  function handleEndSeries() {
+    const scores = repScoresRef.current;
+    const symmetries = repSymmetriesRef.current;
+    if (scores.length === 0) return;
+
+    const avgFS = Math.round(
+      scores.reduce((s, v) => s + v, 0) / scores.length
+    );
+    const bestRepScore = Math.max(...scores);
+    const worstRepScore = Math.min(...scores);
+    const avgSym =
+      symmetries.length > 0
+        ? Math.round(
+            symmetries.reduce((s, v) => s + v, 0) / symmetries.length
+          )
+        : 0;
+
+    const insight = generateInsight({
+      repScores: scores,
+      avgFormScore: avgFS,
+      avgSymmetry: avgSym,
+      exerciseLabel: currentRule.label,
+    });
+
+    setSessionSummary({
+      id: crypto.randomUUID(),
+      exerciseId,
+      exerciseLabel: currentRule.label,
+      timestamp: Date.now(),
+      repCount: repCountRef.current,
+      avgFormScore: avgFS,
+      bestRepScore,
+      worstRepScore,
+      avgSymmetry: avgSym,
+      insight,
+      repScores: scores,
+    });
+  }
+
+  function handleSaveSession() {
+    if (!sessionSummary) return;
+    const { repScores: _, ...session } = sessionSummary;
+    const updated = [...history, session];
+    setHistory(updated);
+    saveHistory(updated);
+    handleResetSeries();
+  }
+
+  function handleResetSeries() {
+    setSessionSummary(null);
+    repCountRef.current = 0;
+    repScoresRef.current = [];
+    repSymmetriesRef.current = [];
+    repAmplitudesRef.current = [];
+    firstRepAtRef.current = 0;
+    setAnalysis((prev) => ({ ...prev, repCount: 0 }));
+    setSeriesQuality(0);
+  }
+
+  // ── Render ────────────────────────────────────────────────
   return (
-    <div style={{ display: "grid", gap: 18 }}>
-      <Card style={{ background: COLORS.panelDeep, borderColor: COLORS.borderStrong }}>
-        <SectionTitle
-          eyebrow="Lab de Movimento"
-          title="Correção experimental com webcam + MediaPipe"
-          subtitle="Essa tela é um espaço de experimentação para leitura de movimento em tempo real. O primeiro exercício disponível é Rosca Direta, com contagem de repetições e alertas básicos de execução."
-        />
-      </Card>
+    <div className="ml-page">
 
-      <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.15fr) minmax(320px, .85fr)", gap: 16 }}>
-        <Card>
-          <div style={{ display: "grid", gap: 14 }}>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                gap: 12,
-                alignItems: "center",
-                flexWrap: "wrap",
-              }}
+      {/* ── Exercise selector ─────────────────────────────── */}
+      <div className="ml-card ml-selector-wrap">
+        <div className="ml-selector-tab-row">
+          {(["gym", "home"] as ExerciseCategory[]).map((cat) => (
+            <button
+              key={cat}
+              type="button"
+              className={`ml-selector-tab${activeCategory === cat ? " ml-active" : ""}`}
+              onClick={() => setActiveCategory(cat)}
             >
-              <div style={{ display: "grid", gap: 6 }}>
-                <div style={{ fontSize: 22, fontWeight: 700, color: COLORS.text }}>{analysis.label}</div>
-                <div style={{ color: COLORS.muted, lineHeight: 1.6 }}>
-                  {exerciseMode === "biceps_curl"
-                    ? "Fique com ombros, cotovelos e quadril visíveis. A leitura usa ângulo do cotovelo e estabilidade do tronco para sugerir correções."
-                    : exerciseMode === "shoulder_press"
-                      ? "Mostre tronco e braços inteiros. A leitura acompanha a linha de subida e a estabilidade do desenvolvimento."
-                      : "Posicione a câmera para mostrar do tronco aos pés. A leitura observa joelhos, quadril e inclinação do tronco no agachamento."}
-                </div>
-              </div>
+              {cat === "gym" ? "Academia" : "Casa"}
+            </button>
+          ))}
+        </div>
 
-              <div
-                style={{
-                  borderRadius: 999,
-                  padding: "8px 12px",
-                  background: confidenceVisual.bg,
-                  border: `1px solid ${confidenceVisual.border}`,
-                  color: confidenceVisual.color,
-                  fontSize: 12,
-                  fontWeight: 600,
-                }}
-              >
-                {confidenceVisual.label}
-              </div>
-            </div>
-
-            <div
-              style={{
-                position: "relative",
-                borderRadius: 22,
-                overflow: "hidden",
-                border: `1px solid ${COLORS.borderStrong}`,
-                minHeight: 420,
-                background: "linear-gradient(180deg, rgba(10,14,12,.98), rgba(14,18,15,.98))",
-              }}
-            >
-              <video ref={videoRef} playsInline muted style={{ display: "none" }} />
-              <canvas ref={canvasRef} style={{ width: "100%", height: "100%", display: "block" }} />
-
-              <div
-                style={{
-                  position: "absolute",
-                  left: 16,
-                  top: 16,
-                  display: "grid",
-                  gap: 8,
-                }}
-              >
-                <div
-                  style={{
-                    padding: "8px 12px",
-                    borderRadius: 999,
-                    background: "rgba(0,0,0,0.05)",
-                    border: `1px solid ${COLORS.border}`,
-                    color: COLORS.text,
-                    fontSize: 12,
-                    fontWeight: 600,
-                  }}
+        {activeGroups.map((group) => (
+          <div key={`${group.category}-${group.group}`} className="ml-selector-group-row">
+            <span className="ml-selector-group-label">{group.groupLabel}</span>
+            <div className="ml-selector-chips-row">
+              {group.exercises.map((id) => (
+                <button
+                  key={id}
+                  type="button"
+                  className={`ml-exercise-chip${exerciseId === id ? " ml-active" : ""}`}
+                  onClick={() => handleExerciseSelect(id)}
                 >
-                  {cameraStatus === "ready"
-                    ? "Webcam ativa"
-                    : cameraStatus === "loading"
-                      ? "Iniciando webcam..."
-                      : cameraStatus === "error"
-                        ? "Falha na webcam"
-                        : "Aguardando"}
-                </div>
-              </div>
-            </div>
-
-            {errorMessage ? (
-              <div
-                style={{
-                  padding: 14,
-                  borderRadius: 14,
-                  border: `1px solid ${COLORS.redBorder}`,
-                  background: COLORS.redSoft,
-                  color: "#FFD6D6",
-                  lineHeight: 1.6,
-                }}
-              >
-                {errorMessage}
-              </div>
-            ) : null}
-
-            <div style={{ display: "grid", gap: 10 }}>
-              <div style={{ color: COLORS.mutedSoft, fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1.1 }}>
-                Exercício em teste
-              </div>
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                {[
-                  ["biceps_curl", "Rosca Direta"],
-                  ["shoulder_press", "Desenvolvimento"],
-                  ["squat", "Agachamento"],
-                ].map(([value, label]) => (
-                  <button
-                    key={value}
-                    type="button"
-                    onClick={() => setExerciseMode(value as ExerciseMode)}
-                    style={{
-                      padding: "10px 12px",
-                      borderRadius: 14,
-                      border: exerciseMode === value ? `1px solid ${COLORS.borderStrong}` : `1px solid ${COLORS.border}`,
-                      background: exerciseMode === value ? COLORS.primarySoft : COLORS.panelSoft,
-                      color: COLORS.text,
-                      cursor: "pointer",
-                      fontWeight: 600,
-                    }}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
+                  {EXERCISE_CATALOG[id].label}
+                </button>
+              ))}
             </div>
           </div>
-        </Card>
+        ))}
+      </div>
 
-        <div style={{ display: "grid", gap: 16 }}>
-          <Card>
-            <div style={{ display: "grid", gap: 12 }}>
-              <div style={{ fontSize: 18, fontWeight: 700, color: COLORS.text }}>Leitura em tempo real</div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 10 }}>
+      {/* ── Ready Bar ─────────────────────────────────────── */}
+      <div className="ml-ready-bar">
+        <span className={`ml-dot ml-dot-${confidenceTone}`} />
+        <span>IA: {confidenceLabel}</span>
+        <span className="ml-ready-sep">·</span>
+        <span className="ml-ready-strong">{currentRule.label}</span>
+        {cameraStatus === "ready" && calibrationState === "tracking" && (
+          <>
+            <span className="ml-ready-sep">·</span>
+            <span className="ml-ready-reps">×{analysis.repCount}</span>
+          </>
+        )}
+        {calibrationState === "paused" && (
+          <span className="ml-ready-paused">⏸ pausado</span>
+        )}
+      </div>
+
+      {/* ── Canvas card ───────────────────────────────────── */}
+      <div className="ml-card ml-canvas-card">
+        <div className="ml-canvas-wrap">
+          <video ref={videoRef} playsInline muted style={{ display: "none" }} />
+          <canvas ref={canvasRef} className="ml-canvas-el" />
+
+          {/* HUD — visible only when tracking */}
+          {cameraStatus === "ready" && calibrationState === "tracking" && (
+            <div className="ml-hud">
+              <div className="ml-hud-section">
                 <div
-                  style={{
-                    padding: 14,
-                    borderRadius: 16,
-                    border: `1px solid ${COLORS.border}`,
-                    background: COLORS.panelSoft,
-                    display: "grid",
-                    gap: 6,
-                  }}
+                  className={`ml-form-score ml-tone-${scoreToTone(analysis.formScore)}`}
                 >
-                  <div style={{ color: COLORS.mutedSoft, fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1.1 }}>
-                    {metricLabels.left}
-                  </div>
-                  <div style={{ color: COLORS.text, fontSize: 24, fontWeight: 700 }}>
-                    {analysis.leftAngle ?? "--"}°
-                  </div>
+                  {analysis.formScore}
                 </div>
+                <div className="ml-form-score-label">Form</div>
+              </div>
+
+              <div className="ml-hud-section ml-hud-section-center">
                 <div
-                  style={{
-                    padding: 14,
-                    borderRadius: 16,
-                    border: `1px solid ${COLORS.border}`,
-                    background: COLORS.panelSoft,
-                    display: "grid",
-                    gap: 6,
-                  }}
+                  className={`ml-rep-count${repPulse ? " ml-rep-pulse" : ""}`}
                 >
-                  <div style={{ color: COLORS.mutedSoft, fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1.1 }}>
-                    {metricLabels.right}
-                  </div>
-                  <div style={{ color: COLORS.text, fontSize: 24, fontWeight: 700 }}>
-                    {analysis.rightAngle ?? "--"}°
-                  </div>
+                  {analysis.repCount}
                 </div>
-                <div
-                  style={{
-                    padding: 14,
-                    borderRadius: 16,
-                    border: `1px solid ${COLORS.border}`,
-                    background: COLORS.panelSoft,
-                    display: "grid",
-                    gap: 6,
-                  }}
-                >
-                  <div style={{ color: COLORS.mutedSoft, fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1.1 }}>
-                    Repetições
-                  </div>
-                  <div style={{ color: COLORS.text, fontSize: 24, fontWeight: 700 }}>
-                    {analysis.repCount}
-                  </div>
-                </div>
-                <div
-                  style={{
-                    padding: 14,
-                    borderRadius: 16,
-                    border: `1px solid ${COLORS.border}`,
-                    background: COLORS.panelSoft,
-                    display: "grid",
-                    gap: 6,
-                  }}
-                >
-                  <div style={{ color: COLORS.mutedSoft, fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1.1 }}>
-                    Fase
-                  </div>
-                  <div style={{ color: COLORS.text, fontSize: 24, fontWeight: 700 }}>
-                    {analysis.stage === "up" ? metricLabels.stageUp : metricLabels.stageDown}
-                  </div>
-                </div>
+                <div className="ml-hud-label">reps</div>
+              </div>
+
+              <div className="ml-hud-section ml-hud-section-right">
+                <div className="ml-hud-value">{analysis.symmetry}%</div>
+                <div className="ml-hud-label">simetria</div>
               </div>
             </div>
-          </Card>
+          )}
 
-          <Card>
-            <div style={{ display: "grid", gap: 12 }}>
-              <div style={{ fontSize: 18, fontWeight: 700, color: COLORS.text }}>Correções sugeridas</div>
-              <div style={{ display: "grid", gap: 10 }}>
-                {analysis.feedback.map((item) => (
-                  <div
-                    key={item}
-                    style={{
-                      display: "flex",
-                      gap: 10,
-                      alignItems: "flex-start",
-                      padding: 12,
-                      borderRadius: 14,
-                      border: `1px solid ${COLORS.border}`,
-                      background: COLORS.panelSoft,
-                      color: COLORS.muted,
-                      lineHeight: 1.6,
-                    }}
-                  >
-                    <div
-                      style={{
-                        minWidth: 24,
-                        height: 24,
-                        borderRadius: 999,
-                        background: COLORS.primarySoft,
-                        color: COLORS.lime,
-                        display: "grid",
-                        placeItems: "center",
-                        fontWeight: 700,
-                      }}
-                    >
-                      !
-                    </div>
-                    <div>{item}</div>
-                  </div>
-                ))}
+          {/* Secondary angle chips — top right */}
+          {cameraStatus === "ready" && analysis.confidence !== "low" && (
+            <div className="ml-angle-chips">
+              {analysis.leftAngle !== null && (
+                <span className="ml-angle-chip">
+                  {analysis.leftAngle}° E
+                </span>
+              )}
+              {analysis.rightAngle !== null && (
+                <span className="ml-angle-chip">
+                  {analysis.rightAngle}° D
+                </span>
+              )}
+            </div>
+          )}
+
+          {/* Countdown overlay */}
+          {calibrationState === "countdown" && (
+            <div className="ml-camera-overlay">
+              <div
+                className="ml-countdown-number"
+                key={countdown}
+              >
+                {countdown}
+              </div>
+              <div className="ml-camera-overlay-text">Prepare-se...</div>
+            </div>
+          )}
+
+          {/* Loading overlay */}
+          {cameraStatus === "loading" && (
+            <div className="ml-camera-overlay ml-camera-overlay-dark">
+              <div className="ml-camera-overlay-text">
+                Inicializando câmera e IA...
+              </div>
+              <div className="ml-camera-overlay-sub">
+                Aguarde alguns segundos
               </div>
             </div>
-          </Card>
+          )}
 
-          <Card>
-            <div style={{ display: "grid", gap: 10 }}>
-              <div style={{ fontSize: 18, fontWeight: 700, color: COLORS.text }}>Notas do experimento</div>
-              <div style={{ color: COLORS.muted, lineHeight: 1.6 }}>
-                Esta é uma versão inicial. Ela já ajuda a testar webcam, landmarks do Pose e correções básicas de Rosca Direta, mas ainda não substitui orientação humana.
+          {/* Idle — waiting for user to appear */}
+          {cameraStatus === "ready" && calibrationState === "idle" && (
+            <div className="ml-camera-overlay">
+              <div className="ml-camera-overlay-text">
+                Mostre-se à câmera
               </div>
-              <div style={{ color: COLORS.muted, lineHeight: 1.6 }}>
-                Próximos passos naturais: adicionar lado preferencial, mais exercícios, gravação de sessão e regras mais robustas de biomecânica.
+              <div className="ml-camera-overlay-sub">
+                {currentRule.positionHint}
               </div>
             </div>
-          </Card>
+          )}
+
+          {/* Paused overlay */}
+          {calibrationState === "paused" && (
+            <div className="ml-camera-overlay">
+              <div className="ml-camera-overlay-text">Pausado</div>
+              <div className="ml-camera-overlay-sub">
+                Retorne ao enquadramento para continuar
+              </div>
+            </div>
+          )}
         </div>
       </div>
+
+      {/* ── Context warning ───────────────────────────────── */}
+      {contextWarning && contextWarning.reason && (
+        <div
+          className={`ml-context-warning${
+            contextWarning.severity === "info"
+              ? " ml-context-warning-info"
+              : contextWarning.severity === "block"
+                ? " ml-context-warning-block"
+                : ""
+          }`}
+        >
+          {contextWarning.reason}
+        </div>
+      )}
+
+      {/* ── Error ─────────────────────────────────────────── */}
+      {errorMessage && (
+        <div className="ml-error-msg">{errorMessage}</div>
+      )}
+
+      {/* ── Coaching stack ────────────────────────────────── */}
+      {cameraStatus === "ready" && (
+        <div className="ml-card ml-coaching-stack">
+          {topCorrection ? (
+            <div
+              key={coachingKey}
+              className="ml-coaching-card"
+            >
+              <div
+                className={`ml-coaching-icon ${
+                  topCorrection.severity === "safety"
+                    ? "ml-coaching-icon-safety"
+                    : "ml-coaching-icon-warn"
+                }`}
+              >
+                !
+              </div>
+              <div className="ml-coaching-text">{topCorrection.message}</div>
+            </div>
+          ) : calibrationState === "tracking" ? (
+            <div
+              key={coachingKey}
+              className="ml-coaching-card ml-coaching-card-ok"
+            >
+              <div className="ml-coaching-icon ml-coaching-icon-ok">✓</div>
+              <div className="ml-coaching-text">
+                {analysis.repCount === 0
+                  ? "Pronto — inicie o movimento para começar a contar."
+                  : "Boa execução. Continue controlando o tempo da repetição."}
+              </div>
+            </div>
+          ) : (
+            <div className="ml-coaching-card">
+              <div className="ml-coaching-icon ml-coaching-icon-warn">·</div>
+              <div className="ml-coaching-text">
+                {currentRule.positionHint}
+              </div>
+            </div>
+          )}
+
+          {calibrationState === "tracking" && (
+            <div className="ml-quality-wrap">
+              <div className="ml-quality-header">
+                <span className="ml-quality-label">Qualidade da série</span>
+                <span className="ml-quality-pct">{seriesQuality}%</span>
+              </div>
+              <div className="ml-quality-track">
+                <div
+                  className={`ml-quality-fill ml-tone-${scoreToTone(seriesQuality)}`}
+                  style={{ width: `${seriesQuality}%` }}
+                />
+              </div>
+            </div>
+          )}
+
+          {analysis.repCount >= 3 && (
+            <button className="ml-end-btn" type="button" onClick={handleEndSeries}>
+              Encerrar série
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* ── Session Summary modal ─────────────────────────── */}
+      {sessionSummary && (
+        <div
+          className="ml-summary-backdrop"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) handleResetSeries();
+          }}
+        >
+          <div className="ml-summary-modal">
+            <div>
+              <div className="ml-summary-eyebrow">Série concluída</div>
+              <div className="ml-summary-headline">
+                {sessionSummary.exerciseLabel} — {sessionSummary.repCount} reps
+              </div>
+            </div>
+
+            <div className="ml-summary-score-block">
+              <div
+                className={`ml-summary-score ml-tone-${scoreToTone(sessionSummary.avgFormScore)}`}
+              >
+                {sessionSummary.avgFormScore}
+              </div>
+              <div className="ml-summary-score-sub">Form Score médio</div>
+            </div>
+
+            <div className="ml-summary-grid">
+              <div className="ml-summary-metric">
+                <div
+                  className={`ml-summary-metric-value ml-tone-${scoreToTone(sessionSummary.bestRepScore)}`}
+                >
+                  {sessionSummary.bestRepScore}
+                </div>
+                <div className="ml-summary-metric-label">Melhor rep</div>
+              </div>
+              <div className="ml-summary-metric">
+                <div
+                  className={`ml-summary-metric-value ml-tone-${scoreToTone(sessionSummary.worstRepScore)}`}
+                >
+                  {sessionSummary.worstRepScore}
+                </div>
+                <div className="ml-summary-metric-label">Pior rep</div>
+              </div>
+              <div className="ml-summary-metric">
+                <div className="ml-summary-metric-value">
+                  {sessionSummary.avgSymmetry}%
+                </div>
+                <div className="ml-summary-metric-label">Simetria</div>
+              </div>
+            </div>
+
+            <div className="ml-summary-insight">{sessionSummary.insight}</div>
+
+            <div className="ml-summary-actions">
+              <button
+                className="ml-summary-btn-primary"
+                type="button"
+                onClick={handleSaveSession}
+              >
+                Salvar sessão
+              </button>
+              <button
+                className="ml-summary-btn-secondary"
+                type="button"
+                onClick={handleResetSeries}
+              >
+                Descartar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── History ───────────────────────────────────────── */}
+      {history.length > 0 && (
+        <div className="ml-card">
+          <div className="ml-history-title">Histórico de sessões</div>
+          <div className="ml-history-list">
+            {exerciseHistory.length > 0 ? (
+              exerciseHistory
+                .slice()
+                .reverse()
+                .map((session) => (
+                  <div key={session.id} className="ml-history-row">
+                    <div className="ml-history-label">
+                      {session.exerciseLabel}
+                    </div>
+                    <div className="ml-history-meta">
+                      {session.repCount} reps ·{" "}
+                      {new Date(session.timestamp).toLocaleDateString("pt-BR")}
+                    </div>
+                    <div
+                      className={`ml-history-score ml-tone-${scoreToTone(session.avgFormScore)}`}
+                    >
+                      {session.avgFormScore}
+                    </div>
+                  </div>
+                ))
+            ) : (
+              <div className="ml-history-row">
+                <div className="ml-history-label" style={{ color: "var(--color-text-muted)" }}>
+                  Nenhuma sessão salva para este exercício ainda.
+                </div>
+              </div>
+            )}
+          </div>
+
+          {exerciseHistory.length >= 2 && (
+            <div className="ml-sparkline-wrap">
+              <span className="ml-sparkline-label">Evolução</span>
+              <Sparkline scores={exerciseHistory.map((s) => s.avgFormScore)} />
+            </div>
+          )}
+        </div>
+      )}
+
     </div>
   );
 }
