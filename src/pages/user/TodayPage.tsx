@@ -16,6 +16,7 @@ import {
   useTodayMotionSafe,
 } from "./todayPageMotion";
 import { addWorkoutHistoryEntry, getCurrentWeekdayLabel, getLastWorkoutEntry, getYesterdayMuscleGroups, type MuscleGroup } from "./workoutHistory";
+import { MetabolicChart, MetabolicInsights, MetabolicScoreCard, useMetabolism, useMetabolismHistory } from "../../features/metabolism";
 import "./todayPage.css";
 
 function Card({
@@ -36,26 +37,6 @@ function Card({
   return <div style={baseStyle}>{children}</div>;
 }
 
-function calcMetaScore(streak: number, xp: number, checkedIn: boolean): number {
-  const streakScore  = Math.min(40, streak * 6);
-  const xpScore      = Math.min(40, Math.floor(xp / 8));
-  const checkinScore = checkedIn ? 20 : 0;
-  return Math.min(100, streakScore + xpScore + checkinScore);
-}
-
-function metaScoreInsight(score: number, streak: number): string {
-  if (score >= 85) return "Metabolismo em ritmo ideal — consistência sustentada por mais de 7 dias.";
-  if (score >= 65) return "Bom ritmo metabólico. Um check-in hoje consolida sua sequência.";
-  if (score >= 40) return "Recuperação em progresso. Cada treino conta para reativar o metabolismo.";
-  if (streak === 0) return "Sem sequência ativa. Um treino hoje reinicia sua curva metabólica.";
-  return "Metabolismo em modo de reinício — comece com um treino curto.";
-}
-
-function metaScoreTrend(score: number, streak: number): { label: string; icon: string; color: string } {
-  if (streak >= 7 || score >= 80) return { label: "Subindo", icon: "↑", color: "var(--color-primary)" };
-  if (streak >= 3 || score >= 50) return { label: "Estável",  icon: "→", color: "var(--color-accent)" };
-  return { label: "Atenção", icon: "↓", color: "var(--color-warn)" };
-}
 
 export default function TodayPage() {
   const navigate = useNavigate();
@@ -77,9 +58,8 @@ export default function TodayPage() {
   const [quickGroups, setQuickGroups] = useState<MuscleGroup[]>([]);
   const [quickMessage, setQuickMessage] = useState<string | null>(null);
 
-  const metaScore = useMemo(() => calcMetaScore(streak, xp, todayCheckedIn), [streak, xp, todayCheckedIn]);
-  const metaInsight = useMemo(() => metaScoreInsight(metaScore, streak), [metaScore, streak]);
-  const metaTrend = useMemo(() => metaScoreTrend(metaScore, streak), [metaScore, streak]);
+  const { data: metabolism, loading: metabolismLoading, error: metabolismError } = useMetabolism();
+  const { data: metabolismHistory, loading: historyLoading } = useMetabolismHistory();
 
   const recommendationTags = recommendation?.tags?.slice(0, 3) || [];
   const groupLabelMap: Record<MuscleGroup, string> = {
@@ -183,35 +163,15 @@ export default function TodayPage() {
         </p>
       </motion.div>
 
-      {/* ─── MetaScore ───────────────────────────────────────── */}
+      {/* ─── MetaCore Score (backend-driven) ────────────────── */}
       <motion.div variants={sectionRevealVariants}>
-        <div className="metaScoreCard" style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "auto 1fr", gap: 24, alignItems: "center" }}>
-          <div style={{ display: "grid", gap: 4 }}>
-            <div className="metaScoreLabel">MetaScore</div>
-            <div className="metaScoreValue">{metaScore}</div>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4 }}>
-              <span style={{ fontSize: 14, fontWeight: 700, color: metaTrend.color }}>
-                {metaTrend.icon} {metaTrend.label}
-              </span>
-              <span style={{ fontSize: 12, color: "#9CA3AF" }}>/ 100</span>
-            </div>
-          </div>
-          <div>
-            <div className="metaScoreInsight">{metaInsight}</div>
-            <div style={{ marginTop: 14, display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
-              {[
-                { label: "Constância", value: `${streak}d`, color: "var(--color-primary)" },
-                { label: "Nível",      value: `L${level}`,  color: "var(--color-accent)"  },
-                { label: "XP total",   value: `${xp}`,      color: "var(--color-text-muted)" },
-              ].map((item) => (
-                <div key={item.label} style={{ background: "rgba(255,255,255,0.65)", borderRadius: 10, padding: "8px 12px" }}>
-                  <div style={{ fontSize: 10, color: "#9CA3AF", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>{item.label}</div>
-                  <div style={{ fontSize: 18, fontWeight: 700, color: item.color, lineHeight: 1.2, marginTop: 2 }}>{item.value}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
+        <MetabolicScoreCard data={metabolism} loading={metabolismLoading} error={metabolismError} />
+      </motion.div>
+      <motion.div variants={sectionRevealVariants}>
+        <MetabolicChart data={metabolismHistory} loading={historyLoading} />
+      </motion.div>
+      <motion.div variants={sectionRevealVariants}>
+        <MetabolicInsights recommendations={metabolism?.recommendations ?? []} loading={metabolismLoading} />
       </motion.div>
 
       {/* ─── Stats row ───────────────────────────────────────── */}
