@@ -51,6 +51,13 @@ function engagementLabel(status: PersonalDashboardEngagementStatus) {
   return "Atenção";
 }
 
+function snapshotErrorMessage(message: string) {
+  if (/route not found/i.test(message)) {
+    return "A visão detalhada deste aluno ainda não está disponível nesta versão da API.";
+  }
+  return message;
+}
+
 function Surface({ children }: { children: React.ReactNode }) {
   return (
     <div className="pp-surface">
@@ -104,7 +111,8 @@ export default function StudentProfileModal({
         setData(snapshot);
       } catch (err: unknown) {
         if (!active) return;
-        setError(err instanceof Error ? err.message : "Não foi possível carregar o perfil do aluno.");
+        const message = err instanceof Error ? err.message : "Não foi possível carregar o perfil do aluno.";
+        setError(snapshotErrorMessage(message));
         setData(null);
       } finally {
         if (active) setLoading(false);
@@ -136,16 +144,20 @@ export default function StudentProfileModal({
             </div>
 
             <div style={{ display: "grid", gap: 5 }}>
-              <div style={{ fontWeight: 650, fontSize: 22, color: COLORS.text, letterSpacing: "-0.03em" }}>{data?.name || studentName}</div>
+              <div className="pp-drawer-title">{data?.name || studentName}</div>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                 <span className="pp-badge">
                   {PLAN_LABEL[data?.plan || "basic"]}
                 </span>
-                <span
-                  className={`pp-badge ${data?.risk === "critico" ? "pp-badge--danger" : data?.risk === "alerta" ? "pp-badge--warn" : "pp-badge--success"}`}
-                >
-                  {data ? riskLabel(data.risk) : "Carregando"}
-                </span>
+                {data ? (
+                  <span
+                    className={`pp-badge ${data.risk === "critico" ? "pp-badge--danger" : data.risk === "alerta" ? "pp-badge--warn" : "pp-badge--success"}`}
+                  >
+                    {riskLabel(data.risk)}
+                  </span>
+                ) : (
+                  <span className="pp-badge">Carregando</span>
+                )}
                 {data ? (
                   <span className="pp-badge pp-badge--soft">
                     {engagementLabel(data.engagementStatus)}
@@ -164,35 +176,33 @@ export default function StudentProfileModal({
           </button>
         </div>
 
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-            gap: 10,
-          }}
-        >
-          <Surface>
-            <Metric label="Streak" value={`${data?.streakDays ?? 0} dias`} />
-          </Surface>
-          <Surface>
-            <Metric label="Aderência" value={`${data?.adherencePct ?? 0}%`} />
-          </Surface>
-          <Surface>
-            <Metric label="XP" value={data?.history.xp ?? 0} />
-          </Surface>
-        </div>
+        {!error ? (
+          <div className="pp-metrics-grid">
+            <Surface>
+              <Metric label="Streak" value={`${data?.streakDays ?? 0} dias`} />
+            </Surface>
+            <Surface>
+              <Metric label="Aderência" value={`${data?.adherencePct ?? 0}%`} />
+            </Surface>
+            <Surface>
+              <Metric label="XP" value={data?.history.xp ?? 0} />
+            </Surface>
+          </div>
+        ) : null}
 
-        <div className="pp-tabs">
-          <button type="button" className="pp-tab" aria-selected={tab === "today"} onClick={() => setTab("today")}>
-            Hoje
-          </button>
-          <button type="button" className="pp-tab" aria-selected={tab === "week"} onClick={() => setTab("week")}>
-            Semana
-          </button>
-          <button type="button" className="pp-tab" aria-selected={tab === "history"} onClick={() => setTab("history")}>
-            Histórico
-          </button>
-        </div>
+        {!error ? (
+          <div className="pp-tabs">
+            <button type="button" className="pp-tab" aria-selected={tab === "today"} onClick={() => setTab("today")}>
+              Hoje
+            </button>
+            <button type="button" className="pp-tab" aria-selected={tab === "week"} onClick={() => setTab("week")}>
+              Semana
+            </button>
+            <button type="button" className="pp-tab" aria-selected={tab === "history"} onClick={() => setTab("history")}>
+              Histórico
+            </button>
+          </div>
+        ) : null}
 
         {loading ? (
           <Surface>
@@ -201,9 +211,12 @@ export default function StudentProfileModal({
         ) : null}
 
         {!loading && error ? (
-          <Surface>
-            <div style={{ color: COLORS.text, fontWeight: 700 }}>{error}</div>
-          </Surface>
+          <div className="pp-error-state">
+            <div style={{ color: COLORS.text, fontWeight: 650 }}>Perfil detalhado indisponível</div>
+            <div style={{ color: COLORS.muted, fontSize: 13, lineHeight: 1.5 }}>
+              {error} O painel principal continua disponível para acompanhamento rápido.
+            </div>
+          </div>
         ) : null}
 
         {!loading && !error && data && tab === "today" ? (
