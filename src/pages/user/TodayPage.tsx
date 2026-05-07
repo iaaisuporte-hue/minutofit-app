@@ -160,7 +160,9 @@ export default function TodayPage() {
   const weekdayLabel = new Intl.DateTimeFormat("pt-BR", { weekday: "long" }).format(new Date());
   const weekdayCapitalized = weekdayLabel.charAt(0).toUpperCase() + weekdayLabel.slice(1);
   const missionProgress = mission.target > 0 ? Math.min(1, mission.progress / mission.target) : 0;
-  const defaultImpact = estimateCheckinImpact(Math.max(1, quickGroups.length || 2), streak);
+  // Quando nenhum grupo selecionado, estima com 2 grupos como referência; quando selecionado, usa o valor real
+  const defaultImpact = estimateCheckinImpact(Math.max(1, quickGroups.length > 0 ? quickGroups.length : 2), streak);
+  const impactLabel = quickGroups.length > 0 ? `+${defaultImpact}` : `até +${defaultImpact}`;
 
   const derivedEnergy = useMemo(() => deriveEnergyStatus(metabolism), [metabolism]);
 
@@ -257,7 +259,9 @@ export default function TodayPage() {
       setCheckinMessage("Selecione pelo menos um grupo muscular.");
       return;
     }
-    const blocked = quickGroups.filter((g) => yesterdayMuscleGroups.includes(g));
+    const blocked = quickGroups.filter(
+      (g) => yesterdayMuscleGroups.includes(g) && !ALWAYS_AVAILABLE.includes(g)
+    );
     if (blocked.length) {
       setCheckinMessage(`Grupos treinados ontem: ${blocked.map((g) => GROUP_LABEL[g]).join(", ")}. Evite repetir em dias seguidos.`);
       return;
@@ -344,9 +348,6 @@ export default function TodayPage() {
                 <div className="today-card-title" style={{ fontSize: isMobile ? 22 : 28 }}>
                   Seu ritmo hoje
                 </div>
-                <div className="today-card-description" style={{ color: SURFACE.muted }}>
-                  Missão diária, sequência e próximo passo em um único lugar.
-                </div>
               </div>
               {streak > 0 && (
                 <div
@@ -377,7 +378,7 @@ export default function TodayPage() {
                     <div className="today-card-description" style={{ color: SURFACE.muted }}>{mission.description}</div>
                   </div>
                   <div className="today-reward-pill" style={{ borderColor: SURFACE.borderStrong, color: SURFACE.success }}>
-                    +{mission.rewardXp} XP · +{defaultImpact} score
+                    +{mission.rewardXp} XP · {impactLabel} score
                   </div>
                 </div>
 
@@ -501,7 +502,7 @@ export default function TodayPage() {
                         alignItems: "center",
                         gap: 4,
                         cursor: "pointer",
-                        background: "#FFFFFF",
+                        background: SURFACE.card,
                       }}
                     >
                       {ex}
@@ -509,27 +510,6 @@ export default function TodayPage() {
                     </button>
                   ))}
                 </div>
-
-                {forecast && (
-                  <div style={{
-                    fontSize: 13, color: SURFACE.muted,
-                    padding: "9px 14px",
-                    background: "rgba(34,197,94,0.05)",
-                    borderRadius: 10,
-                    border: "1px solid rgba(34,197,94,0.14)",
-                    display: "flex", gap: 6, alignItems: "center",
-                  }}>
-                    Amanhã com treino:
-                    <strong style={{ color: SURFACE.success, fontSize: 15 }}>
-                      {forecast.tomorrowWithActivity}
-                    </strong>
-                    {forecast.withActivityDelta > 0 && (
-                      <span style={{ color: SURFACE.success, fontWeight: 700 }}>
-                        (+{forecast.withActivityDelta})
-                      </span>
-                    )}
-                  </div>
-                )}
 
                 <ActionButton onClick={() => navigate(getWorkoutRoute(workoutMode))} fullWidth={isMobile}>
                   Abrir plano completo →
@@ -556,7 +536,14 @@ export default function TodayPage() {
                   transition: "color 0.15s ease",
                 }}
               >
-                <span style={{ fontSize: 10 }}>{showCheckin ? "▲" : "▼"}</span>
+                <svg
+                  width="12" height="12" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                  aria-hidden="true"
+                  style={{ transition: "transform 0.2s ease", transform: showCheckin ? "rotate(180deg)" : "rotate(0deg)" }}
+                >
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
                 Já treinou? Registre aqui
               </button>
 
