@@ -440,7 +440,7 @@ export default function WorkoutPlayerPage() {
               zIndex: 5,
             }}
           >
-            ⏱️ {formatTime(secondsLeft)}
+            {formatTime(secondsLeft)}
           </div>
         ) : null}
 
@@ -464,7 +464,7 @@ export default function WorkoutPlayerPage() {
             }}
             title="Avançar para o próximo vídeo"
           >
-            ⏭️ Avançar
+            Avançar
           </button>
         ) : null}
 
@@ -509,36 +509,30 @@ export default function WorkoutPlayerPage() {
                 color: neon.text,
               }}
             >
-              <h2 style={{ marginTop: 0 }}>🎉 Parabéns! Treino concluído!</h2>
+              <div style={{ fontWeight: 700, fontSize: 22, marginBottom: 8 }}>Treino concluído</div>
 
-              <p style={{ fontSize: 16, marginTop: 8, lineHeight: 1.35, color: neon.muted }}>
-                Você mandou muito bem hoje! 💪 <br />
-                <b>Agora posta no Instagram</b>: tira aquela foto/vídeo no espelho e marca a PH Gym 😉
-              </p>
-
-              <div style={{ marginTop: 10, fontWeight: 600 }}>🔥 Streak atual: {streak} dia(s) consecutivo(s)</div>
-              {rewardMessage ? (
-                <div style={{ marginTop: 8, fontWeight: 600, color: neon.highlight }}>{rewardMessage}</div>
-              ) : null}
+              <div style={{ fontSize: 14, lineHeight: 1.6, color: neon.muted, marginBottom: 12 }}>
+                Sessão registrada. Sua recuperação começa agora. Hidrate-se e observe como o corpo responde nas próximas horas.
+              </div>
 
               <div
                 style={{
-                  marginTop: 10,
-                  padding: 12,
+                  padding: "10px 14px",
                   borderRadius: 12,
-                  background: "#FAFAFA",
-                  border: `1px solid ${neon.stroke}`,
+                  background: neon.primarySoft,
+                  border: `1px solid ${neon.accentBorder}`,
+                  fontWeight: 600,
+                  fontSize: 14,
+                  marginBottom: 8,
                 }}
               >
-                <div style={{ fontWeight: 600, marginBottom: 6 }}>Texto pronto pra postar:</div>
-                <div style={{ fontSize: 14, color: neon.muted, lineHeight: 1.35 }}>
-                  “Treino concluído ✅💪 Hoje eu fui! #PHGym #SemDesculpa”
-                  <br />
-                  Marque: <b style={{ color: neon.text }}>@ph_gym</b>
-                </div>
+                Sequência atual: {streak} dia{streak !== 1 ? "s" : ""} consecutivo{streak !== 1 ? "s" : ""}
               </div>
+              {rewardMessage ? (
+                <div style={{ marginBottom: 12, fontWeight: 600, color: neon.highlight, fontSize: 14 }}>{rewardMessage}</div>
+              ) : null}
 
-              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 14 }}>
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 4 }}>
                 {suggestion ? (
                   <button
                     onClick={() => {
@@ -564,7 +558,7 @@ export default function WorkoutPlayerPage() {
                       minHeight: 44,
                     }}
                   >
-                    ▶️ Próximo sugerido
+                    Próximo sugerido
                   </button>
                 ) : null}
 
@@ -596,7 +590,7 @@ export default function WorkoutPlayerPage() {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
           <div>
             <div style={{ fontWeight: 600 }}>
-              {safeIndex + 1}/{steps.length} — {current?.title ?? ""}
+              {safeIndex + 1}/{steps.length} -- {current?.title ?? ""}
             </div>
             <div style={{ fontSize: 13, color: neon.muted }}>
               {workout.supportOnly

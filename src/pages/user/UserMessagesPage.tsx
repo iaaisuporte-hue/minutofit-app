@@ -137,7 +137,7 @@ export default function UserMessagesPage() {
       <Card style={{ padding: 18 }}>
         <div style={{ fontSize: 18, fontWeight: 700, color: COLORS.text }}>Acesso indisponível</div>
         <div style={{ marginTop: 8, color: COLORS.muted }}>
-          Essa área será controlada por perfil de acesso. Quando você quiser, eu te ajudo a amarrar isso por role de ponta a ponta.
+          Esta área é exclusiva para alunos. Se você é personal, acesse pelo painel do personal.
         </div>
       </Card>
     );

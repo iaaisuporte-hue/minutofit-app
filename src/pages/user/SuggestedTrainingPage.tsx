@@ -1111,7 +1111,7 @@ export default function SuggestedTrainingPage() {
                 letterSpacing: 1.1,
               }}
             >
-              Today's adaptive recommendation
+              Recomendação adaptativa de hoje
             </div>
             <div style={{ fontSize: 28, fontWeight: 700, color: COLORS.text, lineHeight: 1.15 }}>
               {primaryAdaptiveWorkout.title}
@@ -1144,7 +1144,7 @@ export default function SuggestedTrainingPage() {
                     fontWeight: 700,
                   }}
                 >
-                  Recommended · {primaryAdaptiveWorkout.type === "home" ? "Home workout" : "Gym workout"}
+                  Recomendado · {primaryAdaptiveWorkout.type === "home" ? "Treino em casa" : "Treino na academia"}
                 </div>
                 <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.lime }}>
                   {primaryAdaptiveWorkout.scoreImpact} score
@@ -1153,15 +1153,15 @@ export default function SuggestedTrainingPage() {
 
               <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 10 }}>
                 <div style={{ padding: 12, borderRadius: 14, border: `1px solid ${COLORS.border}`, background: "#F9FAFB" }}>
-                  <div style={{ color: COLORS.mutedSoft, fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.1 }}>Duration</div>
+                  <div style={{ color: COLORS.mutedSoft, fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.1 }}>Duração</div>
                   <div style={{ marginTop: 6, color: COLORS.text, fontSize: 18, fontWeight: 700 }}>{primaryAdaptiveWorkout.duration} min</div>
                 </div>
                 <div style={{ padding: 12, borderRadius: 14, border: `1px solid ${COLORS.border}`, background: "#F9FAFB" }}>
-                  <div style={{ color: COLORS.mutedSoft, fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.1 }}>Goal</div>
+                  <div style={{ color: COLORS.mutedSoft, fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.1 }}>Objetivo</div>
                   <div style={{ marginTop: 6, color: COLORS.text, fontSize: 18, fontWeight: 700 }}>{primaryAdaptiveWorkout.goal}</div>
                 </div>
                 <div style={{ padding: 12, borderRadius: 14, border: `1px solid ${COLORS.border}`, background: "#F9FAFB" }}>
-                  <div style={{ color: COLORS.mutedSoft, fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.1 }}>Intensity</div>
+                  <div style={{ color: COLORS.mutedSoft, fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.1 }}>Intensidade</div>
                   <div style={{ marginTop: 6, color: COLORS.text, fontSize: 18, fontWeight: 700 }}>{adaptiveWorkout.intensity}</div>
                 </div>
               </div>
@@ -1228,7 +1228,7 @@ export default function SuggestedTrainingPage() {
                     cursor: "pointer",
                   }}
                 >
-                  {primaryAdaptiveWorkout.type === "home" ? `Start ${primaryAdaptiveWorkout.duration} min home workout` : "Go to gym session"}
+                  {primaryAdaptiveWorkout.type === "home" ? `Iniciar treino em casa de ${primaryAdaptiveWorkout.duration} min` : "Ir para sessão na academia"}
                 </button>
                 <button
                   type="button"
@@ -1243,7 +1243,7 @@ export default function SuggestedTrainingPage() {
                     cursor: "pointer",
                   }}
                 >
-                  {alternativeAdaptiveWorkout.type === "home" ? "Use home alternative" : "Use gym alternative"}
+                  {alternativeAdaptiveWorkout.type === "home" ? "Usar alternativa em casa" : "Usar alternativa na academia"}
                 </button>
               </div>
             </div>
@@ -1261,7 +1261,7 @@ export default function SuggestedTrainingPage() {
             >
               <div style={{ display: "grid", gap: 8 }}>
                 <div style={{ color: COLORS.mutedSoft, fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.1 }}>
-                  Alternative option
+                  Opção alternativa
                 </div>
                 <div style={{ fontSize: 20, fontWeight: 700, color: COLORS.text }}>{alternativeAdaptiveWorkout.title}</div>
                 <div style={{ color: COLORS.muted, lineHeight: 1.6 }}>

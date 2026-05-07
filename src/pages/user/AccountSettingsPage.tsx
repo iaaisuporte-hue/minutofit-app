@@ -201,6 +201,11 @@ export default function AccountSettingsPage() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmNewPassword, setConfirmNewPassword] = useState("");
 
+  const [profileError, setProfileError] = useState<string | null>(null);
+  const [profileSuccess, setProfileSuccess] = useState<string | null>(null);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null);
+
   useEffect(() => {
     if (!user) return;
     setName(user.name?.trim() || "");
@@ -242,25 +247,23 @@ export default function AccountSettingsPage() {
   }
 
   function saveProfile() {
-    if (!name.trim()) return alert("Informe seu nome.");
-    if (!phone.trim()) return alert("Informe um telefone para contato.");
-    alert(
-      "Salvamento no servidor ainda será conectado à API. Por enquanto seus dados exibidos vêm da sessão atual; use “Atualizar da sessão” após mudanças feitas em outro lugar.",
-    );
+    setProfileSuccess(null);
+    if (!name.trim()) { setProfileError("Informe seu nome."); return; }
+    if (!phone.trim()) { setProfileError("Informe um telefone para contato."); return; }
+    setProfileError(null);
+    setProfileSuccess("Quando a API estiver ativa, os dados serão salvos. Por enquanto use \"Atualizar da sessão\" após mudanças feitas em outro dispositivo.");
   }
 
   function changePassword() {
+    setPasswordSuccess(null);
     if (!currentPassword || !newPassword || !confirmNewPassword) {
-      return alert("Preencha todos os campos de senha.");
+      setPasswordError("Preencha todos os campos de senha."); return;
     }
     const pwErr = getStrongPasswordError(newPassword);
-    if (pwErr) return alert(pwErr);
-    if (newPassword !== confirmNewPassword) return alert("Confirmação de senha não confere.");
-
-    alert(
-      "Alteração de senha (placeholder). Para ativar de verdade, precisamos do backend (hash + validação + rate limit).",
-    );
-
+    if (pwErr) { setPasswordError(pwErr); return; }
+    if (newPassword !== confirmNewPassword) { setPasswordError("Confirmação de senha não confere."); return; }
+    setPasswordError(null);
+    setPasswordSuccess("Alteração de senha disponível quando o backend estiver configurado com hash + rate limit.");
     setCurrentPassword("");
     setNewPassword("");
     setConfirmNewPassword("");
@@ -457,6 +460,8 @@ export default function AccountSettingsPage() {
                   </motion.div>
                 </div>
 
+                {profileError ? <Note accent="danger" neon={neon}>{profileError}</Note> : null}
+                {profileSuccess ? <Note accent="accent" neon={neon}>{profileSuccess}</Note> : null}
                 <Note accent="accent" neon={neon}>
                   Segurança: a plataforma <b>nunca</b> exibe senha em texto. E-mail e CPF seguem as regras do cadastro; a
                   persistência de nome e telefone dependerá do endpoint seguro no backend.
@@ -532,7 +537,7 @@ export default function AccountSettingsPage() {
                     style={{ width: "fit-content", borderRadius: 14 }}
                   >
                     <Button neon={neon} onClick={changePassword} variant="primary">
-                      🔐 Solicitar alteração
+                      Solicitar alteração
                     </Button>
                   </motion.div>
 
@@ -555,6 +560,8 @@ export default function AccountSettingsPage() {
                   </motion.div>
                 </div>
 
+                {passwordError ? <Note accent="danger" neon={neon}>{passwordError}</Note> : null}
+                {passwordSuccess ? <Note accent="accent" neon={neon}>{passwordSuccess}</Note> : null}
                 <Note neon={neon}>
                   Nenhuma senha é armazenada no front. A troca real exige backend (hash/validação + rate limit).
                 </Note>

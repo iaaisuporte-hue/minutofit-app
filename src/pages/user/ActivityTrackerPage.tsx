@@ -535,6 +535,7 @@ export default function ActivityTrackerPage() {
   const geolocationRef = useRef<number | null>(null);
   const speedsRef = useRef<number[]>([]);
   const lastGpsTsRef = useRef<number | null>(null);
+  const elapsedTimeRef = useRef(0);
 
   // ── GPS readiness (pre-flight, runs only when not tracking) ─────────────
   const [gpsStatus, setGpsStatus] = useState<"idle" | "requesting" | "ready" | "denied" | "unavailable">("idle");
@@ -587,7 +588,7 @@ export default function ActivityTrackerPage() {
       if (timerRef.current) clearInterval(timerRef.current);
       return;
     }
-    timerRef.current = setInterval(() => setElapsedTime((p) => p + 1), 1000);
+    timerRef.current = setInterval(() => setElapsedTime((p) => { elapsedTimeRef.current = p + 1; return p + 1; }), 1000);
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, [isPaused, isTracking]);
 
@@ -651,7 +652,7 @@ export default function ActivityTrackerPage() {
             ...prev,
             routeCoordinates: nextCoords,
             distance,
-            pace: calculatePace(elapsedTime, distance),
+            pace: calculatePace(elapsedTimeRef.current, distance),
           };
         });
       },
@@ -665,7 +666,7 @@ export default function ActivityTrackerPage() {
         geolocationRef.current = null;
       }
     };
-  }, [isPaused, isTracking, elapsedTime]);
+  }, [isPaused, isTracking]);
 
   // ── Pace update on tick ──────────────────────────────────────────────────
   useEffect(() => {
