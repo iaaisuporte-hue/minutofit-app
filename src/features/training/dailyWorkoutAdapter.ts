@@ -27,8 +27,22 @@ function startOfWeek(date = new Date()) {
 }
 
 export function normalizeDailyCondition(condition: DailyCondition | null): DailyWorkoutCondition {
-  if (condition?.feeling === "energized") return "high";
-  if (condition?.feeling === "tired") return "tired";
+  if (!condition) return "normal";
+  const { feeling, details } = condition;
+
+  // Explicit tired → always tired
+  if (feeling === "tired") return "tired";
+
+  // Count recovery signals from check-in details
+  if (details) {
+    const recoverySignals = [!details.sleptWell, details.inPain, details.stressed].filter(Boolean).length;
+    // 2+ signals → downgrade to tired regardless of feeling
+    if (recoverySignals >= 2) return "tired";
+    // 1 signal → cap at normal even when feeling energized
+    if (recoverySignals >= 1 && feeling === "energized") return "normal";
+  }
+
+  if (feeling === "energized") return "high";
   return "normal";
 }
 

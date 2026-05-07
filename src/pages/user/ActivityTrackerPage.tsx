@@ -4,6 +4,8 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { registerDailyCheckin } from "./gamification";
 import { persistGamificationCheckin } from "../../services/gamificationApi";
+import { authFetch } from "../../services/apiClient";
+import { API_URL } from "../../services/apiBase";
 import "./activityTracker.css";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -194,9 +196,9 @@ function getTodayStatus(activities: Activity[]) {
   return { energy, recovery, readiness, metabolism };
 }
 
-function getReadinessAdvice(metabolism: number): string {
-  if (metabolism >= 80) return "Zona verde: sessão intensa liberada";
-  if (metabolism >= 60) return "Moderado sustentável";
+function getReadinessAdvice(readinessScore: number): string {
+  if (readinessScore >= 80) return "Zona verde: sessão intensa liberada";
+  if (readinessScore >= 60) return "Moderado sustentável";
   return "Prefira recuperação ativa hoje";
 }
 
@@ -533,6 +535,46 @@ export default function ActivityTrackerPage() {
   const speedsRef = useRef<number[]>([]);
   const lastGpsTsRef = useRef<number | null>(null);
 
+  // ── GPS readiness (pre-flight, runs only when not tracking) ─────────────
+  const [gpsStatus, setGpsStatus] = useState<"idle" | "requesting" | "ready" | "denied" | "unavailable">("idle");
+  const [gpsAccuracy, setGpsAccuracy] = useState<number | null>(null);
+  const gpsReadinessRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (isTracking) {
+      if (gpsReadinessRef.current !== null) {
+        navigator.geolocation?.clearWatch(gpsReadinessRef.current);
+        gpsReadinessRef.current = null;
+      }
+      return;
+    }
+    if (!navigator.geolocation) {
+      setGpsStatus("unavailable");
+      return;
+    }
+    setGpsStatus("requesting");
+    gpsReadinessRef.current = navigator.geolocation.watchPosition(
+      (pos) => {
+        setGpsAccuracy(Math.round(pos.coords.accuracy));
+        setGpsStatus("ready");
+      },
+      (err) => {
+        if (err.code === 1 /* PERMISSION_DENIED */) {
+          setGpsStatus("denied");
+        } else {
+          setGpsStatus((prev) => (prev === "ready" ? "ready" : "unavailable"));
+        }
+      },
+      { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 }
+    );
+    return () => {
+      if (gpsReadinessRef.current !== null) {
+        navigator.geolocation?.clearWatch(gpsReadinessRef.current);
+        gpsReadinessRef.current = null;
+      }
+    };
+  }, [isTracking]);
+
   // ── Persist / load ───────────────────────────────────────────────────────
   useEffect(() => {
     setActivities(parseStoredActivities(localStorage.getItem("activities")));
@@ -778,6 +820,29 @@ export default function ActivityTrackerPage() {
     } catch (error) {
       console.error("Failed to persist activity gamification:", error);
     }
+
+    // Persist session to backend (fire-and-forget; localStorage remains source of truth)
+    try {
+      await authFetch(`${API_URL}/activities`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          activityType: endActivity.type,
+          durationSeconds: endActivity.duration,
+          distanceKm: endActivity.distance,
+          caloriesEstimated: endActivity.calories ?? 0,
+          avgPace: endActivity.pace,
+          intensity: endActivity.intensity ?? null,
+          score: getPerformanceSignal(endActivity).score,
+          routeCoordinates: endActivity.routeCoordinates,
+          validationFlag: endActivity.validationFlag ?? false,
+          startedAt: endActivity.startTime,
+          endedAt: endActivity.endTime ?? new Date(),
+        }),
+      });
+    } catch {
+      // Backend unavailable — session already saved to localStorage
+    }
   }
 
   function deleteActivity(id: string) {
@@ -799,7 +864,7 @@ export default function ActivityTrackerPage() {
       <Card>
         <div className="tr-status">
           <div className="tr-status-left">
-            <div className="tr-status-label">Metabolismo hoje</div>
+            <div className="tr-status-label">Prontidão</div>
             <div className="tr-status-score-value">
               {todayStatus.metabolism}
               <span className="tr-status-score-unit">%</span>
@@ -1004,6 +1069,28 @@ export default function ActivityTrackerPage() {
               })}
             </div>
 
+            {/* GPS status indicator */}
+            {gpsStatus !== "idle" && (
+              <div
+                className={`tr-gps-status tr-gps-status--${gpsStatus}`}
+                role="status"
+                aria-live="polite"
+              >
+                {gpsStatus === "requesting" && (
+                  <><span className="tr-gps-dot tr-gps-dot--searching" />Buscando sinal GPS…</>
+                )}
+                {gpsStatus === "ready" && (
+                  <><span className="tr-gps-dot tr-gps-dot--ready" />GPS pronto{gpsAccuracy !== null ? ` · precisão ${gpsAccuracy} m` : ""}</>
+                )}
+                {gpsStatus === "denied" && (
+                  <><span className="tr-gps-dot tr-gps-dot--error" />GPS bloqueado — ative nas configurações do navegador</>
+                )}
+                {gpsStatus === "unavailable" && (
+                  <><span className="tr-gps-dot tr-gps-dot--error" />GPS indisponível neste dispositivo</>
+                )}
+              </div>
+            )}
+
             <div className="tr-cta-bar">
               <div className="tr-cta-left">
                 <div className="tr-cta-icon">
@@ -1012,10 +1099,20 @@ export default function ActivityTrackerPage() {
                 <div className="tr-cta-label">{ACTIVITY_META[selectedType].label}</div>
               </div>
               <div className="tr-cta-right">
-                <button type="button" onClick={startActivity} className="tr-cta-button">
-                  ▶ Iniciar sessão
+                <button
+                  type="button"
+                  onClick={startActivity}
+                  className="tr-cta-button"
+                  disabled={gpsStatus === "denied"}
+                  title={gpsStatus === "denied" ? "Permissão de GPS negada" : undefined}
+                >
+                  {gpsStatus === "requesting" ? "Aguardando GPS…" : "▶ Iniciar sessão"}
                 </button>
-                <div className="tr-cta-caption">Baseado no seu estado de hoje</div>
+                <div className="tr-cta-caption">
+                  {gpsStatus === "denied"
+                    ? "Permissão de GPS necessária"
+                    : "Baseado no seu estado de hoje"}
+                </div>
               </div>
             </div>
           </div>

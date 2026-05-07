@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import "./movementLab.css";
+import { authFetch } from "../../services/apiClient";
+import { API_URL } from "../../services/apiBase";
 import {
   EXERCISE_CATALOG,
   EXERCISE_GROUPS,
@@ -760,6 +762,25 @@ export default function MovementLabPage() {
     const updated = [...history, session];
     setHistory(updated);
     saveHistory(updated);
+
+    // Persist to backend — fire-and-forget; localStorage is source of truth
+    authFetch(`${API_URL}/movement/sessions`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        exerciseId: session.exerciseId,
+        exerciseLabel: session.exerciseLabel,
+        repCount: session.repCount,
+        avgFormScore: session.avgFormScore,
+        bestRepScore: session.bestRepScore,
+        worstRepScore: session.worstRepScore,
+        avgSymmetry: session.avgSymmetry,
+        insight: session.insight,
+      }),
+    }).catch(() => {
+      // Backend unavailable — session already saved to localStorage
+    });
+
     handleResetSeries();
   }
 

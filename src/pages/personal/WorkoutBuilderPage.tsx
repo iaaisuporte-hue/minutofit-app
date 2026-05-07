@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { PERSONAL_STUDENTS, type PersonalStudentGender, type PersonalStudentPlan } from "./personalStudentsMock";
 import { fetchPersonalDashboard } from "../../services/personalDashboardApi";
 import type { PersonalDashboardStudent } from "../../services/personalDashboardApi";
 import { createPersonalWorkoutPlan, fetchPersonalWorkoutPlans } from "../../services/personalWorkoutApi";
@@ -17,8 +16,8 @@ import { WB } from "./workoutBuilder/workoutBuilderTheme";
 
 const BUILDER_BASE = "/app/personal/students";
 
-type Plan = PersonalStudentPlan;
-type Gender = PersonalStudentGender;
+type Plan = "basic" | "silver" | "gold" | "black";
+type Gender = "M" | "F";
 
 type Student = {
   id: string;
@@ -63,14 +62,6 @@ function mapDashboardToStudents(rows: PersonalDashboardStudent[]): Student[] {
   }));
 }
 
-function mapMockToStudents(): Student[] {
-  return PERSONAL_STUDENTS.map((student) => ({
-    id: student.id,
-    name: student.name,
-    plan: student.plan,
-    gender: student.gender,
-  }));
-}
 
 function suggestNextExercises(firstExerciseName: string, group: MuscleGroup, all: Exercise[]) {
   const name = firstExerciseName.toLowerCase();
@@ -140,8 +131,8 @@ export default function WorkoutBuilderPage() {
         const dash = await fetchPersonalDashboard();
         if (cancelled) return;
         if (!dash) {
-          setStudents(mapMockToStudents());
-          setStudentsError("Não foi possível carregar o painel — exibindo lista de demonstração.");
+          setStudents([]);
+          setStudentsError("Não foi possível carregar o painel. Tente novamente.");
           return;
         }
         if (dash.students.length) {
@@ -152,8 +143,8 @@ export default function WorkoutBuilderPage() {
         }
       } catch {
         if (cancelled) return;
-        setStudents(mapMockToStudents());
-        setStudentsError("Não foi possível carregar alunos do servidor — usando lista de demonstração.");
+        setStudents([]);
+        setStudentsError("Não foi possível carregar alunos do servidor. Tente novamente.");
       } finally {
         if (!cancelled) setStudentsLoading(false);
       }

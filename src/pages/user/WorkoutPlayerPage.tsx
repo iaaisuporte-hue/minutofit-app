@@ -23,7 +23,7 @@ type Workout = {
   supportOnly?: boolean;
 };
 
-const MOCK_WORKOUTS: Record<string, Workout> = {
+const BUNDLED_HOME_WORKOUTS: Record<string, Workout> = {
   "home-10min": {
     title: "Treino em Casa • 10 minutos",
     muscleGroup: "full_body",
@@ -98,7 +98,7 @@ export default function WorkoutPlayerPage() {
         ],
       } satisfies Workout;
     }
-    const predefined = MOCK_WORKOUTS[workoutId];
+    const predefined = BUNDLED_HOME_WORKOUTS[workoutId];
     if (predefined) return predefined;
 
     const short = homeWorkoutCatalog.find((item) => item.id === workoutId);

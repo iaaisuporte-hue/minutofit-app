@@ -1,16 +1,15 @@
 import { Link } from "react-router-dom";
-import { useMemo, useState } from "react";
-import { PERSONAL_STUDENTS, type PersonalStudentPlan } from "./personalStudentsMock";
+import { useEffect, useMemo, useState } from "react";
+import { fetchPersonalDashboard } from "../../services/personalDashboardApi";
 import { COLORS } from "../../styles/colors";
 
-type Plan = PersonalStudentPlan;
+type Plan = "basic" | "silver" | "gold" | "black";
 
 type Student = {
   id: string;
   name: string;
   plan: Plan;
-  planExpiresAt: string; // ISO
-  // Consultoria (apenas black)
+  planExpiresAt?: string; // ISO (absent when API doesn't provide it)
   lastWorkoutUpdateAt?: string; // ISO
   workoutsDoneInCurrentPlan?: number;
   workoutsPlannedInCurrentPlan?: number;
@@ -36,7 +35,8 @@ function daysUntil(isoDate: string) {
   return Math.floor(diffMs / (1000 * 60 * 60 * 24));
 }
 
-function getPlanStatus(isoDate: string): { status: "active" | "expiring" | "expired"; label: string } {
+function getPlanStatus(isoDate?: string): { status: "active" | "expiring" | "expired"; label: string } {
+  if (!isoDate) return { status: "active", label: "—" };
   const d = daysUntil(isoDate);
   if (d < 0) return { status: "expired", label: "VENCIDO" };
   if (d <= 5) return { status: "expiring", label: `Vence em ${d} dia(s)` };
@@ -168,19 +168,40 @@ function ActionLink({ to, label, variant = "ghost" }: { to: string; label: strin
 }
 
 export default function StudentsListPage() {
-  const students: Student[] = useMemo(
-    () =>
-      PERSONAL_STUDENTS.map((student) => ({
-        id: student.id,
-        name: student.name,
-        plan: student.plan,
-        planExpiresAt: student.planExpiresAt,
-        lastWorkoutUpdateAt: student.lastWorkoutUpdateAt,
-        workoutsDoneInCurrentPlan: student.workoutsDoneInCurrentPlan,
-        workoutsPlannedInCurrentPlan: student.workoutsPlannedInCurrentPlan,
-      })),
-    []
-  );
+  const [students, setStudents] = useState<Student[]>([]);
+  const [loadingStudents, setLoadingStudents] = useState(true);
+  const [studentsError, setStudentsError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoadingStudents(true);
+      try {
+        const dash = await fetchPersonalDashboard();
+        if (cancelled) return;
+        if (!dash) {
+          setStudentsError("Não foi possível carregar os alunos. Tente novamente.");
+          return;
+        }
+        setStudents(
+          dash.students.map((s) => ({
+            id: s.id,
+            name: s.name,
+            plan: s.plan as Plan,
+            planExpiresAt: undefined,
+            lastWorkoutUpdateAt: s.lastWorkoutISO ?? undefined,
+            workoutsDoneInCurrentPlan: s.workouts30d,
+            workoutsPlannedInCurrentPlan: undefined,
+          }))
+        );
+      } catch {
+        if (!cancelled) setStudentsError("Erro ao carregar alunos.");
+      } finally {
+        if (!cancelled) setLoadingStudents(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   const [filter, setFilter] = useState<"all" | Plan>("all");
   const [q, setQ] = useState("");
@@ -250,6 +271,22 @@ export default function StudentsListPage() {
       ],
     };
   }, [filtered]);
+
+  if (loadingStudents) {
+    return (
+      <div style={{ padding: 32, textAlign: "center", color: COLORS.muted }}>
+        Carregando alunos…
+      </div>
+    );
+  }
+
+  if (studentsError) {
+    return (
+      <div style={{ padding: 32, textAlign: "center", color: COLORS.muted }}>
+        {studentsError}
+      </div>
+    );
+  }
 
   return (
     <div style={{ padding: 16, display: "grid", gap: 14 }}>
@@ -441,7 +478,7 @@ export default function StudentsListPage() {
                 </div>
 
                 <div style={{ color: COLORS.muted2, fontSize: 13 }}>
-                  Vencimento do plano: <b style={{ color: COLORS.text }}>{formatDateBR(s.planExpiresAt)}</b>
+                  Vencimento do plano: <b style={{ color: COLORS.text }}>{s.planExpiresAt ? formatDateBR(s.planExpiresAt) : "—"}</b>
                 </div>
 
                 {isConsulting && hasTrainingData && (

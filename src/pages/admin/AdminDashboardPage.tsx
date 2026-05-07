@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext";
-import { adminStudents } from "./adminData";
 import { fetchAdminDashboardMetrics, type AdminDashboardMetrics } from "../../services/adminApi";
 import { COLORS } from "../../styles/colors";
 
@@ -56,7 +55,6 @@ export default function AdminDashboardPage() {
   }, []);
 
   const metrics = useMemo(() => {
-    const onboardingPending = adminStudents.filter((student) => student.onboarding === "pendente").length;
     const tierMap = new Map((metricsData?.tierBreakdown || []).map((item) => [item.name?.toLowerCase(), Number(item.count || 0)]));
     const freeCount = tierMap.get("free") || 0;
     const proCount = tierMap.get("pro") || 0;
@@ -66,34 +64,21 @@ export default function AdminDashboardPage() {
       return [
         { title: "Alunos ativos", value: "--", note: "aguardando dados" },
         { title: "Assinaturas ativas", value: "--", note: "aguardando dados" },
-        { title: "Onboarding pendente", value: String(onboardingPending), note: "pedem atenção de ativação" },
+        { title: "Cadastros pendentes", value: "--", note: "aguardando dados" },
         { title: "Mix de planos", value: "--", note: "aguardando dados" },
       ];
     }
 
+    const withoutSub = metricsData.totalUsers - metricsData.activeSubscriptions;
     return [
       { title: "Usuários totais", value: String(metricsData.totalUsers), note: "base cadastrada" },
       { title: "Assinaturas ativas", value: String(metricsData.activeSubscriptions), note: "base recorrente atual" },
-      { title: "Onboarding pendente", value: String(onboardingPending), note: "pedem atenção de ativação" },
+      { title: "Sem assinatura", value: String(Math.max(0, withoutSub)), note: "potencial de conversão" },
       { title: "Mix de planos", value: `${freeCount}/${proCount}/${premiumCount}`, note: "Free / Pro / Premium" },
     ];
   }, [metricsData]);
 
   const alerts = useMemo(() => {
-    const criticalStudents = adminStudents
-      .filter((student) => student.status === "em risco" || student.weeklyConsistency === "0/7" || student.weeklyConsistency === "1/7")
-      .map((student) => ({
-        severity: "critical" as const,
-        text: `${student.name} com risco de churn (${student.weeklyConsistency}) e onboarding ${student.onboarding}.`,
-      }));
-
-    const pendingOnboarding = adminStudents
-      .filter((student) => student.onboarding === "pendente")
-      .map((student) => ({
-        severity: "attention" as const,
-        text: `${student.name} ainda não concluiu onboarding.`,
-      }));
-
     const billingAttention =
       metricsData && metricsData.activeSubscriptions < metricsData.totalUsers
         ? [
@@ -104,8 +89,8 @@ export default function AdminDashboardPage() {
           ]
         : [];
 
-    const allAlerts = [...criticalStudents, ...pendingOnboarding, ...billingAttention];
-    if (alertFilter === "critical") return allAlerts.filter((item) => item.severity === "critical");
+    const allAlerts = [...billingAttention];
+    if (alertFilter === "critical") return [];
     if (alertFilter === "attention") return allAlerts.filter((item) => item.severity === "attention");
     return allAlerts;
   }, [alertFilter, metricsData]);
@@ -283,13 +268,13 @@ export default function AdminDashboardPage() {
                 style={{
                   padding: "14px 16px",
                   borderRadius: 16,
-                  border: `1px solid ${alert.severity === "critical" ? COLORS.redBorder : COLORS.border}`,
-                  background: alert.severity === "critical" ? COLORS.redSoft : COLORS.panelSoft,
+                  border: `1px solid ${COLORS.border}`,
+                  background: COLORS.panelSoft,
                   lineHeight: 1.5,
                 }}
               >
-                <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 4, color: alert.severity === "critical" ? "#FF9C9C" : "#FFD36C" }}>
-                  {alert.severity === "critical" ? "CRÍTICO" : "ATENÇÃO"}
+                <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 4, color: "#FFD36C" }}>
+                  ATENÇÃO
                 </div>
                 {alert.text}
               </div>

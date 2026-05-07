@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { resolvePersonalStudentReference } from "./personalStudentsMock";
 import {
   fetchPersonalDashboard,
   type PersonalDashboardGoal,
@@ -319,10 +318,6 @@ export default function DashboardPage() {
     return <Badge variant="danger">Crítico</Badge>;
   }
 
-  function getResolvedStudent(student: Student) {
-    return resolvePersonalStudentReference({ id: student.id, name: student.name });
-  }
-
   return (
     <div style={{ display: "grid", gap: 14, color: COLORS.text }}>
       {/* Header */}
@@ -458,8 +453,8 @@ export default function DashboardPage() {
                     onClick={() =>
                       navigate(routes.messages(), {
                         state: {
-                          studentId: getResolvedStudent(s)?.id ?? s.id,
-                          studentName: getResolvedStudent(s)?.name ?? s.name,
+                          studentId: s.id,
+                          studentName: s.name,
                         },
                       })
                     }
@@ -469,12 +464,10 @@ export default function DashboardPage() {
                   <ActionButton
                     primary
                     onClick={() => {
-                      const resolvedStudent = getResolvedStudent(s);
-                      const targetStudentId = resolvedStudent?.id ?? s.id;
-                      navigate(routes.workoutBuilder(targetStudentId), {
+                      navigate(routes.workoutBuilder(s.id), {
                         state: {
-                          studentId: targetStudentId,
-                          studentName: resolvedStudent?.name ?? s.name,
+                          studentId: s.id,
+                          studentName: s.name,
                         },
                       });
                     }}
@@ -664,8 +657,8 @@ export default function DashboardPage() {
                     onClick={() =>
                       navigate(routes.messages(), {
                         state: {
-                          studentId: getResolvedStudent(s)?.id ?? s.id,
-                          studentName: getResolvedStudent(s)?.name ?? s.name,
+                          studentId: s.id,
+                          studentName: s.name,
                         },
                       })
                     }

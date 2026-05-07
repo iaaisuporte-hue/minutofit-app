@@ -1,10 +1,26 @@
+import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { adminStudents, getAdminPersonalById } from "./adminData";
+import { fetchAdminUserById, type AdminUserRow } from "../../services/adminApi";
 import { COLORS } from "../../styles/colors";
 
 export default function AdminPersonalDetailsPage() {
   const { personalId } = useParams();
-  const personal = getAdminPersonalById(personalId);
+  const [personal, setPersonal] = useState<AdminUserRow | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!personalId) { setLoading(false); return; }
+    fetchAdminUserById(personalId)
+      .then((data) => setPersonal(data))
+      .catch(() => setPersonal(null))
+      .finally(() => setLoading(false));
+  }, [personalId]);
+
+  if (loading) {
+    return (
+      <div style={{ padding: 32, color: COLORS.muted }}>Carregando…</div>
+    );
+  }
 
   if (!personal) {
     return (
@@ -16,8 +32,6 @@ export default function AdminPersonalDetailsPage() {
       </div>
     );
   }
-
-  const linkedStudents = adminStudents.filter((student) => student.personal === personal.name);
 
   return (
     <div style={{ display: "grid", gap: 16, color: COLORS.text }}>
@@ -35,16 +49,16 @@ export default function AdminPersonalDetailsPage() {
         <Link to="/app/admin/personals" style={{ color: "#22C55E", textDecoration: "none", fontWeight: 600, width: "fit-content" }}>
           ← Voltar para personals
         </Link>
-        <div style={{ fontSize: 30, fontWeight: 700 }}>{personal.name}</div>
+        <div style={{ fontSize: 30, fontWeight: 700 }}>{personal.name ?? "—"}</div>
         <div style={{ color: COLORS.muted }}>{personal.email}</div>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12 }}>
         {[
-          { label: "Status", value: personal.status },
-          { label: "Especialidade", value: personal.specialty },
-          { label: "Clientes ativos", value: String(personal.activeClients) },
           { label: "Papel", value: personal.role },
+          { label: "Perfil completo", value: personal.profile_completed ? "Sim" : "Não" },
+          { label: "Plano", value: personal.subscription_tier ?? "—" },
+          { label: "Cadastro", value: new Date(personal.created_at).toLocaleDateString("pt-BR") },
         ].map((item) => (
           <div
             key={item.label}
@@ -77,35 +91,7 @@ export default function AdminPersonalDetailsPage() {
       >
         <div style={{ fontSize: 18, fontWeight: 700 }}>Alunos vinculados</div>
         <div style={{ color: COLORS.muted, lineHeight: 1.6 }}>
-          Aqui o admin consegue enxergar rapidamente quem está sob acompanhamento e como anda a carteira operacional desse personal.
-        </div>
-
-        <div style={{ display: "grid", gap: 10 }}>
-          {linkedStudents.map((student) => (
-            <div
-              key={student.id}
-              style={{
-                borderRadius: 16,
-                border: `1px solid ${COLORS.border}`,
-                background: COLORS.panelSoft,
-                padding: 14,
-                display: "flex",
-                justifyContent: "space-between",
-                gap: 12,
-                flexWrap: "wrap",
-              }}
-            >
-              <div style={{ display: "grid", gap: 4 }}>
-                <div style={{ fontWeight: 600 }}>{student.name}</div>
-                <div style={{ color: COLORS.muted, fontSize: 13 }}>
-                  {student.goal} • {student.plan} • {student.weeklyConsistency}
-                </div>
-              </div>
-              <Link to={`/app/admin/users/${student.id}`} style={{ color: "#22C55E", fontWeight: 600, textDecoration: "none" }}>
-                Ver aluno
-              </Link>
-            </div>
-          ))}
+          Vínculo personal–aluno disponível em breve via painel de gestão de atribuições.
         </div>
       </div>
     </div>

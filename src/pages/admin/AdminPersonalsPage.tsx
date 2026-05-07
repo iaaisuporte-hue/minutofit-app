@@ -1,10 +1,21 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext";
-import { adminPersonals } from "./adminData";
+import { fetchAdminUsers, type AdminUserRow } from "../../services/adminApi";
 import { COLORS } from "../../styles/colors";
 
 export default function AdminPersonalsPage() {
   const auth = useAuth();
+  const [personals, setPersonals] = useState<AdminUserRow[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchAdminUsers({ role: "personal", limit: 50 })
+      .then((data) => setPersonals(data?.users ?? []))
+      .catch(() => setPersonals([]))
+      .finally(() => setLoading(false));
+  }, []);
+
   return (
     <div style={{ display: "grid", gap: 16, color: COLORS.text }}>
       <div
@@ -50,7 +61,15 @@ export default function AdminPersonalsPage() {
       </div>
 
       <div style={{ display: "grid", gap: 12 }}>
-        {adminPersonals.map((personal) => (
+        {loading && (
+          <div style={{ padding: 24, color: COLORS.muted, textAlign: "center" }}>Carregando…</div>
+        )}
+        {!loading && personals.length === 0 && (
+          <div style={{ padding: 24, color: COLORS.muted, textAlign: "center" }}>
+            Nenhum personal cadastrado ainda.
+          </div>
+        )}
+        {personals.map((personal) => (
           <div
             key={personal.id}
             style={{
@@ -65,29 +84,29 @@ export default function AdminPersonalsPage() {
           >
             <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
               <div style={{ display: "grid", gap: 6 }}>
-                <div style={{ fontSize: 20, fontWeight: 700 }}>{personal.name}</div>
+                <div style={{ fontSize: 20, fontWeight: 700 }}>{personal.name ?? "—"}</div>
                 <div style={{ color: COLORS.muted }}>{personal.email}</div>
               </div>
               <div
                 style={{
                   borderRadius: 999,
                   padding: "8px 12px",
-                  border: `1px solid ${personal.status === "ativo" ? "rgba(34,197,94,.28)" : "#E5E7EB"}`,
-                  background: personal.status === "ativo" ? "rgba(34,197,94,.14)" : "#F9FAFB",
-                  color: personal.status === "ativo" ? "#22C55E" : "rgba(255,255,255,.78)",
+                  border: "1px solid rgba(34,197,94,.28)",
+                  background: "rgba(34,197,94,.14)",
+                  color: "#22C55E",
                   fontWeight: 600,
                   fontSize: 12,
                 }}
               >
-                {personal.status}
+                ativo
               </div>
             </div>
 
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 10 }}>
               {[
-                { label: "Especialidade", value: personal.specialty },
-                { label: "Alunos ativos", value: String(personal.activeClients) },
                 { label: "Papel", value: personal.role },
+                { label: "Plano", value: personal.subscription_tier ?? "—" },
+                { label: "Cadastro", value: new Date(personal.created_at).toLocaleDateString("pt-BR") },
               ].map((item) => (
                 <div
                   key={item.label}

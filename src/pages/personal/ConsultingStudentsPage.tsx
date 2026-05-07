@@ -1,6 +1,5 @@
 import { Link } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
-import { resolvePersonalStudentReference } from "./personalStudentsMock";
 import {
   fetchPersonalConsulting,
   type PersonalConsultingNextAction,
@@ -340,7 +339,6 @@ export default function ConsultingStudentsPage() {
       ) : (
         <div style={{ display: "grid", gap: 10 }}>
           {filtered.map((student) => {
-            const resolvedStudent = resolvePersonalStudentReference({ id: student.id, name: student.name });
             const actionMeta = getActionMeta(student.nextAction, student.planExpiresAt);
             const progressPct =
               student.workoutsPlannedInCurrentPlan > 0
@@ -426,8 +424,8 @@ export default function ConsultingStudentsPage() {
 
                   <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "flex-end" }}>
                     <ActionLink
-                      to={`../students/${resolvedStudent?.id ?? student.id}/workouts/new`}
-                      state={{ studentName: resolvedStudent?.name ?? student.name }}
+                      to={`../students/${student.id}/workouts/new`}
+                      state={{ studentName: student.name }}
                       label="Atualizar ficha"
                       kind="primary"
                     />

@@ -1,12 +1,4 @@
-import { adminPayments } from "./adminData";
 import { COLORS } from "../../styles/colors";
-
-function statusVisual(status: string) {
-  if (status === "pago") return { bg: "rgba(34,197,94,.14)", border: "rgba(34,197,94,.28)", color: "#22C55E" };
-  if (status === "falhou") return { bg: "rgba(255,110,110,.10)", border: "rgba(255,110,110,.28)", color: "#FF9C9C" };
-  if (status === "pendente") return { bg: "rgba(255,200,80,.12)", border: "rgba(255,200,80,.28)", color: "#FFD36C" };
-  return { bg: "#F9FAFB", border: "#E5E7EB", color: "rgba(255,255,255,.78)" };
-}
 
 export default function AdminFinancePage() {
   const metrics = [
@@ -69,53 +61,10 @@ export default function AdminFinancePage() {
       >
         <div style={{ fontSize: 18, fontWeight: 700 }}>Pagamentos recentes</div>
         <div style={{ color: COLORS.muted, fontSize: 13, lineHeight: 1.5 }}>
-          Aqui é onde o admin começa a ler falhas de cobrança, status de recebimento e impacto em retenção.
+          Integração com histórico de pagamentos via Mercado Pago em desenvolvimento.
         </div>
-
-        <div style={{ display: "grid", gap: 10 }}>
-          {adminPayments.map((payment) => {
-            const visual = statusVisual(payment.status);
-            return (
-              <div
-                key={payment.id}
-                style={{
-                  borderRadius: 16,
-                  border: `1px solid ${COLORS.border}`,
-                  background: COLORS.panelSoft,
-                  padding: 14,
-                  display: "flex",
-                  justifyContent: "space-between",
-                  gap: 12,
-                  flexWrap: "wrap",
-                  alignItems: "center",
-                }}
-              >
-                <div style={{ display: "grid", gap: 4 }}>
-                  <div style={{ fontWeight: 600 }}>{payment.studentName}</div>
-                  <div style={{ color: COLORS.muted, fontSize: 13 }}>
-                    {payment.plan} • {payment.method} • vencimento {payment.dueDate}
-                  </div>
-                </div>
-
-                <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-                  <div style={{ fontWeight: 700 }}>{payment.amount}</div>
-                  <div
-                    style={{
-                      borderRadius: 999,
-                      padding: "8px 12px",
-                      border: `1px solid ${visual.border}`,
-                      background: visual.bg,
-                      color: visual.color,
-                      fontWeight: 600,
-                      fontSize: 12,
-                    }}
-                  >
-                    {payment.status}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+        <div style={{ padding: "20px 0", color: COLORS.muted, textAlign: "center" }}>
+          Histórico de pagamentos em tempo real em breve.
         </div>
       </div>
     </div>
