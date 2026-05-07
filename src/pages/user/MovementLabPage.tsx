@@ -758,7 +758,18 @@ export default function MovementLabPage() {
 
   function handleSaveSession() {
     if (!sessionSummary) return;
-    const { repScores: _, ...session } = sessionSummary;
+    const session: MovementSession = {
+      id: sessionSummary.id,
+      exerciseId: sessionSummary.exerciseId,
+      exerciseLabel: sessionSummary.exerciseLabel,
+      timestamp: sessionSummary.timestamp,
+      repCount: sessionSummary.repCount,
+      avgFormScore: sessionSummary.avgFormScore,
+      bestRepScore: sessionSummary.bestRepScore,
+      worstRepScore: sessionSummary.worstRepScore,
+      avgSymmetry: sessionSummary.avgSymmetry,
+      insight: sessionSummary.insight,
+    };
     const updated = [...history, session];
     setHistory(updated);
     saveHistory(updated);

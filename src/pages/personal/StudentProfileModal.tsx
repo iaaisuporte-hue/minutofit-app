@@ -7,6 +7,7 @@ import {
   type PersonalDashboardRisk,
   type PersonalStudentSnapshot,
 } from "../../services/personalDashboardApi";
+import "./personalPremium.css";
 
 type TabId = "today" | "week" | "history";
 
@@ -42,12 +43,6 @@ function riskLabel(risk: PersonalDashboardRisk) {
   return "No ritmo";
 }
 
-function riskTone(risk: PersonalDashboardRisk) {
-  if (risk === "critico") return { bg: COLORS.dangerBg, border: COLORS.dangerBorder };
-  if (risk === "alerta") return { bg: COLORS.warnBg, border: COLORS.warnBorder };
-  return { bg: COLORS.successBg, border: COLORS.successBorder };
-}
-
 function engagementLabel(status: PersonalDashboardEngagementStatus) {
   if (status === "evolving") return "Evoluindo";
   if (status === "on_track") return "No ritmo";
@@ -56,30 +51,9 @@ function engagementLabel(status: PersonalDashboardEngagementStatus) {
   return "Atenção";
 }
 
-function tabButton(active: boolean): React.CSSProperties {
-  return {
-    padding: "10px 12px",
-    borderRadius: 12,
-    border: `1px solid ${active ? COLORS.borderStrong : COLORS.border}`,
-    background: active ? COLORS.primarySoft : "#FFFFFF",
-    color: COLORS.text,
-    fontWeight: active ? 800 : 700,
-    cursor: "pointer",
-  };
-}
-
 function Surface({ children }: { children: React.ReactNode }) {
   return (
-    <div
-      style={{
-        border: `1px solid ${COLORS.border}`,
-        borderRadius: 18,
-        background: "#FFFFFF",
-        padding: 14,
-        display: "grid",
-        gap: 10,
-      }}
-    >
+    <div className="pp-surface">
       {children}
     </div>
   );
@@ -88,8 +62,8 @@ function Surface({ children }: { children: React.ReactNode }) {
 function Metric({ label, value, helper }: { label: string; value: React.ReactNode; helper?: React.ReactNode }) {
   return (
     <div style={{ display: "grid", gap: 4 }}>
-      <div style={{ color: COLORS.mutedSoft, fontSize: 12, textTransform: "uppercase", letterSpacing: 0.8 }}>{label}</div>
-      <div style={{ fontWeight: 800, fontSize: 20, color: COLORS.text }}>{value}</div>
+      <div className="pp-metric__label">{label}</div>
+      <div style={{ fontWeight: 650, fontSize: 20, color: COLORS.text }}>{value}</div>
       {helper ? <div style={{ color: COLORS.muted, fontSize: 12, lineHeight: 1.45 }}>{helper}</div> : null}
     </div>
   );
@@ -150,87 +124,30 @@ export default function StudentProfileModal({
   }, [data]);
 
   return (
-    <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(15,23,42,0.42)",
-        display: "flex",
-        justifyContent: "flex-end",
-        zIndex: 60,
-      }}
-      onClick={onClose}
-    >
+    <div className="pp-drawer-backdrop" onClick={onClose}>
       <aside
         onClick={(event) => event.stopPropagation()}
-        style={{
-          width: "min(100%, 520px)",
-          height: "100%",
-          background: COLORS.panel,
-          boxShadow: "-18px 0 46px rgba(15,23,42,0.18)",
-          borderLeft: `1px solid ${COLORS.border}`,
-          padding: 18,
-          overflowY: "auto",
-          display: "grid",
-          gap: 14,
-        }}
+        className="pp-drawer"
       >
         <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start" }}>
           <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-            <div
-              style={{
-                width: 52,
-                height: 52,
-                borderRadius: 16,
-                background: COLORS.primarySoft,
-                border: `1px solid ${COLORS.borderStrong}`,
-                display: "grid",
-                placeItems: "center",
-                fontWeight: 800,
-                color: COLORS.text,
-              }}
-            >
+            <div className="pp-avatar">
               {initialFromName(data?.name || studentName)}
             </div>
 
             <div style={{ display: "grid", gap: 5 }}>
-              <div style={{ fontWeight: 800, fontSize: 22, color: COLORS.text }}>{data?.name || studentName}</div>
+              <div style={{ fontWeight: 650, fontSize: 22, color: COLORS.text, letterSpacing: "-0.03em" }}>{data?.name || studentName}</div>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                <span
-                  style={{
-                    padding: "6px 10px",
-                    borderRadius: 999,
-                    border: `1px solid ${COLORS.border}`,
-                    background: "#FFFFFF",
-                    fontSize: 12,
-                    fontWeight: 700,
-                  }}
-                >
+                <span className="pp-badge">
                   {PLAN_LABEL[data?.plan || "basic"]}
                 </span>
                 <span
-                  style={{
-                    padding: "6px 10px",
-                    borderRadius: 999,
-                    border: `1px solid ${(data && riskTone(data.risk).border) || COLORS.border}`,
-                    background: (data && riskTone(data.risk).bg) || COLORS.panelDeep,
-                    fontSize: 12,
-                    fontWeight: 700,
-                  }}
+                  className={`pp-badge ${data?.risk === "critico" ? "pp-badge--danger" : data?.risk === "alerta" ? "pp-badge--warn" : "pp-badge--success"}`}
                 >
                   {data ? riskLabel(data.risk) : "Carregando"}
                 </span>
                 {data ? (
-                  <span
-                    style={{
-                      padding: "6px 10px",
-                      borderRadius: 999,
-                      border: `1px solid ${COLORS.borderStrong}`,
-                      background: COLORS.primarySoft,
-                      fontSize: 12,
-                      fontWeight: 700,
-                    }}
-                  >
+                  <span className="pp-badge pp-badge--soft">
                     {engagementLabel(data.engagementStatus)}
                   </span>
                 ) : null}
@@ -241,16 +158,7 @@ export default function StudentProfileModal({
           <button
             type="button"
             onClick={onClose}
-            style={{
-              border: `1px solid ${COLORS.border}`,
-              background: "#FFFFFF",
-              color: COLORS.text,
-              borderRadius: 12,
-              width: 40,
-              height: 40,
-              cursor: "pointer",
-              fontSize: 18,
-            }}
+            className="pp-icon-btn"
           >
             ×
           </button>
@@ -274,14 +182,14 @@ export default function StudentProfileModal({
           </Surface>
         </div>
 
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <button type="button" style={tabButton(tab === "today")} onClick={() => setTab("today")}>
+        <div className="pp-tabs">
+          <button type="button" className="pp-tab" aria-selected={tab === "today"} onClick={() => setTab("today")}>
             Hoje
           </button>
-          <button type="button" style={tabButton(tab === "week")} onClick={() => setTab("week")}>
+          <button type="button" className="pp-tab" aria-selected={tab === "week"} onClick={() => setTab("week")}>
             Semana
           </button>
-          <button type="button" style={tabButton(tab === "history")} onClick={() => setTab("history")}>
+          <button type="button" className="pp-tab" aria-selected={tab === "history"} onClick={() => setTab("history")}>
             Histórico
           </button>
         </div>
@@ -302,7 +210,7 @@ export default function StudentProfileModal({
           <>
             <Surface>
               <div style={{ display: "grid", gap: 10 }}>
-                <div style={{ fontWeight: 800, color: COLORS.text }}>Janela de hoje</div>
+                <div style={{ fontWeight: 650, color: COLORS.text }}>Janela de hoje</div>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 12 }}>
                   <Metric
                     label="Check-in"
@@ -320,7 +228,7 @@ export default function StudentProfileModal({
 
             <Surface>
               <div style={{ display: "grid", gap: 10 }}>
-                <div style={{ fontWeight: 800, color: COLORS.text }}>Atividade mais recente</div>
+                <div style={{ fontWeight: 650, color: COLORS.text }}>Atividade mais recente</div>
                 {data.today.latestActivity ? (
                   <div style={{ display: "grid", gap: 6 }}>
                     <div style={{ fontWeight: 700 }}>{data.today.latestActivity.type}</div>
@@ -336,8 +244,8 @@ export default function StudentProfileModal({
 
             <Surface>
               <div style={{ display: "grid", gap: 10 }}>
-                <div style={{ fontWeight: 800, color: COLORS.text }}>Status do treino</div>
-                <div style={{ fontWeight: 700 }}>
+                <div style={{ fontWeight: 650, color: COLORS.text }}>Status do treino</div>
+                <div style={{ fontWeight: 650 }}>
                   {data.today.workoutStatus === "completed" ? "Treino concluído hoje" : "Treino ainda não iniciado hoje"}
                 </div>
                 <div style={{ color: COLORS.muted, fontSize: 13 }}>
@@ -354,23 +262,16 @@ export default function StudentProfileModal({
           <>
             <Surface>
               <div style={{ display: "grid", gap: 10 }}>
-                <div style={{ fontWeight: 800, color: COLORS.text }}>Semana do aluno</div>
+                <div style={{ fontWeight: 650, color: COLORS.text }}>Semana do aluno</div>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))", gap: 8 }}>
                   {data.week.days.map((day) => (
                     <div
                       key={day.date}
-                      style={{
-                        border: `1px solid ${day.workedOut ? COLORS.successBorder : COLORS.border}`,
-                        borderRadius: 14,
-                        background: day.workedOut ? COLORS.successBg : "#FFFFFF",
-                        padding: 10,
-                        textAlign: "center",
-                        display: "grid",
-                        gap: 6,
-                      }}
+                      className="pp-week-day"
+                      data-active={day.workedOut}
                     >
                       <div style={{ fontSize: 11, color: COLORS.mutedSoft }}>{formatShortDate(day.date)}</div>
-                      <div style={{ fontWeight: 800, fontSize: 16 }}>{day.workedOut ? "✓" : day.hadGps ? "★" : "○"}</div>
+                      <div style={{ fontWeight: 650, fontSize: 16 }}>{day.workedOut ? "treino" : day.hadGps ? "GPS" : "—"}</div>
                       <div style={{ fontSize: 11, color: COLORS.muted }}>{day.checkedIn ? "check-in" : "—"}</div>
                     </div>
                   ))}
@@ -403,7 +304,7 @@ export default function StudentProfileModal({
           <>
             <Surface>
               <div style={{ display: "grid", gap: 10 }}>
-                <div style={{ fontWeight: 800, color: COLORS.text }}>Aderência metabólica (14 dias)</div>
+                <div style={{ fontWeight: 650, color: COLORS.text }}>Aderência metabólica (14 dias)</div>
                 <div style={{ display: "flex", alignItems: "flex-end", gap: 8, minHeight: 110 }}>
                   {data.history.adherence14d.map((point) => (
                     <div key={point.date} style={{ display: "grid", gap: 6, justifyItems: "center", flex: 1 }}>
@@ -425,7 +326,7 @@ export default function StudentProfileModal({
 
             <Surface>
               <div style={{ display: "grid", gap: 10 }}>
-                <div style={{ fontWeight: 800, color: COLORS.text }}>Form Score</div>
+                <div style={{ fontWeight: 650, color: COLORS.text }}>Form Score</div>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 12 }}>
                   <Metric label="Média recente" value={formScoreAverage ?? "—"} />
                   <Metric
@@ -439,7 +340,7 @@ export default function StudentProfileModal({
 
             <Surface>
               <div style={{ display: "grid", gap: 10 }}>
-                <div style={{ fontWeight: 800, color: COLORS.text }}>Atividades por tipo</div>
+                <div style={{ fontWeight: 650, color: COLORS.text }}>Atividades por tipo</div>
                 {data.history.activityTypeCounts.length ? (
                   <div style={{ display: "grid", gap: 8 }}>
                     {data.history.activityTypeCounts.map((item) => (
@@ -450,12 +351,12 @@ export default function StudentProfileModal({
                           justifyContent: "space-between",
                           gap: 12,
                           padding: "10px 12px",
-                          borderRadius: 12,
+                          borderRadius: 10,
                           background: COLORS.panelDeep,
                           border: `1px solid ${COLORS.border}`,
                         }}
                       >
-                        <span style={{ fontWeight: 700 }}>{item.type}</span>
+                        <span style={{ fontWeight: 650 }}>{item.type}</span>
                         <span style={{ color: COLORS.muted }}>{item.count}</span>
                       </div>
                     ))}

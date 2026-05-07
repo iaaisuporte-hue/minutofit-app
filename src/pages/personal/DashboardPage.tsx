@@ -12,6 +12,7 @@ import { COLORS } from "../../styles/colors";
 import { useIsMobile } from "../../hooks/useIsMobile";
 import IntelligentAlerts from "./IntelligentAlerts";
 import StudentProfileModal from "./StudentProfileModal";
+import "./personalPremium.css";
 
 type OverviewFilter = "all" | "attention" | "fading" | "at_risk" | "evolving";
 
@@ -43,33 +44,8 @@ function Badge({
   tone: "neutral" | "success" | "warn" | "danger" | "soft";
   children: React.ReactNode;
 }) {
-  const map = {
-    neutral: { border: COLORS.border, bg: "#FFFFFF" },
-    success: { border: COLORS.successBorder, bg: COLORS.successBg },
-    warn: { border: COLORS.warnBorder, bg: COLORS.warnBg },
-    danger: { border: COLORS.dangerBorder, bg: COLORS.dangerBg },
-    soft: { border: COLORS.borderStrong, bg: COLORS.primarySoft },
-  } as const;
-
   return (
-    <span
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 8,
-        padding: "6px 10px",
-        borderRadius: 999,
-        border: `1px solid ${map[tone].border}`,
-        background: map[tone].bg,
-        color: COLORS.text,
-        fontWeight: 700,
-        fontSize: 11,
-        lineHeight: 1,
-        whiteSpace: "nowrap",
-        textTransform: "uppercase",
-        letterSpacing: 0.35,
-      }}
-    >
+    <span className={`pp-badge pp-badge--${tone}`}>
       {children}
     </span>
   );
@@ -87,33 +63,15 @@ function Card({
   children: React.ReactNode;
 }) {
   return (
-    <section
-      style={{
-        border: `1px solid ${COLORS.border}`,
-        borderRadius: 20,
-        background: COLORS.panel,
-        boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.05)",
-        overflow: "hidden",
-      }}
-    >
-      <div
-        style={{
-          padding: 14,
-          borderBottom: `1px solid ${COLORS.border}`,
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "flex-start",
-          gap: 12,
-          flexWrap: "wrap",
-        }}
-      >
+    <section className="pp-panel">
+      <div className="pp-panel__header">
         <div style={{ display: "grid", gap: 5 }}>
-          <div style={{ fontWeight: 800, fontSize: 15, color: COLORS.text }}>{title}</div>
-          {subtitle ? <div style={{ color: COLORS.mutedSoft, fontSize: 12, lineHeight: 1.45 }}>{subtitle}</div> : null}
+          <div className="pp-panel__title">{title}</div>
+          {subtitle ? <div className="pp-panel__subtitle">{subtitle}</div> : null}
         </div>
-        {right ? <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>{right}</div> : null}
+        {right ? <div className="pp-inline">{right}</div> : null}
       </div>
-      <div style={{ padding: 14 }}>{children}</div>
+      <div className="pp-panel__body">{children}</div>
     </section>
   );
 }
@@ -131,17 +89,7 @@ function ActionButton({
     <button
       type="button"
       onClick={onClick}
-      style={{
-        padding: "12px 14px",
-        borderRadius: 14,
-        border: primary ? `1px solid ${COLORS.borderStrong}` : `1px solid ${COLORS.border}`,
-        background: primary ? COLORS.primary : "#FFFFFF",
-        color: primary ? "#FFFFFF" : COLORS.text,
-        cursor: "pointer",
-        fontWeight: 800,
-        fontSize: 14,
-        boxShadow: primary ? "0 14px 28px rgba(34,197,94,.18)" : "none",
-      }}
+      className={`pp-btn ${primary ? "pp-btn--primary" : "pp-btn--ghost"}`}
     >
       {children}
     </button>
@@ -151,23 +99,8 @@ function ActionButton({
 function ProgressBar({ value }: { value: number }) {
   const pct = Math.max(0, Math.min(100, Math.round(value)));
   return (
-    <div
-      style={{
-        height: 10,
-        borderRadius: 999,
-        background: "#F9FAFB",
-        border: `1px solid ${COLORS.border}`,
-        overflow: "hidden",
-      }}
-    >
-      <div
-        style={{
-          width: `${pct}%`,
-          height: "100%",
-          borderRadius: 999,
-          background: COLORS.primary,
-        }}
-      />
+    <div className="pp-progress">
+      <div className="pp-progress__bar" style={{ width: `${pct}%` }} />
     </div>
   );
 }
@@ -180,11 +113,11 @@ function statusTone(status: PersonalDashboardEngagementStatus): "success" | "sof
 }
 
 function statusLabel(status: PersonalDashboardEngagementStatus) {
-  if (status === "evolving") return "↑ Evoluindo";
-  if (status === "on_track") return "✓ No ritmo";
-  if (status === "attention") return "⚠ Atenção";
-  if (status === "fading") return "! Sumindo";
-  return "✕ Em risco";
+  if (status === "evolving") return "Evoluindo";
+  if (status === "on_track") return "No ritmo";
+  if (status === "attention") return "Atenção";
+  if (status === "fading") return "Sumindo";
+  return "Em risco";
 }
 
 function riskTone(risk: PersonalDashboardRisk): "success" | "warn" | "danger" {
@@ -273,50 +206,22 @@ export default function DashboardPage() {
   }
 
   return (
-    <div style={{ display: "grid", gap: 14, color: COLORS.text }}>
-      <div
-        style={{
-          border: `1px solid ${COLORS.borderStrong}`,
-          borderRadius: 24,
-          padding: 20,
-          background: COLORS.panelDeep,
-          boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.05)",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          gap: 12,
-          flexWrap: "wrap",
-        }}
-      >
+    <div className="pp-page">
+      <div className="pp-hero">
         <div style={{ display: "grid", gap: 6 }}>
-          <div
-            style={{
-              display: "inline-flex",
-              width: "fit-content",
-              alignItems: "center",
-              gap: 8,
-              borderRadius: 999,
-              background: COLORS.highlightSoft,
-              color: COLORS.highlight,
-              padding: "8px 12px",
-              fontSize: 11,
-              fontWeight: 700,
-              letterSpacing: 1.1,
-              textTransform: "uppercase",
-            }}
-          >
-            Painel do personal
-          </div>
-          <div style={{ fontWeight: 800, fontSize: 28, lineHeight: 1.08 }}>Acompanhe o dia do aluno, não só a ficha.</div>
-          <div style={{ color: COLORS.muted, fontSize: 13, lineHeight: 1.5, maxWidth: 720 }}>
+          <div className="pp-kicker">Workspace metabólico</div>
+          <h1 className="pp-title">Acompanhe o dia do aluno, não só a ficha.</h1>
+          <div className="pp-subtitle">
             Prioridades, sinais de retenção e perfil rápido do aluno organizados para você agir antes do abandono.
           </div>
         </div>
 
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+        <div className="pp-actions">
           <ActionButton primary onClick={() => navigate(routes.messages())}>Abrir mensagens</ActionButton>
           <ActionButton onClick={() => navigate(routes.students())}>Ver alunos</ActionButton>
-          <ActionButton onClick={() => navigate(routes.review())}>Revisar treinos</ActionButton>
+          <button type="button" className="pp-btn pp-btn--quiet" onClick={() => navigate(routes.review())}>
+            Revisar treinos
+          </button>
         </div>
       </div>
 
@@ -346,51 +251,34 @@ export default function DashboardPage() {
       {!loading && !error && students.length > 0 ? (
         <>
           <Card title="Prioridades do dia" subtitle="Quem merece ação imediata nas próximas horas." right={<Badge tone="soft">Top 4</Badge>}>
-            <div style={{ display: "grid", gap: 10 }}>
+            <div style={{ display: "grid" }}>
               {stats.needsFollowUp.map((student) => (
-                <div
-                  key={student.id}
-                  style={{
-                    border: `1px solid ${student.engagementStatus === "at_risk" ? COLORS.dangerBorder : COLORS.border}`,
-                    borderRadius: 18,
-                    background: student.engagementStatus === "at_risk" ? COLORS.dangerBg : "#FFFFFF",
-                    padding: 14,
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    gap: 12,
-                    flexWrap: "wrap",
-                  }}
-                >
-                  <div style={{ display: "grid", gap: 8, minWidth: "min(320px, 100%)", flex: "1 1 320px" }}>
-                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                <div key={student.id} className="pp-student-row">
+                  <div className="pp-student-main">
+                    <div className="pp-inline">
                       <button
                         type="button"
                         onClick={() => openStudent(student.id, student.name)}
-                        style={{
-                          border: "none",
-                          background: "transparent",
-                          padding: 0,
-                          cursor: "pointer",
-                          fontWeight: 800,
-                          fontSize: 16,
-                          color: COLORS.text,
-                        }}
+                        className="pp-name"
                       >
                         {student.name}
                       </button>
                       <Badge tone={statusTone(student.engagementStatus)}>{statusLabel(student.engagementStatus)}</Badge>
-                      <Badge tone={riskTone(student.risk)}>{student.risk}</Badge>
+                      {student.risk !== "ok" ? <Badge tone={riskTone(student.risk)}>{student.risk === "critico" ? "Risco alto" : "Sinal fraco"}</Badge> : null}
                     </div>
-                    <div style={{ color: COLORS.muted, fontSize: 13, lineHeight: 1.5 }}>
+                    <div className="pp-meta">
                       Último treino <b>{fmtDate(student.lastWorkoutISO)}</b> • Último check-in <b>{fmtDate(student.lastCheckinISO)}</b> • Aderência{" "}
                       <b>{student.adherencePct}%</b> • {student.workouts7d}x na semana
                     </div>
                   </div>
 
-                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                    <ActionButton onClick={() => openStudent(student.id, student.name)}>Ver aluno</ActionButton>
-                    <ActionButton primary onClick={() => navigate(routes.workoutBuilder(student.id))}>Criar treino</ActionButton>
+                  <div className="pp-actions">
+                    <button type="button" className="pp-btn pp-btn--quiet" onClick={() => openStudent(student.id, student.name)}>
+                      Ver aluno
+                    </button>
+                    <button type="button" className="pp-btn pp-btn--primary" onClick={() => navigate(routes.workoutBuilder(student.id))}>
+                      Criar treino
+                    </button>
                   </div>
                 </div>
               ))}
@@ -401,7 +289,7 @@ export default function DashboardPage() {
             <IntelligentAlerts alerts={alerts} onOpenStudent={openStudent} onOpenStudents={() => navigate(routes.students())} />
           </Card>
 
-          <div style={{ display: "grid", gap: 12, gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))" }}>
+          <div className="pp-grid">
             <Card title="Top performer da semana" subtitle="Melhor resposta recente" right={<Badge tone="success">Em alta</Badge>}>
               <div style={{ display: "grid", gap: 10 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
@@ -415,7 +303,7 @@ export default function DashboardPage() {
                         padding: 0,
                         textAlign: "left",
                         cursor: "pointer",
-                        fontWeight: 800,
+                        fontWeight: 650,
                         fontSize: 16,
                         color: COLORS.text,
                       }}
@@ -471,9 +359,8 @@ export default function DashboardPage() {
             open={!isMobile}
             style={{
               border: `1px solid ${COLORS.border}`,
-              borderRadius: 20,
+              borderRadius: 14,
               background: COLORS.panel,
-              boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.05)",
               overflow: "hidden",
             }}
           >
@@ -482,7 +369,7 @@ export default function DashboardPage() {
                 listStyle: "none",
                 cursor: "pointer",
                 padding: 14,
-                fontWeight: 800,
+                fontWeight: 650,
                 color: COLORS.text,
                 borderBottom: `1px solid ${COLORS.border}`,
               }}
@@ -491,10 +378,10 @@ export default function DashboardPage() {
             </summary>
             <div style={{ padding: 14, display: "grid", gap: 12, gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}>
               <Card title="Atividade (7 dias)" subtitle="Média por aluno" right={<Badge tone="neutral">{stats.total7d} treinos</Badge>}>
-                <div style={{ fontSize: 28, fontWeight: 800 }}>{stats.avg7d}/sem</div>
+                <div className="pp-metric__value">{stats.avg7d}/sem</div>
               </Card>
               <Card title="Consistência (30 dias)" subtitle="Volume médio" right={<Badge tone="neutral">{stats.total30d} treinos</Badge>}>
-                <div style={{ fontSize: 28, fontWeight: 800 }}>{stats.avg30d}/mês</div>
+                <div className="pp-metric__value">{stats.avg30d}/mês</div>
               </Card>
               <Card title="Status da carteira" subtitle="Leitura operacional" right={<Badge tone="soft">{students.length} alunos</Badge>}>
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -521,15 +408,8 @@ export default function DashboardPage() {
                     key={item.id}
                     type="button"
                     onClick={() => setOverviewFilter(item.id)}
-                    style={{
-                      padding: "8px 10px",
-                      borderRadius: 999,
-                      border: `1px solid ${active ? COLORS.borderStrong : COLORS.border}`,
-                      background: active ? COLORS.primarySoft : "#FFFFFF",
-                      color: COLORS.text,
-                      cursor: "pointer",
-                      fontWeight: active ? 800 : 700,
-                    }}
+                    className="pp-filter"
+                    aria-pressed={active}
                   >
                     {item.label}
                   </button>
@@ -537,41 +417,21 @@ export default function DashboardPage() {
               })}
             </div>
 
-            <div style={{ display: "grid", gap: 8 }}>
+            <div style={{ display: "grid" }}>
               {overviewStudents.map((student) => (
-                <div
-                  key={student.id}
-                  style={{
-                    border: `1px solid ${COLORS.border}`,
-                    borderRadius: 18,
-                    background: "#FFFFFF",
-                    padding: 14,
-                    display: "flex",
-                    justifyContent: "space-between",
-                    gap: 12,
-                    flexWrap: "wrap",
-                    alignItems: "center",
-                  }}
-                >
-                  <div style={{ display: "grid", gap: 8, minWidth: "min(260px, 100%)", flex: "1 1 260px" }}>
-                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                <div key={student.id} className="pp-student-row">
+                  <div className="pp-student-main">
+                    <div className="pp-inline">
                       <button
                         type="button"
                         onClick={() => openStudent(student.id, student.name)}
-                        style={{
-                          border: "none",
-                          background: "transparent",
-                          padding: 0,
-                          cursor: "pointer",
-                          fontWeight: 800,
-                          color: COLORS.text,
-                        }}
+                        className="pp-name"
                       >
                         {student.name}
                       </button>
                       <Badge tone={statusTone(student.engagementStatus)}>{statusLabel(student.engagementStatus)}</Badge>
                     </div>
-                    <div style={{ color: COLORS.mutedSoft, fontSize: 12, lineHeight: 1.45 }}>
+                    <div className="pp-meta">
                       Último treino: {fmtDate(student.lastWorkoutISO)} • Último check-in: {fmtDate(student.lastCheckinISO)} • Plano: {PLAN_LABEL[student.plan]}
                     </div>
                   </div>
@@ -580,18 +440,20 @@ export default function DashboardPage() {
                     <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
                       <div style={{ display: "grid", gap: 4 }}>
                         <div style={{ color: COLORS.mutedSoft, fontSize: 12 }}>Semana</div>
-                        <div style={{ fontWeight: 800 }}>{student.workouts7d} treinos</div>
+                        <div style={{ fontWeight: 650 }}>{student.workouts7d} treinos</div>
                       </div>
                       <div style={{ display: "grid", gap: 4 }}>
                         <div style={{ color: COLORS.mutedSoft, fontSize: 12 }}>Streak</div>
-                        <div style={{ fontWeight: 800 }}>{student.streakDays} dias</div>
+                        <div style={{ fontWeight: 650 }}>{student.streakDays} dias</div>
                       </div>
                     </div>
                     <ProgressBar value={student.adherencePct} />
                   </div>
 
-                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                    <ActionButton onClick={() => openStudent(student.id, student.name)}>Ver aluno</ActionButton>
+                  <div className="pp-actions">
+                    <button type="button" className="pp-btn pp-btn--quiet" onClick={() => openStudent(student.id, student.name)}>
+                      Ver aluno
+                    </button>
                   </div>
                 </div>
               ))}

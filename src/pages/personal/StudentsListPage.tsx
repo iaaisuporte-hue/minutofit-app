@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { fetchPersonalDashboard, type PersonalDashboardStudent } from "../../services/personalDashboardApi";
 import { COLORS } from "../../styles/colors";
 import StudentProfileModal from "./StudentProfileModal";
+import "./personalPremium.css";
 
 type Plan = PersonalDashboardStudent["plan"];
 type Student = PersonalDashboardStudent;
@@ -24,7 +25,7 @@ function pillStyle(opts: { bg: string; border: string; color?: string }): React.
     padding: "6px 10px",
     borderRadius: 999,
     fontSize: 12,
-    fontWeight: 600,
+    fontWeight: 650,
     border: `1px solid ${opts.border}`,
     background: opts.bg,
     color: opts.color ?? COLORS.text,
@@ -50,14 +51,14 @@ function planPillStyle(plan: Plan): React.CSSProperties {
 function statusPill(status: Student["engagementStatus"]) {
   const tone =
     status === "evolving"
-      ? { bg: COLORS.successBg, border: COLORS.successBorder, label: "↑ Evoluindo" }
+      ? { bg: COLORS.successBg, border: COLORS.successBorder, label: "Evoluindo" }
       : status === "on_track"
-        ? { bg: COLORS.primarySoft, border: COLORS.borderStrong, label: "✓ No ritmo" }
+        ? { bg: COLORS.primarySoft, border: COLORS.borderStrong, label: "No ritmo" }
         : status === "attention"
-          ? { bg: COLORS.warnBg, border: COLORS.warnBorder, label: "⚠ Atenção" }
+          ? { bg: COLORS.warnBg, border: COLORS.warnBorder, label: "Atenção" }
           : status === "fading"
-            ? { bg: COLORS.warnBg, border: COLORS.warnBorder, label: "! Sumindo" }
-            : { bg: COLORS.dangerBg, border: COLORS.dangerBorder, label: "✕ Em risco" };
+            ? { bg: COLORS.warnBg, border: COLORS.warnBorder, label: "Sumindo" }
+            : { bg: COLORS.dangerBg, border: COLORS.dangerBorder, label: "Em risco" };
 
   return (
     <span style={pillStyle({ bg: tone.bg, border: tone.border })}>{tone.label}</span>
@@ -73,20 +74,7 @@ function ActionLink({ to, label }: { to: string; label: string }) {
   return (
     <Link
       to={to}
-      style={{
-        padding: "10px 12px",
-        borderRadius: 12,
-        border: `1px solid ${COLORS.borderStrong}`,
-        textDecoration: "none",
-        color: "#FFFFFF",
-        display: "inline-flex",
-        alignItems: "center",
-        justifyContent: "center",
-        fontWeight: 800,
-        background: COLORS.primary,
-        transition: "transform .08s ease, background .12s ease, border-color .12s ease",
-        boxShadow: "0 14px 28px rgba(34,197,94,.18)",
-      }}
+      className="pp-btn pp-btn--primary pp-btn--sm"
       onMouseDown={(e) => {
         (e.currentTarget as HTMLAnchorElement).style.transform = "scale(0.98)";
       }}
@@ -215,45 +203,27 @@ export default function StudentsListPage() {
   }
 
   return (
-    <div style={{ padding: 16, display: "grid", gap: 14 }}>
+    <div className="pp-page" style={{ padding: 16 }}>
       {/* Header */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          gap: 12,
-          flexWrap: "wrap",
-          alignItems: "flex-end",
-          padding: 18,
-          borderRadius: 20,
-          border: `1px solid ${COLORS.borderStrong}`,
-          background: COLORS.panelDeep,
-        }}
-      >
+      <div className="pp-hero" style={{ alignItems: "flex-end" }}>
         <div style={{ display: "grid", gap: 6 }}>
-          <h2 style={{ margin: 0, fontSize: 22, letterSpacing: 0.2 }}>Ver alunos</h2>
-          <div style={{ color: COLORS.muted, fontSize: 13 }}>
+          <div className="pp-kicker">Carteira acompanhada</div>
+          <h2 className="pp-title" style={{ fontSize: 24 }}>Ver alunos</h2>
+          <div className="pp-meta">
             Total: <b style={{ color: COLORS.text }}>{filtered.length}</b> aluno(s)
           </div>
-          <div style={{ color: COLORS.muted2, fontSize: 13, lineHeight: 1.45, maxWidth: 620 }}>
-            Leia a carteira com rapidez, veja vencimentos e entre direto na ação certa para cada aluno.
+          <div className="pp-subtitle" style={{ maxWidth: 620 }}>
+            Leia sinais de aderência, risco e evolução sem transformar pessoas em linhas de CRM.
           </div>
         </div>
 
-        <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+        <div className="pp-actions">
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Buscar aluno..."
-            style={{
-              padding: "10px 12px",
-              borderRadius: 12,
-              border: `1px solid ${COLORS.border}`,
-              background: "#FAFAFA",
-              color: COLORS.text,
-              outline: "none",
-              minWidth: 220,
-            }}
+            className="pp-input"
+            style={{ minWidth: 220 }}
           />
 
           <div style={{ display: "grid", gap: 6 }}>
@@ -261,15 +231,7 @@ export default function StudentsListPage() {
             <select
               value={filter}
               onChange={(e) => setFilter(e.target.value as "all" | Plan)}
-              style={{
-                padding: "10px 12px",
-                borderRadius: 12,
-                border: `1px solid ${COLORS.border}`,
-                background: "#FAFAFA",
-                color: COLORS.text,
-                outline: "none",
-                cursor: "pointer",
-              }}
+              className="pp-select"
             >
               <option value="all">Todos</option>
               <option value="basic">Básico</option>
@@ -281,19 +243,11 @@ export default function StudentsListPage() {
         </div>
       </div>
 
-      <div
-        style={{
-          display: "grid",
-          gap: 12,
-          padding: 16,
-          borderRadius: 18,
-          border: `1px solid ${COLORS.border}`,
-          background: COLORS.panel,
-        }}
-      >
+      <div className="pp-panel">
+        <div className="pp-panel__body" style={{ display: "grid", gap: 12 }}>
         <div style={{ display: "grid", gap: 4 }}>
-          <div style={{ fontWeight: 700, fontSize: 16 }}>Status dos planos</div>
-          <div style={{ color: COLORS.muted2, fontSize: 13, lineHeight: 1.45 }}>
+          <div className="pp-panel__title">Sinais da carteira</div>
+          <div className="pp-panel__subtitle">
             Leitura rápida da carteira filtrada. Exemplo: <b style={{ color: COLORS.text }}>{statusSummary.items[2].value} aluno(s) em risco</b>.
           </div>
         </div>
@@ -302,7 +256,7 @@ export default function StudentsListPage() {
           style={{
             display: "flex",
             width: "100%",
-            height: 16,
+            height: 8,
             overflow: "hidden",
             borderRadius: 999,
             border: `1px solid ${COLORS.border}`,
@@ -321,10 +275,10 @@ export default function StudentsListPage() {
             <div
               key={item.key}
               style={{
-                padding: 14,
-                borderRadius: 16,
-                border: `1px solid ${item.border}`,
-                background: item.bg,
+                padding: 12,
+                borderRadius: 12,
+                border: `1px solid ${COLORS.border}`,
+                background: "#FFFFFF",
                 display: "grid",
                 gap: 6,
               }}
@@ -332,32 +286,24 @@ export default function StudentsListPage() {
               <div style={{ color: COLORS.muted2, fontSize: 12, textTransform: "uppercase", letterSpacing: 0.9 }}>
                 {item.label}
               </div>
-              <div style={{ fontSize: 28, fontWeight: 700 }}>{item.value}</div>
+              <div className="pp-metric__value">{item.value}</div>
               <div style={{ color: COLORS.muted, fontSize: 12 }}>
                 {statusSummary.total ? Math.round((item.value / statusSummary.total) * 100) : 0}% da carteira atual
               </div>
             </div>
           ))}
         </div>
+        </div>
       </div>
 
       {/* List */}
-      <div style={{ display: "grid", gap: 10 }}>
+      <div className="pp-panel">
+        <div className="pp-panel__body" style={{ display: "grid" }}>
         {filtered.map((s) => {
           return (
             <div
               key={s.id}
-              style={{
-                border: `1px solid ${COLORS.border}`,
-                borderRadius: 16,
-                padding: 14,
-                background: COLORS.card,
-                display: "flex",
-                justifyContent: "space-between",
-                gap: 12,
-                alignItems: "center",
-                flexWrap: "wrap",
-              }}
+              className="pp-student-row"
               onMouseEnter={(e) => {
                 (e.currentTarget as HTMLDivElement).style.background = COLORS.cardHover;
                 (e.currentTarget as HTMLDivElement).style.borderColor = COLORS.borderStrong;
@@ -367,33 +313,27 @@ export default function StudentsListPage() {
                 (e.currentTarget as HTMLDivElement).style.borderColor = COLORS.border;
               }}
             >
-              <div style={{ display: "grid", gap: 8, minWidth: 320, flex: "1 1 320px" }}>
-                <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-                  <div style={{ fontWeight: 700, letterSpacing: 0.2 }}>{s.name}</div>
+              <div className="pp-student-main">
+                <div className="pp-inline">
+                  <button type="button" className="pp-name" onClick={() => setSelectedStudent({ id: s.id, name: s.name })}>
+                    {s.name}
+                  </button>
                   <span style={planPillStyle(s.plan)}>Plano: {PLAN_LABEL[s.plan]}</span>
                   {statusPill(s.engagementStatus)}
                 </div>
 
-                <div style={{ color: COLORS.muted2, fontSize: 13 }}>
+                <div className="pp-meta">
                   Último treino: <b style={{ color: COLORS.text }}>{fmtDate(s.lastWorkoutISO)}</b> • Último check-in:{" "}
                   <b style={{ color: COLORS.text }}>{fmtDate(s.lastCheckinISO)}</b> • Aderência:{" "}
                   <b style={{ color: COLORS.text }}>{s.adherencePct}%</b>
                 </div>
               </div>
 
-              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+              <div className="pp-actions">
                 <button
                   type="button"
                   onClick={() => setSelectedStudent({ id: s.id, name: s.name })}
-                  style={{
-                    padding: "10px 12px",
-                    borderRadius: 12,
-                    border: `1px solid ${COLORS.border}`,
-                    background: "#FFFFFF",
-                    color: COLORS.text,
-                    cursor: "pointer",
-                    fontWeight: 700,
-                  }}
+                  className="pp-btn pp-btn--quiet pp-btn--sm"
                 >
                   Ver aluno
                 </button>
@@ -402,6 +342,7 @@ export default function StudentsListPage() {
             </div>
           );
         })}
+        </div>
       </div>
 
       {selectedStudent ? (
