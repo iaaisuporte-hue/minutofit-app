@@ -3,10 +3,10 @@ import { WB } from "./workoutBuilderTheme";
 
 export function pillStyle(bg: string, border: string): React.CSSProperties {
   return {
-    padding: "6px 10px",
+    padding: "5px 8px",
     borderRadius: 999,
-    fontSize: 12,
-    fontWeight: 600,
+    fontSize: 11,
+    fontWeight: 650,
     border: `1px solid ${border}`,
     background: bg,
     color: WB.text,
@@ -22,9 +22,10 @@ export function WbCard({ children }: { children: React.ReactNode }) {
     <div
       style={{
         border: `1px solid ${WB.border}`,
-        borderRadius: 16,
+        borderRadius: 14,
         background: WB.card,
         boxShadow: WB.shadow,
+        overflow: "hidden",
       }}
     >
       {children}
@@ -55,15 +56,17 @@ export function WbButton({
       title={title}
       onClick={onClick}
       style={{
-        padding: "12px 14px",
-        borderRadius: 12,
+        minHeight: 36,
+        padding: "8px 11px",
+        borderRadius: 10,
         border: isPrimary ? `1px solid ${WB.primaryBorder}` : `1px solid ${WB.border}`,
-        background: isPrimary ? WB.primary : "transparent",
+        background: isPrimary ? WB.primary : "rgba(255,255,255,0.72)",
         color: isPrimary ? WB.ctaText : WB.text,
         cursor: disabled ? "not-allowed" : "pointer",
-        fontWeight: 700,
-        fontSize: 14,
-        boxShadow: isPrimary ? "0 10px 24px rgba(0,0,0,.35)" : "none",
+        fontWeight: 650,
+        fontSize: 13,
+        lineHeight: 1,
+        boxShadow: isPrimary ? "0 8px 18px rgba(22, 163, 74, 0.14)" : "none",
         opacity: disabled ? 0.55 : 1,
       }}
     >
@@ -85,7 +88,7 @@ export function BuilderStepRail({
         flexWrap: "wrap",
         alignItems: "stretch",
         gap: 0,
-        borderRadius: 12,
+        borderRadius: 10,
         border: `1px solid ${WB.border}`,
         overflow: "hidden",
         width: "fit-content",
@@ -95,7 +98,7 @@ export function BuilderStepRail({
       {steps.map((s, i) => {
         const isDone = s.status === "done";
         const isCurrent = s.status === "current";
-        const bg = isDone ? WB.primarySoft : isCurrent ? "#F9FAFB" : "#FFFFFF";
+        const bg = isDone ? WB.primarySoft : isCurrent ? "rgba(15,23,42,0.04)" : "#FFFFFF";
         const bd = isDone || isCurrent ? WB.primaryBorder : WB.border;
         return (
           <div
@@ -104,11 +107,11 @@ export function BuilderStepRail({
               display: "flex",
               alignItems: "center",
               gap: 8,
-              padding: "10px 14px",
+              padding: "8px 12px",
               background: bg,
               borderRight: i < steps.length - 1 ? `1px solid ${WB.border}` : undefined,
               fontSize: 13,
-              fontWeight: 600,
+              fontWeight: 650,
               color: WB.text,
               minWidth: 0,
             }}
@@ -123,7 +126,7 @@ export function BuilderStepRail({
                 display: "grid",
                 placeItems: "center",
                 fontSize: 11,
-                fontWeight: 600,
+                fontWeight: 650,
                 background: isDone ? WB.primary : "transparent",
                 color: isDone ? WB.ctaText : WB.muted,
               }}
@@ -147,7 +150,7 @@ export function SectionLabel({
 }) {
   return (
     <div style={{ marginBottom: 10 }}>
-      <div style={{ fontWeight: 700, fontSize: 15, letterSpacing: "-0.02em" }}>{title}</div>
+      <div style={{ fontWeight: 650, fontSize: 15, letterSpacing: "-0.02em", color: WB.text }}>{title}</div>
       {hint ? (
         <div style={{ color: WB.muted, fontSize: 12, lineHeight: 1.45, marginTop: 4 }}>{hint}</div>
       ) : null}
@@ -165,13 +168,13 @@ export function FeedbackBanner({
   onDismiss?: () => void;
 }) {
   const bg = kind === "success" ? "rgba(34, 197, 94, 0.14)" : "rgba(220, 38, 38, 0.14)";
-  const border = kind === "success" ? "rgba(34, 197, 94, 0.35)" : "rgba(248, 113, 113, 0.4)";
+  const border = kind === "success" ? "rgba(34, 197, 94, 0.26)" : "rgba(248, 113, 113, 0.32)";
   return (
     <div
       role="status"
       style={{
         padding: "12px 14px",
-        borderRadius: 12,
+        borderRadius: 10,
         border: `1px solid ${border}`,
         background: bg,
         color: WB.text,
@@ -194,7 +197,7 @@ export function FeedbackBanner({
             borderRadius: 8,
             padding: "6px 10px",
             cursor: "pointer",
-            fontWeight: 600,
+            fontWeight: 650,
           }}
         >
           Fechar
