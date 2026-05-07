@@ -20,7 +20,6 @@ interface Tag {
   slug: string;
 }
 
-// Default tags - should match database
 const AVAILABLE_TAGS: Tag[] = [
   { id: 1, name: "Perda de Peso", slug: "perda-de-peso" },
   { id: 2, name: "Ganho de Massa", slug: "ganho-de-massa" },
@@ -157,7 +156,7 @@ export default function VideoLibraryPage() {
           title: formData.title,
           description: formData.description,
           url: selectedVideoFile.name,
-          thumbnail_url: `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='90'%3E%3Crect fill='%23222' width='120' height='90'/%3E%3Ctext x='50%25' y='50%25' font-size='24' fill='%238B8B8B' text-anchor='middle' dy='.3em'%3E▶️%3C/text%3E%3C/svg%3E`,
+          thumbnail_url: `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='90'%3E%3Crect fill='%23222' width='120' height='90'/%3E%3Ctext x='50%25' y='50%25' font-size='24' fill='%238B8B8B' text-anchor='middle' dy='.3em'%3E%E2%96%B6%3C/text%3E%3C/svg%3E`,
           duration_seconds: 0,
           tags: selectedTags,
           created_at: new Date().toISOString(),
@@ -254,6 +253,7 @@ export default function VideoLibraryPage() {
           </div>
         </div>
         <button
+          type="button"
           onClick={() => setShowUploadForm(!showUploadForm)}
           style={{
             background: "#22C55E",
@@ -551,6 +551,7 @@ export default function VideoLibraryPage() {
                   {formatDuration(video.duration_seconds)}
                 </div>
                 <button
+                  type="button"
                   onClick={() => playVideo(video)}
                   style={{
                     background: "#22C55E",
@@ -567,21 +568,7 @@ export default function VideoLibraryPage() {
                   Assistir
                 </button>
                 <button
-                  style={{
-                    background: "#FAFAFA",
-                    color: COLORS.text,
-                    border: `1px solid ${COLORS.border}`,
-                    borderRadius: 10,
-                    padding: "6px 12px",
-                    fontSize: 12,
-                    fontWeight: 700,
-                    cursor: "pointer",
-                    width: isMobile ? "fit-content" : undefined,
-                  }}
-                >
-                  Editar
-                </button>
-                <button
+                  type="button"
                   onClick={() => deleteVideo(video.id as number)}
                   style={{
                     background: COLORS.dangerSoft,
@@ -641,6 +628,7 @@ export default function VideoLibraryPage() {
                 <div style={{ color: COLORS.muted, fontSize: 13 }}>Visualização do acervo e revisão rápida do material</div>
               </div>
               <button
+                type="button"
                 onClick={() => setSelectedVideoToPlay(null)}
                 style={{
                   background: "#FAFAFA",
@@ -675,7 +663,6 @@ export default function VideoLibraryPage() {
                     border: `1px solid ${COLORS.border}`,
                   }}
                   controls
-                  autoPlay
                 />
               ) : (
                 <div

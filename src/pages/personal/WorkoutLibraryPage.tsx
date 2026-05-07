@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "../../components/Toast";
+import StudentProfileModal from "./StudentProfileModal";
 
 type Plan = "basic" | "silver" | "gold" | "black";
 type Gender = "masc" | "fem" | "outro";
@@ -20,7 +21,6 @@ type GeneralWorkout = {
   equipment: Equipment;
   visibility: WorkoutVisibility;
 
-  /** 🔥 “Storytelling” pro personal: */
   createdAtISO: string;
   assignedCount: number; // quantos alunos já receberam
 };
@@ -76,9 +76,9 @@ function chipBase(): React.CSSProperties {
 function Chip({ children, tone }: { children: React.ReactNode; tone?: "warn" | "success" | "orange" }) {
   const base = chipBase();
   const toneStyle: Record<string, React.CSSProperties> = {
-    warn: { borderColor: "rgba(255,183,3,.35)", background: "rgba(255,183,3,.12)" },
-    success: { borderColor: "rgba(34,197,94,.35)", background: "rgba(34,197,94,.12)" },
-    orange: { borderColor: "rgba(255,106,0,.35)", background: "rgba(255,106,0,.14)" },
+    warn: { borderColor: "rgba(255,183,3,.35)", background: "rgba(255,183,3,.12)", color: "#F1F5F9" },
+    success: { borderColor: "rgba(34,197,94,.35)", background: "rgba(34,197,94,.12)", color: "#F1F5F9" },
+    orange: { borderColor: "rgba(255,106,0,.35)", background: "rgba(255,106,0,.14)", color: "#F1F5F9" },
   };
 
   return <span style={{ ...base, ...(tone ? toneStyle[tone] : {}) }}>{children}</span>;
@@ -99,7 +99,7 @@ function btnBase(): React.CSSProperties {
     borderRadius: 12,
     border: "1px solid rgba(255,255,255,.12)",
     background: "transparent",
-    color: "#1F2937",
+    color: "#F1F5F9",
     fontWeight: 700,
     cursor: "pointer",
   };
@@ -121,25 +121,18 @@ function inputStyle(): React.CSSProperties {
     borderRadius: 12,
     border: "1px solid rgba(255,255,255,.12)",
     background: "#0F0F0F",
-    color: "#1F2937",
+    color: "#F1F5F9",
     fontWeight: 600,
     outline: "none",
   };
 }
 
-/** ✅ util */
 function formatDateBR(iso: string) {
   const d = new Date(iso);
   return new Intl.DateTimeFormat("pt-BR").format(d);
 }
 
-/** ✅ MVP “service” isolado (troca por API depois) */
 function mockAssignWorkoutToStudents(workoutId: string, studentIds: string[]) {
-  // Aqui no MVP a gente só simula. No backend real:
-  // - validar token do personal
-  // - checar se cada studentId pertence ao personal (tenant/owner)
-  // - registrar audit log (quem distribuiu, quando, quantos)
-  // - salvar mapping treino->aluno
   console.log("[assign]", { workoutId, studentIds });
 }
 
@@ -147,7 +140,6 @@ export default function WorkoutLibraryPage() {
   const toast = useToast();
   const navigate = useNavigate();
 
-  /** ✅ Mock catálogo */
   const workouts: GeneralWorkout[] = useMemo(
     () => [
       {
@@ -198,7 +190,6 @@ export default function WorkoutLibraryPage() {
     []
   );
 
-  /** ✅ Mock alunos (no real: API retorna só alunos do personal logado) */
   const students: Student[] = useMemo(
     () => [
       { id: "1", name: "João Silva", plan: "basic", gender: "masc", age: 22, level: "iniciante", equipmentPreference: "sem_peso", isActive: true },
@@ -211,7 +202,6 @@ export default function WorkoutLibraryPage() {
     []
   );
 
-  /** ✅ filtros do catálogo */
   const [q, setQ] = useState("");
   const [goalFilter, setGoalFilter] = useState<"all" | WorkoutGoal>("all");
   const [levelFilter, setLevelFilter] = useState<"all" | WorkoutLevel>("all");
@@ -231,7 +221,6 @@ export default function WorkoutLibraryPage() {
     });
   }, [workouts, q, goalFilter, levelFilter, minutesFilter, equipFilter, visFilter]);
 
-  /** ✅ modal distribuir */
   const [assignOpen, setAssignOpen] = useState(false);
   const [selectedWorkout, setSelectedWorkout] = useState<GeneralWorkout | null>(null);
 
@@ -259,12 +248,12 @@ export default function WorkoutLibraryPage() {
   }, [students, planPick, genderPick, ageMin, ageMax, studentLevelPick, activeOnly]);
 
   const [selectedStudentIds, setSelectedStudentIds] = useState<Record<string, boolean>>({});
+  const [viewingStudent, setViewingStudent] = useState<{ id: string; name: string } | null>(null);
 
   function openAssignModal(workout: GeneralWorkout) {
     setSelectedWorkout(workout);
     setAssignOpen(true);
 
-    // ✅ por padrão: pré-seleciona “quem bate com o treino” (UX turbo)
     const auto: Record<string, boolean> = {};
     eligibleStudents.forEach((s) => {
       const matchEquip = s.equipmentPreference === workout.equipment;
@@ -317,24 +306,25 @@ export default function WorkoutLibraryPage() {
   }
 
   return (
-    <div style={{ display: "grid", gap: 14, color: "#1F2937" }}>
-      {/* ✅ Header com storytelling / decisões rápidas */}
+    <div style={{ display: "grid", gap: 14, color: "#F1F5F9" }}>
+      {/* Header */}
       <div style={{ ...card(), padding: 16 }}>
         <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
           <div style={{ display: "grid", gap: 6 }}>
-            <div style={{ fontWeight: 700, fontSize: 20 }}>Treinos gerais (Netflix)</div>
+            <div style={{ fontWeight: 700, fontSize: 20 }}>Treinos gerais</div>
             <div style={{ color: "#6B7280", fontSize: 14, lineHeight: 1.35 }}>
               Crie treinos prontos (sequência de vídeos) e distribua em <b>1 clique</b> por plano, perfil e objetivo.
             </div>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 6 }}>
-              <Chip tone="orange">📦 Catálogo: {workouts.length}</Chip>
-              <Chip tone="success">👥 Alunos: {students.length}</Chip>
-              <Chip tone="warn">⚡ Distribuição rápida</Chip>
+              <Chip tone="orange">Catálogo: {workouts.length}</Chip>
+              <Chip tone="success">Alunos: {students.length}</Chip>
+              <Chip tone="warn">Distribuição rápida</Chip>
             </div>
           </div>
 
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
             <button
+              type="button"
               onClick={() => navigate("new")}
               style={btnPrimary()}
               title="Criar um treino geral (sequência de vídeos)"
@@ -343,8 +333,8 @@ export default function WorkoutLibraryPage() {
             </button>
 
             <button
+              type="button"
               onClick={() => {
-                // abre modal “vazio” (personal escolhe o treino dentro do modal)
                 setSelectedWorkout(null);
                 setAssignOpen(true);
               }}
@@ -357,7 +347,7 @@ export default function WorkoutLibraryPage() {
         </div>
       </div>
 
-      {/* ✅ Filtros do catálogo */}
+      {/* Filtros do catálogo */}
       <div style={{ ...card(), padding: 16 }}>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
           <input
@@ -404,11 +394,11 @@ export default function WorkoutLibraryPage() {
         </div>
 
         <div style={{ marginTop: 10, color: "#6B7280", fontSize: 13 }}>
-          Mostrando <b style={{ color: "#1F2937" }}>{filteredWorkouts.length}</b> treino(s) filtrado(s).
+          Mostrando <b style={{ color: "#F1F5F9" }}>{filteredWorkouts.length}</b> treino(s) filtrado(s).
         </div>
       </div>
 
-      {/* ✅ Catálogo */}
+      {/* Catálogo */}
       <div style={{ display: "grid", gap: 10 }}>
         {filteredWorkouts.map((w) => (
           <div key={w.id} style={{ ...card(), padding: 14 }}>
@@ -426,27 +416,13 @@ export default function WorkoutLibraryPage() {
                 </div>
 
                 <div style={{ color: "#6B7280", fontSize: 12 }}>
-                  Criado em: <b style={{ color: "#1F2937" }}>{formatDateBR(w.createdAtISO)}</b> • ID:{" "}
+                  Criado em: <b style={{ color: "#F1F5F9" }}>{formatDateBR(w.createdAtISO)}</b> • ID:{" "}
                   <span style={{ opacity: 0.9 }}>{w.id}</span>
                 </div>
               </div>
 
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                <button
-                  onClick={() => toast.info("Edição de treinos estará disponível em breve.")}
-                  style={btnBase()}
-                >
-                  Editar
-                </button>
-
-                <button
-                  onClick={() => toast.info("Duplicação de treinos estará disponível em breve.")}
-                  style={btnBase()}
-                >
-                  Duplicar
-                </button>
-
-                <button onClick={() => openAssignModal(w)} style={btnPrimary()}>
+                <button type="button" onClick={() => openAssignModal(w)} style={btnPrimary()}>
                   Distribuir
                 </button>
               </div>
@@ -455,7 +431,7 @@ export default function WorkoutLibraryPage() {
         ))}
       </div>
 
-      {/* ✅ MODAL: Distribuir para alunos */}
+      {/* Modal: Distribuir para alunos */}
       {assignOpen ? (
         <div
           onClick={closeAssignModal}
@@ -489,12 +465,12 @@ export default function WorkoutLibraryPage() {
                 </div>
               </div>
 
-              <button onClick={closeAssignModal} style={btnBase()}>
+              <button type="button" onClick={closeAssignModal} style={btnBase()}>
                 Fechar
               </button>
             </div>
 
-            {/* ✅ Escolha do treino (se abriu pelo botão do topo) */}
+            {/* Escolha do treino */}
             <div style={{ marginTop: 12, ...card(), padding: 14, background: "#141414" }}>
               <div style={{ fontWeight: 700, marginBottom: 8 }}>1) Escolha o treino</div>
 
@@ -523,28 +499,29 @@ export default function WorkoutLibraryPage() {
                 </div>
               ) : (
                 <div style={{ marginTop: 10, color: "#6B7280", fontSize: 13 }}>
-                  Dica: clique em “Distribuir” direto no card do treino pra abrir aqui já selecionado.
+                  Dica: clique em "Distribuir" direto no card do treino pra abrir aqui já selecionado.
                 </div>
               )}
             </div>
 
-            {/* ✅ Filtros de alunos */}
+            {/* Filtros de alunos */}
             <div style={{ marginTop: 12, ...card(), padding: 14, background: "#141414" }}>
               <div style={{ fontWeight: 700, marginBottom: 10 }}>2) Filtre os alunos (seleção rápida)</div>
 
               {/* Atalhos */}
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 10 }}>
-                <button onClick={() => quickPickPlans("all")} style={btnBase()}>
+                <button type="button" onClick={() => quickPickPlans("all")} style={btnBase()}>
                   Todos os planos
                 </button>
-                <button onClick={() => quickPickPlans("only_paid")} style={btnBase()}>
+                <button type="button" onClick={() => quickPickPlans("only_paid")} style={btnBase()}>
                   Somente pagos (Silver+)
                 </button>
-                <button onClick={() => quickPickPlans("only_black")} style={btnBase()}>
+                <button type="button" onClick={() => quickPickPlans("only_black")} style={btnBase()}>
                   Somente Black
                 </button>
 
                 <button
+                  type="button"
                   onClick={() => setActiveOnly((v) => !v)}
                   style={{
                     ...btnBase(),
@@ -552,7 +529,7 @@ export default function WorkoutLibraryPage() {
                     background: activeOnly ? "rgba(255,106,0,.14)" : "transparent",
                   }}
                 >
-                  {activeOnly ? "✅ Apenas ativos" : "☐ Incluir inativos"}
+                  {activeOnly ? "Apenas ativos" : "Incluir inativos"}
                 </button>
               </div>
 
@@ -638,22 +615,22 @@ export default function WorkoutLibraryPage() {
               </div>
             </div>
 
-            {/* ✅ Lista de alunos elegíveis */}
+            {/* Lista de alunos elegíveis */}
             <div style={{ marginTop: 12, ...card(), padding: 14, background: "#141414" }}>
               <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
                 <div style={{ display: "grid", gap: 6 }}>
                   <div style={{ fontWeight: 700 }}>3) Selecione os alunos</div>
                   <div style={{ color: "#6B7280", fontSize: 13 }}>
-                    Elegíveis pelo filtro: <b style={{ color: "#1F2937" }}>{eligibleStudents.length}</b> • Selecionados:{" "}
+                    Elegíveis pelo filtro: <b style={{ color: "#F1F5F9" }}>{eligibleStudents.length}</b> • Selecionados:{" "}
                     <b style={{ color: "#FF6A00" }}>{selectedCount}</b>
                   </div>
                 </div>
 
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                  <button onClick={() => toggleAllEligible(true)} style={btnBase()}>
+                  <button type="button" onClick={() => toggleAllEligible(true)} style={btnBase()}>
                     Selecionar todos
                   </button>
-                  <button onClick={() => toggleAllEligible(false)} style={btnBase()}>
+                  <button type="button" onClick={() => toggleAllEligible(false)} style={btnBase()}>
                     Limpar seleção
                   </button>
                 </div>
@@ -696,9 +673,10 @@ export default function WorkoutLibraryPage() {
                       </label>
 
                       <button
-                        onClick={() => toast.info("Perfil do aluno estará disponível em breve.")}
+                        type="button"
+                        onClick={() => setViewingStudent({ id: s.id, name: s.name })}
                         style={btnBase()}
-                        title="Atalho para ver detalhes"
+                        title="Ver perfil do aluno"
                       >
                         Ver aluno
                       </button>
@@ -714,13 +692,13 @@ export default function WorkoutLibraryPage() {
               </div>
             </div>
 
-            {/* ✅ Footer do modal */}
             <div style={{ marginTop: 12, display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
               <div style={{ color: "#6B7280", fontSize: 13, lineHeight: 1.35 }}>
-                ✅ Sugestão: distribua por objetivo e depois acompanhe check-ins na Dashboard.
+                Distribua por objetivo e acompanhe check-ins no Dashboard.
               </div>
 
               <button
+                type="button"
                 onClick={handleAssign}
                 style={btnPrimary()}
                 disabled={!selectedWorkout}
@@ -731,6 +709,14 @@ export default function WorkoutLibraryPage() {
             </div>
           </div>
         </div>
+      ) : null}
+
+      {viewingStudent ? (
+        <StudentProfileModal
+          studentId={viewingStudent.id}
+          studentName={viewingStudent.name}
+          onClose={() => setViewingStudent(null)}
+        />
       ) : null}
     </div>
   );
