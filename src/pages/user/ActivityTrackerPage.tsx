@@ -515,6 +515,7 @@ function HistoryMapViewer({ coordinates }: { coordinates: Array<{ lat: number; l
 export default function ActivityTrackerPage() {
   // ── Core tracking state ──────────────────────────────────────────────────
   const [isTracking, setIsTracking] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [currentActivity, setCurrentActivity] = useState<Partial<Activity> | null>(null);
   const [selectedType, setSelectedType] = useState<Activity["type"]>("run");
@@ -582,17 +583,17 @@ export default function ActivityTrackerPage() {
 
   // ── Timer ────────────────────────────────────────────────────────────────
   useEffect(() => {
-    if (!isTracking) {
+    if (!isTracking || isPaused) {
       if (timerRef.current) clearInterval(timerRef.current);
       return;
     }
     timerRef.current = setInterval(() => setElapsedTime((p) => p + 1), 1000);
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, [isTracking]);
+  }, [isPaused, isTracking]);
 
   // ── GPS watch ────────────────────────────────────────────────────────────
   useEffect(() => {
-    if (!isTracking || !navigator.geolocation) {
+    if (!isTracking || isPaused || !navigator.geolocation) {
       if (geolocationRef.current) {
         navigator.geolocation.clearWatch(geolocationRef.current);
         geolocationRef.current = null;
@@ -664,7 +665,7 @@ export default function ActivityTrackerPage() {
         geolocationRef.current = null;
       }
     };
-  }, [isTracking, elapsedTime]);
+  }, [isPaused, isTracking, elapsedTime]);
 
   // ── Pace update on tick ──────────────────────────────────────────────────
   useEffect(() => {
@@ -729,7 +730,13 @@ export default function ActivityTrackerPage() {
       routeCoordinates: [],
     });
     setElapsedTime(0);
+    setIsPaused(false);
     setIsTracking(true);
+  }
+
+  function togglePause() {
+    if (!currentActivity) return;
+    setIsPaused((prev) => !prev);
   }
 
   /** Step 1: stop GPS/timer and decide whether to save or ask for confirmation */
@@ -760,6 +767,7 @@ export default function ActivityTrackerPage() {
     };
 
     setIsTracking(false);
+    setIsPaused(false);
     setCurrentActivity(null);
     setElapsedTime(0);
 
@@ -785,6 +793,7 @@ export default function ActivityTrackerPage() {
     setPendingActivity(null);
     setLiveValidation(null);
     setRewardMessage(null);
+    setIsPaused(false);
   }
 
   /** Internal: persist activity, update state, trigger gamification */
@@ -857,12 +866,12 @@ export default function ActivityTrackerPage() {
   // ─────────────────────────────────────────────────────────────────────────
 
   return (
-    <div className="tr-page">
+    <div className={`tr-page${currentActivity ? " tr-page--live" : ""}`}>
       {/* Reward banner */}
       {rewardMessage && <div className="tr-reward">{rewardMessage}</div>}
 
       {/* ── Today Status ────────────────────────────────────────────── */}
-      <Card>
+      <Card className="tr-idle-only">
         <div className="tr-status">
           <div className="tr-status-left">
             <div className="tr-status-label">Prontidão</div>
@@ -882,7 +891,7 @@ export default function ActivityTrackerPage() {
       </Card>
 
       {/* ── Hero: accumulated session stats ─────────────────────────── */}
-      <Card>
+      <Card className="tr-idle-only">
         <div className="tr-hero">
           <div className="tr-hero-title">Sua sessão de hoje</div>
           <div className="tr-stats-grid">
@@ -916,23 +925,21 @@ export default function ActivityTrackerPage() {
             {/* Header */}
             <div className="tr-live-header">
               <div className="tr-live-title-block">
-                <div className="tr-live-chip">Ao vivo</div>
+                <div className={`tr-live-chip${isPaused ? " tr-live-chip--paused" : ""}`}>
+                  {isPaused ? "Em pausa" : "Ao vivo"}
+                </div>
                 <div className="tr-live-title">
                   <ActivityIcon type={currentActivity.type || "run"} size={28} />
-                  {ACTIVITY_META[currentActivity.type || "run"].label} em andamento
+                  {ACTIVITY_META[currentActivity.type || "run"].label} {isPaused ? "em pausa" : "em andamento"}
                 </div>
-                {/* Intensity chip in header */}
-                <div className="tr-live-intensity-row">
-                  <IntensityChip level={liveIntensity} />
+                <div className="tr-live-status-note">
+                  {isPaused ? "A sessão fica congelada até você retomar." : "Foque só nos números principais e continue em movimento."}
                 </div>
               </div>
-              <button type="button" onClick={requestStop} className="tr-stop-button">
-                Encerrar sessão
-              </button>
             </div>
 
             {/* Validation warning — non-intrusive, appears during live */}
-            {liveValidation?.isSuspicious && (
+            {liveValidation?.isSuspicious && !isPaused && (
               <div className="tr-validation-warning">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="tr-validation-warning-icon">
                   <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
@@ -947,48 +954,48 @@ export default function ActivityTrackerPage() {
 
             {/* 5 metrics grid */}
             <div className="tr-live-metrics">
-              <div className="tr-live-metric-card">
+              <div className="tr-live-metric-card tr-live-metric-card--primary">
                 <div className="tr-live-metric-label">Duração</div>
-                <div className="tr-live-metric-value" style={{ fontFamily: "monospace" }}>
+                <div className="tr-live-metric-value tr-live-metric-value--hero" style={{ fontFamily: "monospace" }}>
                   {formatTime(elapsedTime)}
                 </div>
               </div>
-              <div className="tr-live-metric-card">
+              <div className="tr-live-metric-card tr-live-metric-card--primary">
                 <div className="tr-live-metric-label">Distância</div>
-                <div className="tr-live-metric-value">
+                <div className="tr-live-metric-value tr-live-metric-value--hero">
                   {(currentActivity.distance || 0).toFixed(2)}
                   <span className="tr-live-metric-unit"> km</span>
                 </div>
               </div>
-              <div className="tr-live-metric-card">
+              <div className="tr-live-metric-card tr-live-metric-card--primary">
                 <div className="tr-live-metric-label">Ritmo</div>
-                <div className="tr-live-metric-value">
+                <div className="tr-live-metric-value tr-live-metric-value--hero">
                   {formatPace(currentActivity.pace || 0)}
                   <span className="tr-live-metric-unit"> min/km</span>
                 </div>
               </div>
               <div className="tr-live-metric-card">
                 <div className="tr-live-metric-label">Calorias (est.)</div>
-                <div className="tr-live-metric-value">
+                <div className="tr-live-metric-value tr-live-metric-value--support">
                   {liveCalories}
                   <span className="tr-live-metric-unit"> kcal</span>
                 </div>
               </div>
               <div className="tr-live-metric-card tr-live-metric-card--secondary">
-                <div className="tr-live-metric-label">Score</div>
-                <div className="tr-live-metric-value">
-                  {getPerformanceSignal({
-                    ...currentActivity,
-                    id: currentActivity.id || "",
-                    type: currentActivity.type || "run",
-                    startTime: currentActivity.startTime || new Date(),
-                    distance: currentActivity.distance || 0,
-                    pace: currentActivity.pace || 0,
-                    duration: elapsedTime,
-                    routeCoordinates: currentActivity.routeCoordinates || [],
-                  }).score}
+                <div className="tr-live-metric-label">Intensidade</div>
+                <div className="tr-live-metric-value tr-live-metric-value--support">
+                  {liveIntensity === "high" ? "Alta" : liveIntensity === "moderate" ? "Moderada" : "Leve"}
                 </div>
               </div>
+            </div>
+
+            <div className="tr-live-actions">
+              <button type="button" onClick={requestStop} className="tr-end-button">
+                Encerrar sessão
+              </button>
+              <button type="button" onClick={togglePause} className="tr-pause-button">
+                {isPaused ? "Retomar sessão" : "Pausar sessão"}
+              </button>
             </div>
           </div>
         </Card>
@@ -1121,7 +1128,7 @@ export default function ActivityTrackerPage() {
       )}
 
       {/* ── Performance Timeline ─────────────────────────────────────── */}
-      <div style={{ display: "grid", gap: 14 }}>
+      <div className="tr-idle-only" style={{ display: "grid", gap: 14 }}>
         <div className="tr-timeline-header">
           <div className="tr-timeline-title">Linha do tempo</div>
           <div className="tr-timeline-caption">Distância, duração, ritmo e rota de cada sessão.</div>

@@ -224,6 +224,7 @@ export default function TodayPage() {
         ? "↑ " + primaryMissionLabel
         : primaryMissionLabel
     : primaryMissionLabel;
+  const missionCtaLabel = quickAction.kind === "suggested_training" ? "Abrir plano completo →" : tonedMissionLabel;
 
   function runQuickAction(action: QuickActionModel) {
     if (action.kind === "checkin") {
@@ -307,7 +308,23 @@ export default function TodayPage() {
         />
       </motion.div>
 
-      {/* 2. Hero: score + missão */}
+      {/* 2. Âncora metabólica */}
+      <motion.div variants={sectionRevealVariants}>
+        <MetabolicScoreCard
+          data={metabolism}
+          loading={metabolismLoading}
+          error={metabolismError}
+          derivedStatus={adjustedEnergy}
+          forecast={forecast}
+        />
+      </motion.div>
+
+      {/* 3. Histórico metabólico */}
+      <motion.div variants={sectionRevealVariants}>
+        <MetabolicChart data={metabolismHistory} loading={historyLoading} forecast={forecast} markers={markers} />
+      </motion.div>
+
+      {/* 4. Consistência + missão */}
       <motion.div variants={sectionRevealVariants}>
         <div
           className="today-hero"
@@ -319,32 +336,28 @@ export default function TodayPage() {
             <div className="today-badge-row">
               <span className="badge badge-accent">{weekdayCapitalized}</span>
               {todayCheckedIn && <span className="badge badge-success">Dia garantido</span>}
-              {adjustedEnergy && <span className="badge badge-accent">{adjustedEnergy.metabolicState}</span>}
             </div>
 
-            {/* Score + streak inline */}
-            <div style={{ display: "flex", alignItems: "center", gap: 18, flexWrap: "wrap" }}>
-              {metabolism && !metabolismLoading ? (
-                <div style={{ display: "flex", alignItems: "baseline", gap: 7 }}>
-                  <span style={{ fontSize: isMobile ? 40 : 52, fontWeight: 700, letterSpacing: "-0.03em", color: SURFACE.text, lineHeight: 1 }}>
-                    {metabolism.score}
-                  </span>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: SURFACE.mutedSoft, textTransform: "uppercase", letterSpacing: "0.06em" }}>
-                    score
-                  </span>
-                  <span style={{
-                    fontSize: 18,
-                    color: metabolism.trend === "up" ? SURFACE.success : metabolism.trend === "down" ? SURFACE.warning : SURFACE.mutedSoft,
-                  }}>
-                    {metabolism.trend === "up" ? "↑" : metabolism.trend === "down" ? "↓" : "→"}
-                  </span>
+            <div style={{ display: "grid", gap: 12 }}>
+              <div style={{ display: "grid", gap: 4 }}>
+                <SectionEyebrow>Consistência do dia</SectionEyebrow>
+                <div className="today-card-title" style={{ fontSize: isMobile ? 22 : 28 }}>
+                  Seu ritmo hoje
                 </div>
-              ) : (
-                <div style={{ width: 90, height: 48, borderRadius: 10, background: SURFACE.page, animation: "pulse 1.6s ease-in-out infinite" }} />
-              )}
+                <div className="today-card-description" style={{ color: SURFACE.muted }}>
+                  Missão diária, sequência e próximo passo em um único lugar.
+                </div>
+              </div>
               {streak > 0 && (
-                <div style={{ fontSize: 14, fontWeight: 700, color: streak >= 3 ? SURFACE.warning : SURFACE.muted }}>
-                  🔥 {streak} {streak === 1 ? "dia" : "dias"} seguidos
+                <div
+                  className="today-reward-pill"
+                  style={{
+                    width: "fit-content",
+                    borderColor: streak >= 3 ? "rgba(245,158,11,0.2)" : SURFACE.border,
+                    color: streak >= 3 ? SURFACE.warning : SURFACE.text,
+                  }}
+                >
+                  {streak} {streak === 1 ? "dia seguido" : "dias seguidos"}
                 </div>
               )}
             </div>
@@ -389,7 +402,7 @@ export default function TodayPage() {
                 </div>
 
                 <ActionButton onClick={() => runQuickAction(quickAction)} fullWidth={isMobile}>
-                  {tonedMissionLabel}
+                  {missionCtaLabel}
                 </ActionButton>
               </div>
             </motion.div>
@@ -397,7 +410,7 @@ export default function TodayPage() {
         </div>
       </motion.div>
 
-      {/* 3. Treino de hoje — toggle home/gym */}
+      {/* 5. Treino de hoje — toggle home/gym */}
       <motion.div variants={sectionRevealVariants}>
         <div
           className="today-card"
@@ -441,7 +454,7 @@ export default function TodayPage() {
                       transition: "all 0.15s ease",
                     }}
                   >
-                    {mode === "home" ? "🏠 Em casa" : "🏋️ Academia"}
+                    {mode === "home" ? "Em casa" : "Academia"}
                   </button>
                 ))}
               </div>
@@ -519,7 +532,7 @@ export default function TodayPage() {
                 )}
 
                 <ActionButton onClick={() => navigate(getWorkoutRoute(workoutMode))} fullWidth={isMobile}>
-                  Começar treino agora
+                  Abrir plano completo →
                 </ActionButton>
               </div>
             )}
@@ -621,22 +634,6 @@ export default function TodayPage() {
             </div>
           </div>
         </div>
-      </motion.div>
-
-      {/* 4. Status de energia (abaixo da dobra) */}
-      <motion.div variants={sectionRevealVariants}>
-        <MetabolicScoreCard
-          data={metabolism}
-          loading={metabolismLoading}
-          error={metabolismError}
-          derivedStatus={adjustedEnergy}
-          forecast={forecast}
-        />
-      </motion.div>
-
-      {/* 5. Histórico 14 dias */}
-      <motion.div variants={sectionRevealVariants}>
-        <MetabolicChart data={metabolismHistory} loading={historyLoading} forecast={forecast} markers={markers} />
       </motion.div>
 
       {gamificationLoading && (

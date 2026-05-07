@@ -34,9 +34,9 @@ export default function ComplianceBanner() {
       }}
     >
       <span style={{ minWidth: 0 }}>
-        <b style={{ color: "var(--color-warn-text)" }}>Obrigatório:</b> complete triagem de saúde,
-        preferências de treino e PAR-Q com assinatura em{" "}
-        <strong>Configurações</strong> antes de usar o app com segurança jurídica e de saúde.
+        <b style={{ color: "var(--color-warn-text)" }}>Antes de começar:</b> reserve cerca de{" "}
+        <strong>2 minutos</strong> para personalizar seu treino com segurança. Complete sua
+        triagem de saúde, preferências e PAR-Q em <strong>Configurações</strong>.
       </span>
       <MotionLink
         to="/app/user/settings?focus=compliance#compliance"

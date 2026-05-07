@@ -90,6 +90,36 @@ const DEFAULT_ANSWERS: OnboardingAnswers = {
   wantsCloseFollow: "no",
 };
 
+const TRACKABLE_FIELDS = [
+  "trainingPlace",
+  "timePerDay",
+  "injuries",
+  "surgeryRecent",
+  "frequentPain",
+  "daysPerWeek",
+  "bestTime",
+  "intensityPref",
+  "equipmentPref",
+  "wantsCloseFollow",
+] as const;
+
+type TrackableField = (typeof TRACKABLE_FIELDS)[number];
+
+function buildTouchedSet(answers: OnboardingAnswers) {
+  const touched = new Set<TrackableField>();
+  if (answers.trainingPlace) touched.add("trainingPlace");
+  if (answers.timePerDay) touched.add("timePerDay");
+  if (answers.injuries.length > 0) touched.add("injuries");
+  if (answers.surgeryRecent) touched.add("surgeryRecent");
+  if (answers.frequentPain) touched.add("frequentPain");
+  if (answers.daysPerWeek) touched.add("daysPerWeek");
+  if (answers.bestTime) touched.add("bestTime");
+  if (answers.intensityPref) touched.add("intensityPref");
+  if (answers.equipmentPref) touched.add("equipmentPref");
+  if (answers.wantsCloseFollow) touched.add("wantsCloseFollow");
+  return touched;
+}
+
 function SelectRow({
   label,
   value,
@@ -187,17 +217,23 @@ export default function OnboardingPage() {
 
   const userId = (id ?? "").trim().toLowerCase();
 
-  const initial = useMemo(() => {
-    const loaded = userId ? loadAnswers(userId) : null;
-    return loaded ?? DEFAULT_ANSWERS;
-  }, [userId]);
+  const savedAnswers = useMemo(() => (userId ? loadAnswers(userId) : null), [userId]);
+  const initial = useMemo(() => savedAnswers ?? DEFAULT_ANSWERS, [savedAnswers]);
 
   const [a, setA] = useState<OnboardingAnswers>(initial);
+  const [touched, setTouched] = useState<Set<TrackableField>>(() =>
+    savedAnswers ? buildTouchedSet(savedAnswers) : new Set<TrackableField>()
+  );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  function setField<K extends keyof OnboardingAnswers>(key: K, value: OnboardingAnswers[K]) {
+  function setField<K extends TrackableField>(key: K, value: OnboardingAnswers[K]) {
     setA((prev) => ({ ...prev, [key]: value }));
+    setTouched((prev) => {
+      const next = new Set(prev);
+      next.add(key);
+      return next;
+    });
   }
 
   function onSave() {
@@ -225,19 +261,8 @@ export default function OnboardingPage() {
   }
 
   const completionScore = useMemo(() => {
-    let score = 0;
-    if (a.trainingPlace) score += 1;
-    if (a.timePerDay) score += 1;
-    if (a.daysPerWeek) score += 1;
-    if (a.bestTime) score += 1;
-    if (a.equipmentPref) score += 1;
-    if (a.intensityPref) score += 1;
-    if (a.wantsCloseFollow) score += 1;
-    if (a.surgeryRecent) score += 1;
-    if (a.frequentPain) score += 1;
-    if (a.injuries.length > 0) score += 1;
-    return Math.round((score / 10) * 100);
-  }, [a]);
+    return Math.round((touched.size / TRACKABLE_FIELDS.length) * 100);
+  }, [touched]);
 
   return (
     <div style={{ display: "grid", gap: 14, color: COLORS.text }}>
@@ -315,7 +340,7 @@ export default function OnboardingPage() {
                     width: `${completionScore}%`,
                     height: "100%",
                     borderRadius: 999,
-                    background: "#22C55E",
+                    background: COLORS.primary,
                   }}
                 />
               </div>
@@ -362,14 +387,14 @@ export default function OnboardingPage() {
                 padding: "12px 14px",
                 borderRadius: 14,
                 border: `1px solid ${COLORS.borderStrong}`,
-                background: "#22C55E",
+                background: COLORS.primary,
                 color: "#FFFFFF",
                 cursor: saving ? "not-allowed" : "pointer",
                 fontWeight: 700,
                 boxShadow: "0 10px 24px rgba(0,0,0,.35)",
               }}
             >
-              {saving ? "Salvando..." : "✅ Concluir onboarding"}
+              {saving ? "Salvando..." : "Concluir onboarding"}
             </button>
           </div>
 
@@ -556,14 +581,14 @@ export default function OnboardingPage() {
                 padding: "12px 14px",
                 borderRadius: 14,
                 border: `1px solid ${COLORS.borderStrong}`,
-                background: "#22C55E",
+                background: COLORS.primary,
                 color: "#FFFFFF",
                 cursor: saving ? "not-allowed" : "pointer",
                 fontWeight: 700,
                 boxShadow: "0 10px 24px rgba(0,0,0,.35)",
               }}
             >
-              {saving ? "Salvando..." : "✅ Concluir onboarding"}
+              {saving ? "Salvando..." : "Concluir onboarding"}
             </button>
           </div>
         </div>
