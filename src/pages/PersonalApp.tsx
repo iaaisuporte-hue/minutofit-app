@@ -3,6 +3,7 @@ import React from "react";
 import { NavLink, Navigate, Route, Routes, useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import AppShell from "../layout/AppShell";
+import PersonalMobileBottomNav from "../layout/PersonalMobileBottomNav";
 import MinutoFitLogo from "../components/MinutoFitLogo";
 
 import DashboardPage from "./personal/DashboardPage";
@@ -89,7 +90,7 @@ class SafeBoundary extends React.Component<{ children: React.ReactNode }, { hasE
     return { hasError: true };
   }
 
-  componentDidCatch(err: any) {
+  componentDidCatch(err: unknown) {
     // Loga no console pra você ver o motivo real
     console.error("PersonalApp SafeBoundary:", err);
   }
@@ -111,6 +112,7 @@ export default function PersonalApp() {
 
   return (
     <AppShell
+      bottomNav={<PersonalMobileBottomNav />}
       sidebar={
         <>
           <div style={{ padding: "8px 4px 16px" }}>

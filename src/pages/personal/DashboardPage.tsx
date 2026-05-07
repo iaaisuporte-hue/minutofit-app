@@ -2,88 +2,53 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   fetchPersonalDashboard,
-  type PersonalDashboardGoal,
+  type PersonalDashboardAlert,
+  type PersonalDashboardEngagementStatus,
   type PersonalDashboardPlan,
   type PersonalDashboardRisk,
   type PersonalDashboardStudent,
 } from "../../services/personalDashboardApi";
 import { COLORS } from "../../styles/colors";
+import { useIsMobile } from "../../hooks/useIsMobile";
+import IntelligentAlerts from "./IntelligentAlerts";
+import StudentProfileModal from "./StudentProfileModal";
 
-/** ✅ (0) TIPOS DO PLANO (usei na tabela “Visão geral”) */
-type UserPlan = PersonalDashboardPlan;
+type OverviewFilter = "all" | "attention" | "fading" | "at_risk" | "evolving";
 
-/** ✅ (1) LABEL DO PLANO (usei na tabela “Visão geral”) */
-const PLAN_LABEL: Record<UserPlan, string> = {
+const PERSONAL_BASE = "/app/personal" as const;
+const PLAN_LABEL: Record<PersonalDashboardPlan, string> = {
   basic: "Básico",
   silver: "Silver",
   gold: "Gold",
   black: "Black",
 };
 
-type Student = Omit<PersonalDashboardStudent, "goal" | "risk"> & {
-  goal: PersonalDashboardGoal;
-  risk: PersonalDashboardRisk;
-  lastWorkoutISO: string | null;
-};
-
-type OverviewFilter = "all" | "critico" | "alerta" | "ok" | "inactive7d";
-
-/** ✅ ROTAS ABSOLUTAS (ANTI-LOOP) */
-const PERSONAL_BASE = "/app/personal" as const;
 const routes = {
-  dashboard: () => `${PERSONAL_BASE}/dashboard`,
   students: () => `${PERSONAL_BASE}/students`,
-  consulting: () => `${PERSONAL_BASE}/consulting`,
   messages: () => `${PERSONAL_BASE}/messages`,
   review: () => `${PERSONAL_BASE}/review`,
   library: () => `${PERSONAL_BASE}/library`,
-  // ✅ mantenho /new por compatibilidade (se já existe no seu router)
-  workoutNew: (studentId: string) => `${PERSONAL_BASE}/students/${studentId}/workouts/new`,
-  // ✅ quando você ativar o builder, é só trocar onde usa:
   workoutBuilder: (studentId: string) => `${PERSONAL_BASE}/students/${studentId}/workouts/builder`,
 } as const;
 
-/** ✅ SAFE NAVIGATE: força sempre path absoluto */
-function toAbsolute(path: string) {
-  if (!path) return PERSONAL_BASE;
-  if (path.startsWith("http")) return path;
-  if (path.startsWith("/")) return path;
-  return `/${path}`;
-}
-
 function fmtDate(iso?: string | null) {
   if (!iso) return "--/--";
-  try {
-    const d = new Date(iso);
-    return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
-  } catch {
-    return "--/--";
-  }
-}
-
-function daysSinceIso(iso?: string | null) {
-  if (!iso) return 999;
-  const value = new Date(iso).getTime();
-  if (Number.isNaN(value)) return 999;
-  return Math.floor((Date.now() - value) / (1000 * 60 * 60 * 24));
-}
-
-function clamp(n: number, a: number, b: number) {
-  return Math.max(a, Math.min(b, n));
+  return new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
 }
 
 function Badge({
-  variant,
+  tone,
   children,
 }: {
-  variant: "success" | "warn" | "danger" | "neutral";
+  tone: "neutral" | "success" | "warn" | "danger" | "soft";
   children: React.ReactNode;
 }) {
   const map = {
-    success: { bd: COLORS.borderStrong, bg: COLORS.primarySoft, color: "#22C55E" },
-    warn: { bd: "rgba(255,183,3,.35)", bg: COLORS.warnSoft, color: "#FFE082" },
-    danger: { bd: "rgba(220,38,38,.35)", bg: COLORS.dangerSoft, color: "#FFB4B4" },
-    neutral: { bd: COLORS.border, bg: COLORS.highlightSoft, color: COLORS.text },
+    neutral: { border: COLORS.border, bg: "#FFFFFF" },
+    success: { border: COLORS.successBorder, bg: COLORS.successBg },
+    warn: { border: COLORS.warnBorder, bg: COLORS.warnBg },
+    danger: { border: COLORS.dangerBorder, bg: COLORS.dangerBg },
+    soft: { border: COLORS.borderStrong, bg: COLORS.primarySoft },
   } as const;
 
   return (
@@ -94,16 +59,15 @@ function Badge({
         gap: 8,
         padding: "6px 10px",
         borderRadius: 999,
-        border: `1px solid ${map[variant].bd}`,
-        background: map[variant].bg,
-        fontWeight: 600,
+        border: `1px solid ${map[tone].border}`,
+        background: map[tone].bg,
+        color: COLORS.text,
+        fontWeight: 700,
         fontSize: 11,
         lineHeight: 1,
-        color: map[variant].color,
         whiteSpace: "nowrap",
-        width: "fit-content",
-        letterSpacing: 0.3,
         textTransform: "uppercase",
+        letterSpacing: 0.35,
       }}
     >
       {children}
@@ -123,7 +87,7 @@ function Card({
   children: React.ReactNode;
 }) {
   return (
-    <div
+    <section
       style={{
         border: `1px solid ${COLORS.border}`,
         borderRadius: 20,
@@ -142,23 +106,50 @@ function Card({
           gap: 12,
           flexWrap: "wrap",
         }}
-        >
-        <div style={{ display: "grid", gap: 6 }}>
-          <div style={{ fontWeight: 700, fontSize: 15, color: COLORS.text }}>{title}</div>
-          {subtitle ? (
-            <div style={{ color: COLORS.mutedSoft, fontSize: 12, lineHeight: 1.4 }}>{subtitle}</div>
-          ) : null}
+      >
+        <div style={{ display: "grid", gap: 5 }}>
+          <div style={{ fontWeight: 800, fontSize: 15, color: COLORS.text }}>{title}</div>
+          {subtitle ? <div style={{ color: COLORS.mutedSoft, fontSize: 12, lineHeight: 1.45 }}>{subtitle}</div> : null}
         </div>
         {right ? <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>{right}</div> : null}
       </div>
-
       <div style={{ padding: 14 }}>{children}</div>
-    </div>
+    </section>
+  );
+}
+
+function ActionButton({
+  children,
+  primary = false,
+  onClick,
+}: {
+  children: React.ReactNode;
+  primary?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        padding: "12px 14px",
+        borderRadius: 14,
+        border: primary ? `1px solid ${COLORS.borderStrong}` : `1px solid ${COLORS.border}`,
+        background: primary ? COLORS.primary : "#FFFFFF",
+        color: primary ? "#FFFFFF" : COLORS.text,
+        cursor: "pointer",
+        fontWeight: 800,
+        fontSize: 14,
+        boxShadow: primary ? "0 14px 28px rgba(34,197,94,.18)" : "none",
+      }}
+    >
+      {children}
+    </button>
   );
 }
 
 function ProgressBar({ value }: { value: number }) {
-  const pct = clamp(Math.round(value), 0, 100);
+  const pct = Math.max(0, Math.min(100, Math.round(value)));
   return (
     <div
       style={{
@@ -168,61 +159,49 @@ function ProgressBar({ value }: { value: number }) {
         border: `1px solid ${COLORS.border}`,
         overflow: "hidden",
       }}
-      aria-label={`Progresso ${pct}%`}
-      title={`${pct}%`}
     >
       <div
         style={{
-          height: "100%",
           width: `${pct}%`,
-          background: "#22C55E",
-          transition: "width .25s ease",
+          height: "100%",
+          borderRadius: 999,
+          background: COLORS.primary,
         }}
       />
     </div>
   );
 }
 
-function ActionButton({
-  children,
-  onClick,
-  primary = false,
-}: {
-  children: React.ReactNode;
-  onClick: () => void;
-  primary?: boolean;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      style={{
-        padding: "12px 14px",
-        borderRadius: 14,
-        border: primary ? `1px solid ${COLORS.borderStrong}` : `1px solid ${COLORS.border}`,
-        background: primary ? "#22C55E" : "#FAFAFA",
-        color: primary ? "#FFFFFF" : COLORS.text,
-        cursor: "pointer",
-        fontWeight: primary ? 1000 : 900,
-        fontSize: 14,
-        boxShadow: primary ? "0 14px 28px rgba(34,197,94,.22)" : "none",
-      }}
-    >
-      {children}
-    </button>
-  );
+function statusTone(status: PersonalDashboardEngagementStatus): "success" | "soft" | "warn" | "danger" {
+  if (status === "evolving") return "success";
+  if (status === "on_track") return "soft";
+  if (status === "attention") return "warn";
+  return "danger";
+}
+
+function statusLabel(status: PersonalDashboardEngagementStatus) {
+  if (status === "evolving") return "↑ Evoluindo";
+  if (status === "on_track") return "✓ No ritmo";
+  if (status === "attention") return "⚠ Atenção";
+  if (status === "fading") return "! Sumindo";
+  return "✕ Em risco";
+}
+
+function riskTone(risk: PersonalDashboardRisk): "success" | "warn" | "danger" {
+  if (risk === "ok") return "success";
+  if (risk === "alerta") return "warn";
+  return "danger";
 }
 
 export default function DashboardPage() {
   const navigate = useNavigate();
-  const [students, setStudents] = useState<Student[]>([]);
+  const isMobile = useIsMobile(720);
+  const [students, setStudents] = useState<PersonalDashboardStudent[]>([]);
+  const [alerts, setAlerts] = useState<PersonalDashboardAlert[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [overviewFilter, setOverviewFilter] = useState<OverviewFilter>("all");
-
-  /** ✅ helper local: só aceita rotas absolutas */
-  function go(path: string) {
-    navigate(toAbsolute(path));
-  }
+  const [selectedStudent, setSelectedStudent] = useState<{ id: string; name: string } | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -232,13 +211,14 @@ export default function DashboardPage() {
         setLoading(true);
         setError(null);
         const data = await fetchPersonalDashboard();
-
         if (!active) return;
         setStudents(data?.students ?? []);
-      } catch (err: any) {
+        setAlerts(data?.summary.intelligentAlerts ?? []);
+      } catch (err: unknown) {
         if (!active) return;
-        setError(err?.message || "Nao foi possivel carregar o dashboard.");
+        setError(err instanceof Error ? err.message : "Nao foi possivel carregar o dashboard.");
         setStudents([]);
+        setAlerts([]);
       } finally {
         if (active) setLoading(false);
       }
@@ -251,76 +231,49 @@ export default function DashboardPage() {
   }, []);
 
   const stats = useMemo(() => {
-    const total = students.length;
-    const total7d = students.reduce((acc, s) => acc + s.workouts7d, 0);
-    const total30d = students.reduce((acc, s) => acc + s.workouts30d, 0);
-    const avg7d = total ? total7d / total : 0;
-    const avg30d = total ? total30d / total : 0;
-
-    const atRisk = students.filter((s) => s.risk !== "ok");
-    const critical = students.filter((s) => s.risk === "critico");
-    const ok = students.filter((s) => s.risk === "ok");
-
-    const most = [...students].sort((a, b) => b.workouts7d - a.workouts7d)[0];
-    const least = [...students].sort((a, b) => a.workouts7d - b.workouts7d)[0];
-
+    const totalStudents = students.length;
+    const total7d = students.reduce((sum, student) => sum + student.workouts7d, 0);
+    const total30d = students.reduce((sum, student) => sum + student.workouts30d, 0);
+    const most = [...students].sort((a, b) => b.workouts7d - a.workouts7d)[0] || null;
+    const least = [...students].sort((a, b) => a.adherencePct - b.adherencePct)[0] || null;
     const needsFollowUp = [...students]
-      .filter((s) => s.risk === "critico" || (s.risk === "alerta" && s.workouts7d <= 1))
+      .filter((student) => student.engagementStatus !== "on_track" && student.engagementStatus !== "evolving")
       .sort((a, b) => a.adherencePct - b.adherencePct)
       .slice(0, 4);
 
     return {
-      total,
+      totalStudents,
       total7d,
       total30d,
-      avg7d: Math.round(avg7d * 10) / 10,
-      avg30d: Math.round(avg30d * 10) / 10,
-      okCount: ok.length,
-      alertCount: atRisk.length - critical.length,
-      criticalCount: critical.length,
+      avg7d: totalStudents ? Math.round((total7d / totalStudents) * 10) / 10 : 0,
+      avg30d: totalStudents ? Math.round((total30d / totalStudents) * 10) / 10 : 0,
       most,
       least,
       needsFollowUp,
+      evolving: students.filter((student) => student.engagementStatus === "evolving").length,
+      attention: students.filter((student) => student.engagementStatus === "attention").length,
+      fading: students.filter((student) => student.engagementStatus === "fading").length,
+      atRisk: students.filter((student) => student.engagementStatus === "at_risk").length,
     };
   }, [students]);
 
   const overviewStudents = useMemo(() => {
-    const filteredStudents = students.filter((student) => {
-      if (overviewFilter === "all") return true;
-      if (overviewFilter === "inactive7d") return daysSinceIso(student.lastWorkoutISO) >= 7;
-      return student.risk === overviewFilter;
-    });
-
-    return [...filteredStudents]
-      .sort((a, b) => {
-        const riskWeight = { critico: 0, alerta: 1, ok: 2 } as const;
-        const riskDiff = riskWeight[a.risk] - riskWeight[b.risk];
-        if (riskDiff !== 0) return riskDiff;
-        return a.adherencePct - b.adherencePct;
+    return students
+      .filter((student) => {
+        if (overviewFilter === "all") return true;
+        return student.engagementStatus === overviewFilter;
       })
+      .sort((a, b) => a.adherencePct - b.adherencePct)
       .slice(0, 6);
-  }, [students, overviewFilter]);
+  }, [overviewFilter, students]);
 
-  const overviewFilterMeta = useMemo(
-    () => [
-      { id: "all" as const, label: "Todos", count: students.length },
-      { id: "critico" as const, label: "Críticos", count: students.filter((student) => student.risk === "critico").length },
-      { id: "alerta" as const, label: "Alerta", count: students.filter((student) => student.risk === "alerta").length },
-      { id: "ok" as const, label: "Ok", count: students.filter((student) => student.risk === "ok").length },
-      { id: "inactive7d" as const, label: "7+ dias sem treino", count: students.filter((student) => daysSinceIso(student.lastWorkoutISO) >= 7).length },
-    ],
-    [students]
-  );
-
-  function riskBadge(risk: Student["risk"]) {
-    if (risk === "ok") return <Badge variant="success">Ok</Badge>;
-    if (risk === "alerta") return <Badge variant="warn">Alerta</Badge>;
-    return <Badge variant="danger">Crítico</Badge>;
+  function openStudent(studentId: string, studentName?: string) {
+    const fallback = students.find((student) => student.id === studentId)?.name || studentName || "Aluno";
+    setSelectedStudent({ id: studentId, name: fallback });
   }
 
   return (
     <div style={{ display: "grid", gap: 14, color: COLORS.text }}>
-      {/* Header */}
       <div
         style={{
           border: `1px solid ${COLORS.borderStrong}`,
@@ -344,368 +297,315 @@ export default function DashboardPage() {
               gap: 8,
               borderRadius: 999,
               background: COLORS.highlightSoft,
-              color: "#22C55E",
+              color: COLORS.highlight,
               padding: "8px 12px",
               fontSize: 11,
-              fontWeight: 600,
+              fontWeight: 700,
               letterSpacing: 1.1,
               textTransform: "uppercase",
             }}
           >
             Painel do personal
           </div>
-          <div style={{ fontWeight: 700, fontSize: 28, lineHeight: 1.08 }}>Priorize quem precisa de você agora.</div>
-          <div style={{ color: COLORS.muted, fontSize: 13, lineHeight: 1.5, maxWidth: 640 }}>
-            Contato imediato, evolução recente e sinais de risco em uma leitura rápida.
+          <div style={{ fontWeight: 800, fontSize: 28, lineHeight: 1.08 }}>Acompanhe o dia do aluno, não só a ficha.</div>
+          <div style={{ color: COLORS.muted, fontSize: 13, lineHeight: 1.5, maxWidth: 720 }}>
+            Prioridades, sinais de retenção e perfil rápido do aluno organizados para você agir antes do abandono.
           </div>
         </div>
 
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-          <ActionButton primary onClick={() => go(routes.messages())}>Abrir mensagens</ActionButton>
-          <ActionButton onClick={() => go(routes.students())}>Ver alunos</ActionButton>
-          <ActionButton onClick={() => go(routes.library())}>Treinos gerais</ActionButton>
+          <ActionButton primary onClick={() => navigate(routes.messages())}>Abrir mensagens</ActionButton>
+          <ActionButton onClick={() => navigate(routes.students())}>Ver alunos</ActionButton>
+          <ActionButton onClick={() => navigate(routes.review())}>Revisar treinos</ActionButton>
         </div>
       </div>
 
       {loading ? (
-        <Card
-          title="Carregando dashboard"
-          subtitle="Organizando a carteira."
-          right={<Badge variant="neutral">Atualizando</Badge>}
-        >
-          <div style={{ color: COLORS.muted, fontSize: 14, lineHeight: 1.5 }}>
-            Em instantes a tela mostra quem precisa da sua atenção primeiro.
-          </div>
+        <Card title="Carregando dashboard" subtitle="Organizando prioridades e sinais da carteira." right={<Badge tone="neutral">Atualizando</Badge>}>
+          <div style={{ color: COLORS.muted, fontSize: 14 }}>Em instantes a área do personal mostra quem precisa de atenção primeiro.</div>
         </Card>
       ) : null}
 
       {!loading && error ? (
-        <Card
-          title="Nao conseguimos atualizar este painel"
-          subtitle="Tente atualizar novamente."
-          right={<Badge variant="danger">Falha</Badge>}
-        >
+        <Card title="Nao foi possivel carregar o dashboard" subtitle="Tente atualizar novamente." right={<Badge tone="danger">Falha</Badge>}>
           <div style={{ display: "grid", gap: 12 }}>
-            <div style={{ color: COLORS.muted, fontSize: 14, lineHeight: 1.5 }}>{error}</div>
-            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-              <ActionButton onClick={() => window.location.reload()}>Tentar novamente</ActionButton>
-            </div>
+            <div style={{ color: COLORS.muted, fontSize: 14 }}>{error}</div>
+            <ActionButton onClick={() => window.location.reload()}>Tentar novamente</ActionButton>
           </div>
         </Card>
       ) : null}
 
       {!loading && !error && students.length === 0 ? (
-        <Card
-          title="Sua carteira ainda esta vazia"
-          subtitle="Ative alunos para começar o acompanhamento."
-          right={<Badge variant="neutral">Sem dados</Badge>}
-        >
+        <Card title="Sua carteira ainda está vazia" subtitle="Ative alunos para começar o acompanhamento." right={<Badge tone="neutral">Sem dados</Badge>}>
           <div style={{ color: COLORS.muted, fontSize: 14, lineHeight: 1.5 }}>
-            Volte aqui depois de ativar seus primeiros alunos para acompanhar consistência, aderência e follow-up.
+            Quando houver alunos atribuídos, esta tela passa a priorizar quem está evoluindo, sumindo ou pedindo ajuste de treino.
           </div>
         </Card>
       ) : null}
 
       {!loading && !error && students.length > 0 ? (
         <>
-      {/* Prioridades do dia */}
-      <Card title="Prioridades do dia" subtitle="Contato imediato" right={<Badge variant="neutral">Fila</Badge>}>
-        <div style={{ display: "grid", gap: 10 }}>
-          {stats.needsFollowUp.length === 0 ? (
-            <div style={{ color: COLORS.muted, fontSize: 13 }}>Nenhuma pendência crítica no momento.</div>
-          ) : (
-            stats.needsFollowUp.map((s) => (
-              <div
-                key={s.id}
-                style={{
-                  border: `1px solid ${s.risk === "critico" ? "rgba(220,38,38,.22)" : COLORS.border}`,
-                  borderRadius: 18,
-                  background: s.risk === "critico" ? "rgba(220,38,38,.08)" : "#FAFAFA",
-                  padding: 14,
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  gap: 12,
-                  flexWrap: "wrap",
-                }}
-              >
+          <Card title="Prioridades do dia" subtitle="Quem merece ação imediata nas próximas horas." right={<Badge tone="soft">Top 4</Badge>}>
+            <div style={{ display: "grid", gap: 10 }}>
+              {stats.needsFollowUp.map((student) => (
+                <div
+                  key={student.id}
+                  style={{
+                    border: `1px solid ${student.engagementStatus === "at_risk" ? COLORS.dangerBorder : COLORS.border}`,
+                    borderRadius: 18,
+                    background: student.engagementStatus === "at_risk" ? COLORS.dangerBg : "#FFFFFF",
+                    padding: 14,
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    gap: 12,
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <div style={{ display: "grid", gap: 8, minWidth: "min(320px, 100%)", flex: "1 1 320px" }}>
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                      <button
+                        type="button"
+                        onClick={() => openStudent(student.id, student.name)}
+                        style={{
+                          border: "none",
+                          background: "transparent",
+                          padding: 0,
+                          cursor: "pointer",
+                          fontWeight: 800,
+                          fontSize: 16,
+                          color: COLORS.text,
+                        }}
+                      >
+                        {student.name}
+                      </button>
+                      <Badge tone={statusTone(student.engagementStatus)}>{statusLabel(student.engagementStatus)}</Badge>
+                      <Badge tone={riskTone(student.risk)}>{student.risk}</Badge>
+                    </div>
+                    <div style={{ color: COLORS.muted, fontSize: 13, lineHeight: 1.5 }}>
+                      Último treino <b>{fmtDate(student.lastWorkoutISO)}</b> • Último check-in <b>{fmtDate(student.lastCheckinISO)}</b> • Aderência{" "}
+                      <b>{student.adherencePct}%</b> • {student.workouts7d}x na semana
+                    </div>
+                  </div>
+
+                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                    <ActionButton onClick={() => openStudent(student.id, student.name)}>Ver aluno</ActionButton>
+                    <ActionButton primary onClick={() => navigate(routes.workoutBuilder(student.id))}>Criar treino</ActionButton>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+
+          <Card title="Alertas inteligentes" subtitle="Sinais automáticos de retenção, reconhecimento e risco." right={<Badge tone="neutral">{alerts.length} alerta(s)</Badge>}>
+            <IntelligentAlerts alerts={alerts} onOpenStudent={openStudent} onOpenStudents={() => navigate(routes.students())} />
+          </Card>
+
+          <div style={{ display: "grid", gap: 12, gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))" }}>
+            <Card title="Top performer da semana" subtitle="Melhor resposta recente" right={<Badge tone="success">Em alta</Badge>}>
+              <div style={{ display: "grid", gap: 10 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+                  <div style={{ display: "grid", gap: 4 }}>
+                    <button
+                      type="button"
+                      onClick={() => stats.most && openStudent(stats.most.id, stats.most.name)}
+                      style={{
+                        border: "none",
+                        background: "transparent",
+                        padding: 0,
+                        textAlign: "left",
+                        cursor: "pointer",
+                        fontWeight: 800,
+                        fontSize: 16,
+                        color: COLORS.text,
+                      }}
+                    >
+                      {stats.most?.name || "-"}
+                    </button>
+                    <div style={{ color: COLORS.muted, fontSize: 13 }}>
+                      Último treino: {stats.most ? fmtDate(stats.most.lastWorkoutISO) : "--/--"} • Streak: <b>{stats.most?.streakDays || 0} dias</b>
+                    </div>
+                  </div>
+                  <Badge tone="soft">{stats.most?.workouts7d || 0}x semana</Badge>
+                </div>
                 <div style={{ display: "grid", gap: 6 }}>
-                  <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-                    <div style={{ fontWeight: 700 }}>{s.name}</div>
-                    {riskBadge(s.risk)}
-                    <Badge variant="neutral">{s.workouts7d}x semana</Badge>
-                    <Badge variant="neutral">{s.streakDays} dias</Badge>
-                  </div>
-
-                  <div style={{ color: COLORS.muted, fontSize: 13, lineHeight: 1.45 }}>
-                    Último treino <b>{fmtDate(s.lastWorkoutISO)}</b> • Aderência <b>{s.adherencePct}%</b>
-                    {s.notes ? (
-                      <>
-                        {" "}
-                        • <b>{s.notes}</b>
-                      </>
-                    ) : null}
-                  </div>
-                </div>
-
-                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                  <ActionButton
-                    onClick={() =>
-                      navigate(routes.messages(), {
-                        state: {
-                          studentId: s.id,
-                          studentName: s.name,
-                        },
-                      })
-                    }
-                  >
-                    Mensagem
-                  </ActionButton>
-                  <ActionButton
-                    primary
-                    onClick={() => {
-                      navigate(routes.workoutBuilder(s.id), {
-                        state: {
-                          studentId: s.id,
-                          studentName: s.name,
-                        },
-                      });
-                    }}
-                  >
-                    Ajustar treino
-                  </ActionButton>
+                  <div style={{ color: COLORS.muted, fontSize: 13 }}>Aderência ao plano</div>
+                  <ProgressBar value={stats.most?.adherencePct || 0} />
                 </div>
               </div>
-            ))
-          )}
-        </div>
-      </Card>
+            </Card>
 
-      {/* KPIs */}
-      <div style={{ display: "grid", gap: 12, gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}>
-        <Card
-          title="Atividade (7 dias)"
-          subtitle="Média por aluno"
-          right={<Badge variant="neutral">{stats.total7d} treinos</Badge>}
-        >
-          <div style={{ display: "grid", gap: 10 }}>
-            <div style={{ fontSize: 28, fontWeight: 700 }}>{stats.avg7d}/sem</div>
-            <div style={{ color: COLORS.mutedSoft, fontSize: 12 }}>Ritmo recente da carteira.</div>
-          </div>
-        </Card>
-
-        <Card
-          title="Consistência (30 dias)"
-          subtitle="Volume médio"
-          right={<Badge variant="neutral">{stats.total30d} treinos</Badge>}
-        >
-          <div style={{ display: "grid", gap: 10 }}>
-            <div style={{ fontSize: 28, fontWeight: 700 }}>{stats.avg30d}/mês</div>
-            <div style={{ color: COLORS.mutedSoft, fontSize: 12 }}>Sinal de manutenção do plano.</div>
-          </div>
-        </Card>
-
-        <Card
-          title="Risco de abandono"
-          subtitle="Exigem atenção"
-          right={<Badge variant="warn">Alerta + crítico</Badge>}
-        >
-          <div style={{ display: "grid", gap: 10 }}>
-            <div style={{ fontSize: 28, fontWeight: 700 }}>{stats.alertCount + stats.criticalCount}</div>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              <Badge variant="success">Ok: {stats.okCount}</Badge>
-              <Badge variant="warn">Alerta: {stats.alertCount}</Badge>
-              <Badge variant="danger">Crítico: {stats.criticalCount}</Badge>
-            </div>
-          </div>
-        </Card>
-      </div>
-
-      {/* Destaques */}
-      <div style={{ display: "grid", gap: 12, gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))" }}>
-        <Card
-          title="Top performer da semana"
-          subtitle="Melhor resposta recente"
-          right={<Badge variant="success">Em alta</Badge>}
-        >
-          <div style={{ display: "grid", gap: 10 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-              <div style={{ display: "grid", gap: 4 }}>
-                <div style={{ fontWeight: 700, fontSize: 16 }}>{stats.most?.name || "-"}</div>
-                <div style={{ color: COLORS.muted, fontSize: 13 }}>
-                  Último treino: {stats.most ? fmtDate(stats.most.lastWorkoutISO) : "--/--"} • Streak:{" "}
-                  <b style={{ color: "#22C55E" }}>{stats.most?.streakDays || 0} dias</b>
-                </div>
-              </div>
-
-              <Badge variant="neutral">{stats.most?.workouts7d || 0}x semana</Badge>
-            </div>
-
-            <div style={{ display: "grid", gap: 6 }}>
-              <div style={{ color: COLORS.muted, fontSize: 13 }}>Aderência ao plano</div>
-              <ProgressBar value={stats.most?.adherencePct || 0} />
-            </div>
-
-            <div style={{ color: COLORS.mutedSoft, fontSize: 12 }}>Próxima ação: revisar progressão.</div>
-          </div>
-        </Card>
-
-        <Card
-          title="Precisa de resgate"
-          subtitle="Maior risco de esfriar"
-          right={<Badge variant="danger">Urgente</Badge>}
-        >
-          <div style={{ display: "grid", gap: 10 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-              <div style={{ display: "grid", gap: 4 }}>
-                <div style={{ fontWeight: 700, fontSize: 16 }}>{stats.least?.name || "-"}</div>
-                <div style={{ color: COLORS.muted, fontSize: 13 }}>
-                  Último treino: {stats.least ? fmtDate(stats.least.lastWorkoutISO) : "--/--"} • Objetivo:{" "}
-                  <b style={{ color: COLORS.text }}>{stats.least?.goal || "-"}</b>
-                </div>
-              </div>
-
-              <Badge variant="neutral">{stats.least?.workouts7d || 0}x semana</Badge>
-            </div>
-
-            <div style={{ display: "grid", gap: 6 }}>
-              <div style={{ color: COLORS.muted, fontSize: 13 }}>Aderência ao plano</div>
-              <ProgressBar value={stats.least?.adherencePct || 0} />
-            </div>
-
-            <div style={{ color: COLORS.mutedSoft, fontSize: 12 }}>Próxima ação: contato simples e retomada.</div>
-          </div>
-        </Card>
-      </div>
-
-      {/* Visão geral */}
-      <Card
-        title="Carteira em foco"
-        subtitle="Recorte dos alunos que mais pedem leitura agora"
-        right={<Badge variant="neutral">{students.length} alunos na carteira</Badge>}
-      >
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
-          {overviewFilterMeta.map((item) => {
-            const active = item.id === overviewFilter;
-            return (
-              <button
-                key={item.id}
-                onClick={() => setOverviewFilter(item.id)}
-                style={{
-                  padding: "8px 10px",
-                  borderRadius: 999,
-                  border: active ? `1px solid ${COLORS.borderStrong}` : `1px solid ${COLORS.border}`,
-                  background: active ? COLORS.primarySoft : "#FAFAFA",
-                  color: COLORS.text,
-                  cursor: "pointer",
-                  fontSize: 12,
-                  fontWeight: active ? 900 : 800,
-                  lineHeight: 1,
-                }}
-              >
-                {item.label} · {item.count}
-              </button>
-            );
-          })}
-        </div>
-
-        <div style={{ display: "grid", gap: 8 }}>
-          {overviewStudents.map((s) => (
-              <div
-                key={s.id}
-                style={{
-                  border: `1px solid ${COLORS.border}`,
-                  borderRadius: 18,
-                  background: "#FAFAFA",
-                  padding: 14,
-                  display: "flex",
-                  justifyContent: "space-between",
-                  flexWrap: "wrap",
-                  gap: 12,
-                  alignItems: "center",
-                }}
-              >
-                <div style={{ display: "grid", gap: 8, minWidth: "min(260px, 100%)", flex: "1 1 260px" }}>
-                  <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-                    <div style={{ fontWeight: 700 }}>{s.name}</div>
-                    {riskBadge(s.risk)}
-                  </div>
-                  <div style={{ color: COLORS.mutedSoft, fontSize: 12, lineHeight: 1.45 }}>
-                    Último: {fmtDate(s.lastWorkoutISO)} • Objetivo: {s.goal} • Plano: {PLAN_LABEL[s.plan]}
-                  </div>
-                </div>
-
-                <div style={{ display: "grid", gap: 10, minWidth: 220, flex: "1 1 220px" }}>
-                  <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                    <div style={{ display: "grid", gap: 4 }}>
-                      <div style={{ color: COLORS.mutedSoft, fontSize: 12 }}>Semana</div>
-                      <div style={{ fontWeight: 700 }}>{s.workouts7d} treinos</div>
-                    </div>
-                    <div style={{ display: "grid", gap: 4 }}>
-                      <div style={{ color: COLORS.mutedSoft, fontSize: 12 }}>Streak</div>
-                      <div style={{ fontWeight: 700 }}>{s.streakDays} dias</div>
+            <Card title="Precisa de resgate" subtitle="Maior risco de esfriar o ciclo" right={<Badge tone="danger">Urgente</Badge>}>
+              <div style={{ display: "grid", gap: 10 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+                  <div style={{ display: "grid", gap: 4 }}>
+                    <button
+                      type="button"
+                      onClick={() => stats.least && openStudent(stats.least.id, stats.least.name)}
+                      style={{
+                        border: "none",
+                        background: "transparent",
+                        padding: 0,
+                        textAlign: "left",
+                        cursor: "pointer",
+                        fontWeight: 800,
+                        fontSize: 16,
+                        color: COLORS.text,
+                      }}
+                    >
+                      {stats.least?.name || "-"}
+                    </button>
+                    <div style={{ color: COLORS.muted, fontSize: 13 }}>
+                      Último treino: {stats.least ? fmtDate(stats.least.lastWorkoutISO) : "--/--"} • Objetivo:{" "}
+                      <b>{stats.least?.goal || "-"}</b>
                     </div>
                   </div>
-                  <div style={{ display: "grid", gap: 6 }}>
-                    <div style={{ color: COLORS.mutedSoft, fontSize: 12 }}>Aderência</div>
-                    <ProgressBar value={s.adherencePct} />
-                  </div>
+                  <Badge tone="warn">{stats.least?.adherencePct || 0}% aderência</Badge>
                 </div>
-
-                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                  <ActionButton
-                    onClick={() =>
-                      navigate(routes.messages(), {
-                        state: {
-                          studentId: s.id,
-                          studentName: s.name,
-                        },
-                      })
-                    }
-                  >
-                    Mensagem
-                  </ActionButton>
-                </div>
+                <ProgressBar value={stats.least?.adherencePct || 0} />
               </div>
-            ))}
-        </div>
+            </Card>
+          </div>
 
-        {overviewStudents.length === 0 ? (
-          <div
+          <details
+            open={!isMobile}
             style={{
-              marginTop: 8,
-              borderRadius: 16,
               border: `1px solid ${COLORS.border}`,
-              background: "#FAFAFA",
-              padding: 14,
-              color: COLORS.muted,
-              fontSize: 13,
-              lineHeight: 1.45,
+              borderRadius: 20,
+              background: COLORS.panel,
+              boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.05)",
+              overflow: "hidden",
             }}
           >
-            Nenhum aluno encontrado para este recorte.
-          </div>
-        ) : null}
+            <summary
+              style={{
+                listStyle: "none",
+                cursor: "pointer",
+                padding: 14,
+                fontWeight: 800,
+                color: COLORS.text,
+                borderBottom: `1px solid ${COLORS.border}`,
+              }}
+            >
+              Métricas agregadas
+            </summary>
+            <div style={{ padding: 14, display: "grid", gap: 12, gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}>
+              <Card title="Atividade (7 dias)" subtitle="Média por aluno" right={<Badge tone="neutral">{stats.total7d} treinos</Badge>}>
+                <div style={{ fontSize: 28, fontWeight: 800 }}>{stats.avg7d}/sem</div>
+              </Card>
+              <Card title="Consistência (30 dias)" subtitle="Volume médio" right={<Badge tone="neutral">{stats.total30d} treinos</Badge>}>
+                <div style={{ fontSize: 28, fontWeight: 800 }}>{stats.avg30d}/mês</div>
+              </Card>
+              <Card title="Status da carteira" subtitle="Leitura operacional" right={<Badge tone="soft">{students.length} alunos</Badge>}>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  <Badge tone="success">Evoluindo: {stats.evolving}</Badge>
+                  <Badge tone="warn">Atenção: {stats.attention}</Badge>
+                  <Badge tone="danger">Sumindo + risco: {stats.fading + stats.atRisk}</Badge>
+                </div>
+              </Card>
+            </div>
+          </details>
 
-        <div
-          style={{
-            marginTop: 14,
-            paddingTop: 14,
-            borderTop: `1px solid ${COLORS.border}`,
-            display: "flex",
-            justifyContent: "space-between",
-            gap: 12,
-            flexWrap: "wrap",
-            alignItems: "center",
-          }}
-        >
-          <div style={{ color: COLORS.mutedSoft, fontSize: 12, lineHeight: 1.45 }}>
-            Mostrando 6 alunos priorizados por risco e aderência. A base completa continua em “Ver alunos”.
-          </div>
-          <ActionButton onClick={() => go(routes.students())}>Abrir base completa</ActionButton>
-        </div>
-      </Card>
+          <Card title="Carteira em foco" subtitle="Recorte rápido dos alunos que pedem leitura agora." right={<Badge tone="neutral">{students.length} alunos</Badge>}>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
+              {[
+                { id: "all" as const, label: "Todos" },
+                { id: "attention" as const, label: "Atenção" },
+                { id: "fading" as const, label: "Sumindo" },
+                { id: "at_risk" as const, label: "Em risco" },
+                { id: "evolving" as const, label: "Evoluindo" },
+              ].map((item) => {
+                const active = overviewFilter === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => setOverviewFilter(item.id)}
+                    style={{
+                      padding: "8px 10px",
+                      borderRadius: 999,
+                      border: `1px solid ${active ? COLORS.borderStrong : COLORS.border}`,
+                      background: active ? COLORS.primarySoft : "#FFFFFF",
+                      color: COLORS.text,
+                      cursor: "pointer",
+                      fontWeight: active ? 800 : 700,
+                    }}
+                  >
+                    {item.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div style={{ display: "grid", gap: 8 }}>
+              {overviewStudents.map((student) => (
+                <div
+                  key={student.id}
+                  style={{
+                    border: `1px solid ${COLORS.border}`,
+                    borderRadius: 18,
+                    background: "#FFFFFF",
+                    padding: 14,
+                    display: "flex",
+                    justifyContent: "space-between",
+                    gap: 12,
+                    flexWrap: "wrap",
+                    alignItems: "center",
+                  }}
+                >
+                  <div style={{ display: "grid", gap: 8, minWidth: "min(260px, 100%)", flex: "1 1 260px" }}>
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                      <button
+                        type="button"
+                        onClick={() => openStudent(student.id, student.name)}
+                        style={{
+                          border: "none",
+                          background: "transparent",
+                          padding: 0,
+                          cursor: "pointer",
+                          fontWeight: 800,
+                          color: COLORS.text,
+                        }}
+                      >
+                        {student.name}
+                      </button>
+                      <Badge tone={statusTone(student.engagementStatus)}>{statusLabel(student.engagementStatus)}</Badge>
+                    </div>
+                    <div style={{ color: COLORS.mutedSoft, fontSize: 12, lineHeight: 1.45 }}>
+                      Último treino: {fmtDate(student.lastWorkoutISO)} • Último check-in: {fmtDate(student.lastCheckinISO)} • Plano: {PLAN_LABEL[student.plan]}
+                    </div>
+                  </div>
+
+                  <div style={{ display: "grid", gap: 10, minWidth: 220, flex: "1 1 220px" }}>
+                    <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                      <div style={{ display: "grid", gap: 4 }}>
+                        <div style={{ color: COLORS.mutedSoft, fontSize: 12 }}>Semana</div>
+                        <div style={{ fontWeight: 800 }}>{student.workouts7d} treinos</div>
+                      </div>
+                      <div style={{ display: "grid", gap: 4 }}>
+                        <div style={{ color: COLORS.mutedSoft, fontSize: 12 }}>Streak</div>
+                        <div style={{ fontWeight: 800 }}>{student.streakDays} dias</div>
+                      </div>
+                    </div>
+                    <ProgressBar value={student.adherencePct} />
+                  </div>
+
+                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                    <ActionButton onClick={() => openStudent(student.id, student.name)}>Ver aluno</ActionButton>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
         </>
+      ) : null}
+
+      {selectedStudent ? (
+        <StudentProfileModal
+          studentId={selectedStudent.id}
+          studentName={selectedStudent.name}
+          onClose={() => setSelectedStudent(null)}
+        />
       ) : null}
     </div>
   );
