@@ -1,10 +1,11 @@
 // src/pages/PersonalApp.tsx
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { NavLink, Navigate, Route, Routes, useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import AppShell from "../layout/AppShell";
 import PersonalMobileBottomNav from "../layout/PersonalMobileBottomNav";
 import MinutoFitLogo from "../components/MinutoFitLogo";
+import { fetchChatConversations } from "../services/messagesApi";
 
 import DashboardPage from "./personal/DashboardPage";
 import StudentsListPage from "./personal/StudentsListPage";
@@ -26,19 +27,6 @@ function MenuLink({ to, label }: { to: string; label: string }) {
       className={({ isActive }) => `navLink ${isActive ? "navLinkActive" : ""}`}
     >
       {label}
-    </NavLink>
-  );
-}
-
-/** ✅ CTA estilo botão (bem visível) */
-function MenuCTA({ to, label }: { to: string; label: string }) {
-  return (
-    <NavLink
-      to={to}
-      className={({ isActive }) => `navLink navLinkCta ${isActive ? "navLinkActive" : ""}`}
-    >
-      <span>{label}</span>
-      <span style={{ fontWeight: 700 }}>→</span>
     </NavLink>
   );
 }
@@ -82,7 +70,7 @@ function WorkoutBuilderPlaceholder() {
   );
 }
 
-/** ✅ Error Boundary simples pra evitar “tela branca” */
+/** ✅ Error Boundary simples pra evitar "tela branca" */
 class SafeBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean }> {
   state = { hasError: false };
 
@@ -91,7 +79,6 @@ class SafeBoundary extends React.Component<{ children: React.ReactNode }, { hasE
   }
 
   componentDidCatch(err: unknown) {
-    // Loga no console pra você ver o motivo real
     console.error("PersonalApp SafeBoundary:", err);
   }
 
@@ -101,9 +88,28 @@ class SafeBoundary extends React.Component<{ children: React.ReactNode }, { hasE
   }
 }
 
+/** Ícone SVG de mensagens */
+function MessagesIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+    </svg>
+  );
+}
+
 export default function PersonalApp() {
   const navigate = useNavigate();
   const { logout } = useAuth();
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    fetchChatConversations()
+      .then((convs) => {
+        const total = convs.reduce((sum, c) => sum + (c.unreadCount ?? 0), 0);
+        setUnreadCount(total);
+      })
+      .catch(() => {/* silencioso — badge simplesmente não aparece */});
+  }, []);
 
   function handleLogout() {
     logout();
@@ -115,24 +121,58 @@ export default function PersonalApp() {
       bottomNav={<PersonalMobileBottomNav />}
       sidebar={
         <>
-          <div style={{ padding: "8px 4px 16px" }}>
-            <MinutoFitLogo width={148} />
-            <div className="shellSubtitle" style={{ marginTop: 8 }}>Personal</div>
+          {/* Cabeçalho da sidebar: logo + ícone de mensagens */}
+          <div style={{ padding: "8px 4px 16px", display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
+            <div>
+              <MinutoFitLogo width={148} />
+              <div className="shellSubtitle" style={{ marginTop: 8 }}>Personal</div>
+            </div>
+
+            {/* Ícone de mensagens com badge */}
+            <NavLink
+              to="/app/personal/messages"
+              style={{ position: "relative", display: "flex", alignItems: "center", marginTop: 6, padding: "6px", borderRadius: 8, color: "var(--color-text-muted)", textDecoration: "none", flexShrink: 0 }}
+              title="Mensagens"
+            >
+              {({ isActive }) => (
+                <>
+                  <span style={{ color: isActive ? "var(--color-primary)" : "var(--color-text-muted)", display: "flex" }}>
+                    <MessagesIcon />
+                  </span>
+                  {unreadCount > 0 && (
+                    <span
+                      style={{
+                        position: "absolute",
+                        top: 2,
+                        right: 2,
+                        minWidth: 16,
+                        height: 16,
+                        borderRadius: 999,
+                        background: "var(--color-primary)",
+                        color: "#fff",
+                        fontSize: 10,
+                        fontWeight: 700,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        padding: "0 3px",
+                        lineHeight: 1,
+                      }}
+                    >
+                      {unreadCount > 9 ? "9+" : unreadCount}
+                    </span>
+                  )}
+                </>
+              )}
+            </NavLink>
           </div>
 
+          {/* 4 destinos principais — sem Consultoria, Vídeos, Mensagens no stack */}
           <div className="navStack">
-            <MenuLink to="/app/personal/dashboard" label="Dashboard" />
+            <MenuLink to="/app/personal/dashboard" label="Hoje" />
             <MenuLink to="/app/personal/students" label="Alunos" />
-            <MenuLink to="/app/personal/consulting" label="Consultoria" />
-            <MenuLink to="/app/personal/messages" label="Mensagens" />
-            <MenuLink to="/app/personal/review" label="Revisar treinos" />
-            <MenuLink to="/app/personal/library" label="Biblioteca de treinos" />
-            <MenuLink to="/app/personal/videos" label="Vídeos" />
-
-            <div style={{ paddingTop: 12, paddingBottom: 4 }}>
-              <div className="sectionLabel">Ação rápida</div>
-            </div>
-            <MenuCTA to="/app/personal/workout-builder" label="Montar treino" />
+            <MenuLink to="/app/personal/review" label="Pendentes" />
+            <MenuLink to="/app/personal/library" label="Programas" />
           </div>
 
           <div style={{ flex: 1 }} />
@@ -145,25 +185,22 @@ export default function PersonalApp() {
         </>
       }
     >
-      <div
-      style={{
-        display: "grid",
-        gap: 16,
-      }}
-    >
+      <div style={{ display: "grid", gap: 16 }}>
         <div style={{ maxWidth: 1180, margin: "0 auto", width: "100%" }}>
           <Routes>
             <Route index element={<RedirectToDashboard />} />
 
             <Route path="dashboard" element={<DashboardPage />} />
             <Route path="students" element={<StudentsListPage />} />
+            {/* Consultoria mantida como rota para não quebrar deep links existentes */}
             <Route path="consulting" element={<ConsultingStudentsPage />} />
             <Route path="messages" element={<MessagesPage />} />
             <Route path="review" element={<ReviewWorkoutsPage />} />
             <Route path="library" element={<WorkoutLibraryPage />} />
+            {/* Vídeos mantida como rota para não quebrar deep links existentes */}
             <Route path="videos" element={<VideoLibraryPage />} />
 
-            {/* ✅ BUILDER (com aluno) */}
+            {/* BUILDER (com aluno) */}
             <Route
               path="students/:studentId/workouts/builder"
               element={
@@ -173,7 +210,7 @@ export default function PersonalApp() {
               }
             />
 
-            {/* ✅ BUILDER (sem aluno) */}
+            {/* BUILDER (sem aluno) */}
             <Route
               path="workout-builder"
               element={
@@ -183,7 +220,7 @@ export default function PersonalApp() {
               }
             />
 
-            {/* ✅ compatibilidade antiga */}
+            {/* compatibilidade com rotas antigas */}
             <Route path="students/:studentId/workouts/new" element={<RedirectToBuilder />} />
 
             <Route path="*" element={<RedirectToDashboard />} />

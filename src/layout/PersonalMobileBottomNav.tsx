@@ -6,7 +6,7 @@ interface NavItem {
   icon: React.ReactNode;
 }
 
-const DashboardIcon = () => (
+const HojeIcon = () => (
   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <rect x="3" y="3" width="7" height="9" rx="1.5" />
     <rect x="14" y="3" width="7" height="5" rx="1.5" />
@@ -24,32 +24,32 @@ const StudentsIcon = () => (
   </svg>
 );
 
-const MessagesIcon = () => (
-  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-  </svg>
-);
-
-const TrainingIcon = () => (
-  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <path d="M6 4v16M18 4v16M1 9h5M18 9h5M1 15h5M18 15h5" />
-  </svg>
-);
-
-const ReviewIcon = () => (
+const TreinosIcon = () => (
   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <path d="M12 20h9" />
     <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
   </svg>
 );
 
+const ConteudoIcon = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M6 4v16M18 4v16M1 9h5M18 9h5M1 15h5M18 15h5" />
+  </svg>
+);
+
+const MessagesIcon = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+  </svg>
+);
+
 export default function PersonalMobileBottomNav() {
   const items: NavItem[] = [
-    { to: "/app/personal/dashboard", label: "Dashboard", icon: <DashboardIcon /> },
+    { to: "/app/personal/dashboard", label: "Hoje", icon: <HojeIcon /> },
     { to: "/app/personal/students", label: "Alunos", icon: <StudentsIcon /> },
+    { to: "/app/personal/review", label: "Treinos", icon: <TreinosIcon /> },
+    { to: "/app/personal/library", label: "Conteúdo", icon: <ConteudoIcon /> },
     { to: "/app/personal/messages", label: "Mensagens", icon: <MessagesIcon /> },
-    { to: "/app/personal/workout-builder", label: "Treinos", icon: <TrainingIcon /> },
-    { to: "/app/personal/review", label: "Revisão", icon: <ReviewIcon /> },
   ];
 
   return (
@@ -67,4 +67,3 @@ export default function PersonalMobileBottomNav() {
     </nav>
   );
 }
-
