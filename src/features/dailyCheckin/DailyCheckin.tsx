@@ -10,9 +10,9 @@ interface Props {
 }
 
 const FEELING_META: Record<DailyFeeling, { label: string; emoji: string; color: string; bg: string; border: string }> = {
-  tired:    { label: 'Cansado',  emoji: '😴', color: '#EA580C', bg: 'rgba(234,88,12,0.10)',  border: 'rgba(234,88,12,0.28)' },
-  normal:   { label: 'Normal',   emoji: '😐', color: '#0891B2', bg: 'rgba(8,145,178,0.09)',  border: 'rgba(8,145,178,0.26)' },
-  energized:{ label: 'Disposto', emoji: '⚡', color: '#16A34A', bg: 'rgba(22,163,74,0.09)',  border: 'rgba(22,163,74,0.26)' },
+  tired:    { label: 'Cansado',  emoji: '😴', color: 'var(--color-warn)',         bg: 'var(--color-warn-soft)',         border: 'var(--color-warn-border)' },
+  normal:   { label: 'Normal',   emoji: '😐', color: 'var(--color-accent-hover)', bg: 'var(--color-accent-soft)',       border: 'var(--color-accent-border)' },
+  energized:{ label: 'Disposto', emoji: '⚡', color: 'var(--color-success-text)', bg: 'var(--color-success-soft)',      border: 'var(--color-success-border)' },
 };
 
 const FEELINGS: DailyFeeling[] = ['tired', 'normal', 'energized'];
@@ -41,7 +41,7 @@ function ToggleRow({
         gap: 12,
       }}
     >
-      <span style={{ fontSize: 13, color: '#475569', fontWeight: 500 }}>{label}</span>
+      <span style={{ fontSize: 13, color: 'var(--color-text-muted)', fontWeight: 500 }}>{label}</span>
       <div style={{ display: 'flex', gap: 6 }}>
         {([true, false] as const).map((opt) => (
           <button
@@ -54,9 +54,9 @@ function ToggleRow({
               fontSize: 12,
               fontWeight: 700,
               cursor: 'pointer',
-              border: `1px solid ${value === opt ? '#0891B2' : '#CBD5E1'}`,
-              background: value === opt ? 'rgba(8,145,178,0.10)' : 'transparent',
-              color: value === opt ? '#0891B2' : '#64748B',
+              border: `1px solid ${value === opt ? 'var(--color-accent)' : 'var(--color-border)'}`,
+              background: value === opt ? 'var(--color-accent-soft)' : 'transparent',
+              color: value === opt ? 'var(--color-accent-hover)' : 'var(--color-text-muted)',
               transition: 'all 0.15s ease',
             }}
           >
@@ -98,8 +98,8 @@ export function DailyCheckin({ condition, setCondition, clearCondition, onCondit
     return (
       <div
         style={{
-          background: '#FFFFFF',
-          border: '1px solid #E2E8F0',
+          background: 'var(--color-surface)',
+          border: '1px solid var(--color-border)',
           borderRadius: 20,
           padding: '14px 18px',
           display: 'flex',
@@ -107,11 +107,11 @@ export function DailyCheckin({ condition, setCondition, clearCondition, onCondit
           justifyContent: 'space-between',
           gap: 12,
           flexWrap: 'wrap',
-          boxShadow: '0 2px 8px rgba(15,23,42,0.04)',
+          boxShadow: 'var(--shadow-sm)',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ fontSize: 11, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+          <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-text-subtle)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
             Como você está
           </span>
           <span
@@ -140,7 +140,7 @@ export function DailyCheckin({ condition, setCondition, clearCondition, onCondit
             cursor: 'pointer',
             fontSize: 12,
             fontWeight: 600,
-            color: '#64748B',
+            color: 'var(--color-text-muted)',
             padding: '4px 8px',
             borderRadius: 8,
           }}
@@ -154,24 +154,24 @@ export function DailyCheckin({ condition, setCondition, clearCondition, onCondit
   return (
     <div
       style={{
-        background: '#FFFFFF',
-        border: '1px solid #E2E8F0',
+        background: 'var(--color-surface)',
+        border: '1px solid var(--color-border)',
         borderRadius: 20,
         padding: '18px 20px',
-        boxShadow: '0 2px 12px rgba(15,23,42,0.05)',
+        boxShadow: 'var(--shadow-md)',
         display: 'grid',
         gap: 14,
       }}
     >
       {/* Header */}
       <div style={{ display: 'grid', gap: 3 }}>
-        <span style={{ fontSize: 11, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+        <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-text-subtle)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
           Check-in diário
         </span>
-        <span style={{ fontSize: 16, fontWeight: 700, color: '#0F172A' }}>
+        <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--color-text)' }}>
           Como está seu corpo hoje?
         </span>
-        <span style={{ fontSize: 13, color: '#64748B' }}>
+        <span style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>
           Toque para adaptar sua missão
         </span>
       </div>
@@ -190,9 +190,9 @@ export function DailyCheckin({ condition, setCondition, clearCondition, onCondit
               style={{
                 padding: '12px 8px',
                 borderRadius: 14,
-                border: `1.5px solid ${selected ? meta.border : '#E2E8F0'}`,
+                border: `1.5px solid ${selected ? meta.border : 'var(--color-border)'}`,
                 background: selected ? meta.bg : 'transparent',
-                color: selected ? meta.color : '#475569',
+                color: selected ? meta.color : 'var(--color-text-muted)',
                 fontSize: 13,
                 fontWeight: 700,
                 cursor: 'pointer',
@@ -226,10 +226,10 @@ export function DailyCheckin({ condition, setCondition, clearCondition, onCondit
                 display: 'grid',
                 gap: 10,
                 paddingTop: 4,
-                borderTop: '1px solid #F1F5F9',
+                borderTop: '1px solid var(--color-border-subtle)',
               }}
             >
-              <span style={{ fontSize: 11, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.07em', paddingTop: 8 }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-text-subtle)', textTransform: 'uppercase', letterSpacing: '0.07em', paddingTop: 8 }}>
                 Detalhes (opcional)
               </span>
               <ToggleRow
@@ -257,8 +257,8 @@ export function DailyCheckin({ condition, setCondition, clearCondition, onCondit
                   padding: '12px 16px',
                   borderRadius: 14,
                   border: 'none',
-                  background: 'linear-gradient(135deg, #22C55E, #06B6D4)',
-                  color: '#FFFFFF',
+                  background: 'var(--gradient-primary)',
+                  color: 'var(--color-white)',
                   fontSize: 14,
                   fontWeight: 700,
                   cursor: 'pointer',

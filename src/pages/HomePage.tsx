@@ -12,28 +12,28 @@ export default function HomePage() {
           <Link to="/login" className="landingButton ghost">
             Entrar
           </Link>
-          <Link to="/login" className="landingButton primary">
-            Comecar agora
+          <Link to="/register" className="landingButton primary">
+            Criar conta grátis
           </Link>
         </nav>
       </header>
 
       <main className="landingMain">
         <section className="heroBlock">
-          <p className="heroKicker">Performance em cada minuto</p>
+          <p className="heroKicker">Metabolismo como Serviço</p>
           <h1>
-            O treino certo com energia de
-            <span> largada de corrida</span>
+            Treine com
+            <span> inteligência metabólica</span>
           </h1>
           <p className="heroText">
-            Uma rotina com foco, acompanhamento e movimento real para cada perfil de aluno.
+            Score metabólico em tempo real, acompanhamento personalizado e análise de movimento — tudo integrado na sua rotina.
           </p>
           <div className="heroCtas">
-            <Link to="/login" className="landingButton primary">
-              Acessar plataforma
+            <Link to="/register" className="landingButton primary">
+              Criar minha conta
             </Link>
-            <Link to="/app/user/today" className="landingButton ghost">
-              Ver fluxo do aluno
+            <Link to="/login" className="landingButton ghost">
+              Já tenho conta
             </Link>
           </div>
         </section>

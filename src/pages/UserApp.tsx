@@ -1,6 +1,7 @@
 import { NavLink, Navigate, Route, Routes, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import AppShell from "../layout/AppShell";
+import MobileBottomNav from "../layout/MobileBottomNav";
 import { useFeatureFlags } from "../auth/FeatureFlagsContext";
 import MinutoFitLogo from "../components/MinutoFitLogo";
 
@@ -28,13 +29,69 @@ import ComplianceBanner from "../components/ComplianceBanner";
 const USER_BASE = "/app/user" as const;
 const USER_DEFAULT = "/app/user/today" as const;
 
-function MenuLink({ to, label, icon }: { to: string; label: string; icon?: string }) {
+const NAV_ICONS: Record<string, React.ReactNode> = {
+  home: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" />
+    </svg>
+  ),
+  workouts: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M6 4v16M18 4v16M1 9h5M18 9h5M1 15h5M18 15h5" />
+    </svg>
+  ),
+  clipboard: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" /><rect x="9" y="3" width="6" height="4" rx="1" />
+    </svg>
+  ),
+  run: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="13" cy="4" r="1" /><path d="M7 21l3-6 2 2 3-4" /><path d="M16 21l-3.5-6" /><path d="M8 13l-2-5 5 1 2 3" />
+    </svg>
+  ),
+  tracker: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+    </svg>
+  ),
+  messages: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+    </svg>
+  ),
+  profile: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
+    </svg>
+  ),
+  target: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="6" /><circle cx="12" cy="12" r="2" />
+    </svg>
+  ),
+  lab: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2V9M9 21H5a2 2 0 0 1-2-2V9m0 0h18" />
+    </svg>
+  ),
+  settings: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+    </svg>
+  ),
+  dot: <span style={{ fontSize: 14, lineHeight: 1 }}>·</span>,
+};
+
+function MenuLink({ to, label, iconKey }: { to: string; label: string; iconKey?: keyof typeof NAV_ICONS }) {
   return (
     <NavLink
-      to={to} // ✅ ABSOLUTO sempre
+      to={to}
       className={({ isActive }) => `navLink ${isActive ? "navLinkActive" : ""}`}
     >
-      <span style={{ width: 18, textAlign: "center" }}>{icon ?? "•"}</span>
+      <span style={{ width: 18, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+        {(iconKey && NAV_ICONS[iconKey]) ?? NAV_ICONS.dot}
+      </span>
       <span>{label}</span>
     </NavLink>
   );
@@ -70,6 +127,13 @@ export default function UserApp() {
 
   return (
       <AppShell
+        bottomNav={
+          <MobileBottomNav
+            baseUrl={USER_BASE}
+            showMessages={canMessages}
+            showWorkouts={canWorkouts}
+          />
+        }
         sidebar={
           <>
             <div style={{ padding: "8px 4px 16px" }}>
@@ -78,28 +142,28 @@ export default function UserApp() {
             </div>
 
             <div className="navStack">
-              <MenuLink to={`${USER_BASE}/today`} label="Hoje" icon="🏠" />
-              {canWorkouts && <MenuLink to={`${USER_BASE}/treinos`} label="Treinos" icon="🏋️" />}
-              {canWorkouts && <MenuLink to={`${USER_BASE}/ficha`} label="Minha ficha" icon="📋" />}
-              {canHomeWorkouts && <MenuLink to={`${USER_BASE}/treinos/em-casa`} label="Treinos em casa" icon="🏃" />}
-              {showTracker && <MenuLink to={`${USER_BASE}/activities`} label="Tracker" icon="📊" />}
-              {canMessages && <MenuLink to={`${USER_BASE}/messages`} label="Mensagens" icon="💬" />}
-              {canProfile && <MenuLink to={`${USER_BASE}/profile`} label="Perfil" icon="👤" />}
+              <MenuLink to={`${USER_BASE}/today`} label="Hoje" iconKey="home" />
+              {canWorkouts && <MenuLink to={`${USER_BASE}/treinos`} label="Treinos" iconKey="workouts" />}
+              {canWorkouts && <MenuLink to={`${USER_BASE}/ficha`} label="Minha ficha" iconKey="clipboard" />}
+              {canHomeWorkouts && <MenuLink to={`${USER_BASE}/treinos/em-casa`} label="Treinos em casa" iconKey="run" />}
+              {showTracker && <MenuLink to={`${USER_BASE}/activities`} label="Tracker" iconKey="tracker" />}
+              {canMessages && <MenuLink to={`${USER_BASE}/messages`} label="Mensagens" iconKey="messages" />}
+              {canProfile && <MenuLink to={`${USER_BASE}/profile`} label="Perfil" iconKey="profile" />}
 
               {(canSuggestedTraining || showTrainingAi) && (
                 <div style={{ paddingTop: 12, paddingBottom: 4 }}>
                   <div className="sectionLabel">Personalizado</div>
                 </div>
               )}
-              {canSuggestedTraining && <MenuLink to={`${USER_BASE}/suggested-training`} label="Treino Sugerido" icon="🎯" />}
-              {showTrainingAi && <MenuLink to={`${USER_BASE}/movement-lab`} label="Lab de Movimento" icon="📷" />}
+              {canSuggestedTraining && <MenuLink to={`${USER_BASE}/suggested-training`} label="Treino Sugerido" iconKey="target" />}
+              {showTrainingAi && <MenuLink to={`${USER_BASE}/movement-lab`} label="Lab de Movimento" iconKey="lab" />}
 
               {canSettings && (
                 <div style={{ paddingTop: 12, paddingBottom: 4 }}>
                   <div className="sectionLabel">Geral</div>
                 </div>
               )}
-              {canSettings && <MenuLink to={`${USER_BASE}/settings`} label="Configurações" icon="⚙️" />}
+              {canSettings && <MenuLink to={`${USER_BASE}/settings`} label="Configurações" iconKey="settings" />}
             </div>
 
             <div style={{ flex: 1 }} />

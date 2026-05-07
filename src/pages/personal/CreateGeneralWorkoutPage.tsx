@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useToast } from "../../components/Toast";
 
 /**
  * ✅ STORAGE KEYS (fase MVP localStorage)
@@ -127,6 +128,7 @@ function saveCatalog(items: GeneralWorkout[]) {
 }
 
 export default function CreateGeneralWorkoutPage() {
+  const toast = useToast();
   const navigate = useNavigate();
   const draft = useMemo(() => loadDraft(), []);
 
@@ -171,11 +173,11 @@ export default function CreateGeneralWorkoutPage() {
   /** ✅ Upload local (preview) */
   function addUpload() {
     if (!uploadFile) {
-      alert("Selecione um arquivo de vídeo.");
+      toast.error("Selecione um arquivo de vídeo.");
       return;
     }
     if (!uploadFile.type.startsWith("video/")) {
-      alert("O arquivo precisa ser um vídeo (ex: mp4, mov).");
+      toast.error("O arquivo precisa ser um vídeo (ex: mp4, mov).");
       return;
     }
 
@@ -222,11 +224,11 @@ export default function CreateGeneralWorkoutPage() {
   /** ✅ Salvar só rascunho */
   function handleSaveDraft() {
     if (!title.trim()) {
-      alert("Digite um título para o treino geral.");
+      toast.error("Digite um título para o treino geral.");
       return;
     }
     persist(videos, title, description);
-    alert("Rascunho salvo (local).");
+    toast.success("Rascunho salvo localmente.");
   }
 
   /**
@@ -237,11 +239,11 @@ export default function CreateGeneralWorkoutPage() {
    */
   function handlePublishToCatalog() {
     if (!title.trim()) {
-      alert("Digite um título para publicar.");
+      toast.error("Digite um título para publicar.");
       return;
     }
     if (videos.length === 0) {
-      alert("Adicione pelo menos 1 vídeo.");
+      toast.error("Adicione pelo menos 1 vídeo.");
       return;
     }
 
@@ -271,7 +273,7 @@ export default function CreateGeneralWorkoutPage() {
     // ✅ também mantém rascunho salvo
     persist(videos, title, description);
 
-    alert("Treino publicado no catálogo ✅");
+    toast.success("Treino publicado no catálogo com sucesso.");
     navigate("/app/personal/library"); // volta pra library
   }
 

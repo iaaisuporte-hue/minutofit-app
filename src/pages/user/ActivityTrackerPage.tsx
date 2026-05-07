@@ -846,6 +846,7 @@ export default function ActivityTrackerPage() {
   }
 
   function deleteActivity(id: string) {
+    if (!window.confirm("Excluir esta sessão? Esta ação não pode ser desfeita.")) return;
     const updated = activities.filter((a) => a.id !== id);
     setActivities(updated);
     localStorage.setItem("activities", JSON.stringify(updated));
@@ -1122,7 +1123,7 @@ export default function ActivityTrackerPage() {
       {/* ── Performance Timeline ─────────────────────────────────────── */}
       <div style={{ display: "grid", gap: 14 }}>
         <div className="tr-timeline-header">
-          <div className="tr-timeline-title">Performance Timeline</div>
+          <div className="tr-timeline-title">Linha do tempo</div>
           <div className="tr-timeline-caption">Distância, duração, ritmo e rota de cada sessão.</div>
         </div>
 

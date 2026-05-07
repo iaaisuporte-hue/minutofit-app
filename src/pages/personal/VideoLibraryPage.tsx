@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useIsMobile } from "../../hooks/useIsMobile";
 import { COLORS } from "../../styles/colors";
+import { useToast } from "../../components/Toast";
 
 interface Video {
   id: number;
@@ -92,6 +93,7 @@ function TagPill({ children, active = false }: { children: React.ReactNode; acti
 }
 
 export default function VideoLibraryPage() {
+  const toast = useToast();
   const isMobile = useIsMobile(720);
   const [videos, setVideos] = useState<Video[]>(() => {
     const stored = localStorage.getItem("videos_library");
@@ -124,21 +126,21 @@ export default function VideoLibraryPage() {
     e.preventDefault();
 
     if (!formData.title || !selectedVideoFile || selectedTags.length === 0) {
-      alert("Por favor, preencha todos os campos obrigatórios");
+      toast.error("Preencha todos os campos obrigatórios.");
       return;
     }
 
     // Validate file type
     const validTypes = ["video/mp4", "video/webm", "video/quicktime", "video/x-msvideo"];
     if (!validTypes.includes(selectedVideoFile.type)) {
-      alert("Formato inválido. Formatos suportados: MP4, WebM, MOV, AVI");
+      toast.error("Formato inválido. Formatos suportados: MP4, WebM, MOV, AVI.");
       return;
     }
 
     // Validate file size (500MB max)
     const maxSize = 500 * 1024 * 1024;
     if (selectedVideoFile.size > maxSize) {
-      alert("Arquivo muito grande. Máximo: 500MB");
+      toast.error("Arquivo muito grande. Máximo: 500MB.");
       return;
     }
 
@@ -179,7 +181,7 @@ export default function VideoLibraryPage() {
         setShowUploadForm(false);
         setIsUploading(false);
 
-        alert("✓ Vídeo salvo localmente com sucesso!\n\nOs vídeos são armazenados no navegador (localStorage).");
+        toast.success("Vídeo salvo localmente com sucesso.");
       };
 
       reader.onerror = () => {
@@ -191,12 +193,7 @@ export default function VideoLibraryPage() {
     } catch (error) {
       console.error("Upload error:", error);
       const errorMessage = error instanceof Error ? error.message : "Erro desconhecido";
-      alert(
-        `Erro ao enviar vídeo: ${errorMessage}\n\nDicas:\n` +
-        `1. Confira o formato do arquivo (MP4, WebM, MOV, AVI)\n` +
-        `2. Arquivo não deve exceder 500MB\n` +
-        `3. localStorage pode estar cheio (limite: ~5-10MB)`
-      );
+      toast.error(`Erro ao enviar vídeo: ${errorMessage}. Confira o formato (MP4, WebM, MOV, AVI) e o tamanho (máx 500MB).`);
       setIsUploading(false);
     }
   }

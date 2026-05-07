@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useToast } from "../../components/Toast";
 
 type Plan = "basic" | "silver" | "gold" | "black";
 type Gender = "masc" | "fem" | "outro";
@@ -143,6 +144,7 @@ function mockAssignWorkoutToStudents(workoutId: string, studentIds: string[]) {
 }
 
 export default function WorkoutLibraryPage() {
+  const toast = useToast();
   const navigate = useNavigate();
 
   /** ✅ Mock catálogo */
@@ -303,14 +305,14 @@ export default function WorkoutLibraryPage() {
       .map(([id]) => id);
 
     if (ids.length === 0) {
-      alert("Selecione pelo menos 1 aluno para distribuir.");
+      toast.error("Selecione pelo menos 1 aluno para distribuir.");
       return;
     }
 
     // ✅ MVP: simula persistência
     mockAssignWorkoutToStudents(selectedWorkout.id, ids);
 
-    alert(`Treino "${selectedWorkout.title}" distribuído para ${ids.length} aluno(s).`);
+    toast.success(`Treino "${selectedWorkout.title}" distribuído para ${ids.length} aluno(s).`);
     closeAssignModal();
   }
 
@@ -431,14 +433,14 @@ export default function WorkoutLibraryPage() {
 
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                 <button
-                  onClick={() => alert("Editar (placeholder) — Podemos ligar na tela CreateGeneralWorkoutPage depois.")}
+                  onClick={() => toast.info("Edição de treinos estará disponível em breve.")}
                   style={btnBase()}
                 >
                   Editar
                 </button>
 
                 <button
-                  onClick={() => alert("Duplicar (placeholder) — cria uma cópia para editar rápido.")}
+                  onClick={() => toast.info("Duplicação de treinos estará disponível em breve.")}
                   style={btnBase()}
                 >
                   Duplicar
@@ -694,7 +696,7 @@ export default function WorkoutLibraryPage() {
                       </label>
 
                       <button
-                        onClick={() => alert("Abrir perfil do aluno (placeholder)")}
+                        onClick={() => toast.info("Perfil do aluno estará disponível em breve.")}
                         style={btnBase()}
                         title="Atalho para ver detalhes"
                       >

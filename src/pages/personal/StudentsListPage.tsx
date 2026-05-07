@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
 import { fetchPersonalDashboard } from "../../services/personalDashboardApi";
 import { COLORS } from "../../styles/colors";
+import { useToast } from "../../components/Toast";
 
 type Plan = "basic" | "silver" | "gold" | "black";
 
@@ -168,6 +169,7 @@ function ActionLink({ to, label, variant = "ghost" }: { to: string; label: strin
 }
 
 export default function StudentsListPage() {
+  const toast = useToast();
   const [students, setStudents] = useState<Student[]>([]);
   const [loadingStudents, setLoadingStudents] = useState(true);
   const [studentsError, setStudentsError] = useState<string | null>(null);
@@ -520,7 +522,7 @@ export default function StudentsListPage() {
                 {/* Mantém placeholder para corrida (ainda não tem tela) */}
                 {canRunning ? (
                   <button
-                    onClick={() => alert("Placeholder: planos de corrida (próxima fase).")}
+                    onClick={() => toast.info("Planos de corrida estarão disponíveis em breve.")}
                     style={{
                       padding: "10px 12px",
                       borderRadius: 12,

@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
+import { useToast } from "../../components/Toast";
 import {
   fetchPersonalConsulting,
   type PersonalConsultingNextAction,
@@ -178,6 +179,7 @@ function getActionMeta(action: PersonalConsultingNextAction, planExpiresAt: stri
 }
 
 export default function ConsultingStudentsPage() {
+  const toast = useToast();
   const [students, setStudents] = useState<ConsultingStudent[]>([]);
   const [summary, setSummary] = useState({ total: 0, urgent: 0, warning: 0, onTrack: 0 });
   const [onlyUrgent, setOnlyUrgent] = useState(false);
@@ -431,7 +433,7 @@ export default function ConsultingStudentsPage() {
                     />
 
                     <button
-                      onClick={() => alert("Placeholder: abrir histórico/check-ins do aluno (próxima fase).")}
+                      onClick={() => toast.info("Histórico de check-ins estará disponível em breve.")}
                       style={{
                         padding: "12px 14px",
                         borderRadius: 12,

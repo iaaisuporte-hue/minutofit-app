@@ -18,9 +18,9 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 const TREND_META: Record<MetabolicTrend, { icon: string; label: string; color: string }> = {
-  up:     { icon: '↑', label: 'Subindo',  color: '#16a34a' },
-  down:   { icon: '↓', label: 'Atenção',  color: '#ea580c' },
-  stable: { icon: '→', label: 'Estável',  color: '#0891b2' },
+  up:     { icon: '↑', label: 'Subindo',  color: 'var(--color-success-text)' },
+  down:   { icon: '↓', label: 'Atenção',  color: 'var(--color-warn)' },
+  stable: { icon: '→', label: 'Estável',  color: 'var(--color-accent-hover)' },
 };
 
 function getStateContext(state: string, trend: MetabolicTrend): string {
@@ -65,13 +65,13 @@ function FactorChip({ factor }: { factor: MetabolicFactor }) {
         fontSize: 12,
         fontWeight: 600,
         cursor: 'default',
-        background: positive ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.07)',
-        border: `1px solid ${positive ? 'rgba(34,197,94,0.28)' : 'rgba(239,68,68,0.22)'}`,
-        color: positive ? '#16a34a' : '#dc2626',
+        background: positive ? 'var(--color-success-soft)' : 'var(--color-danger-soft)',
+        border: `1px solid ${positive ? 'var(--color-success-border)' : 'var(--color-danger-border)'}`,
+        color: positive ? 'var(--color-success-text)' : 'var(--color-danger)',
       }}
     >
       <span style={{ fontWeight: 700 }}>{positive ? '+' : ''}{factor.delta}</span>
-      <span style={{ fontWeight: 500, color: '#6B7280' }}>{factor.label}</span>
+      <span style={{ fontWeight: 500, color: 'var(--color-text-muted)' }}>{factor.label}</span>
     </div>
   );
 }
@@ -103,7 +103,7 @@ export function MetabolicScoreCard({ data, loading, error, derivedStatus, foreca
   }, [data?.score]);
 
   const cardStyle: React.CSSProperties = {
-    background: '#FFFFFF',
+    background: 'var(--color-surface)',
     borderRadius: 'var(--radius-card)',
     border: '1px solid var(--color-accent-border)',
     boxShadow: 'var(--shadow-md)',
@@ -193,13 +193,13 @@ export function MetabolicScoreCard({ data, loading, error, derivedStatus, foreca
                 score
               </div>
             </div>
-            <div style={{ height: 6, borderRadius: 999, background: 'rgba(148,163,184,0.18)', overflow: 'hidden', minWidth: 120 }}>
+            <div style={{ height: 6, borderRadius: 999, background: 'var(--color-surface-subtle)', overflow: 'hidden', minWidth: 120 }}>
               <div style={{ height: '100%', width: progressPct, borderRadius: 999, background: 'var(--gradient-primary)', transition: 'width 0.6s ease' }} />
             </div>
           </div>
         </div>
 
-        {/* Fatores (por que está assim) — posição de destaque */}
+        {/* Fatores (por que está assim) */}
         {topFactors.length > 0 && (
           <div style={{ display: 'grid', gap: 8 }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
@@ -211,12 +211,12 @@ export function MetabolicScoreCard({ data, loading, error, derivedStatus, foreca
           </div>
         )}
 
-        {/* Mensagem contextual: o que isso significa + o que fazer */}
+        {/* Mensagem contextual */}
         <div style={{
           padding: '12px 14px',
           borderRadius: 12,
-          background: 'rgba(6,182,212,0.05)',
-          border: '1px solid rgba(6,182,212,0.14)',
+          background: 'var(--color-accent-soft)',
+          border: '1px solid var(--color-accent-border)',
           fontSize: 13,
           color: 'var(--color-text)',
           lineHeight: 1.6,
@@ -227,24 +227,24 @@ export function MetabolicScoreCard({ data, loading, error, derivedStatus, foreca
         {/* Forecast */}
         {forecast ? (
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, minmax(0, 1fr))', gap: 10 }}>
-            <div style={{ padding: '12px 14px', borderRadius: 12, border: '1px solid rgba(34,197,94,0.18)', background: 'rgba(34,197,94,0.05)', display: 'grid', gap: 4 }}>
+            <div style={{ padding: '12px 14px', borderRadius: 12, border: '1px solid var(--color-success-border)', background: 'var(--color-success-soft)', display: 'grid', gap: 4 }}>
               <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 Amanhã com atividade
               </div>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 7 }}>
                 <div style={{ fontSize: 26, fontWeight: 700, color: 'var(--color-text)' }}>{forecast.tomorrowWithActivity}</div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: '#16a34a' }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-success-text)' }}>
                   {forecast.withActivityDelta >= 0 ? '+' : ''}{forecast.withActivityDelta}
                 </div>
               </div>
             </div>
-            <div style={{ padding: '12px 14px', borderRadius: 12, border: '1px solid rgba(148,163,184,0.2)', background: '#F8FAFC', display: 'grid', gap: 4 }}>
+            <div style={{ padding: '12px 14px', borderRadius: 12, border: '1px solid var(--color-border)', background: 'var(--color-surface-raised)', display: 'grid', gap: 4 }}>
               <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 Amanhã sem atividade
               </div>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 7 }}>
                 <div style={{ fontSize: 26, fontWeight: 700, color: 'var(--color-text)' }}>{forecast.tomorrowWithoutActivity}</div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: forecast.withoutActivityDelta >= 0 ? '#0891b2' : '#f97316' }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: forecast.withoutActivityDelta >= 0 ? 'var(--color-accent-hover)' : 'var(--color-warn)' }}>
                   {forecast.withoutActivityDelta >= 0 ? '+' : ''}{forecast.withoutActivityDelta}
                 </div>
               </div>

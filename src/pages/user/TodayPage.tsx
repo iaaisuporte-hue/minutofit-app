@@ -49,17 +49,6 @@ const GROUP_LABEL: Record<MuscleGroup, string> = {
   mobility: "Mobilidade",
 };
 
-const GROUP_ICON: Record<MuscleGroup, string> = {
-  chest: "🫀",
-  back: "🧱",
-  legs: "🦵",
-  shoulders: "🏋️",
-  arms: "💪",
-  core: "⭕",
-  full_body: "⚡",
-  cardio: "🏃",
-  mobility: "🧘",
-};
 
 const GOAL_LABEL: Record<WorkoutGoal, string> = {
   "reactivate metabolism": "Reativar metabolismo",
@@ -71,17 +60,17 @@ const ALWAYS_AVAILABLE: MuscleGroup[] = ["cardio", "mobility"];
 const ALL_GROUPS: MuscleGroup[] = ["chest", "back", "legs", "shoulders", "arms", "core", "cardio", "mobility"];
 
 const SURFACE = {
-  page: "#F7FAFC",
-  card: "#FFFFFF",
-  border: "#E2E8F0",
-  borderStrong: "rgba(34,197,94,0.24)",
-  text: "#0F172A",
-  muted: "#64748B",
-  mutedSoft: "#94A3B8",
-  success: "#16A34A",
-  info: "#0891B2",
-  warning: "#EA580C",
-  shadow: "0 10px 32px rgba(15, 23, 42, 0.06)",
+  page: "var(--color-bg-main)",
+  card: "var(--color-surface)",
+  border: "var(--color-border)",
+  borderStrong: "var(--color-border-strong)",
+  text: "var(--color-text)",
+  muted: "var(--color-text-muted)",
+  mutedSoft: "var(--color-text-subtle)",
+  success: "var(--color-success-text)",
+  info: "var(--color-accent-hover)",
+  warning: "var(--color-warn)",
+  shadow: "var(--shadow-lg)",
   heroGlow:
     "radial-gradient(circle at 0% 0%, rgba(34,197,94,0.18), transparent 34%), radial-gradient(circle at 100% 0%, rgba(6,182,212,0.16), transparent 30%)",
 } as const;
@@ -328,8 +317,8 @@ export default function TodayPage() {
 
           <div className="today-hero-content">
             <div className="today-badge-row">
-              <span className="badge badge-accent">📅 {weekdayCapitalized}</span>
-              {todayCheckedIn && <span className="badge badge-success">✓ Dia garantido</span>}
+              <span className="badge badge-accent">{weekdayCapitalized}</span>
+              {todayCheckedIn && <span className="badge badge-success">Dia garantido</span>}
               {adjustedEnergy && <span className="badge badge-accent">{adjustedEnergy.metabolicState}</span>}
             </div>
 
@@ -590,7 +579,6 @@ export default function TodayPage() {
                                 color: disabled ? SURFACE.mutedSoft : SURFACE.text,
                               }}
                             >
-                              <span className="today-group-icon">{GROUP_ICON[group]}</span>
                               <span className="today-group-copy">
                                 <span className="today-group-label" style={{ fontWeight: active ? 700 : 500 }}>
                                   {GROUP_LABEL[group]}

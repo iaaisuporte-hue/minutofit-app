@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useToast } from "../../components/Toast";
 
 const LS_CATALOG = "generalWorkoutsCatalog_v1";
 const LS_ASSIGNMENTS = "generalWorkoutsAssignments_v1";
@@ -135,6 +136,7 @@ function saveAssignments(items: Assignment[]) {
 }
 
 export default function AssignGeneralWorkoutPage() {
+  const toast = useToast();
   const navigate = useNavigate();
 
   /** ✅ Catálogo real (localStorage) */
@@ -182,7 +184,7 @@ export default function AssignGeneralWorkoutPage() {
 
   function assign() {
     if (!selectedWorkoutId) {
-      alert("Selecione um treino do catálogo.");
+      toast.error("Selecione um treino do catálogo.");
       return;
     }
 
@@ -191,7 +193,7 @@ export default function AssignGeneralWorkoutPage() {
       .map(([id]) => id);
 
     if (ids.length === 0) {
-      alert("Selecione pelo menos 1 aluno.");
+      toast.error("Selecione pelo menos 1 aluno.");
       return;
     }
 
@@ -220,7 +222,7 @@ export default function AssignGeneralWorkoutPage() {
       saveCatalog(cat);
     }
 
-    alert(`Distribuído ✅ (${ids.length} aluno(s))`);
+    toast.success(`Treino distribuído para ${ids.length} aluno(s).`);
     navigate("/app/personal/library");
   }
 

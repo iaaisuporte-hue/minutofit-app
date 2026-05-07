@@ -3,8 +3,10 @@ import { AuthProvider } from "./auth/AuthContext";
 import { FeatureFlagsProvider } from "./auth/FeatureFlagsContext";
 import ProtectedRoute from "./auth/ProtectedRoute";
 
+import { ToastProvider } from "./components/Toast";
 import Login from "./pages/login";
 import Register from "./pages/register";
+import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ProfileCompletionPage from "./pages/ProfileCompletionPage";
 import UserApp from "./pages/UserApp";
 import PersonalApp from "./pages/PersonalApp";
@@ -15,6 +17,7 @@ import HomePage from "./pages/HomePage";
 
 export default function App() {
   return (
+    <ToastProvider>
     <AuthProvider>
       <FeatureFlagsProvider>
         <ColorModeToggle />
@@ -23,6 +26,7 @@ export default function App() {
           <Route path="/home-teste" element={<HomePage />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route
             path="/profile-completion"
             element={
@@ -72,5 +76,6 @@ export default function App() {
         </Routes>
       </FeatureFlagsProvider>
     </AuthProvider>
+    </ToastProvider>
   );
 }
