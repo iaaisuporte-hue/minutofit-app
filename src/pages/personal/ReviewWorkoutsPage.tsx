@@ -163,12 +163,13 @@ function Button({
 
   return (
     <button
+      type="button"
       title={title}
       onClick={onClick}
       disabled={disabled}
       style={{
-        padding: "12px 14px", // ✅ (UI) tamanho padrão
-        borderRadius: 12, // ✅ (UI) bordas padrão
+        padding: "12px 14px",
+        borderRadius: 12,
         cursor: disabled ? "not-allowed" : "pointer",
         fontWeight: 700,
         fontSize: 14,
@@ -717,7 +718,7 @@ export default function ReviewWorkoutsPage() {
 
               {/* ✅ Notes */}
               <div style={{ display: "grid", gap: 8 }}>
-                <div style={{ fontWeight: 700, fontSize: 13 }}>📝 Observações internas (só personal)</div>
+                <div style={{ fontWeight: 700, fontSize: 13, color: "#F1F5F9" }}>Observações internas (só personal)</div>
                 <textarea
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
@@ -730,10 +731,10 @@ export default function ReviewWorkoutsPage() {
                     borderRadius: 14,
                     border: "1px solid rgba(255,255,255,.12)",
                     background: "#121212",
-                    color: "#1F2937",
+                    color: "#F1F5F9",
                     outline: "none",
-                    fontWeight: 700,
-                    lineHeight: 1.35,
+                    fontWeight: 500,
+                    lineHeight: 1.55,
                   }}
                 />
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
@@ -751,7 +752,7 @@ export default function ReviewWorkoutsPage() {
 
               {/* ✅ Feedback ao aluno (quando devolve) */}
               <div style={{ display: "grid", gap: 8 }}>
-                <div style={{ fontWeight: 700, fontSize: 13 }}>📩 Feedback para o aluno (quando pedir ajustes)</div>
+                <div style={{ fontWeight: 700, fontSize: 13, color: "#F1F5F9" }}>Feedback para o aluno (quando pedir ajustes)</div>
                 <textarea
                   value={feedback}
                   onChange={(e) => setFeedback(e.target.value)}
@@ -764,10 +765,10 @@ export default function ReviewWorkoutsPage() {
                     borderRadius: 14,
                     border: "1px solid rgba(255,255,255,.12)",
                     background: "#121212",
-                    color: "#1F2937",
+                    color: "#F1F5F9",
                     outline: "none",
-                    fontWeight: 700,
-                    lineHeight: 1.35,
+                    fontWeight: 500,
+                    lineHeight: 1.55,
                   }}
                 />
                 {selected.lastFeedback ? (

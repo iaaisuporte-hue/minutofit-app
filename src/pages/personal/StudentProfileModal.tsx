@@ -282,10 +282,23 @@ export default function StudentProfileModal({
                       key={day.date}
                       className="pp-week-day"
                       data-active={day.workedOut}
+                      title={`${formatShortDate(day.date)}${day.workedOut ? " · treino" : day.hadGps ? " · GPS" : ""}${day.checkedIn ? " · check-in" : ""}`}
                     >
-                      <div style={{ fontSize: 11, color: COLORS.mutedSoft }}>{formatShortDate(day.date)}</div>
-                      <div style={{ fontWeight: 650, fontSize: 16 }}>{day.workedOut ? "treino" : day.hadGps ? "GPS" : "—"}</div>
-                      <div style={{ fontSize: 11, color: COLORS.muted }}>{day.checkedIn ? "check-in" : "—"}</div>
+                      <div style={{ fontSize: 10, color: COLORS.mutedSoft }}>{formatShortDate(day.date)}</div>
+                      <div
+                        style={{
+                          width: 10,
+                          height: 10,
+                          borderRadius: "50%",
+                          margin: "4px auto",
+                          background: day.workedOut
+                            ? "#22C55E"
+                            : day.hadGps
+                              ? "#60A5FA"
+                              : "rgba(0,0,0,.10)",
+                        }}
+                      />
+                      <div style={{ fontSize: 10, color: COLORS.muted }}>{day.checkedIn ? "ok" : "—"}</div>
                     </div>
                   ))}
                 </div>

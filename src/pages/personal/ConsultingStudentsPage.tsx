@@ -1,12 +1,12 @@
 import { Link } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
-import { useToast } from "../../components/Toast";
 import {
   fetchPersonalConsulting,
   type PersonalConsultingNextAction,
   type PersonalConsultingStudent,
 } from "../../services/personalDashboardApi";
 import { COLORS } from "../../styles/colors";
+import StudentProfileModal from "./StudentProfileModal";
 
 type ConsultingStudent = PersonalConsultingStudent;
 
@@ -179,10 +179,10 @@ function getActionMeta(action: PersonalConsultingNextAction, planExpiresAt: stri
 }
 
 export default function ConsultingStudentsPage() {
-  const toast = useToast();
   const [students, setStudents] = useState<ConsultingStudent[]>([]);
   const [summary, setSummary] = useState({ total: 0, urgent: 0, warning: 0, onTrack: 0 });
   const [onlyUrgent, setOnlyUrgent] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState<{ id: string; name: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -249,6 +249,7 @@ export default function ConsultingStudentsPage() {
 
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
             <button
+              type="button"
               onClick={() => setOnlyUrgent((value) => !value)}
               style={{
                 padding: "12px 14px",
@@ -312,6 +313,7 @@ export default function ConsultingStudentsPage() {
             <div style={{ color: COLORS.muted, fontSize: 14 }}>{error}</div>
             <div>
               <button
+                type="button"
                 onClick={() => window.location.reload()}
                 style={{
                   padding: "12px 14px",
@@ -433,7 +435,8 @@ export default function ConsultingStudentsPage() {
                     />
 
                     <button
-                      onClick={() => toast.info("Histórico de check-ins estará disponível em breve.")}
+                      type="button"
+                      onClick={() => setSelectedStudent({ id: student.id, name: student.name })}
                       style={{
                         padding: "12px 14px",
                         borderRadius: 12,
@@ -445,7 +448,7 @@ export default function ConsultingStudentsPage() {
                         fontSize: 14,
                       }}
                     >
-                      Ver histórico
+                      Ver perfil
                     </button>
                   </div>
                 </div>
@@ -454,6 +457,14 @@ export default function ConsultingStudentsPage() {
           })}
         </div>
       )}
+
+      {selectedStudent ? (
+        <StudentProfileModal
+          studentId={selectedStudent.id}
+          studentName={selectedStudent.name}
+          onClose={() => setSelectedStudent(null)}
+        />
+      ) : null}
     </div>
   );
 }
