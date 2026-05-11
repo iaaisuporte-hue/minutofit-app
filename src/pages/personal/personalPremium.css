@@ -225,6 +225,89 @@
   font-weight: 650;
 }
 
+.pp-narrative {
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  line-height: 1.5;
+  font-weight: 500;
+}
+
+.pp-meta-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.04);
+  color: var(--color-text-tertiary);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.pp-meta-chip b {
+  color: var(--color-text-primary);
+  font-weight: 650;
+}
+
+.pp-metabo-card {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) 2fr;
+  gap: 18px;
+  align-items: center;
+  padding: 18px 18px 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(15, 23, 42, 0.07);
+  background: linear-gradient(180deg, #ffffff, #f8fafc);
+  box-shadow: 0 1px 0 rgba(15, 23, 42, 0.02), 0 8px 18px -16px rgba(15, 23, 42, 0.18);
+}
+
+@media (max-width: 540px) {
+  .pp-metabo-card {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+}
+
+.pp-metabo-card--high {
+  background: linear-gradient(180deg, #ecfdf5, #f7fefb);
+  border-color: rgba(34, 197, 94, 0.18);
+}
+
+.pp-metabo-card--moderate {
+  background: linear-gradient(180deg, #eff6ff, #f8fbff);
+  border-color: rgba(96, 165, 250, 0.22);
+}
+
+.pp-metabo-card--low {
+  background: linear-gradient(180deg, #fff7ed, #fffaf4);
+  border-color: rgba(245, 158, 11, 0.22);
+}
+
+.pp-metabo-card__score {
+  display: grid;
+  gap: 4px;
+}
+
+.pp-metabo-card__value {
+  font-size: 48px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  color: var(--color-text-primary);
+}
+
+.pp-metabo-card__meta {
+  color: var(--color-text-tertiary);
+  font-size: 12px;
+  text-transform: capitalize;
+}
+
+.pp-metabo-card__narrative {
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
 .pp-progress {
   height: 7px;
   border-radius: 999px;

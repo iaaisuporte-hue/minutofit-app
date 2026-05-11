@@ -6,19 +6,17 @@ import {
   ensureChatConversation,
   fetchChatConversations,
   fetchConversationMessages,
+  fetchEligibleStudents,
   markChatConversationRead,
   sendChatMessage,
   type ChatConversation,
   type ChatMessage,
+  type EligibleStudent,
 } from "../../services/messagesApi";
-import { fetchPersonalConsulting, type PersonalConsultingStudent } from "../../services/personalDashboardApi";
 
 type Role = "user" | "personal" | "admin" | "nutri";
 
-type StudentMini = {
-  id: string;
-  name: string;
-};
+type StudentMini = EligibleStudent;
 
 function Pill({
   children,
@@ -117,11 +115,7 @@ export default function MessagesPage() {
   }, [conversations, search]);
 
   const loadStudents = useCallback(async () => {
-    const data = await fetchPersonalConsulting();
-    const list = (data?.students ?? []).map((student: PersonalConsultingStudent) => ({
-      id: student.id,
-      name: student.name,
-    }));
+    const list = await fetchEligibleStudents();
     setStudents(list);
   }, []);
 
@@ -283,30 +277,54 @@ export default function MessagesPage() {
 
             <div style={{ display: "grid", gap: 8 }}>
               <div style={{ fontSize: 12, fontWeight: 600, color: "#6B7280" }}>
-                INICIAR CONVERSA
+                INICIAR NOVA CONVERSA
               </div>
 
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                {students.slice(0, 4).map((student) => (
-                  <button
-                    key={student.id}
-                    onClick={() => void openConversationWithStudent(student.id)}
-                    style={{
-                      padding: "10px 12px",
-                      borderRadius: 12,
-                      border: `1px solid ${COLORS.border}`,
-                      background: "#FAFAFA",
-                      color: "#1F2937",
-                      cursor: "pointer",
-                      fontWeight: 600,
-                      fontSize: 13,
-                    }}
-                    title={`Abrir chat com ${student.name}`}
-                  >
-                    + {student.name}
-                  </button>
-                ))}
-              </div>
+              {students.length === 0 ? (
+                <div style={{ color: "#6B7280", fontSize: 12 }}>
+                  Sem alunos vinculados ativos.
+                </div>
+              ) : (
+                <div
+                  style={{
+                    display: "flex",
+                    gap: 8,
+                    flexWrap: "wrap",
+                    maxHeight: 120,
+                    overflowY: "auto",
+                  }}
+                >
+                  {[...students]
+                    .sort((a, b) => {
+                      if (a.hasMessages === b.hasMessages) return a.name.localeCompare(b.name);
+                      return a.hasMessages ? 1 : -1;
+                    })
+                    .map((student) => (
+                      <button
+                        key={student.id}
+                        onClick={() => void openConversationWithStudent(student.id)}
+                        style={{
+                          padding: "10px 12px",
+                          borderRadius: 12,
+                          border: `1px solid ${COLORS.border}`,
+                          background: student.hasMessages ? "#F1F5F9" : "#FAFAFA",
+                          color: "#1F2937",
+                          cursor: "pointer",
+                          fontWeight: 600,
+                          fontSize: 13,
+                          opacity: student.hasMessages ? 0.78 : 1,
+                        }}
+                        title={
+                          student.hasMessages
+                            ? `Abrir chat com ${student.name}`
+                            : `Iniciar conversa com ${student.name}`
+                        }
+                      >
+                        {student.hasMessages ? "↻" : "+"} {student.name}
+                      </button>
+                    ))}
+                </div>
+              )}
             </div>
 
             <div style={{ display: "grid", gap: 8 }}>

@@ -52,7 +52,14 @@ type WorkoutExercise = {
   sets: string;
   reps: string;
   rest: string;
+  rpe?: string;
+  cadence?: string;
+  restPause?: boolean;
+  notes?: string;
 };
+
+const RPE_REGEX = /^([0-9]|10)(-([0-9]|10))?$/;
+const CADENCE_REGEX = /^\d-\d-\d-\d$/;
 
 function mapDashboardToStudents(rows: PersonalDashboardStudent[]): Student[] {
   return rows.map((s) => ({
@@ -952,6 +959,130 @@ export default function WorkoutBuilderPage() {
                           </label>
                         ))}
                       </div>
+                      <details style={{ marginTop: 4 }}>
+                        <summary
+                          style={{
+                            cursor: "pointer",
+                            color: WB.muted,
+                            fontSize: 11,
+                            fontWeight: 650,
+                            textTransform: "uppercase",
+                            letterSpacing: "0.04em",
+                            listStyle: "none",
+                            padding: "4px 0",
+                          }}
+                        >
+                          Detalhes técnicos {it.rpe || it.cadence || it.restPause || it.notes ? "•" : ""}
+                        </summary>
+                        <div
+                          style={{
+                            display: "grid",
+                            gap: 8,
+                            paddingTop: 8,
+                            gridTemplateColumns: "repeat(auto-fit, minmax(110px, 1fr))",
+                          }}
+                        >
+                          <label
+                            style={{
+                              display: "grid",
+                              gap: 3,
+                              fontSize: 10,
+                              fontWeight: 600,
+                              color: WB.muted,
+                              textTransform: "uppercase",
+                              letterSpacing: "0.03em",
+                            }}
+                          >
+                            RPE (0-10)
+                            <input
+                              value={it.rpe ?? ""}
+                              placeholder="ex: 7-8"
+                              onChange={(e) => updateItem(it.exerciseId, { rpe: e.target.value })}
+                              style={{
+                                ...compactInputStyle,
+                                borderColor:
+                                  it.rpe && !RPE_REGEX.test(it.rpe)
+                                    ? "rgba(248,113,113,.55)"
+                                    : compactInputStyle.borderColor,
+                              }}
+                              inputMode="text"
+                              autoComplete="off"
+                            />
+                          </label>
+                          <label
+                            style={{
+                              display: "grid",
+                              gap: 3,
+                              fontSize: 10,
+                              fontWeight: 600,
+                              color: WB.muted,
+                              textTransform: "uppercase",
+                              letterSpacing: "0.03em",
+                            }}
+                          >
+                            Cadência
+                            <input
+                              value={it.cadence ?? ""}
+                              placeholder="ex: 3-1-2-0"
+                              onChange={(e) => updateItem(it.exerciseId, { cadence: e.target.value })}
+                              style={{
+                                ...compactInputStyle,
+                                borderColor:
+                                  it.cadence && !CADENCE_REGEX.test(it.cadence)
+                                    ? "rgba(248,113,113,.55)"
+                                    : compactInputStyle.borderColor,
+                              }}
+                              inputMode="text"
+                              autoComplete="off"
+                            />
+                          </label>
+                          <label
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 6,
+                              fontSize: 11,
+                              fontWeight: 600,
+                              color: WB.text,
+                              cursor: "pointer",
+                            }}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={Boolean(it.restPause)}
+                              onChange={(e) => updateItem(it.exerciseId, { restPause: e.target.checked })}
+                            />
+                            Rest-pause
+                          </label>
+                        </div>
+                        <label
+                          style={{
+                            display: "grid",
+                            gap: 3,
+                            fontSize: 10,
+                            fontWeight: 600,
+                            color: WB.muted,
+                            textTransform: "uppercase",
+                            letterSpacing: "0.03em",
+                            marginTop: 8,
+                          }}
+                        >
+                          Observações técnicas
+                          <textarea
+                            value={it.notes ?? ""}
+                            onChange={(e) => updateItem(it.exerciseId, { notes: e.target.value })}
+                            placeholder="cues de execução, amplitude, foco do movimento…"
+                            rows={2}
+                            style={{
+                              ...compactInputStyle,
+                              minHeight: 52,
+                              resize: "vertical",
+                              fontFamily: "inherit",
+                            }}
+                            maxLength={500}
+                          />
+                        </label>
+                      </details>
                       <div style={{ color: WB.muted2, fontSize: 11, lineHeight: 1.35, wordBreak: "break-word" }}>
                         Referência de vídeo: {resolveVideoUrl(it.exerciseId)}
                       </div>
@@ -1071,7 +1202,15 @@ export default function WorkoutBuilderPage() {
                     <div style={{ color: WB.muted, fontSize: 13 }}>
                       Séries: <b style={{ color: WB.text }}>{it.sets}</b> • Reps: <b style={{ color: WB.text }}>{it.reps}</b>{" "}
                       • Descanso: <b style={{ color: WB.text }}>{it.rest}</b>
+                      {it.rpe ? <> • RPE: <b style={{ color: WB.text }}>{it.rpe}</b></> : null}
+                      {it.cadence ? <> • Cadência: <b style={{ color: WB.text }}>{it.cadence}</b></> : null}
+                      {it.restPause ? <> • <b style={{ color: WB.text }}>Rest-pause</b></> : null}
                     </div>
+                    {it.notes ? (
+                      <div style={{ color: WB.muted, fontSize: 12, lineHeight: 1.4 }}>
+                        <b style={{ color: WB.text }}>Obs:</b> {it.notes}
+                      </div>
+                    ) : null}
                     <div style={{ color: WB.muted2, fontSize: 12 }}>
                       Vídeo: <b style={{ color: WB.text }}>{resolveVideoUrl(it.exerciseId)}</b>
                     </div>

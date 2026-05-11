@@ -85,3 +85,17 @@ export async function markChatConversationRead(conversationId: string): Promise<
 
   await unwrapResponse<null>(response, "Nao foi possivel marcar a conversa como lida.");
 }
+
+export type EligibleStudent = {
+  id: string;
+  name: string;
+  email: string;
+  hasConversation: boolean;
+  hasMessages: boolean;
+};
+
+export async function fetchEligibleStudents(): Promise<EligibleStudent[]> {
+  const response = await authFetch(`${API_URL}/messages/eligible-students`);
+  return unwrapResponse<EligibleStudent[]>(response, "Nao foi possivel listar alunos para iniciar conversa.");
+}
+

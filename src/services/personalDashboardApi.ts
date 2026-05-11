@@ -12,7 +12,15 @@ export type PersonalConsultingNextAction =
   | "prepare_update"
   | "review_adherence"
   | "keep_progression";
-export type PersonalDashboardAlertType = "attention_load" | "full_adherence" | "silent_disappear" | "overtraining";
+export type PersonalDashboardAlertType =
+  | "attention_load"
+  | "full_adherence"
+  | "silent_disappear"
+  | "overtraining"
+  | "metabolic_decline"
+  | "recovery_gap";
+export type PersonalMetabolicBand = "low" | "moderate" | "high" | "unknown";
+export type PersonalMetabolicTrend = "up" | "down" | "stable" | "unknown";
 
 export type PersonalDashboardStudent = {
   id: string;
@@ -29,6 +37,10 @@ export type PersonalDashboardStudent = {
   engagementStatus: PersonalDashboardEngagementStatus;
   lastCheckinISO: string | null;
   checkins7d: number;
+  metabolismScore: number | null;
+  metabolismBand: PersonalMetabolicBand;
+  metabolismTrend: PersonalMetabolicTrend;
+  metabolismDelta7d: number | null;
 };
 
 export type PersonalDashboardAlert = {
@@ -53,6 +65,7 @@ export type PersonalDashboardResponse = {
     least: PersonalDashboardStudent | null;
     needsFollowUp: PersonalDashboardStudent[];
     intelligentAlerts: PersonalDashboardAlert[];
+    metabolismDistribution: { low: number; moderate: number; high: number; unknown: number };
   };
   students: PersonalDashboardStudent[];
   generatedAt: string;
@@ -117,6 +130,10 @@ export type PersonalStudentSnapshot = {
     }>;
     activityTypeCounts: Array<{
       type: string;
+      count: number;
+    }>;
+    muscleGroupCounts: Array<{
+      group: string;
       count: number;
     }>;
     xp: number;

@@ -25,7 +25,12 @@ function formatShortDate(iso: string | null) {
 
 function formatDateTime(iso: string | null) {
   if (!iso) return "—";
-  return new Date(iso).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+  return new Date(iso).toLocaleString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 function initialFromName(name: string) {
@@ -58,20 +63,119 @@ function snapshotErrorMessage(message: string) {
   return message;
 }
 
-function Surface({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="pp-surface">
-      {children}
-    </div>
-  );
+function metabolismBandLabel(score: number | null): {
+  band: "low" | "moderate" | "high";
+  label: string;
+  toneClass: string;
+} | null {
+  if (score === null) return null;
+  if (score >= 70) return { band: "high", label: "alto", toneClass: "pp-metabo-card--high" };
+  if (score >= 45)
+    return { band: "moderate", label: "moderado", toneClass: "pp-metabo-card--moderate" };
+  return { band: "low", label: "baixo", toneClass: "pp-metabo-card--low" };
 }
 
-function Metric({ label, value, helper }: { label: string; value: React.ReactNode; helper?: React.ReactNode }) {
+function metabolismNarrative(
+  metabolism: PersonalStudentSnapshot["today"]["metabolism"],
+  workoutsThisWeek: number
+): string {
+  if (!metabolism) {
+    return "Sem snapshot calculado ainda — registre o primeiro check-in para começar a leitura.";
+  }
+  const trend = metabolism.trend;
+  const score = metabolism.score;
+
+  if (trend === "down" && score < 55) {
+    return "Score em queda e abaixo da faixa saudável. Vale investigar fadiga, sono e volume recente.";
+  }
+  if (trend === "down") {
+    return "Tendência de queda nas últimas semanas — fique de olho na recuperação.";
+  }
+  if (score >= 70 && trend === "up") {
+    return "Em boa fase metabólica — momento de progressão controlada de carga.";
+  }
+  if (score >= 70) {
+    return "Metabolismo em ritmo alto — manter constância sem aumentar volume bruscamente.";
+  }
+  if (score < 45 && workoutsThisWeek >= 4) {
+    return "Volume alto sem retorno metabólico — considerar uma semana de descarga.";
+  }
+  if (score < 45) {
+    return "Score baixo. Reengajar com treinos curtos e foco em recuperação.";
+  }
+  return "Em ritmo moderado — espaço para evoluir consistência sem sobrecarregar.";
+}
+
+function buildAdherenceNarrative(series: Array<{ date: string; score: number }>): string {
+  if (!series.length) return "Sem snapshots suficientes para leitura semanal.";
+  if (series.length < 4) return "Histórico curto — leitura ainda em formação.";
+  const half = Math.floor(series.length / 2);
+  const recent = series.slice(-half);
+  const older = series.slice(0, half);
+  const avg = (xs: typeof series) =>
+    xs.reduce((sum, item) => sum + Number(item.score || 0), 0) / Math.max(xs.length, 1);
+  const delta = avg(recent) - avg(older);
+  if (delta <= -8) return "Aderência caindo na última semana.";
+  if (delta >= 8) return "Aderência subindo nos últimos dias — boa fase.";
+  return "Aderência estável no período.";
+}
+
+function Surface({ children }: { children: React.ReactNode }) {
+  return <div className="pp-surface">{children}</div>;
+}
+
+function Metric({
+  label,
+  value,
+  helper,
+}: {
+  label: string;
+  value: React.ReactNode;
+  helper?: React.ReactNode;
+}) {
   return (
     <div style={{ display: "grid", gap: 4 }}>
       <div className="pp-metric__label">{label}</div>
       <div style={{ fontWeight: 650, fontSize: 20, color: COLORS.text }}>{value}</div>
-      {helper ? <div style={{ color: COLORS.muted, fontSize: 12, lineHeight: 1.45 }}>{helper}</div> : null}
+      {helper ? (
+        <div style={{ color: COLORS.muted, fontSize: 12, lineHeight: 1.45 }}>{helper}</div>
+      ) : null}
+    </div>
+  );
+}
+
+function AdherenceSparkline({ series }: { series: Array<{ date: string; score: number }> }) {
+  if (!series.length) {
+    return (
+      <div style={{ color: COLORS.muted, fontSize: 13 }}>
+        Sem snapshots metabólicos suficientes ainda.
+      </div>
+    );
+  }
+
+  const max = Math.max(100, ...series.map((p) => p.score));
+  return (
+    <div style={{ display: "flex", alignItems: "flex-end", gap: 6, minHeight: 80 }}>
+      {series.map((point) => {
+        const h = Math.max(8, Math.round((point.score / max) * 72));
+        return (
+          <div
+            key={point.date}
+            title={`${formatShortDate(point.date)} — ${point.score}`}
+            style={{ display: "grid", gap: 4, justifyItems: "center", flex: 1 }}
+          >
+            <div
+              style={{
+                width: "100%",
+                maxWidth: 14,
+                height: h,
+                borderRadius: 6,
+                background: point.score < 45 ? "#F59E0B" : point.score < 70 ? "#60A5FA" : "#22C55E",
+              }}
+            />
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -94,14 +198,12 @@ export default function StudentProfileModal({
     function onKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") onClose();
     }
-
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [onClose]);
 
   useEffect(() => {
     let active = true;
-
     async function load() {
       try {
         setLoading(true);
@@ -118,7 +220,6 @@ export default function StudentProfileModal({
         if (active) setLoading(false);
       }
     }
-
     load();
     return () => {
       active = false;
@@ -127,31 +228,45 @@ export default function StudentProfileModal({
 
   const formScoreAverage = useMemo(() => {
     if (!data?.history.formScoreSeries.length) return null;
-    const total = data.history.formScoreSeries.reduce((sum, item) => sum + Number(item.score || 0), 0);
+    const total = data.history.formScoreSeries.reduce(
+      (sum, item) => sum + Number(item.score || 0),
+      0
+    );
     return Math.round(total / data.history.formScoreSeries.length);
+  }, [data]);
+
+  const workoutsThisWeek = useMemo(() => {
+    if (!data?.week.days.length) return 0;
+    return data.week.days.filter((d) => d.workedOut).length;
+  }, [data]);
+
+  const muscleRanking = useMemo(() => {
+    if (!data?.history.muscleGroupCounts.length) return { top: [], bottom: [] };
+    const sorted = [...data.history.muscleGroupCounts].sort((a, b) => b.count - a.count);
+    const top = sorted.slice(0, 3);
+    const bottom = sorted.slice(-3).reverse().filter((b) => !top.includes(b));
+    return { top, bottom };
   }, [data]);
 
   return (
     <div className="pp-drawer-backdrop" onClick={onClose}>
-      <aside
-        onClick={(event) => event.stopPropagation()}
-        className="pp-drawer"
-      >
+      <aside onClick={(event) => event.stopPropagation()} className="pp-drawer">
         <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start" }}>
           <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-            <div className="pp-avatar">
-              {initialFromName(data?.name || studentName)}
-            </div>
-
+            <div className="pp-avatar">{initialFromName(data?.name || studentName)}</div>
             <div style={{ display: "grid", gap: 5 }}>
               <div className="pp-drawer-title">{data?.name || studentName}</div>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                <span className="pp-badge">
-                  {PLAN_LABEL[data?.plan || "basic"]}
-                </span>
+                <span className="pp-badge">{PLAN_LABEL[data?.plan || "basic"]}</span>
                 {data ? (
                   <span
-                    className={`pp-badge ${data.risk === "critico" ? "pp-badge--danger" : data.risk === "alerta" ? "pp-badge--warn" : "pp-badge--success"}`}
+                    className={`pp-badge ${
+                      data.risk === "critico"
+                        ? "pp-badge--danger"
+                        : data.risk === "alerta"
+                          ? "pp-badge--warn"
+                          : "pp-badge--success"
+                    }`}
                   >
                     {riskLabel(data.risk)}
                   </span>
@@ -166,29 +281,10 @@ export default function StudentProfileModal({
               </div>
             </div>
           </div>
-
-          <button
-            type="button"
-            onClick={onClose}
-            className="pp-icon-btn"
-          >
+          <button type="button" onClick={onClose} className="pp-icon-btn">
             ×
           </button>
         </div>
-
-        {!error ? (
-          <div className="pp-metrics-grid">
-            <Surface>
-              <Metric label="Streak" value={`${data?.streakDays ?? 0} dias`} />
-            </Surface>
-            <Surface>
-              <Metric label="Aderência" value={`${data?.adherencePct ?? 0}%`} />
-            </Surface>
-            <Surface>
-              <Metric label="XP" value={data?.history.xp ?? 0} />
-            </Surface>
-          </div>
-        ) : null}
 
         {!error ? (
           <div className="pp-tabs">
@@ -221,6 +317,37 @@ export default function StudentProfileModal({
 
         {!loading && !error && data && tab === "today" ? (
           <>
+            <div
+              className={`pp-metabo-card ${
+                metabolismBandLabel(data.today.metabolism?.score ?? null)?.toneClass ?? ""
+              }`}
+            >
+              <div className="pp-metabo-card__score">
+                <div className="pp-kicker">Score metabólico</div>
+                <div className="pp-metabo-card__value">{data.today.metabolism?.score ?? "—"}</div>
+                <div className="pp-metabo-card__meta">
+                  {data.today.metabolism
+                    ? `${metabolismBandLabel(data.today.metabolism.score)?.label} · tendência ${data.today.metabolism.trend}`
+                    : "Sem snapshot ainda"}
+                </div>
+              </div>
+              <div className="pp-metabo-card__narrative">
+                {metabolismNarrative(data.today.metabolism, workoutsThisWeek)}
+              </div>
+            </div>
+
+            <div className="pp-metrics-grid">
+              <Surface>
+                <Metric label="Streak" value={`${data.streakDays} dias`} />
+              </Surface>
+              <Surface>
+                <Metric label="Aderência" value={`${data.adherencePct}%`} />
+              </Surface>
+              <Surface>
+                <Metric label="XP" value={data.history.xp} />
+              </Surface>
+            </div>
+
             <Surface>
               <div style={{ display: "grid", gap: 10 }}>
                 <div style={{ fontWeight: 650, color: COLORS.text }}>Janela de hoje</div>
@@ -228,51 +355,59 @@ export default function StudentProfileModal({
                   <Metric
                     label="Check-in"
                     value={data.today.checkedInToday ? "Registrado" : "Sem registro hoje"}
-                    helper={data.today.lastCheckinISO ? `Último: ${formatDateTime(data.today.lastCheckinISO)}` : "Ainda sem check-in no backend"}
+                    helper={
+                      data.today.lastCheckinISO
+                        ? `Último: ${formatDateTime(data.today.lastCheckinISO)}`
+                        : "Ainda sem check-in"
+                    }
                   />
                   <Metric
-                    label="Score metabólico"
-                    value={data.today.metabolism ? data.today.metabolism.score : "—"}
-                    helper={data.today.metabolism ? `${data.today.metabolism.status} · tendência ${data.today.metabolism.trend}` : "Sem snapshot calculado"}
+                    label="Treino"
+                    value={
+                      data.today.workoutStatus === "completed"
+                        ? "Concluído"
+                        : "Não iniciado"
+                    }
+                    helper={
+                      data.today.latestWorkout
+                        ? `${data.today.latestWorkout.title} · ${formatDateTime(
+                            data.today.latestWorkout.completedAt
+                          )}`
+                        : "Sem workout log recente"
+                    }
                   />
                 </div>
               </div>
             </Surface>
 
-            <Surface>
-              <div style={{ display: "grid", gap: 10 }}>
-                <div style={{ fontWeight: 650, color: COLORS.text }}>Atividade mais recente</div>
-                {data.today.latestActivity ? (
-                  <div style={{ display: "grid", gap: 6 }}>
-                    <div style={{ fontWeight: 700 }}>{data.today.latestActivity.type}</div>
-                    <div style={{ color: COLORS.muted, fontSize: 13 }}>
-                      {data.today.latestActivity.distanceKm.toFixed(2)} km · {data.today.latestActivity.durationMinutes} min · {formatDateTime(data.today.latestActivity.createdAt)}
-                    </div>
+            {data.today.latestActivity ? (
+              <Surface>
+                <div style={{ display: "grid", gap: 6 }}>
+                  <div style={{ fontWeight: 650, color: COLORS.text }}>Atividade mais recente</div>
+                  <div style={{ fontWeight: 700 }}>{data.today.latestActivity.type}</div>
+                  <div style={{ color: COLORS.muted, fontSize: 13 }}>
+                    {data.today.latestActivity.distanceKm.toFixed(2)} km ·{" "}
+                    {data.today.latestActivity.durationMinutes} min ·{" "}
+                    {formatDateTime(data.today.latestActivity.createdAt)}
                   </div>
-                ) : (
-                  <div style={{ color: COLORS.muted, fontSize: 13 }}>Sem sessão GPS recente.</div>
-                )}
-              </div>
-            </Surface>
-
-            <Surface>
-              <div style={{ display: "grid", gap: 10 }}>
-                <div style={{ fontWeight: 650, color: COLORS.text }}>Status do treino</div>
-                <div style={{ fontWeight: 650 }}>
-                  {data.today.workoutStatus === "completed" ? "Treino concluído hoje" : "Treino ainda não iniciado hoje"}
                 </div>
-                <div style={{ color: COLORS.muted, fontSize: 13 }}>
-                  {data.today.latestWorkout
-                    ? `${data.today.latestWorkout.title} · ${formatDateTime(data.today.latestWorkout.completedAt)}`
-                    : "Sem workout log recente."}
-                </div>
-              </div>
-            </Surface>
+              </Surface>
+            ) : null}
           </>
         ) : null}
 
         {!loading && !error && data && tab === "week" ? (
           <>
+            <Surface>
+              <div style={{ display: "grid", gap: 10 }}>
+                <div style={{ fontWeight: 650, color: COLORS.text }}>Aderência metabólica (14 dias)</div>
+                <AdherenceSparkline series={data.history.adherence14d} />
+                <div style={{ color: COLORS.muted, fontSize: 13 }}>
+                  {buildAdherenceNarrative(data.history.adherence14d)}
+                </div>
+              </div>
+            </Surface>
+
             <Surface>
               <div style={{ display: "grid", gap: 10 }}>
                 <div style={{ fontWeight: 650, color: COLORS.text }}>Semana do aluno</div>
@@ -312,7 +447,7 @@ export default function StudentProfileModal({
                   value={data.week.avgFormScore ?? "—"}
                   helper={
                     data.week.avgFormScore
-                      ? `${data.week.movementSessions7d} sessão(ões) do Lab na semana`
+                      ? `${data.week.movementSessions7d} sessão(ões) do Lab`
                       : "Sem uso recente do Lab"
                   }
                 />
@@ -330,23 +465,39 @@ export default function StudentProfileModal({
           <>
             <Surface>
               <div style={{ display: "grid", gap: 10 }}>
-                <div style={{ fontWeight: 650, color: COLORS.text }}>Aderência metabólica (14 dias)</div>
-                <div style={{ display: "flex", alignItems: "flex-end", gap: 8, minHeight: 110 }}>
-                  {data.history.adherence14d.map((point) => (
-                    <div key={point.date} style={{ display: "grid", gap: 6, justifyItems: "center", flex: 1 }}>
-                      <div
-                        style={{
-                          width: "100%",
-                          maxWidth: 22,
-                          height: `${Math.max(10, point.score)}px`,
-                          borderRadius: 999,
-                          background: COLORS.primary,
-                        }}
-                      />
-                      <div style={{ fontSize: 10, color: COLORS.mutedSoft }}>{formatShortDate(point.date)}</div>
-                    </div>
-                  ))}
+                <div style={{ fontWeight: 650, color: COLORS.text }}>
+                  Grupos musculares — últimos 30 dias
                 </div>
+                {muscleRanking.top.length === 0 ? (
+                  <div style={{ color: COLORS.muted, fontSize: 13 }}>
+                    Sem treinos registrados no período para gerar ranking.
+                  </div>
+                ) : (
+                  <div style={{ display: "grid", gap: 14 }}>
+                    <div style={{ display: "grid", gap: 6 }}>
+                      <div className="pp-metric__label">Mais executados</div>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                        {muscleRanking.top.map((item) => (
+                          <span key={item.group} className="pp-meta-chip">
+                            <b>{item.group}</b> · {item.count}x
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                    {muscleRanking.bottom.length > 0 ? (
+                      <div style={{ display: "grid", gap: 6 }}>
+                        <div className="pp-metric__label">Menos executados</div>
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                          {muscleRanking.bottom.map((item) => (
+                            <span key={item.group} className="pp-meta-chip">
+                              <b>{item.group}</b> · {item.count}x
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+                )}
               </div>
             </Surface>
 
@@ -358,16 +509,20 @@ export default function StudentProfileModal({
                   <Metric
                     label="Último exercício"
                     value={data.history.formScoreSeries[0]?.exerciseLabel || "—"}
-                    helper={data.history.formScoreSeries[0] ? `Score ${data.history.formScoreSeries[0].score}` : "Sem histórico"}
+                    helper={
+                      data.history.formScoreSeries[0]
+                        ? `Score ${data.history.formScoreSeries[0].score}`
+                        : "Sem histórico"
+                    }
                   />
                 </div>
               </div>
             </Surface>
 
-            <Surface>
-              <div style={{ display: "grid", gap: 10 }}>
-                <div style={{ fontWeight: 650, color: COLORS.text }}>Atividades por tipo</div>
-                {data.history.activityTypeCounts.length ? (
+            {data.history.activityTypeCounts.length ? (
+              <Surface>
+                <div style={{ display: "grid", gap: 10 }}>
+                  <div style={{ fontWeight: 650, color: COLORS.text }}>Atividades por tipo</div>
                   <div style={{ display: "grid", gap: 8 }}>
                     {data.history.activityTypeCounts.map((item) => (
                       <div
@@ -387,11 +542,9 @@ export default function StudentProfileModal({
                       </div>
                     ))}
                   </div>
-                ) : (
-                  <div style={{ color: COLORS.muted, fontSize: 13 }}>Sem atividades GPS nas últimas 2 semanas.</div>
-                )}
-              </div>
-            </Surface>
+                </div>
+              </Surface>
+            ) : null}
           </>
         ) : null}
       </aside>
