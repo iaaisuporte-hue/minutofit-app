@@ -1,10 +1,12 @@
 import React, { useMemo } from "react";
+import { Link } from "react-router-dom";
 import { motion, useScroll, useTransform } from "framer-motion";
 import InteractiveSurfaceCard from "../../components/InteractiveSurfaceCard";
 import { useIsMobile } from "../../hooks/useIsMobile";
 import { useAuth } from "../../auth/AuthContext";
 import { useFeatureFlags } from "../../auth/FeatureFlagsContext";
 import { mapCanonicalPlanToLabel, normalizeToCanonicalPlanName } from "../../utils/planNormalization";
+import { useMetabolism } from "../../features/metabolism/useMetabolism";
 import {
   itemRevealVariants,
   pageStaggerVariants,
@@ -129,6 +131,7 @@ function maskPhone(phone?: string) {
 
 export default function UserProfilePage({ onLogout: _onLogout }: Props) { // eslint-disable-line @typescript-eslint/no-unused-vars
   const { user, email, profileCompleted } = useAuth();
+  const { data: metabolismData } = useMetabolism();
   const { planName } = useFeatureFlags();
   const isMobile = useIsMobile(720);
   const { shouldReduceMotion, shouldUseParallax, shouldUseTilt } = useTodayMotionSafe({ isMobile });
@@ -288,6 +291,78 @@ export default function UserProfilePage({ onLogout: _onLogout }: Props) { // esl
           </Card>
         </motion.div>
       </motion.div>
+
+      {metabolismData && (
+        <motion.div variants={sectionRevealVariants}>
+          <Card interactive enableTilt={shouldUseTilt} style={{ background: COLORS.panelDeep, borderColor: COLORS.borderStrong }}>
+            <div style={{ display: "grid", gap: 14 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+                <div style={{ fontSize: 20, fontWeight: 700, color: COLORS.text }}>Estado metabólico</div>
+                <Link
+                  to="/app/user/today"
+                  style={{ color: "#22C55E", fontWeight: 600, textDecoration: "none", fontSize: 13 }}
+                >
+                  Ver evolução →
+                </Link>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 10 }}>
+                <div
+                  style={{
+                    padding: "14px",
+                    borderRadius: 16,
+                    border: `1px solid ${COLORS.border}`,
+                    background: COLORS.panelSoft,
+                    display: "grid",
+                    gap: 6,
+                  }}
+                >
+                  <div style={{ color: COLORS.muted, fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1 }}>Score</div>
+                  <div style={{ fontSize: 28, fontWeight: 700 }}>{Math.round(metabolismData.score)}</div>
+                </div>
+                <div
+                  style={{
+                    padding: "14px",
+                    borderRadius: 16,
+                    border: `1px solid ${COLORS.border}`,
+                    background: COLORS.panelSoft,
+                    display: "grid",
+                    gap: 6,
+                  }}
+                >
+                  <div style={{ color: COLORS.muted, fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1 }}>Nível</div>
+                  <div style={{ fontSize: 16, fontWeight: 700, textTransform: "capitalize" }}>{metabolismData.status}</div>
+                </div>
+                <div
+                  style={{
+                    padding: "14px",
+                    borderRadius: 16,
+                    border: `1px solid ${COLORS.border}`,
+                    background: COLORS.panelSoft,
+                    display: "grid",
+                    gap: 6,
+                  }}
+                >
+                  <div style={{ color: COLORS.muted, fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1 }}>Tendência</div>
+                  <div
+                    style={{
+                      fontSize: 16,
+                      fontWeight: 700,
+                      color:
+                        metabolismData.trend === "up"
+                          ? "#22C55E"
+                          : metabolismData.trend === "down"
+                            ? "#EF4444"
+                            : COLORS.text,
+                    }}
+                  >
+                    {metabolismData.trend === "up" ? "↑ Subindo" : metabolismData.trend === "down" ? "↓ Caindo" : "→ Estável"}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </Card>
+        </motion.div>
+      )}
     </motion.div>
   );
 }
