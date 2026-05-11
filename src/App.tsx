@@ -12,6 +12,8 @@ import UserApp from "./pages/UserApp";
 import PersonalApp from "./pages/PersonalApp";
 import NutriApp from "./pages/NutriApp";
 import AdminApp from "./pages/AdminApp";
+import AcademyApp from "./pages/AcademyApp";
+import AcceptInvitationPage from "./pages/AcceptInvitationPage";
 import ColorModeToggle from "./components/ColorModeToggle";
 import HomePage from "./pages/HomePage";
 
@@ -71,6 +73,17 @@ export default function App() {
               </ProtectedRoute>
             }
           />
+
+          <Route
+            path="/app/academy/*"
+            element={
+              <ProtectedRoute allow={["user", "personal", "nutri", "admin"]}>
+                <AcademyApp />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route path="/invite/:token" element={<AcceptInvitationPage />} />
 
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>

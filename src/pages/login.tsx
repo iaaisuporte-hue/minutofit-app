@@ -1,10 +1,22 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth, type Role } from "../auth/AuthContext";
+import type { AccessProfile } from "../auth/accessControl";
 import MinutoFitLogo from "../components/MinutoFitLogo";
 import AcademySelector from "../components/AcademySelector";
+import { extractTenantSlug, fetchBranding, type AcademyBrandingPublic } from "../services/tenantHost";
 
-function nextPathByRole(role: Role) {
+const ACADEMY_PROFILES: AccessProfile[] = [
+  "academy_owner", "academy_manager", "academy_finance",
+  "academy_reception",
+];
+
+function nextPathByRole(role: Role, accessProfile?: AccessProfile | null) {
+  // Academy-specific staff land in the academy shell
+  if (accessProfile && ACADEMY_PROFILES.includes(accessProfile)) {
+    return "/app/academy/dashboard";
+  }
+  // academy_personal and academy_nutri keep using their existing apps
   switch (role) {
     case "user":     return "/app/user/today";
     case "personal": return "/app/personal";
@@ -16,23 +28,33 @@ function nextPathByRole(role: Role) {
 
 export default function LoginPage() {
   const nav = useNavigate();
-  const { login, isAuthenticated, role, academies, activeAcademyId } = useAuth();
+  const { login, isAuthenticated, role, academies, activeAcademyId, accessProfile } = useAuth();
 
   const [email, setEmail]             = useState("");
   const [password, setPassword]       = useState("");
   const [error, setError]             = useState<string | null>(null);
   const [isLoading, setIsLoading]     = useState(false);
   const [pendingRole, setPendingRole] = useState<Role | null>(null);
+  const [tenantBranding, setTenantBranding] = useState<AcademyBrandingPublic | null>(null);
+
+  // FE-1.7.2: Load academy branding for personalised login page
+  useEffect(() => {
+    const slug = extractTenantSlug();
+    if (!slug) return;
+    fetchBranding().then((b) => {
+      if (b) setTenantBranding(b);
+    }).catch(() => {});
+  }, []);
 
   // Redirect after academy selection (or when already has active context)
   useEffect(() => {
     if (isAuthenticated && role) {
       const needsSelector = (academies?.length ?? 0) > 1 && !activeAcademyId;
       if (!needsSelector) {
-        nav(nextPathByRole(role), { replace: true });
+        nav(nextPathByRole(role, accessProfile), { replace: true });
       }
     }
-  }, [isAuthenticated, role, academies, activeAcademyId, nav]);
+  }, [isAuthenticated, role, accessProfile, academies, activeAcademyId, nav]);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -54,20 +76,51 @@ export default function LoginPage() {
   if (pendingRole && (academies?.length ?? 0) > 1 && !activeAcademyId) {
     return (
       <main className="auth-page">
-        <AcademySelector onSelected={() => nav(nextPathByRole(pendingRole), { replace: true })} />
+        <AcademySelector onSelected={() => nav(nextPathByRole(pendingRole, accessProfile), { replace: true })} />
       </main>
     );
   }
 
+  const welcomeTitle = tenantBranding?.displayName
+    ? `Bem-vindo à ${tenantBranding.displayName}`
+    : "Bem-vindo de volta";
+  const welcomeSub = tenantBranding?.welcomeMessage ?? "Entre para continuar seu treino.";
+
   return (
     <main className="auth-page">
+      {tenantBranding?.bannerUrl && (
+        <div style={{
+          width: "100%",
+          maxWidth: 420,
+          margin: "0 auto var(--space-4)",
+          borderRadius: "var(--radius-lg)",
+          overflow: "hidden",
+        }}>
+          <img
+            src={tenantBranding.bannerUrl}
+            alt=""
+            aria-hidden="true"
+            referrerPolicy="no-referrer"
+            style={{ width: "100%", height: 120, objectFit: "cover", display: "block" }}
+          />
+        </div>
+      )}
       <form className="auth-card" onSubmit={onSubmit} noValidate>
         <div className="auth-logo">
-          <MinutoFitLogo width={140} />
+          {tenantBranding?.logoUrl ? (
+            <img
+              src={tenantBranding.logoUrl}
+              alt={tenantBranding.displayName ?? "Logo da academia"}
+              referrerPolicy="no-referrer"
+              style={{ height: 48, maxWidth: 200, objectFit: "contain" }}
+            />
+          ) : (
+            <MinutoFitLogo width={140} />
+          )}
         </div>
 
-        <h1 className="auth-title">Bem-vindo de volta</h1>
-        <p className="auth-subtitle">Entre para continuar seu treino.</p>
+        <h1 className="auth-title">{welcomeTitle}</h1>
+        <p className="auth-subtitle">{welcomeSub}</p>
 
         <div className="auth-social-buttons">
           <button type="button" className="btn btn-block auth-social-btn" disabled title="Em breve">

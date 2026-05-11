@@ -14,7 +14,8 @@ import AdminNutriDetailsPage from "./admin/AdminNutriDetailsPage";
 import type { AppPermission } from "../auth/accessControl";
 import AdminAccessProfilesPage from "./admin/AdminAccessProfilesPage";
 import AdminAcademiesPage from "./admin/AdminAcademiesPage";
-import AcademyBrandingSettingsPage from "./admin/AcademyBrandingSettingsPage";
+import AdminAcademyDetailPage from "./admin/AdminAcademyDetailPage";
+import AcademyBrandingSettingsPage from "./academy/AcademyBrandingSettingsPage";
 
 function MenuLink({ to, label }: { to: string; label: string }) {
   return (
@@ -208,6 +209,14 @@ export default function AdminApp() {
               element={
                 <AdminPermissionRoute permission="admin.accessProfiles">
                   <AdminAcademiesPage />
+                </AdminPermissionRoute>
+              }
+            />
+            <Route
+              path="academies/:academyId"
+              element={
+                <AdminPermissionRoute permission="admin.accessProfiles">
+                  <AdminAcademyDetailPage />
                 </AdminPermissionRoute>
               }
             />

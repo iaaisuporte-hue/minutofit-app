@@ -1,6 +1,23 @@
 /* ================================================================
    MinutoFit Design Tokens
    Single source of truth for all design values.
+
+   BRANDING WHITELIST (Fase 1.7)
+   Only the tokens below may be overridden by academy branding.
+   Injected via <style id="academy-branding"> in tenantHost.ts.
+
+   Allowed overrides:
+     --color-primary          (hex #RRGGBB, WCAG AA ≥ 4.5:1 vs white)
+     --color-primary-hover    (auto-calculated: primary darkened 10%)
+     --color-primary-soft     (auto-calculated: primary at 12% alpha)
+     --color-secondary        (hex #RRGGBB, WCAG AA ≥ 4.5:1 vs white)
+     --color-accent           (hex #RRGGBB, WCAG AA ≥ 3:1 vs white)
+     --color-cta-text         (auto: #FFFFFF or #000000 for contrast on primary)
+
+   PROHIBITED overrides (semantic tokens — never academy-controlled):
+     --color-bg-main, --color-surface*, --color-text*, --color-border*
+     --color-success, --color-danger, --color-warn, --color-info
+     Any typography, spacing, radius, or shadow token.
    ================================================================ */
 
 :root {
@@ -27,6 +44,9 @@
   --color-primary-soft-strong:  rgba(34, 197, 94, 0.14);
   --color-primary-glow:         rgba(34, 197, 94, 0.12);
   --color-primary-light:        rgba(34, 197, 94, 0.10);
+  /* Secondary and CTA text — overridable via academy branding whitelist */
+  --color-secondary:            #22C55E;
+  --color-cta-text:             #FFFFFF;
 
   /* ── Accent / Tech layer (cyan — data, insights, metabolism) ── */
   --color-accent:               #06B6D4;

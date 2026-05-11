@@ -15,6 +15,7 @@ import {
 import { hasPermission as checkPermission, resolvePermissions, type AccessProfile, type AppPermission } from "./accessControl";
 import { SESSION_EXPIRED_EVENT } from "../services/apiBase";
 import { clearTokens as clearStoredTokens, getAccessToken, setTokens } from "../services/authTokens";
+import { fetchBranding, applyBranding, removeBranding } from "../services/tenantHost";
 
 export type Role = "user" | "personal" | "nutri" | "admin";
 
@@ -98,6 +99,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     branding: null,
   });
 
+  // FE-1.7.3: Apply academy branding on mount (before auth check), graceful fallback
+  useEffect(() => {
+    void fetchBranding().then(applyBranding).catch(() => { /* silently use default theme */ });
+  }, []);
+
   // Load auth from localStorage on mount (access token may be expired; fetchCurrentUser uses refresh via authFetch)
   useEffect(() => {
     if (!getAccessToken()) return;
@@ -180,6 +186,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
           const data = await apiSwitchAcademy(academyId);
           setTokens(data.accessToken, getAccessToken() ?? "");
+
+          // FE-1.7.3: hard redirect to the academy's subdomain so browser storage is isolated.
+          // In dev (no subdomain routing), fall back to SPA navigation.
+          const slug = data.activeAcademy?.slug;
+          const isProd = window.location.hostname.endsWith('.minutofit.com.br') ||
+                         window.location.hostname === 'minutofit.com.br';
+          if (slug && isProd) {
+            window.location.href = `https://${slug}.minutofit.com.br/app/academy/dashboard`;
+            return { ok: true as const };
+          }
+
+          // Dev: SPA navigation
+          removeBranding();
           setState((prev) => ({
             ...prev,
             activeAcademyId: academyId,
@@ -305,6 +324,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       logout: () => {
         clearStoredTokens();
+        removeBranding(); // FE-1.7.3: clean up injected academy CSS on logout
         setState({
           isAuthenticated: false,
           role: null,
