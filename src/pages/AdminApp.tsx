@@ -22,6 +22,15 @@ function MenuLink({ to, label }: { to: string; label: string }) {
   );
 }
 
+function SidebarGroup({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div style={{ display: "grid", gap: 2 }}>
+      <div className="sectionLabel" style={{ padding: "var(--space-2) 4px var(--space-1)" }}>{label}</div>
+      {children}
+    </div>
+  );
+}
+
 function RedirectToDashboard() {
   return <Navigate to="/app/admin/dashboard" replace />;
 }
@@ -49,14 +58,20 @@ export default function AdminApp() {
     navigate("/login", { replace: true });
   }
 
-  const menuItems: Array<{ to: string; label: string; permission: AppPermission }> = [
-    { to: "/app/admin/dashboard", label: "Plataforma", permission: "admin.dashboard" },
-    { to: "/app/admin/users", label: "Alunos", permission: "admin.users" },
-    { to: "/app/admin/personals", label: "Personals", permission: "admin.personals" },
-    { to: "/app/admin/nutris", label: "Nutris", permission: "admin.nutris" },
-    { to: "/app/admin/access-profiles", label: "Planos & Features", permission: "admin.accessProfiles" },
+  const platformItems: Array<{ to: string; label: string; permission: AppPermission }> = [
+    { to: "/app/admin/dashboard",       label: "Visão geral",       permission: "admin.dashboard" },
+    { to: "/app/admin/users",           label: "Alunos",            permission: "admin.users" },
+    { to: "/app/admin/personals",       label: "Personais",         permission: "admin.personals" },
+    { to: "/app/admin/nutris",          label: "Nutricionistas",    permission: "admin.nutris" },
+    { to: "/app/admin/access-profiles", label: "Planos e recursos", permission: "admin.accessProfiles" },
+  ];
+
+  const operationItems: Array<{ to: string; label: string; permission: AppPermission }> = [
     { to: "/app/admin/finance", label: "Financeiro", permission: "admin.finance" },
   ];
+
+  const visiblePlatform  = platformItems.filter((i) => auth.hasPermission(i.permission));
+  const visibleOperation = operationItems.filter((i) => auth.hasPermission(i.permission));
 
   return (
     <AppShell
@@ -66,12 +81,21 @@ export default function AdminApp() {
             <MinutoFitLogo width={148} />
           </div>
 
-          <div className="navStack">
-            {menuItems
-              .filter((item) => auth.hasPermission(item.permission))
-              .map((item) => (
-                <MenuLink key={item.to} to={item.to} label={item.label} />
-              ))}
+          <div className="navStack" style={{ gap: "var(--space-4)" }}>
+            {visiblePlatform.length > 0 && (
+              <SidebarGroup label="Plataforma">
+                {visiblePlatform.map((item) => (
+                  <MenuLink key={item.to} to={item.to} label={item.label} />
+                ))}
+              </SidebarGroup>
+            )}
+            {visibleOperation.length > 0 && (
+              <SidebarGroup label="Operação">
+                {visibleOperation.map((item) => (
+                  <MenuLink key={item.to} to={item.to} label={item.label} />
+                ))}
+              </SidebarGroup>
+            )}
           </div>
 
           <div style={{ flex: 1 }} />
