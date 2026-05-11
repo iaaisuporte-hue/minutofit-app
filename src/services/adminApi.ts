@@ -103,6 +103,7 @@ export async function fetchAdminSubscriptionsReport() {
 
 export type AdminPlatformHealth = {
   metabolismDistribution: { low: number; moderate: number; high: number; unknown: number };
+  averageScore: number | null;
   adherenceAvg7d: number | null;
   activeUsers7d: number;
   usersWithoutCheckin7d: number;
