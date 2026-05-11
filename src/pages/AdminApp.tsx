@@ -10,6 +10,7 @@ import AdminPersonalDetailsPage from "./admin/AdminPersonalDetailsPage";
 import AdminNutrisPage from "./admin/AdminNutrisPage";
 import AdminProfessionalCreatePage from "./admin/AdminProfessionalCreatePage";
 import AdminFinancePage from "./admin/AdminFinancePage";
+import AdminNutriDetailsPage from "./admin/AdminNutriDetailsPage";
 import type { AppPermission } from "../auth/accessControl";
 import AdminAccessProfilesPage from "./admin/AdminAccessProfilesPage";
 
@@ -49,11 +50,11 @@ export default function AdminApp() {
   }
 
   const menuItems: Array<{ to: string; label: string; permission: AppPermission }> = [
-    { to: "/app/admin/dashboard", label: "Visão geral", permission: "admin.dashboard" },
-    { to: "/app/admin/access-profiles", label: "Perfis de acesso", permission: "admin.accessProfiles" },
+    { to: "/app/admin/dashboard", label: "Plataforma", permission: "admin.dashboard" },
     { to: "/app/admin/users", label: "Alunos", permission: "admin.users" },
     { to: "/app/admin/personals", label: "Personals", permission: "admin.personals" },
     { to: "/app/admin/nutris", label: "Nutris", permission: "admin.nutris" },
+    { to: "/app/admin/access-profiles", label: "Planos & Features", permission: "admin.accessProfiles" },
     { to: "/app/admin/finance", label: "Financeiro", permission: "admin.finance" },
   ];
 
@@ -63,7 +64,6 @@ export default function AdminApp() {
         <>
           <div style={{ padding: "8px 4px 16px" }}>
             <MinutoFitLogo width={148} />
-            <div className="shellSubtitle" style={{ marginTop: 8 }}>Admin</div>
           </div>
 
           <div className="navStack">
@@ -157,6 +157,14 @@ export default function AdminApp() {
               element={
                 <AdminPermissionRoute permission="admin.professionals.create">
                   <AdminProfessionalCreatePage role="nutri" />
+                </AdminPermissionRoute>
+              }
+            />
+            <Route
+              path="nutris/:nutriId"
+              element={
+                <AdminPermissionRoute permission="admin.nutris">
+                  <AdminNutriDetailsPage />
                 </AdminPermissionRoute>
               }
             />

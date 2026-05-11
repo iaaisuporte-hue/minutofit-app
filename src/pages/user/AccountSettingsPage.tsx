@@ -4,9 +4,12 @@ import { useLocation } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext";
 import InteractiveSurfaceCard from "../../components/InteractiveSurfaceCard";
 import { useIsMobile } from "../../hooks/useIsMobile";
-import { formatCpf, formatPhone, getStrongPasswordError } from "../../utils/validators";
+import { formatCpf, formatPhone } from "../../utils/validators";
 import StudentCompliancePanel from "./studentCompliance/StudentCompliancePanel";
 import { useNeonTheme, type NeonTheme } from "../../theme/minutofitNeonTheme";
+import { useToast } from "../../components/Toast";
+import { API_URL } from "../../services/apiBase";
+import { authFetch } from "../../services/apiClient";
 import "./accountSettingsPage.css";
 import {
   settingsItemRevealVariants,
@@ -191,20 +194,14 @@ export default function AccountSettingsPage() {
   const isMobile = useIsMobile(720);
   const { shouldReduceMotion, shouldUseTilt } = useSettingsMotionSafe({ isMobile });
   const isLimitedProfile = accessProfile === "clientes_sb";
+  const toast = useToast();
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [cpfMasked, setCpfMasked] = useState("—");
 
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmNewPassword, setConfirmNewPassword] = useState("");
-
-  const [profileError, setProfileError] = useState<string | null>(null);
-  const [profileSuccess, setProfileSuccess] = useState<string | null>(null);
-  const [passwordError, setPasswordError] = useState<string | null>(null);
-  const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null);
+  const [savingProfile, setSavingProfile] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -246,27 +243,26 @@ export default function AccountSettingsPage() {
     }
   }
 
-  function saveProfile() {
-    setProfileSuccess(null);
-    if (!name.trim()) { setProfileError("Informe seu nome."); return; }
-    if (!phone.trim()) { setProfileError("Informe um telefone para contato."); return; }
-    setProfileError(null);
-    setProfileSuccess("Quando a API estiver ativa, os dados serão salvos. Por enquanto use \"Atualizar da sessão\" após mudanças feitas em outro dispositivo.");
-  }
-
-  function changePassword() {
-    setPasswordSuccess(null);
-    if (!currentPassword || !newPassword || !confirmNewPassword) {
-      setPasswordError("Preencha todos os campos de senha."); return;
+  async function saveProfile() {
+    if (!name.trim()) { toast.error("Informe seu nome."); return; }
+    setSavingProfile(true);
+    try {
+      const res = await authFetch(`${API_URL}/auth/profile`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: name.trim(), phone: phone.trim() || undefined }),
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error(d?.error || "Falha ao salvar dados.");
+      }
+      await refreshFromServer();
+      toast.success("Dados salvos com sucesso.");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Falha ao salvar.");
+    } finally {
+      setSavingProfile(false);
     }
-    const pwErr = getStrongPasswordError(newPassword);
-    if (pwErr) { setPasswordError(pwErr); return; }
-    if (newPassword !== confirmNewPassword) { setPasswordError("Confirmação de senha não confere."); return; }
-    setPasswordError(null);
-    setPasswordSuccess("Alteração de senha disponível quando o backend estiver configurado com hash + rate limit.");
-    setCurrentPassword("");
-    setNewPassword("");
-    setConfirmNewPassword("");
   }
 
   return (
@@ -410,22 +406,10 @@ export default function AccountSettingsPage() {
                     className="account-settings-primary-cta"
                     whileHover={shouldReduceMotion ? undefined : settingsSubtleHover}
                     whileTap={shouldReduceMotion ? undefined : settingsSubtleTap}
-                    animate={
-                      shouldReduceMotion
-                        ? undefined
-                        : {
-                            boxShadow: [
-                              "0 10px 24px rgba(0,0,0,.35)",
-                              "0 12px 28px rgba(34,197,94,.28)",
-                              "0 10px 24px rgba(0,0,0,.35)",
-                            ],
-                          }
-                    }
-                    transition={shouldReduceMotion ? undefined : { duration: 2.6, repeat: Infinity, ease: "easeInOut" }}
                     style={{ width: "fit-content", borderRadius: 14 }}
                   >
-                    <Button neon={neon} onClick={saveProfile} variant="primary">
-                      Salvar dados (quando API estiver ativa)
+                    <Button neon={neon} onClick={() => void saveProfile()} variant="primary" disabled={savingProfile}>
+                      {savingProfile ? "Salvando..." : "Salvar dados"}
                     </Button>
                   </motion.div>
 
@@ -438,137 +422,13 @@ export default function AccountSettingsPage() {
                       Atualizar da sessão
                     </Button>
                   </motion.div>
-
-                  <motion.div
-                    whileHover={shouldReduceMotion ? undefined : settingsSubtleHover}
-                    whileTap={shouldReduceMotion ? undefined : settingsSubtleTap}
-                    style={{ width: "fit-content", borderRadius: 14 }}
-                  >
-                    <Button
-                      neon={neon}
-                      onClick={() => {
-                        if (!user) return;
-                        setName(user.name?.trim() || "");
-                        setEmail(user.email || "");
-                        setPhone(user.phone ? formatPhone(user.phone) : "");
-                        setCpfMasked(user.cpf ? formatCpf(user.cpf) : "—");
-                      }}
-                      variant="ghost"
-                    >
-                      Restaurar da sessão
-                    </Button>
-                  </motion.div>
                 </div>
 
-                {profileError ? <Note accent="danger" neon={neon}>{profileError}</Note> : null}
-                {profileSuccess ? <Note accent="accent" neon={neon}>{profileSuccess}</Note> : null}
-                <Note accent="accent" neon={neon}>
-                  Segurança: a plataforma <b>nunca</b> exibe senha em texto. E-mail e CPF seguem as regras do cadastro; a
-                  persistência de nome e telefone dependerá do endpoint seguro no backend.
-                </Note>
               </div>
             </Card>
           </motion.div>
         </motion.div>
 
-        <motion.div
-          variants={settingsItemRevealVariants}
-          initial={shouldReduceMotion ? false : "hidden"}
-          whileInView={shouldReduceMotion ? undefined : "show"}
-          viewport={{ once: true, amount: 0.12 }}
-        >
-          <motion.div
-            className="account-settings-card-shell"
-            whileHover={shouldReduceMotion ? undefined : { scale: 1.006, transition: { duration: 0.24 } }}
-            whileTap={shouldReduceMotion ? undefined : { scale: 0.994 }}
-          >
-            <Card neon={neon} title="Alterar senha" subtitle="Placeholder (ativa de verdade com backend).">
-              <div style={{ display: "grid", gap: 12 }}>
-                <Field neon={neon} label="Senha atual">
-                  <TextInput
-                    neon={neon}
-                    type="password"
-                    value={currentPassword}
-                    onChange={(e) => setCurrentPassword(e.target.value)}
-                    autoComplete="current-password"
-                    placeholder="••••••••"
-                  />
-                </Field>
-
-                <Field neon={neon} label="Nova senha" hint="Mínimo 8 caracteres">
-                  <TextInput
-                    neon={neon}
-                    type="password"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    autoComplete="new-password"
-                    placeholder="••••••••"
-                  />
-                </Field>
-
-                <Field neon={neon} label="Confirmar nova senha">
-                  <TextInput
-                    neon={neon}
-                    type="password"
-                    value={confirmNewPassword}
-                    onChange={(e) => setConfirmNewPassword(e.target.value)}
-                    autoComplete="new-password"
-                    placeholder="••••••••"
-                  />
-                </Field>
-
-                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                  <motion.div
-                    className="account-settings-primary-cta"
-                    whileHover={shouldReduceMotion ? undefined : settingsSubtleHover}
-                    whileTap={shouldReduceMotion ? undefined : settingsSubtleTap}
-                    animate={
-                      shouldReduceMotion
-                        ? undefined
-                        : {
-                            boxShadow: [
-                              "0 10px 24px rgba(0,0,0,.35)",
-                              "0 12px 28px rgba(34,197,94,.28)",
-                              "0 10px 24px rgba(0,0,0,.35)",
-                            ],
-                          }
-                    }
-                    transition={shouldReduceMotion ? undefined : { duration: 2.6, repeat: Infinity, ease: "easeInOut" }}
-                    style={{ width: "fit-content", borderRadius: 14 }}
-                  >
-                    <Button neon={neon} onClick={changePassword} variant="primary">
-                      Solicitar alteração
-                    </Button>
-                  </motion.div>
-
-                  <motion.div
-                    whileHover={shouldReduceMotion ? undefined : settingsSubtleHover}
-                    whileTap={shouldReduceMotion ? undefined : settingsSubtleTap}
-                    style={{ width: "fit-content", borderRadius: 14 }}
-                  >
-                    <Button
-                      neon={neon}
-                      onClick={() => {
-                        setCurrentPassword("");
-                        setNewPassword("");
-                        setConfirmNewPassword("");
-                      }}
-                      variant="ghost"
-                    >
-                      Limpar campos
-                    </Button>
-                  </motion.div>
-                </div>
-
-                {passwordError ? <Note accent="danger" neon={neon}>{passwordError}</Note> : null}
-                {passwordSuccess ? <Note accent="accent" neon={neon}>{passwordSuccess}</Note> : null}
-                <Note neon={neon}>
-                  Nenhuma senha é armazenada no front. A troca real exige backend (hash/validação + rate limit).
-                </Note>
-              </div>
-            </Card>
-          </motion.div>
-        </motion.div>
       </motion.div>
     </motion.div>
   );
