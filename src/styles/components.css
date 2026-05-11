@@ -813,7 +813,7 @@ html[data-color-mode="daltonic"] .navLinkActive {
 /* ── Admin Dashboard Premium ─────────────────────────────────── */
 
 .dash-hero {
-  background: var(--color-surface);
+  background: linear-gradient(180deg, rgba(34, 197, 94, 0.03) 0%, var(--color-surface) 72px);
   border: 1px solid var(--color-border);
   border-top: 3px solid var(--color-primary);
   border-radius: var(--radius-xl);
@@ -1104,6 +1104,11 @@ html[data-color-mode="daltonic"] .navLinkActive {
   letter-spacing: 0.07em;
   text-transform: uppercase;
   color: var(--color-text-subtle);
+  margin-bottom: var(--space-2);
+}
+
+.dash-eyebrow--spaced {
+  margin-bottom: var(--space-3);
 }
 
 /* Ghost button */
@@ -1228,6 +1233,178 @@ html[data-color-mode="daltonic"] .navLinkActive {
     flex-wrap: wrap;
     gap: var(--space-5);
   }
+  .dash-hero-right {
+    border-left: none;
+    border-top: 1px solid var(--color-border);
+    padding-left: 0;
+    padding-top: var(--space-4);
+    text-align: left;
+  }
+  .dash-hero-metric-forming { margin-left: 0; }
+}
+
+/* ── Hero premium additions ────────────────────────────────────── */
+
+/* Live indicator dot — signals real-time platform status */
+.dash-hero-live {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.dash-hero-live::before {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-soft);
+  flex-shrink: 0;
+}
+
+/* Hero right column — anchor metric with visual separator */
+.dash-hero-right {
+  text-align: right;
+  min-width: 160px;
+  padding-left: var(--space-6);
+  border-left: 1px solid var(--color-border);
+  align-self: center;
+}
+
+/* Hero metric forming/empty state typography */
+.dash-hero-metric-forming {
+  font-size: var(--text-xl);
+  font-weight: var(--font-bold);
+  color: var(--color-text-muted);
+  line-height: 1.3;
+  max-width: 180px;
+  margin-left: auto;
+}
+
+/* ── Metabolism bar layout ─────────────────────────────────────── */
+
+.dash-metabolism-bar {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.dash-metabolism-track {
+  display: flex;
+  height: 6px;
+  border-radius: 999px;
+  overflow: hidden;
+  gap: 2px;
+  background: var(--color-border);
+}
+
+.dash-metabolism-legend {
+  display: flex;
+  gap: var(--space-5);
+  flex-wrap: wrap;
+}
+
+.dash-metabolism-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dash-metabolism-legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  flex-shrink: 0;
+  /* background set inline (dynamic color per segment) */
+}
+
+.dash-metabolism-legend-label {
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+}
+
+.dash-metabolism-legend-count {
+  font-weight: var(--font-bold);
+  color: var(--color-text);
+  font-size: var(--text-xs);
+}
+
+.dash-metabolism-legend-pct {
+  color: var(--color-text-subtle);
+  font-weight: var(--font-normal);
+  margin-left: 3px;
+}
+
+/* ── Operational block — minimal wrapper for secondary KPIs ───── */
+
+.dash-operational-block {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.dash-operational-header {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+}
+
+.dash-operational-title {
+  font-size: var(--text-base);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-muted);
+  letter-spacing: -0.01em;
+}
+
+/* ── Alert premium empty state ─────────────────────────────────── */
+
+.dash-alert-empty--ok {
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-raised);
+  display: grid;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}
+
+.dash-alert-ok-signal {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--color-success-text);
+}
+
+.dash-alert-ok-signal::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-soft);
+  flex-shrink: 0;
+}
+
+.dash-alert-ok-detail {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  line-height: 1.6;
+  padding-left: calc(8px + var(--space-2));
+}
+
+/* ── Financial strip — commercial block with success accent ────── */
+
+.dash-financial-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: var(--space-4);
+  align-items: center;
+  padding: 16px 20px;
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
+  border-left: 3px solid var(--color-primary);
+  border-radius: var(--radius-lg);
 }
 
 /* ── Admin Utility Classes ─────────────────────────────────────── */
