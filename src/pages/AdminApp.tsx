@@ -13,6 +13,8 @@ import AdminFinancePage from "./admin/AdminFinancePage";
 import AdminNutriDetailsPage from "./admin/AdminNutriDetailsPage";
 import type { AppPermission } from "../auth/accessControl";
 import AdminAccessProfilesPage from "./admin/AdminAccessProfilesPage";
+import AdminAcademiesPage from "./admin/AdminAcademiesPage";
+import AcademyBrandingSettingsPage from "./admin/AcademyBrandingSettingsPage";
 
 function MenuLink({ to, label }: { to: string; label: string }) {
   return (
@@ -67,7 +69,8 @@ export default function AdminApp() {
   ];
 
   const operationItems: Array<{ to: string; label: string; permission: AppPermission }> = [
-    { to: "/app/admin/finance", label: "Financeiro", permission: "admin.finance" },
+    { to: "/app/admin/finance",    label: "Financeiro",  permission: "admin.finance" },
+    { to: "/app/admin/academies",  label: "Academias",   permission: "admin.accessProfiles" },
   ];
 
   const visiblePlatform  = platformItems.filter((i) => auth.hasPermission(i.permission));
@@ -197,6 +200,22 @@ export default function AdminApp() {
               element={
                 <AdminPermissionRoute permission="admin.finance">
                   <AdminFinancePage />
+                </AdminPermissionRoute>
+              }
+            />
+            <Route
+              path="academies"
+              element={
+                <AdminPermissionRoute permission="admin.accessProfiles">
+                  <AdminAcademiesPage />
+                </AdminPermissionRoute>
+              }
+            />
+            <Route
+              path="academies/:academyId/branding"
+              element={
+                <AdminPermissionRoute permission="admin.accessProfiles">
+                  <AcademyBrandingSettingsPage />
                 </AdminPermissionRoute>
               }
             />

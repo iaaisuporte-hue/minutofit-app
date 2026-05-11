@@ -173,3 +173,50 @@ export async function fetchCurrentUser(): Promise<AuthApiUser | null> {
   const data = await parseJson(response);
   return data?.data?.user || null;
 }
+
+export interface AcademyBranding {
+  logoUrl?: string;
+  displayName?: string;
+  primaryColor?: string;
+  primaryHover?: string;
+  accentColor?: string;
+  welcomeMessage?: string;
+  theme?: string;
+}
+
+export interface AcademyForUser {
+  id: number;
+  slug: string;
+  displayName: string;
+  logoUrl?: string;
+  roleSlug: string;
+  roleLabel: string;
+  status: string;
+  branding?: AcademyBranding;
+}
+
+export async function fetchUserAcademies(): Promise<AcademyForUser[]> {
+  const response = await authFetch(`${API_URL}/auth/academies`);
+  if (!response.ok) return [];
+  const data = await parseJson(response);
+  return (data?.data?.academies ?? []) as AcademyForUser[];
+}
+
+export interface SwitchAcademyResult {
+  accessToken: string;
+  activeAcademy: AcademyForUser & { branding?: AcademyBranding };
+}
+
+export async function switchAcademy(academyId: number): Promise<SwitchAcademyResult> {
+  const response = await authFetch(`${API_URL}/auth/switch-academy`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ academyId }),
+  });
+
+  const data = await parseJson(response);
+  if (!response.ok) {
+    throw new Error(data?.error || "Erro ao trocar academia.");
+  }
+  return data.data as SwitchAcademyResult;
+}

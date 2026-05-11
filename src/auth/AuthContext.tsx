@@ -5,8 +5,12 @@ import {
   loginWithPassword,
   loginWithProvider,
   registerWithPassword,
+  fetchUserAcademies,
+  switchAcademy as apiSwitchAcademy,
   type AuthApiHealthFlags,
   type RegisterPayload,
+  type AcademyForUser,
+  type AcademyBranding,
 } from "../services/authApi";
 import { hasPermission as checkPermission, resolvePermissions, type AccessProfile, type AppPermission } from "./accessControl";
 import { SESSION_EXPIRED_EVENT } from "../services/apiBase";
@@ -39,6 +43,8 @@ export interface AuthUser {
   studentComplianceComplete?: boolean;
 }
 
+export type { AcademyForUser, AcademyBranding };
+
 type AuthState = {
   isAuthenticated: boolean;
   role: Role | null;
@@ -48,6 +54,9 @@ type AuthState = {
   profileCompleted?: boolean;
   accessProfile?: AccessProfile | null;
   permissions?: AppPermission[];
+  activeAcademyId?: number | null;
+  academies?: AcademyForUser[];
+  branding?: AcademyBranding | null;
 };
 
 type LoginResult = Promise<{ ok: true; role: Role; email: string; id: string } | { ok: false; message: string }>;
@@ -63,6 +72,7 @@ type AuthContextType = AuthState & {
   accessProfile: AccessProfile | null;
   permissions: AppPermission[];
   hasPermission: (permission: AppPermission) => boolean;
+  switchAcademy: (academyId: number) => Promise<{ ok: true } | { ok: false; message: string }>;
 
   /** ✅ Admin (Mock)*/
   resetUserPassword: (email: string, newPassword?: string) => { ok: true; message: string } | { ok: false; message: string };
@@ -83,6 +93,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     id: null,
     accessProfile: null,
     permissions: [],
+    activeAcademyId: null,
+    academies: [],
+    branding: null,
   });
 
   // Load auth from localStorage on mount (access token may be expired; fetchCurrentUser uses refresh via authFetch)
@@ -96,6 +109,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const user = await fetchCurrentUser();
         if (cancelled) return;
         if (user) {
+          let academies: AcademyForUser[] = [];
+          try { academies = await fetchUserAcademies(); } catch { /* schema may not exist yet */ }
+          const activeAcademyId = academies.length === 1 ? academies[0].id : null;
           setState({
             isAuthenticated: true,
             role: user.role,
@@ -105,16 +121,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             profileCompleted: user.profileCompleted,
             accessProfile: user.accessProfile ?? null,
             permissions: user.permissions ?? [],
+            activeAcademyId,
+            academies,
+            branding: null,
           });
         } else {
           clearStoredTokens();
-          setState({ isAuthenticated: false, role: null, email: null, id: null, accessProfile: null, permissions: [] });
+          setState({ isAuthenticated: false, role: null, email: null, id: null, accessProfile: null, permissions: [], activeAcademyId: null, academies: [], branding: null });
         }
       } catch (err) {
         console.error("Error restoring session:", err);
         if (cancelled) return;
         clearStoredTokens();
-        setState({ isAuthenticated: false, role: null, email: null, id: null, accessProfile: null, permissions: [] });
+        setState({ isAuthenticated: false, role: null, email: null, id: null, accessProfile: null, permissions: [], activeAcademyId: null, academies: [], branding: null });
       }
     })();
 
@@ -133,6 +152,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         id: null,
         accessProfile: null,
         permissions: [],
+        activeAcademyId: null,
+        academies: [],
+        branding: null,
       });
       if (window.location.pathname !== "/") {
         window.location.replace("/");
@@ -154,6 +176,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           permission
         ),
 
+      switchAcademy: async (academyId) => {
+        try {
+          const data = await apiSwitchAcademy(academyId);
+          setTokens(data.accessToken, getAccessToken() ?? "");
+          setState((prev) => ({
+            ...prev,
+            activeAcademyId: academyId,
+            branding: data.activeAcademy.branding ?? null,
+          }));
+          return { ok: true as const };
+        } catch (err: any) {
+          return { ok: false as const, message: err.message || "Erro ao trocar academia." };
+        }
+      },
+
       login: async (email, password) => {
         const normalizedEmail = normalizeEmail(email);
         const normalizedPass = (password ?? "").trim();
@@ -169,6 +206,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const data = await loginWithPassword(normalizedEmail, normalizedPass);
           setTokens(data.accessToken, data.refreshToken);
 
+          let academies: AcademyForUser[] = [];
+          try { academies = await fetchUserAcademies(); } catch { /* schema may not exist yet */ }
+          const activeAcademyId = academies.length === 1 ? academies[0].id : null;
+
           setState({
             isAuthenticated: true,
             role: data.user.role,
@@ -178,6 +219,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             profileCompleted: data.user.profileCompleted,
             accessProfile: data.user.accessProfile ?? null,
             permissions: data.user.permissions ?? [],
+            activeAcademyId,
+            academies,
+            branding: null,
           });
 
           return {
@@ -268,6 +312,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           id: null,
           accessProfile: null,
           permissions: [],
+          activeAcademyId: null,
+          academies: [],
+          branding: null,
         });
       },
 

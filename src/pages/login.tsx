@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth, type Role } from "../auth/AuthContext";
 import MinutoFitLogo from "../components/MinutoFitLogo";
+import AcademySelector from "../components/AcademySelector";
 
 function nextPathByRole(role: Role) {
   switch (role) {
@@ -15,18 +16,23 @@ function nextPathByRole(role: Role) {
 
 export default function LoginPage() {
   const nav = useNavigate();
-  const { login, isAuthenticated, role } = useAuth();
+  const { login, isAuthenticated, role, academies, activeAcademyId } = useAuth();
 
-  const [email, setEmail]       = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError]       = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [email, setEmail]             = useState("");
+  const [password, setPassword]       = useState("");
+  const [error, setError]             = useState<string | null>(null);
+  const [isLoading, setIsLoading]     = useState(false);
+  const [pendingRole, setPendingRole] = useState<Role | null>(null);
 
+  // Redirect after academy selection (or when already has active context)
   useEffect(() => {
     if (isAuthenticated && role) {
-      nav(nextPathByRole(role), { replace: true });
+      const needsSelector = (academies?.length ?? 0) > 1 && !activeAcademyId;
+      if (!needsSelector) {
+        nav(nextPathByRole(role), { replace: true });
+      }
     }
-  }, [isAuthenticated, role, nav]);
+  }, [isAuthenticated, role, academies, activeAcademyId, nav]);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -41,7 +47,16 @@ export default function LoginPage() {
     }
 
     setIsLoading(false);
-    nav(nextPathByRole(res.role), { replace: true });
+    setPendingRole(res.role);
+  }
+
+  // Show academy selector when user logged in but has multiple academies
+  if (pendingRole && (academies?.length ?? 0) > 1 && !activeAcademyId) {
+    return (
+      <main className="auth-page">
+        <AcademySelector onSelected={() => nav(nextPathByRole(pendingRole), { replace: true })} />
+      </main>
+    );
   }
 
   return (

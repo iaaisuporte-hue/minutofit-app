@@ -8,7 +8,15 @@ export type AccessProfile =
   | "clientes_sb"
   | "user_default"
   | "personal_default"
-  | "nutri_default";
+  | "nutri_default"
+  // Academia-specific profiles (resolved from academy_users.role_id → academy_roles.slug)
+  | "academy_owner"
+  | "academy_manager"
+  | "academy_finance"
+  | "academy_reception"
+  | "academy_personal"
+  | "academy_nutri"
+  | "academy_student";
 
 export type AppPermission =
   | "admin.accessProfiles"
@@ -19,7 +27,23 @@ export type AppPermission =
   | "admin.personals.detail"
   | "admin.nutris"
   | "admin.finance"
-  | "admin.professionals.create";
+  | "admin.professionals.create"
+  // Academia-scoped permissions
+  | "academy.dashboard"
+  | "academy.students.read"
+  | "academy.students.write"
+  | "academy.students.metabolic"
+  | "academy.professionals.read"
+  | "academy.professionals.write"
+  | "academy.plans.read"
+  | "academy.plans.write"
+  | "academy.finance.read"
+  | "academy.finance.write"
+  | "academy.finance.dre"
+  | "academy.reports.read"
+  | "academy.branding"
+  | "academy.audit.read"
+  | "academy.invitations.write";
 
 const ALL_ADMIN_PERMISSIONS: AppPermission[] = [
   "admin.accessProfiles",
@@ -31,6 +55,24 @@ const ALL_ADMIN_PERMISSIONS: AppPermission[] = [
   "admin.nutris",
   "admin.finance",
   "admin.professionals.create",
+];
+
+const ALL_ACADEMY_OWNER_PERMISSIONS: AppPermission[] = [
+  "academy.dashboard",
+  "academy.students.read",
+  "academy.students.write",
+  "academy.students.metabolic",
+  "academy.professionals.read",
+  "academy.professionals.write",
+  "academy.plans.read",
+  "academy.plans.write",
+  "academy.finance.read",
+  "academy.finance.write",
+  "academy.finance.dre",
+  "academy.reports.read",
+  "academy.branding",
+  "academy.audit.read",
+  "academy.invitations.write",
 ];
 
 const PROFILE_PERMISSIONS: Record<AccessProfile, AppPermission[]> = {
@@ -57,6 +99,41 @@ const PROFILE_PERMISSIONS: Record<AccessProfile, AppPermission[]> = {
   user_default: [],
   personal_default: [],
   nutri_default: [],
+  // Academia profiles — permissions come from server (academy_roles.permissions)
+  // Defaults here are used only as fallback when server does not return permissions
+  academy_owner: ALL_ACADEMY_OWNER_PERMISSIONS,
+  academy_manager: [
+    "academy.dashboard",
+    "academy.students.read",
+    "academy.students.write",
+    "academy.professionals.read",
+    "academy.plans.read",
+    "academy.finance.read",
+    "academy.reports.read",
+    "academy.invitations.write",
+  ],
+  academy_finance: [
+    "academy.dashboard",
+    "academy.students.read",
+    "academy.finance.read",
+    "academy.finance.write",
+    "academy.finance.dre",
+    "academy.reports.read",
+  ],
+  academy_reception: [
+    "academy.students.read",
+    "academy.plans.read",
+    "academy.invitations.write",
+  ],
+  academy_personal: [
+    "academy.students.read",
+    "academy.students.metabolic",
+  ],
+  academy_nutri: [
+    "academy.students.read",
+    "academy.students.metabolic",
+  ],
+  academy_student: [],
 };
 
 export const ACCESS_PROFILE_META: Record<
@@ -102,6 +179,41 @@ export const ACCESS_PROFILE_META: Record<
     label: "Nutri padrão",
     roleScope: "nutri",
     description: "Perfil padrão da área de nutrição.",
+  },
+  academy_owner: {
+    label: "Dono da Academia",
+    roleScope: "mixed",
+    description: "Acesso total à academia: alunos, financeiro, branding e relatórios.",
+  },
+  academy_manager: {
+    label: "Gestor de Unidade",
+    roleScope: "mixed",
+    description: "Gestão operacional de uma unidade da academia.",
+  },
+  academy_finance: {
+    label: "Financeiro da Academia",
+    roleScope: "mixed",
+    description: "Acesso ao financeiro e relatórios da academia.",
+  },
+  academy_reception: {
+    label: "Recepção",
+    roleScope: "mixed",
+    description: "Matrículas, convites e consulta de alunos.",
+  },
+  academy_personal: {
+    label: "Personal / Professor",
+    roleScope: "personal",
+    description: "Acesso a alunos vinculados na academia.",
+  },
+  academy_nutri: {
+    label: "Nutricionista da Academia",
+    roleScope: "nutri",
+    description: "Acesso a alunos vinculados na academia.",
+  },
+  academy_student: {
+    label: "Aluno da Academia",
+    roleScope: "user",
+    description: "Perfil de aluno em academia parceira.",
   },
 };
 
@@ -151,6 +263,21 @@ export const APP_PERMISSION_META: Record<AppPermission, { label: string; group: 
     group: "Profissionais",
     description: "Criar novos personals e nutris no admin.",
   },
+  "academy.dashboard": { label: "Dashboard da academia", group: "Academia", description: "Visão geral da academia." },
+  "academy.students.read": { label: "Ver alunos", group: "Academia", description: "Listar e consultar alunos." },
+  "academy.students.write": { label: "Editar alunos", group: "Academia", description: "Criar e editar alunos." },
+  "academy.students.metabolic": { label: "Dados metabólicos", group: "Academia", description: "Ver metabolismo dos alunos vinculados." },
+  "academy.professionals.read": { label: "Ver profissionais", group: "Academia", description: "Listar profissionais da academia." },
+  "academy.professionals.write": { label: "Editar profissionais", group: "Academia", description: "Gerenciar profissionais." },
+  "academy.plans.read": { label: "Ver planos", group: "Academia", description: "Consultar planos e matrículas." },
+  "academy.plans.write": { label: "Editar planos", group: "Academia", description: "Criar e editar planos." },
+  "academy.finance.read": { label: "Ver financeiro", group: "Financeiro Academia", description: "Consultar cobranças e pagamentos." },
+  "academy.finance.write": { label: "Editar financeiro", group: "Financeiro Academia", description: "Registrar e editar cobranças." },
+  "academy.finance.dre": { label: "DRE / Fluxo de caixa", group: "Financeiro Academia", description: "Acessar demonstrativo de resultados." },
+  "academy.reports.read": { label: "Relatórios", group: "Academia", description: "Acessar relatórios de retenção e metabólicos." },
+  "academy.branding": { label: "Branding da academia", group: "Academia", description: "Configurar logo, cores e identidade visual." },
+  "academy.audit.read": { label: "Auditoria", group: "Academia", description: "Ver trilha de auditoria da academia." },
+  "academy.invitations.write": { label: "Enviar convites", group: "Academia", description: "Convidar novos usuários para a academia." },
 };
 
 export const ACCESS_PROFILE_ORDER: AccessProfile[] = [
@@ -162,6 +289,13 @@ export const ACCESS_PROFILE_ORDER: AccessProfile[] = [
   "user_default",
   "personal_default",
   "nutri_default",
+  "academy_owner",
+  "academy_manager",
+  "academy_finance",
+  "academy_reception",
+  "academy_personal",
+  "academy_nutri",
+  "academy_student",
 ];
 
 export const APP_PERMISSION_ORDER: AppPermission[] = [
@@ -174,6 +308,21 @@ export const APP_PERMISSION_ORDER: AppPermission[] = [
   "admin.nutris",
   "admin.finance",
   "admin.professionals.create",
+  "academy.dashboard",
+  "academy.students.read",
+  "academy.students.write",
+  "academy.students.metabolic",
+  "academy.professionals.read",
+  "academy.professionals.write",
+  "academy.plans.read",
+  "academy.plans.write",
+  "academy.finance.read",
+  "academy.finance.write",
+  "academy.finance.dre",
+  "academy.reports.read",
+  "academy.branding",
+  "academy.audit.read",
+  "academy.invitations.write",
 ];
 
 export function getProfilePermissions(profile: AccessProfile) {
