@@ -9,7 +9,9 @@ export type AccessProfile =
   | "user_default"
   | "personal_default"
   | "nutri_default"
-  // Academia-specific profiles (resolved from academy_users.role_id → academy_roles.slug)
+  // Academy-scoped system roles (slug from academy_roles, used when user is linked to an academy)
+  // metacore_admin = platform admin linked via seedDefaultAcademy to the default academy
+  | "metacore_admin"
   | "academy_owner"
   | "academy_manager"
   | "academy_finance"
@@ -76,6 +78,9 @@ const ALL_ACADEMY_OWNER_PERMISSIONS: AppPermission[] = [
 ];
 
 const PROFILE_PERMISSIONS: Record<AccessProfile, AppPermission[]> = {
+  // metacore_admin is the academy_roles slug that platform admins receive via seedDefaultAcademy.
+  // It carries the same full admin + academy permissions.
+  metacore_admin: [...ALL_ADMIN_PERMISSIONS, ...ALL_ACADEMY_OWNER_PERMISSIONS],
   admin_owner: ALL_ADMIN_PERMISSIONS,
   admin_operations: [
     "admin.dashboard",
@@ -140,6 +145,11 @@ export const ACCESS_PROFILE_META: Record<
   AccessProfile,
   { label: string; roleScope: Role | "mixed"; description: string }
 > = {
+  metacore_admin: {
+    label: "Admin MetaCore",
+    roleScope: "admin",
+    description: "Admin da plataforma com acesso total a gestão e academias.",
+  },
   admin_owner: {
     label: "Admin Owner",
     roleScope: "admin",
@@ -281,6 +291,7 @@ export const APP_PERMISSION_META: Record<AppPermission, { label: string; group: 
 };
 
 export const ACCESS_PROFILE_ORDER: AccessProfile[] = [
+  "metacore_admin",
   "admin_owner",
   "admin_operations",
   "admin_finance",
@@ -330,7 +341,7 @@ export function getProfilePermissions(profile: AccessProfile) {
 }
 
 export function defaultAccessProfileByRole(role?: Role | null): AccessProfile | null {
-  if (role === "admin") return "admin_owner";
+  if (role === "admin") return "metacore_admin";
   if (role === "personal") return "personal_default";
   if (role === "nutri") return "nutri_default";
   if (role === "user") return "user_default";
