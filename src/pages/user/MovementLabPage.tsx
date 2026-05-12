@@ -76,10 +76,15 @@ declare global {
 
 // ── Constants ────────────────────────────────────────────────
 
+// Self-hosted assets (copied from node_modules by scripts/copy-mediapipe.js during build).
+// Falls back to jsDelivr CDN only when the local file is missing (dev mode without prebuild).
+const MEDIAPIPE_BASE_LOCAL = "/mediapipe";
+const MEDIAPIPE_BASE_CDN = "https://cdn.jsdelivr.net/npm/@mediapipe";
+
 const MEDIAPIPE_SCRIPTS = [
-  "https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js",
-  "https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js",
-  "https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js",
+  `${MEDIAPIPE_BASE_LOCAL}/camera_utils/camera_utils.js`,
+  `${MEDIAPIPE_BASE_LOCAL}/drawing_utils/drawing_utils.js`,
+  `${MEDIAPIPE_BASE_LOCAL}/pose/pose.js`,
 ];
 
 const STORAGE_KEY = "minutofit:movement:sessions";
@@ -91,7 +96,7 @@ const SKELETON_COLOR_LOW = "#DC2626";
 
 // ── Helpers ──────────────────────────────────────────────────
 
-function loadScript(src: string): Promise<void> {
+function injectScript(src: string): Promise<void> {
   return new Promise((resolve, reject) => {
     const existing = document.querySelector(
       `script[src="${src}"]`
@@ -118,6 +123,27 @@ function loadScript(src: string): Promise<void> {
     };
     script.onerror = () => reject(new Error(`Failed to load ${src}`));
     document.body.appendChild(script);
+  });
+}
+
+function loadScript(src: string): Promise<void> {
+  if (!src.startsWith(MEDIAPIPE_BASE_LOCAL)) return injectScript(src);
+
+  // Local self-hosted attempt → fall back to CDN on error
+  const cdnSrc = src.replace(
+    MEDIAPIPE_BASE_LOCAL + "/camera_utils",
+    MEDIAPIPE_BASE_CDN + "/camera_utils"
+  ).replace(
+    MEDIAPIPE_BASE_LOCAL + "/drawing_utils",
+    MEDIAPIPE_BASE_CDN + "/drawing_utils"
+  ).replace(
+    MEDIAPIPE_BASE_LOCAL + "/pose",
+    MEDIAPIPE_BASE_CDN + "/pose"
+  );
+
+  return injectScript(src).catch(() => {
+    console.warn(`[mediapipe] local asset not found, falling back to CDN: ${src}`);
+    return injectScript(cdnSrc);
   });
 }
 
@@ -337,7 +363,7 @@ export default function MovementLabPage() {
 
         const pose = new window.Pose({
           locateFile: (file: string) =>
-            `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`,
+            `${MEDIAPIPE_BASE_LOCAL}/pose/${file}`,
         });
 
         pose.setOptions({

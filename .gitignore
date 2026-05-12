@@ -12,6 +12,9 @@ dist
 dist-ssr
 *.local
 
+# MediaPipe assets — generated during build by scripts/copy-mediapipe.js
+public/mediapipe/
+
 # Environment variables — never commit real secrets
 .env
 .env.local

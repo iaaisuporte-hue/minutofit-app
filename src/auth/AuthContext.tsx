@@ -15,7 +15,8 @@ import {
 } from "../services/authApi";
 import { hasPermission as checkPermission, resolvePermissions, type AccessProfile, type AppPermission } from "./accessControl";
 import { SESSION_EXPIRED_EVENT } from "../services/apiBase";
-import { clearTokens as clearStoredTokens, getAccessToken, setTokens } from "../services/authTokens";
+import { clearTokens as clearStoredTokens, getAccessToken, getRefreshToken, setTokens } from "../services/authTokens";
+import { API_URL } from "../services/apiBase";
 import { extractTenantSlug, fetchBranding, applyBranding, removeBranding } from "../services/tenantHost";
 
 export type Role = "user" | "personal" | "nutri" | "admin";
@@ -371,6 +372,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       },
 
       logout: () => {
+        // Fire-and-forget: invalidate refresh token on backend (JTI denylist)
+        const refreshToken = getRefreshToken();
+        const accessToken = getAccessToken();
+        if (refreshToken && accessToken) {
+          fetch(`${API_URL}/auth/logout`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${accessToken}`,
+            },
+            body: JSON.stringify({ refreshToken }),
+          }).catch(() => {
+            // ignore network errors — local state is cleared regardless
+          });
+        }
         clearStoredTokens();
         removeBranding(); // FE-1.7.3: clean up injected academy CSS on logout
         setState({
