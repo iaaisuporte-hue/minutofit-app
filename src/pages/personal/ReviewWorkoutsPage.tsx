@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { EmptyState } from "../../components/EmptyState";
 import { COLORS } from "../../styles/colors";
 import {
   fetchPersonalStudentSnapshot,
@@ -602,9 +603,11 @@ export default function ReviewWorkoutsPage() {
       <div style={{ display: "grid", gap: 10 }}>
         {filtered.length === 0 ? (
           <Card>
-            <div style={{ color: "#6B7280", fontSize: 13 }}>
-              Nenhum item para revisar com esses filtros.
-            </div>
+            <EmptyState
+              variant="ok"
+              title="Fila de revisão limpa"
+              description="Nenhuma ficha aguarda avaliação com os filtros atuais. Os indicadores de risco e prioridade aparecem quando novos planos forem criados ou reabertos."
+            />
           </Card>
         ) : (
           filtered.map((item) => {

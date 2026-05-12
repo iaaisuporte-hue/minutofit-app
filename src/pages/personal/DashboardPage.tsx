@@ -11,6 +11,7 @@ import {
 import { COLORS } from "../../styles/colors";
 import { useIsMobile } from "../../hooks/useIsMobile";
 import IntelligentAlerts from "./IntelligentAlerts";
+import { EmptyState } from "../../components/EmptyState";
 import StudentProfileModal from "./StudentProfileModal";
 import {
   buildAttentionList,
@@ -266,11 +267,12 @@ export default function DashboardPage() {
       ) : null}
 
       {!loading && !error && students.length === 0 ? (
-        <Card title="Sua carteira ainda está vazia" right={<Badge tone="neutral">Sem dados</Badge>}>
-          <div style={{ color: COLORS.muted, fontSize: 14, lineHeight: 1.5 }}>
-            Quando houver alunos atribuídos, esta tela passa a priorizar quem está evoluindo, sumindo
-            ou pedindo ajuste de treino.
-          </div>
+        <Card title="Sinais em formação">
+          <EmptyState
+            variant="ok"
+            title="Carteira pronta para os primeiros sinais"
+            description="Os indicadores de aderência, risco e evolução aparecem assim que os primeiros alunos forem atribuídos e iniciarem check-ins. Esta tela vai priorizar quem está sumindo ou pedindo ajuste."
+          />
         </Card>
       ) : null}
 

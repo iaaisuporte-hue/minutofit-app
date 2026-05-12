@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { fetchMyWorkoutPlans, type UserWorkoutPlan } from "../../services/userWorkoutPlansApi";
 import { COLORS } from "../../styles/colors";
+import { EmptyState } from "../../components/EmptyState";
 
 function formatDate(value: string) {
   try {
@@ -58,17 +59,11 @@ export default function MyWorkoutPlansPage() {
       {error ? <div style={{ color: "#fca5a5" }}>{error}</div> : null}
 
       {!loading && !error && !plans.length ? (
-        <div
-          style={{
-            border: `1px dashed ${COLORS.border}`,
-            borderRadius: 14,
-            padding: 16,
-            color: COLORS.muted,
-            background: COLORS.panelSoft,
-          }}
-        >
-          Nenhuma ficha encontrada ainda. Assim que seu personal salvar uma ficha para voce, ela aparece aqui.
-        </div>
+        <EmptyState
+          eyebrow="Sua ficha"
+          title="Plano de treino em construção"
+          description="Seu personal ainda não salvou uma ficha para você. Assim que o plano for criado, ele aparece aqui com todos os exercícios, séries e cargas."
+        />
       ) : null}
 
       {latestPlan ? (

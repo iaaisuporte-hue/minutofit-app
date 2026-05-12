@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { EmptyState } from "../../components/EmptyState";
 import {
   fetchTeam,
   addMemberDirect,
@@ -275,10 +276,11 @@ export default function AcademyTeamPage() {
       {!loading && tab === "team" && (
         <>
           {grouped.length === 0 ? (
-            <div className="dash-alert-empty--ok">
-              <span className="dash-alert-ok-signal" />
-              <span className="dash-alert-ok-detail">Nenhum membro cadastrado ainda.</span>
-            </div>
+            <EmptyState
+              variant="ok"
+              title="Equipe pronta para crescer"
+              description="Convide o primeiro membro da equipe por e-mail. Os papéis (personal, nutricionista, recepção) aparecem após o aceite do convite."
+            />
           ) : (
             grouped.map((group) => (
               <div key={group.slug} style={{ marginBottom: "var(--space-6)" }}>
@@ -351,10 +353,11 @@ export default function AcademyTeamPage() {
       {!loading && tab === "invitations" && (
         <>
           {invitations.length === 0 ? (
-            <div className="dash-alert-empty--ok">
-              <span className="dash-alert-ok-signal" />
-              <span className="dash-alert-ok-detail">Nenhum convite enviado ainda.</span>
-            </div>
+            <EmptyState
+              variant="ok"
+              title="Nenhum convite pendente"
+              description="Use o formulário acima para convidar membros da equipe. Os convites aceitos aparecem na aba Time."
+            />
           ) : (
             <div className="table-wrapper">
               <table className="table">

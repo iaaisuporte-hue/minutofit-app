@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { fetchAcademyDashboard, type AcademyDashboard, type AcademyDashboardAtRiskStudent } from "../../services/academyApi";
+import { EmptyState } from "../../components/EmptyState";
 
 function dayLabel(n: number) {
   return n === 1 ? "1 dia" : `${n} dias`;
@@ -287,15 +288,16 @@ export default function AcademyDashboardPage() {
         </div>
       ) : (
         <div className="dash-section" style={{ marginTop: "var(--space-6)" }}>
-          <div className="empty-state">
-            <p className="empty-state__title">A academia está configurada</p>
-            <p className="empty-state__body">
-              Adicione alunos e membros de equipe para os indicadores aparecerem aqui.
-            </p>
-            <button className="btn btn-primary" onClick={() => navigate("/app/academy/students")}>
-              Adicionar primeiro aluno
-            </button>
-          </div>
+          <EmptyState
+            eyebrow="Inteligência da academia"
+            title="Sinais metabólicos em formação"
+            description="Os indicadores de retenção, aderência e risco aparecem após as primeiras matrículas e check-ins. Adicione alunos para iniciar a leitura da base."
+            action={
+              <button className="btn btn-primary" onClick={() => navigate("/app/academy/students")}>
+                Adicionar primeiro aluno
+              </button>
+            }
+          />
         </div>
       )}
 

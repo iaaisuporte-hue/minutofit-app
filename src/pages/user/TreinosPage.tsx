@@ -201,6 +201,15 @@ export default function TreinosPage() {
         locked: currentPlan !== "black",
         lockedText: "Esta área vai concentrar acompanhamento mais próximo e revisão personalizada.",
       },
+      {
+        id: "ficha" as any,
+        title: "Minha ficha",
+        subtitle: "Plano de treino criado pelo seu personal.",
+        description:
+          "Veja a ficha completa montada pelo seu personal trainer — exercícios, séries, cargas e anotações.",
+        badge: "Personal",
+        route: "/app/user/ficha",
+      },
     ],
     [currentPlan]
   );

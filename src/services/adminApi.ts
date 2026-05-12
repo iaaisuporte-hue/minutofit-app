@@ -164,3 +164,53 @@ export async function changeUserSubscription(userId: string | number, tierId: nu
   return data?.data as { subscriptionId: number };
 }
 
+export const PRODUCT_KEYS = ['app', 'personal', 'nutri', 'academia', 'metabolismo'] as const;
+export type ProductKey = (typeof PRODUCT_KEYS)[number];
+
+export const PRODUCT_LABELS: Record<ProductKey, string> = {
+  app: 'App MinutoFit',
+  personal: 'Personal',
+  nutri: 'Nutricionista',
+  academia: 'Academia',
+  metabolismo: 'Metabolismo',
+};
+
+export interface UserProductEntry {
+  key: ProductKey;
+  active: boolean;
+}
+
+export async function fetchUserProducts(userId: string | number): Promise<{
+  activeKeys: ProductKey[];
+  allProducts: UserProductEntry[];
+}> {
+  const response = await authFetch(`${API_URL}/admin/users/${userId}/products`);
+  const data = await parseJson(response);
+  if (!response.ok) throw new Error(data?.error || "Nao foi possivel carregar produtos.");
+  return data?.data as { activeKeys: ProductKey[]; allProducts: UserProductEntry[] };
+}
+
+export async function grantUserProduct(
+  userId: string | number,
+  productKey: ProductKey,
+  options?: { expiresAt?: string; notes?: string }
+) {
+  const response = await authFetch(`${API_URL}/admin/users/${userId}/products/grant`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ productKey, ...options }),
+  });
+  const data = await parseJson(response);
+  if (!response.ok) throw new Error(data?.error || "Nao foi possivel conceder produto.");
+}
+
+export async function revokeUserProduct(userId: string | number, productKey: ProductKey) {
+  const response = await authFetch(`${API_URL}/admin/users/${userId}/products/revoke`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ productKey }),
+  });
+  const data = await parseJson(response);
+  if (!response.ok) throw new Error(data?.error || "Nao foi possivel revogar produto.");
+}
+

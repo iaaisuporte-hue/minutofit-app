@@ -60,6 +60,8 @@ type AuthState = {
   activeAcademyId?: number | null;
   academies?: AcademyForUser[];
   branding?: AcademyBranding | null;
+  /** Active product keys from JWT (populated after login/refresh). */
+  products?: string[];
 };
 
 type LoginResult = Promise<{ ok: true; role: Role; email: string; id: string } | { ok: false; message: string }>;
@@ -75,6 +77,7 @@ type AuthContextType = AuthState & {
   accessProfile: AccessProfile | null;
   permissions: AppPermission[];
   hasPermission: (permission: AppPermission) => boolean;
+  hasProduct: (productKey: string) => boolean;
   switchAcademy: (academyId: number) => Promise<{ ok: true } | { ok: false; message: string }>;
 
   /** ✅ Admin (Mock)*/
@@ -132,6 +135,16 @@ async function ensureAcademyContext(
   }
 }
 
+function decodeJwtProducts(token: string | null): string[] {
+  if (!token) return [];
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return Array.isArray(payload.products) ? (payload.products as string[]) : [];
+  } catch {
+    return [];
+  }
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<AuthState>({
     isAuthenticated: false,
@@ -178,6 +191,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             activeAcademyId,
             academies,
             branding: null,
+            products: decodeJwtProducts(getAccessToken()),
           });
         } else {
           clearStoredTokens();
@@ -229,6 +243,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           resolvePermissions(state.role, state.user?.accessProfile, state.user?.permissions).permissions,
           permission
         ),
+      hasProduct: (productKey: string) => {
+        if (state.role === 'admin') return true; // MetaCore admin bypasses all product gates
+        return (state.products ?? []).includes(productKey);
+      },
 
       switchAcademy: async (academyId) => {
         try {
@@ -290,6 +308,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             activeAcademyId,
             academies,
             branding: null,
+            products: decodeJwtProducts(getAccessToken()),
           });
 
           return {
@@ -320,6 +339,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             profileCompleted: data.user.profileCompleted,
             accessProfile: data.user.accessProfile ?? null,
             permissions: data.user.permissions ?? [],
+            products: decodeJwtProducts(getAccessToken()),
           });
 
           return {
@@ -353,6 +373,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             profileCompleted: user.profileCompleted,
             accessProfile: user.accessProfile ?? null,
             permissions: user.permissions ?? [],
+            products: decodeJwtProducts(getAccessToken()),
           });
 
           return {

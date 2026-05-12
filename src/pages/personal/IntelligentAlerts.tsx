@@ -29,7 +29,11 @@ export default function IntelligentAlerts({
   onOpenStudents: () => void;
 }) {
   if (!alerts.length) {
-    return <div style={{ color: COLORS.muted, fontSize: 13, lineHeight: 1.5 }}>Nenhum alerta inteligente disparado agora. A carteira está sob controle.</div>;
+    return (
+      <div style={{ color: COLORS.muted, fontSize: 13, lineHeight: 1.5 }}>
+        Os indicadores da carteira estão dentro do esperado — nenhum sinal de risco, abandono ou sobrecarga detectado agora.
+      </div>
+    );
   }
 
   return (

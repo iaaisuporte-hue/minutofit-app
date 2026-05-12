@@ -3,7 +3,14 @@ import { Link, useParams } from "react-router-dom";
 import {
   fetchAdminUserById,
   changeUserSubscription,
+  fetchUserProducts,
+  grantUserProduct,
+  revokeUserProduct,
+  PRODUCT_KEYS,
+  PRODUCT_LABELS,
   type AdminUserRow,
+  type ProductKey,
+  type UserProductEntry,
 } from "../../services/adminApi";
 import { getPlans, type PlanItem } from "../../services/featureApi";
 import { COLORS } from "../../styles/colors";
@@ -176,6 +183,10 @@ export default function AdminUserDetailsPage() {
   const [error, setError] = useState<string | null>(null);
   const [showChangePlan, setShowChangePlan] = useState(false);
   const [tierName, setTierName] = useState<string | null>(null);
+  const [products, setProducts] = useState<UserProductEntry[]>([]);
+  const [productsLoading, setProductsLoading] = useState(false);
+  const [productActionKey, setProductActionKey] = useState<ProductKey | null>(null);
+  const [productError, setProductError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -196,6 +207,34 @@ export default function AdminUserDetailsPage() {
     void load();
     return () => { cancelled = true; };
   }, [userId]);
+
+  useEffect(() => {
+    if (!userId) return;
+    setProductsLoading(true);
+    fetchUserProducts(userId)
+      .then((d) => setProducts(d.allProducts))
+      .catch(() => setProducts(PRODUCT_KEYS.map((key) => ({ key, active: false }))))
+      .finally(() => setProductsLoading(false));
+  }, [userId]);
+
+  async function handleProductToggle(key: ProductKey, currentlyActive: boolean) {
+    if (!userId || productActionKey) return;
+    setProductActionKey(key);
+    setProductError(null);
+    try {
+      if (currentlyActive) {
+        await revokeUserProduct(userId, key);
+      } else {
+        await grantUserProduct(userId, key);
+      }
+      const updated = await fetchUserProducts(userId);
+      setProducts(updated.allProducts);
+    } catch (err: unknown) {
+      setProductError(err instanceof Error ? err.message : "Falha ao atualizar produto.");
+    } finally {
+      setProductActionKey(null);
+    }
+  }
 
   if (user === undefined && !error) {
     return (
@@ -364,6 +403,67 @@ export default function AdminUserDetailsPage() {
               : currentTier
                 ? "Aluno com assinatura ativa e perfil completo. Acompanhe engajamento e retenção."
                 : "Sem assinatura ativa. Verifique pagamento ou use 'Alterar plano' para ajustar manualmente."}
+          </div>
+        </div>
+
+        {/* Produtos */}
+        <div
+          style={{
+            border: `1px solid ${COLORS.border}`,
+            borderRadius: 20,
+            background: COLORS.panel,
+            boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.05)",
+            padding: 18,
+            display: "grid",
+            gap: 12,
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <div style={{ fontSize: 18, fontWeight: 700 }}>Produtos</div>
+            <div style={{ color: COLORS.muted, fontSize: 12 }}>Concedidos pelo MetaCore</div>
+          </div>
+
+          {productError && (
+            <div style={{ borderRadius: 10, border: `1px solid ${COLORS.redBorder}`, background: COLORS.redSoft, padding: 10, fontSize: 13, color: COLORS.text }}>
+              {productError}
+            </div>
+          )}
+
+          {productsLoading ? (
+            <div style={{ color: COLORS.muted, fontSize: 13 }}>Carregando produtos...</div>
+          ) : (
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: 8 }}>
+              {products.map(({ key, active }) => (
+                <button
+                  key={key}
+                  type="button"
+                  disabled={productActionKey !== null}
+                  onClick={() => void handleProductToggle(key, active)}
+                  style={{
+                    padding: "10px 12px",
+                    borderRadius: 12,
+                    border: `1px solid ${active ? "#22C55E" : COLORS.border}`,
+                    background: active ? "rgba(34,197,94,.12)" : COLORS.panelSoft,
+                    color: active ? "#22C55E" : COLORS.muted,
+                    fontWeight: 600,
+                    fontSize: 13,
+                    cursor: productActionKey ? "not-allowed" : "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                    opacity: productActionKey === key ? 0.5 : 1,
+                    transition: "all .15s",
+                  }}
+                >
+                  <span style={{ width: 8, height: 8, borderRadius: "50%", background: active ? "#22C55E" : COLORS.border, flexShrink: 0 }} />
+                  {PRODUCT_LABELS[key]}
+                </button>
+              ))}
+            </div>
+          )}
+
+          <div style={{ color: COLORS.muted, fontSize: 12 }}>
+            Clique para ativar ou desativar. Alterações têm efeito no próximo login do usuário.
           </div>
         </div>
       </div>

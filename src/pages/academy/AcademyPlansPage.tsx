@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { EmptyState } from "../../components/EmptyState";
 import {
   fetchPlans,
   createPlan,
@@ -190,13 +191,14 @@ export default function AcademyPlansPage() {
         </div>
       ) : activePlans.length === 0 && !showForm ? (
         <div className="section-card">
-          <div className="empty-state">
-            <p className="empty-state__title">Nenhum plano criado ainda</p>
-            <p className="empty-state__body">
-              Crie o primeiro plano da academia para começar a matricular alunos com um ciclo de cobrança definido.
-            </p>
-            <button className="btn btn-primary" onClick={startCreate}>Criar primeiro plano</button>
-          </div>
+          <EmptyState
+            eyebrow="Planos da academia"
+            title="Nenhum plano configurado ainda"
+            description="Crie o primeiro plano para definir ciclos de cobrança e começar a matricular alunos. Os dados de adesão e receita aparecerão após as primeiras matrículas."
+            action={
+              <button className="btn btn-primary" onClick={startCreate}>Criar primeiro plano</button>
+            }
+          />
         </div>
       ) : (
         <div className="table-wrapper">

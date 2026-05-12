@@ -47,8 +47,11 @@ function PlaceholderPage({ title }: { title: string }) {
       </div>
       <div className="section-card">
         <div className="empty-state">
-          <p className="empty-state__title">Em desenvolvimento</p>
-          <p className="empty-state__body">Esta funcionalidade estará disponível em breve.</p>
+          <p className="empty-state__title">Recurso ainda não disponível</p>
+          <p className="empty-state__body">
+            Esta funcionalidade está sendo desenvolvida e será liberada em uma atualização futura.
+            Caso seja urgente, entre em contato com o suporte MinutoFit.
+          </p>
         </div>
       </div>
     </div>
@@ -68,7 +71,7 @@ const NAV_GROUPS: Array<{ label: string; items: NavItem[] }> = [
       { to: "/app/academy/dashboard", label: "Visão geral",       permission: "academy.dashboard"          },
       { to: "/app/academy/students",  label: "Alunos",            permission: "academy.students.read"      },
       { to: "/app/academy/plans",     label: "Planos",            permission: "academy.plans.read"         },
-      { to: "/app/academy/finance",   label: "Financeiro",        permission: "academy.finance.read"       },
+      // "Financeiro" é placeholder — oculto até implementação real
     ],
   },
   {

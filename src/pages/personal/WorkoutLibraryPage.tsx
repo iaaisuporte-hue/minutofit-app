@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { EmptyState } from "../../components/EmptyState";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "../../components/Toast";
 import StudentProfileModal from "./StudentProfileModal";
@@ -685,9 +686,11 @@ export default function WorkoutLibraryPage() {
                 })}
 
                 {eligibleStudents.length === 0 ? (
-                  <div style={{ color: "#6B7280", fontWeight: 600, padding: 10 }}>
-                    Nenhum aluno encontrado com esses filtros. Ajuste plano, idade ou nível.
-                  </div>
+                  <EmptyState
+                    variant="info"
+                    title="Nenhum aluno com esse perfil"
+                    description="Ajuste os filtros de plano, faixa etária ou nível de experiência para encontrar alunos compatíveis."
+                  />
                 ) : null}
               </div>
             </div>

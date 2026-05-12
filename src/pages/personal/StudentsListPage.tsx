@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { EmptyState } from "../../components/EmptyState";
 import { fetchPersonalDashboard, type PersonalDashboardStudent } from "../../services/personalDashboardApi";
 import { COLORS } from "../../styles/colors";
 import StudentProfileModal from "./StudentProfileModal";
@@ -188,16 +189,18 @@ export default function StudentsListPage() {
 
   if (loadingStudents) {
     return (
-      <div style={{ padding: 32, textAlign: "center", color: COLORS.muted }}>
-        Carregando alunos…
+      <div style={{ padding: 32 }}>
+        <div className="dash-skeleton">
+          {[1, 2, 3].map((i) => <div key={i} className="dash-skeleton-bar" style={{ height: 64 }} />)}
+        </div>
       </div>
     );
   }
 
   if (studentsError) {
     return (
-      <div style={{ padding: 32, textAlign: "center", color: COLORS.muted }}>
-        {studentsError}
+      <div style={{ padding: 32 }}>
+        <EmptyState variant="warning" title="Não foi possível carregar os alunos" description={studentsError} />
       </div>
     );
   }
@@ -299,6 +302,21 @@ export default function StudentsListPage() {
       {/* List */}
       <div className="pp-panel">
         <div className="pp-panel__body" style={{ display: "grid" }}>
+        {filtered.length === 0 && (
+          <EmptyState
+            variant={q || filter !== "all" ? "info" : "empty"}
+            title={
+              q || filter !== "all"
+                ? "Nenhum aluno com esses filtros"
+                : "Carteira ainda vazia"
+            }
+            description={
+              q || filter !== "all"
+                ? "Ajuste o filtro de plano ou o termo de busca."
+                : "Seus alunos aparecerão aqui assim que forem atribuídos a você pela academia."
+            }
+          />
+        )}
         {filtered.map((s) => {
           return (
             <div

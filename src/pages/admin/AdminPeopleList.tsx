@@ -2,6 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { fetchAdminUsers, type AdminUserRow } from "../../services/adminApi";
 import { COLORS } from "../../styles/colors";
+import { EmptyState } from "../../components/EmptyState";
+import { Banner } from "../../components/Banner";
+import { LoadingSkeleton } from "../../components/LoadingSkeleton";
 
 type Props = {
   role: "user" | "personal" | "nutri";
@@ -176,29 +179,25 @@ export default function AdminPeopleList({
         </form>
       </div>
 
-      {loading && (
-        <div style={{ padding: 24, color: COLORS.muted, textAlign: "center" }}>Carregando...</div>
-      )}
+      {loading && <LoadingSkeleton variant="list" lines={4} />}
 
       {error && (
-        <div
-          style={{
-            border: `1px solid ${COLORS.redBorder}`,
-            borderRadius: 16,
-            background: COLORS.redSoft,
-            padding: 16,
-            color: COLORS.text,
-          }}
-        >
-          <div style={{ fontWeight: 700 }}>Não foi possível carregar</div>
-          <div style={{ marginTop: 4, fontSize: 13, color: COLORS.muted }}>{error}</div>
-        </div>
+        <Banner variant="error" title="Não foi possível carregar" description={error} />
       )}
 
       {!loading && !error && people.length === 0 && (
-        <div style={{ padding: 24, color: COLORS.muted, textAlign: "center" }}>
-          {searchApplied ? `Nenhum resultado para "${searchApplied}".` : `Nenhum ${role === "user" ? "aluno" : role} cadastrado ainda.`}
-        </div>
+        searchApplied ? (
+          <EmptyState
+            variant="info"
+            title={`Nenhum resultado para "${searchApplied}"`}
+            description="Tente outros termos ou limpe o filtro para ver todos os registros."
+          />
+        ) : (
+          <EmptyState
+            title={`Nenhum ${role === "user" ? "aluno" : role} cadastrado ainda`}
+            description="Os registros aparecerão aqui assim que os primeiros usuários forem criados ou convidados."
+          />
+        )
       )}
 
       {!loading && !error && people.length > 0 && (

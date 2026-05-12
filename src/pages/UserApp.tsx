@@ -25,6 +25,7 @@ import OnboardingPage from "./user/OnboardingPage";
 // ✅ TREINO SUGERIDO
 import SuggestedTrainingPage from "./user/SuggestedTrainingPage";
 import ComplianceBanner from "../components/ComplianceBanner";
+import { MetabolismPill } from "../components/MetabolismPill";
 
 const USER_BASE = "/app/user" as const;
 const USER_DEFAULT = "/app/user/today" as const;
@@ -143,20 +144,12 @@ export default function UserApp() {
 
             <div className="navStack">
               <MenuLink to={`${USER_BASE}/today`} label="Hoje" iconKey="home" />
+              {canSuggestedTraining && <MenuLink to={`${USER_BASE}/suggested-training`} label="Treino do dia" iconKey="target" />}
               {canWorkouts && <MenuLink to={`${USER_BASE}/treinos`} label="Treinos" iconKey="workouts" />}
-              {canWorkouts && <MenuLink to={`${USER_BASE}/ficha`} label="Minha ficha" iconKey="clipboard" />}
-              {canHomeWorkouts && <MenuLink to={`${USER_BASE}/treinos/em-casa`} label="Treinos em casa" iconKey="run" />}
               {showTracker && <MenuLink to={`${USER_BASE}/activities`} label="Tracker" iconKey="tracker" />}
+              {showTrainingAi && <MenuLink to={`${USER_BASE}/movement-lab`} label="Lab de Movimento" iconKey="lab" />}
               {canMessages && <MenuLink to={`${USER_BASE}/messages`} label="Mensagens" iconKey="messages" />}
               {canProfile && <MenuLink to={`${USER_BASE}/profile`} label="Perfil" iconKey="profile" />}
-
-              {(canSuggestedTraining || showTrainingAi) && (
-                <div style={{ paddingTop: 12, paddingBottom: 4 }}>
-                  <div className="sectionLabel">Personalizado</div>
-                </div>
-              )}
-              {canSuggestedTraining && <MenuLink to={`${USER_BASE}/suggested-training`} label="Treino Sugerido" iconKey="target" />}
-              {showTrainingAi && <MenuLink to={`${USER_BASE}/movement-lab`} label="Lab de Movimento" iconKey="lab" />}
 
               {canSettings && (
                 <div style={{ paddingTop: 12, paddingBottom: 4 }}>
@@ -168,7 +161,8 @@ export default function UserApp() {
 
             <div style={{ flex: 1 }} />
 
-            <div className="sidebar-footer">
+            <div className="sidebar-footer" style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <MetabolismPill />
               <button type="button" onClick={handleLogout} className="logoutButton">
                 Sair da conta
               </button>

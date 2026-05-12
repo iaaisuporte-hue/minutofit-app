@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { EmptyState } from "../../components/EmptyState";
 import { useNavigate } from "react-router-dom";
 import {
   fetchStudents,
@@ -245,15 +246,16 @@ export default function AcademyStudentsPage() {
         </div>
       ) : students.length === 0 ? (
         <div className="section-card">
-          <div className="empty-state">
-            <p className="empty-state__title">Base de alunos pronta para começar</p>
-            <p className="empty-state__body">
-              Adicione o primeiro aluno por cadastro direto ou convite por e-mail. Os indicadores aparecerão após as primeiras matrículas.
-            </p>
-            <button className="btn btn-primary" onClick={() => { setShowAdd(true); resetAdd(); }}>
-              Adicionar primeiro aluno
-            </button>
-          </div>
+          <EmptyState
+            eyebrow="Base de alunos"
+            title="Sinais metabólicos em formação"
+            description="Adicione o primeiro aluno por cadastro direto ou convite por e-mail. Os indicadores de aderência, risco e evolução aparecerão após as primeiras matrículas."
+            action={
+              <button className="btn btn-primary" onClick={() => { setShowAdd(true); resetAdd(); }}>
+                Adicionar primeiro aluno
+              </button>
+            }
+          />
         </div>
       ) : (
         <div className="table-wrapper">
