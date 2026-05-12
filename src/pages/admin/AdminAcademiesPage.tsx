@@ -69,12 +69,18 @@ export default function AdminAcademiesPage() {
 
   // Create form
   const [creating, setCreating]   = useState(false);
-  const [form, setForm]           = useState({ slug: "", legalName: "", displayName: "" });
+  const [form, setForm]           = useState({ slug: "", legalName: "", displayName: "", primaryColor: "#22c55e" });
   const [ownerForm, setOwnerForm] = useState<OwnerForm>(EMPTY_OWNER);
   const [formError, setFormError] = useState<string | null>(null);
   const [saving, setSaving]       = useState(false);
   const [createdOwner, setCreatedOwner] = useState<CreatedOwner | null>(null);
   const [createdAcademy, setCreatedAcademy] = useState<Academy | null>(null);
+
+  // Branding edit for existing academy
+  const [brandingTargetId, setBrandingTargetId] = useState<number | null>(null);
+  const [brandingColor, setBrandingColor]       = useState("#22c55e");
+  const [brandingSaving, setBrandingSaving]     = useState(false);
+  const [brandingError, setBrandingError]       = useState<string | null>(null);
 
   // Assign-owner to existing academy
   const [assignTargetId, setAssignTargetId] = useState<number | null>(null);
@@ -160,13 +166,36 @@ export default function AdminAcademiesPage() {
       setCreatedAcademy(data.data.academy);
       setCreatedOwner(data.data.owner ?? null);
       setCreating(false);
-      setForm({ slug: "", legalName: "", displayName: "" });
+      setForm({ slug: "", legalName: "", displayName: "", primaryColor: "#22c55e" });
       setOwnerForm(EMPTY_OWNER);
       await load();
     } catch (err: any) {
       setFormError(err.message);
     } finally {
       setSaving(false);
+    }
+  }
+
+  // ─── Update branding (primary color) for any academy ─────────────────────
+  async function handleUpdateBranding(e: React.FormEvent) {
+    e.preventDefault();
+    if (!brandingTargetId) return;
+    setBrandingError(null);
+    setBrandingSaving(true);
+    try {
+      const res  = await authFetch(`${API_URL}/admin/academies/${brandingTargetId}/branding`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ primaryColor: brandingColor }),
+      });
+      const data = await parseJson(res);
+      if (!res.ok) throw new Error(data?.error || "Erro ao salvar branding.");
+      setBrandingTargetId(null);
+      await load();
+    } catch (err: any) {
+      setBrandingError(err.message);
+    } finally {
+      setBrandingSaving(false);
     }
   }
 
@@ -417,6 +446,18 @@ export default function AdminAcademiesPage() {
               <input id="ac-display" className="input" placeholder="ex: Fit Center SP" value={form.displayName}
                 onChange={(e) => setForm((f) => ({ ...f, displayName: e.target.value }))} disabled={saving} />
             </div>
+            <div className="field">
+              <label className="label" htmlFor="ac-color">Cor primária</label>
+              <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
+                <input id="ac-color" type="color" value={form.primaryColor}
+                  onChange={(e) => setForm((f) => ({ ...f, primaryColor: e.target.value }))}
+                  disabled={saving}
+                  style={{ width: 44, height: 36, padding: 2, border: "1px solid var(--color-border)", borderRadius: "var(--radius-sm)", cursor: "pointer" }} />
+                <input className="input" style={{ flex: 1 }} placeholder="#22c55e" value={form.primaryColor}
+                  onChange={(e) => setForm((f) => ({ ...f, primaryColor: e.target.value }))} disabled={saving} />
+              </div>
+              <span className="field-hint">Define as cores do subdomínio da academia (ex: botões, links).</span>
+            </div>
 
             {renderOwnerBlock(ownerForm, setOwnerForm as any, "create", suggestions)}
 
@@ -541,12 +582,49 @@ export default function AdminAcademiesPage() {
                           Trocar dono
                         </button>
                       )}
+                      <button
+                        className="btn btn-sm btn-ghost"
+                        title="Editar cor primária"
+                        onClick={() => { setBrandingTargetId(a.id); setBrandingColor(a.primary_color ?? "#22c55e"); setBrandingError(null); }}
+                        style={{ display: "flex", alignItems: "center", gap: 4 }}
+                      >
+                        <span style={{ width: 12, height: 12, borderRadius: "50%", background: a.primary_color ?? "var(--color-primary)", display: "inline-block", border: "1px solid var(--color-border)" }} />
+                        Cor
+                      </button>
                     </div>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Inline branding color editor */}
+      {brandingTargetId !== null && (
+        <div className="card" style={{ marginTop: "var(--space-5)", maxWidth: 380, borderColor: "var(--color-primary)" }}>
+          <div className="card-header">
+            <h2 className="card-title">Cor primária da academia</h2>
+          </div>
+          <form onSubmit={handleUpdateBranding} noValidate>
+            {brandingError && <div className="auth-error" role="alert" style={{ marginBottom: "var(--space-3)" }}>{brandingError}</div>}
+            <div className="field">
+              <label className="label">Cor primária</label>
+              <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
+                <input type="color" value={brandingColor} onChange={(e) => setBrandingColor(e.target.value)} disabled={brandingSaving}
+                  style={{ width: 44, height: 36, padding: 2, border: "1px solid var(--color-border)", borderRadius: "var(--radius-sm)", cursor: "pointer" }} />
+                <input className="input" style={{ flex: 1 }} value={brandingColor}
+                  onChange={(e) => setBrandingColor(e.target.value)} disabled={brandingSaving} placeholder="#22c55e" />
+              </div>
+              <span className="field-hint">Aplicada automaticamente no subdomínio da academia.</span>
+            </div>
+            <div style={{ display: "flex", gap: "var(--space-3)", marginTop: "var(--space-4)" }}>
+              <button type="submit" className="btn btn-primary btn-sm" disabled={brandingSaving} aria-busy={brandingSaving}>
+                {brandingSaving ? "Salvando…" : "Salvar cor"}
+              </button>
+              <button type="button" className="btn btn-ghost btn-sm" onClick={() => setBrandingTargetId(null)}>Cancelar</button>
+            </div>
+          </form>
         </div>
       )}
     </div>
