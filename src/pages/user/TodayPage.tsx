@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext";
 import { useFeatureFlags } from "../../auth/FeatureFlagsContext";
 import { useIsMobile } from "../../hooks/useIsMobile";
-import { persistWellbeingCheckin } from "../../services/gamificationApi";
+import { persistGamificationCheckin, persistWellbeingCheckin } from "../../services/gamificationApi";
 import { getDailyMission } from "./gamification";
 import { loadAnswers } from "./onboarding/onboardingStorage";
 import {

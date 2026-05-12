@@ -5,20 +5,23 @@ import { LoadingSkeleton } from "../../components/LoadingSkeleton";
 import { Banner } from "../../components/Banner";
 
 const STATUS_LABEL: Record<string, string> = {
-  paid:    "Pago",
-  pending: "Pendente",
-  failed:  "Falhou",
-  refunded:"Estornado",
+  paid:     "Pago",
+  approved: "Pago",
+  pending:  "Pendente",
+  failed:   "Falhou",
+  refunded: "Estornado",
 };
 const STATUS_CLASS: Record<string, string> = {
-  paid:    "badge badge-success",
-  pending: "badge badge-warn",
-  failed:  "badge badge-error",
-  refunded:"badge",
+  paid:     "badge badge-success",
+  approved: "badge badge-success",
+  pending:  "badge badge-warn",
+  failed:   "badge badge-error",
+  refunded: "badge",
 };
 
+/** `amount_brl` / API já vêm em reais (não centavos). */
 function fmt(amount: number, currency: string) {
-  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: currency || "BRL" }).format(amount / 100);
+  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: currency || "BRL" }).format(amount);
 }
 function fmtDate(iso: string | null) {
   if (!iso) return "—";

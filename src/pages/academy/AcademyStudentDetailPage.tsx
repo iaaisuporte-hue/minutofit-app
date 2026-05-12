@@ -37,7 +37,32 @@ const AUDIT_LABEL: Record<string, string> = {
   "student.paused":         "Pausado",
   "student.cancelled":      "Cancelado",
   "student.reactivated":    "Reativado",
+  "student.password_reset": "Senha redefinida pela equipe",
 };
+
+/** Resumo legível de `meta` do audit log (evita JSON bruto na UI). */
+function formatAuditMetaLine(meta: Record<string, unknown> | null | undefined): string | null {
+  if (!meta || typeof meta !== "object") return null;
+  const m = meta as Record<string, unknown>;
+  const parts: string[] = [];
+  if (typeof m.email === "string") parts.push(`E-mail: ${m.email}`);
+  if (typeof m.roleSlug === "string") parts.push(`Papel: ${m.roleSlug}`);
+  if (typeof m.mode === "string") parts.push(`Modo: ${m.mode}`);
+  if (m.planId != null && m.planId !== "") parts.push(`Plano: ${String(m.planId)}`);
+  if (typeof m.newStatus === "string") parts.push(`Novo status: ${m.newStatus}`);
+  if (typeof m.isActive === "boolean") parts.push(m.isActive ? "Membro ativo" : "Membro inativo");
+  if (typeof m.primaryColor === "string" && m.primaryColor) parts.push("Identidade visual (cores) atualizada");
+  if (typeof m.name === "string") parts.push(`Nome: ${m.name}`);
+  if (typeof m.monthlyPrice === "number") parts.push(`Valor: R$ ${m.monthlyPrice.toFixed(2)}`);
+  if (typeof m.productKey === "string") parts.push(`Produto: ${m.productKey}`);
+  if (parts.length > 0) return parts.join(" · ");
+  const keys = Object.keys(m);
+  if (keys.length === 0) return null;
+  return keys
+    .slice(0, 6)
+    .map((k) => `${k}: ${String(m[k])}`)
+    .join(" · ");
+}
 
 function initials(name: string) {
   return name.split(" ").filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join("");
@@ -541,9 +566,14 @@ export default function AcademyStudentDetailPage() {
                       <p style={{ fontSize: "var(--text-sm)", fontWeight: "var(--font-medium)", marginBottom: 2 }}>
                         {AUDIT_LABEL[entry.action] ?? entry.action}
                       </p>
-                      {entry.meta && Object.keys(entry.meta).length > 0 && (
-                        <p className="small">{JSON.stringify(entry.meta)}</p>
-                      )}
+                      {(() => {
+                        const line = formatAuditMetaLine(entry.meta);
+                        return line ? (
+                        <p className="small" style={{ color: "var(--color-text-muted)" }}>
+                          {line}
+                        </p>
+                        ) : null;
+                      })()}
                     </div>
                     <p className="small" style={{ whiteSpace: "nowrap" }}>
                       {new Date(entry.createdAt).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })}

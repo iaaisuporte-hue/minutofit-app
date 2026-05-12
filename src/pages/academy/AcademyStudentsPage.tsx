@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { EmptyState } from "../../components/EmptyState";
-import { useNavigate } from "react-router-dom";
+import { Banner } from "../../components/Banner";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   fetchStudents,
   fetchPlans,
@@ -89,6 +90,8 @@ const DEFAULT_ADD: AddForm = {
 
 export default function AcademyStudentsPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const filterFromUrl = searchParams.get("filter") === "at_risk" || searchParams.get("atRisk") === "1";
 
   const [students, setStudents]   = useState<Student[]>([]);
   const [stats, setStats]         = useState<StudentsStats | null>(null);
@@ -96,6 +99,7 @@ export default function AcademyStudentsPage() {
   const [page, setPage]           = useState(1);
   const [loading, setLoading]     = useState(true);
   const [filterStatus, setFilter] = useState("");
+  const [atRiskOnly, setAtRiskOnly] = useState(filterFromUrl);
   const [search, setSearch]       = useState("");
   const [searchInput, setInput]   = useState("");
 
@@ -111,15 +115,25 @@ export default function AcademyStudentsPage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetchStudents({ status: filterStatus || undefined, q: search || undefined, page, pageSize: PAGE_SIZE });
+      const res = await fetchStudents({
+        status: filterStatus || undefined,
+        q: search || undefined,
+        page,
+        pageSize: PAGE_SIZE,
+        atRisk: atRiskOnly || undefined,
+      });
       setStudents(res.students);
       setTotal(res.total);
       setStats(res.stats);
     } catch { /* keep */ }
     finally { setLoading(false); }
-  }, [filterStatus, search, page]);
+  }, [filterStatus, search, page, atRiskOnly]);
 
   useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    const v = searchParams.get("filter") === "at_risk" || searchParams.get("atRisk") === "1";
+    setAtRiskOnly(v);
+  }, [searchParams]);
   useEffect(() => { fetchPlans().then(setPlans).catch(() => {}); }, []);
 
   function handleSearch(e: React.FormEvent) {
@@ -212,6 +226,29 @@ export default function AcademyStudentsPage() {
 
       {/* Filters */}
       <div className="section-card" style={{ padding: "var(--space-4)" }}>
+        {atRiskOnly && (
+          <Banner
+            variant="warn"
+            description={
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2)", alignItems: "center", justifyContent: "space-between" }}>
+                <span>
+                  Filtro ativo: alunos ativos sem check-in nos últimos 14 dias (mesmo critério do painel &quot;Sinais da semana&quot;).
+                </span>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-secondary"
+                  onClick={() => {
+                    navigate("/app/academy/students", { replace: true });
+                    setAtRiskOnly(false);
+                    setPage(1);
+                  }}
+                >
+                  Limpar filtro
+                </button>
+              </div>
+            }
+          />
+        )}
         <div style={{ display: "flex", gap: "var(--space-3)", flexWrap: "wrap", alignItems: "flex-end" }}>
           <form onSubmit={handleSearch} style={{ display: "flex", gap: "var(--space-2)", flex: 1, minWidth: 200 }}>
             <input
@@ -226,7 +263,16 @@ export default function AcademyStudentsPage() {
           <select
             className="input"
             value={filterStatus}
-            onChange={(e) => { setFilter(e.target.value); setPage(1); }}
+            disabled={atRiskOnly}
+            title={atRiskOnly ? "Desative o filtro de risco por atividade para filtrar por status." : undefined}
+            onChange={(e) => {
+              if (searchParams.get("filter") === "at_risk" || searchParams.get("atRisk") === "1") {
+                navigate("/app/academy/students", { replace: true });
+              }
+              setAtRiskOnly(false);
+              setFilter(e.target.value);
+              setPage(1);
+            }}
             style={{ width: 160, flexShrink: 0 }}
           >
             <option value="">Todos os status</option>

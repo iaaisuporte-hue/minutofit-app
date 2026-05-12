@@ -3,6 +3,8 @@ import { NavLink, Navigate, Route, Routes, useNavigate } from "react-router-dom"
 import { useAuth } from "../auth/AuthContext";
 import AppShell from "../layout/AppShell";
 import MinutoFitLogo from "../components/MinutoFitLogo";
+import { ProductGate } from "../components/ProductGate";
+import { EmptyState } from "../components/EmptyState";
 import type { AppPermission } from "../auth/accessControl";
 import { extractTenantSlug } from "../services/tenantHost";
 
@@ -22,20 +24,36 @@ function MenuLink({ to, label }: { to: string; label: string }) {
   );
 }
 
-function RedirectToDashboard() {
-  return <Navigate to="/app/academy/dashboard" replace />;
+/** Primeira rota de academia que o usuário pode abrir (evita redirect para dashboard sem permissão). */
+const ACADEMY_DEFAULT_ROUTE_ORDER: Array<{ to: string; permission: AppPermission }> = [
+  { to: "/app/academy/dashboard", permission: "academy.dashboard" },
+  { to: "/app/academy/students", permission: "academy.students.read" },
+  { to: "/app/academy/plans", permission: "academy.plans.read" },
+  { to: "/app/academy/finance", permission: "academy.finance.read" },
+  { to: "/app/academy/team", permission: "academy.invitations.write" },
+  { to: "/app/academy/branding", permission: "academy.branding" },
+];
+
+function RedirectToFirstAcademyRoute() {
+  const auth = useAuth();
+  const dest =
+    ACADEMY_DEFAULT_ROUTE_ORDER.find((r) => auth.hasPermission(r.permission))?.to ?? "/app";
+  return <Navigate to={dest} replace />;
 }
 
 function AcademyPermissionRoute({
   permission,
   children,
+  fallbackTo = "/app",
 }: {
   permission: AppPermission;
   children: React.ReactNode;
+  /** Destino quando o usuário não tem a permissão (não use a mesma URL da rota atual). */
+  fallbackTo?: string;
 }) {
   const auth = useAuth();
   if (!auth.hasPermission(permission)) {
-    return <Navigate to="/app/academy/dashboard" replace />;
+    return <Navigate to={fallbackTo} replace />;
   }
   return <>{children}</>;
 }
@@ -126,10 +144,29 @@ export default function AcademyApp() {
   );
 
   return (
+    <ProductGate
+      productKey="academia"
+      fallback={
+        <div className="page-container" style={{ maxWidth: 520, margin: "var(--space-8) auto" }}>
+          <EmptyState
+            eyebrow="Acesso à academia"
+            title="Produto Academia não ativo"
+            description="Sua conta ainda não inclui o módulo de gestão da academia. Entre em contato com o administrador da sua unidade ou com o suporte MetaCore para habilitar o acesso."
+          />
+        </div>
+      }
+    >
     <AppShell sidebar={sidebar}>
       <Routes>
-        <Route index element={<RedirectToDashboard />} />
-        <Route path="dashboard" element={<AcademyDashboardPage />} />
+        <Route index element={<RedirectToFirstAcademyRoute />} />
+        <Route
+          path="dashboard"
+          element={
+            <AcademyPermissionRoute permission="academy.dashboard" fallbackTo="/app/academy/students">
+              <AcademyDashboardPage />
+            </AcademyPermissionRoute>
+          }
+        />
         <Route
           path="students"
           element={
@@ -178,8 +215,9 @@ export default function AcademyApp() {
             </AcademyPermissionRoute>
           }
         />
-        <Route path="*" element={<RedirectToDashboard />} />
+        <Route path="*" element={<RedirectToFirstAcademyRoute />} />
       </Routes>
     </AppShell>
+    </ProductGate>
   );
 }

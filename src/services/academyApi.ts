@@ -336,6 +336,8 @@ export async function fetchStudents(params?: {
   unitId?: number;
   page?: number;
   pageSize?: number;
+  /** Sem check-in nos últimos 14 dias (alinhado ao dashboard) */
+  atRisk?: boolean;
 }): Promise<StudentsListResult> {
   const qs = new URLSearchParams();
   if (params?.status) qs.set('status', params.status);
@@ -343,6 +345,7 @@ export async function fetchStudents(params?: {
   if (params?.unitId) qs.set('unitId', String(params.unitId));
   if (params?.page) qs.set('page', String(params.page));
   if (params?.pageSize) qs.set('pageSize', String(params.pageSize));
+  if (params?.atRisk) qs.set('atRisk', '1');
   const data = await authFetch(`${API_URL}/academy/students?${qs}`).then(parseJson);
   if (!data.success) throw new Error(data.error);
   return data.data;
