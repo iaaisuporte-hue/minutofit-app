@@ -39,6 +39,23 @@ export interface AcademyBranding {
   theme?: string;
 }
 
+export interface AcademyDashboardRetention {
+  totalStudents: number;
+  studentsActive: number;
+  studentsAtRisk: number;
+  noWorkout14d: number;
+  adherence7dPct: number | null;
+}
+
+export interface AcademyDashboardAtRiskStudent {
+  id: number;
+  name: string;
+  email: string;
+  lastCheckin: string | null;
+  lastWorkout: string | null;
+  daysInactive: number;
+}
+
 export interface AcademyDashboard {
   academy: {
     display_name: string;
@@ -53,6 +70,9 @@ export interface AcademyDashboard {
   } | null;
   membersByRole: Record<string, number>;
   totalMembers: number;
+  professionalsActive: number;
+  retention: AcademyDashboardRetention;
+  atRiskStudents: AcademyDashboardAtRiskStudent[];
 }
 
 export interface InvitationInfo {
@@ -245,9 +265,18 @@ export interface StudentsListResult {
   stats: StudentsStats;
 }
 
+export interface StudentActivity {
+  lastWorkout: string | null;
+  lastCheckin: string | null;
+  workouts30d: number;
+  checkins30d: number;
+  adherence30dPct: number | null;
+}
+
 export interface StudentDetail extends Student {
   enrollments: Enrollment[];
   auditHistory: AuditEntry[];
+  activity?: StudentActivity;
 }
 
 export async function fetchStudents(params?: {

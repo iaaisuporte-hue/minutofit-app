@@ -10,6 +10,7 @@ import {
   type StudentDetail,
   type AcademyPlan,
   type Enrollment,
+  type StudentActivity,
 } from "../../services/academyApi";
 
 const STATUS_LABELS: Record<string, string> = {
@@ -47,6 +48,91 @@ function InfoField({ label, value }: { label: string; value?: string | null }) {
     <div>
       <div className="dash-eyebrow" style={{ marginBottom: 2 }}>{label}</div>
       <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--font-medium)" }}>{value}</div>
+    </div>
+  );
+}
+
+function dateRelative(iso: string | null) {
+  if (!iso) return "Nunca";
+  const days = Math.floor((Date.now() - new Date(iso).getTime()) / (1000 * 60 * 60 * 24));
+  if (days === 0) return "Hoje";
+  if (days === 1) return "Ontem";
+  return `Há ${days} dias`;
+}
+
+function ActivityBlock({ activity }: { activity?: StudentActivity }) {
+  if (!activity) return null;
+
+  const adherence = activity.adherence30dPct;
+  const barColor =
+    adherence == null ? "var(--color-border)"
+    : adherence >= 70 ? "var(--color-success, #22c55e)"
+    : adherence >= 40 ? "var(--color-warning, #f59e0b)"
+    : "var(--color-danger, #ef4444)";
+
+  return (
+    <div className="section-card">
+      <h2 className="section-card__title" style={{ marginBottom: "var(--space-4)" }}>Atividade</h2>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "var(--space-4)", marginBottom: "var(--space-5)" }}>
+        <div>
+          <div className="dash-eyebrow" style={{ marginBottom: 4 }}>Último treino</div>
+          <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--font-medium)" }}>
+            {dateRelative(activity.lastWorkout)}
+          </div>
+          {activity.lastWorkout && (
+            <div style={{ fontSize: "var(--text-xs)", color: "var(--color-text-2)", marginTop: 2 }}>
+              {new Date(activity.lastWorkout).toLocaleDateString("pt-BR")}
+            </div>
+          )}
+        </div>
+
+        <div>
+          <div className="dash-eyebrow" style={{ marginBottom: 4 }}>Último check-in</div>
+          <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--font-medium)" }}>
+            {dateRelative(activity.lastCheckin)}
+          </div>
+          {activity.lastCheckin && (
+            <div style={{ fontSize: "var(--text-xs)", color: "var(--color-text-2)", marginTop: 2 }}>
+              {new Date(activity.lastCheckin).toLocaleDateString("pt-BR")}
+            </div>
+          )}
+        </div>
+
+        <div>
+          <div className="dash-eyebrow" style={{ marginBottom: 4 }}>Treinos em 30d</div>
+          <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--font-medium)" }}>
+            {activity.workouts30d}
+          </div>
+          <div style={{ fontSize: "var(--text-xs)", color: "var(--color-text-2)", marginTop: 2 }}>
+            {activity.checkins30d} check-in{activity.checkins30d !== 1 ? "s" : ""}
+          </div>
+        </div>
+      </div>
+
+      {/* Adherence bar */}
+      <div>
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+          <span style={{ fontSize: "var(--text-xs)", color: "var(--color-text-2)" }}>Aderência 30 dias</span>
+          <span style={{ fontSize: "var(--text-xs)", fontWeight: "var(--font-semibold)", color: barColor }}>
+            {adherence != null ? `${adherence}%` : "Sem dados"}
+          </span>
+        </div>
+        <div style={{
+          height: 6,
+          background: "var(--color-surface-2, rgba(0,0,0,.06))",
+          borderRadius: 99,
+          overflow: "hidden",
+        }}>
+          <div style={{
+            width: `${Math.min(adherence ?? 0, 100)}%`,
+            height: "100%",
+            background: barColor,
+            borderRadius: 99,
+            transition: "width 0.4s ease",
+          }} />
+        </div>
+      </div>
     </div>
   );
 }
@@ -365,6 +451,9 @@ export default function AcademyStudentDetailPage() {
               </form>
             )}
           </div>
+
+          {/* Activity block */}
+          <ActivityBlock activity={student.activity} />
 
           {/* Event history */}
           <div className="section-card">
