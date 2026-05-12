@@ -41,8 +41,13 @@ export function extractTenantSlug(): string | null {
 
 /** Fetches branding from the backend. Returns null on 204 (no tenant) or network error. */
 export async function fetchBranding(): Promise<AcademyBrandingPublic | null> {
+  const slug = extractTenantSlug();
+  if (!slug) return null;
   try {
-    const res = await fetch(`${API_URL}/auth/branding`, { credentials: 'omit' });
+    const res = await fetch(`${API_URL}/auth/branding`, {
+      credentials: 'omit',
+      headers: { 'X-Tenant-Host': window.location.hostname },
+    });
     if (res.status === 204) return null;
     if (!res.ok) return null;
     const data = await res.json();

@@ -1,5 +1,6 @@
 import { API_URL, notifySessionExpired, parseJson } from "./apiBase";
 import { clearTokens, getAccessToken, getRefreshToken, setTokens } from "./authTokens";
+import { extractTenantSlug } from "./tenantHost";
 
 let refreshInFlight: Promise<boolean> | null = null;
 
@@ -53,6 +54,14 @@ export async function authFetch(input: string | URL, init?: RequestInit): Promis
     const headers = new Headers(init?.headers);
     if (token) {
       headers.set("Authorization", `Bearer ${token}`);
+    }
+    // Forward the browser's hostname so the backend tenantResolverMiddleware can
+    // identify the academy even though the API is on a different domain (Render).
+    if (typeof window !== 'undefined') {
+      const tenantSlug = extractTenantSlug();
+      if (tenantSlug) {
+        headers.set("X-Tenant-Host", window.location.hostname);
+      }
     }
     return fetch(url, { ...init, headers });
   };

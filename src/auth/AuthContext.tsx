@@ -15,7 +15,7 @@ import {
 import { hasPermission as checkPermission, resolvePermissions, type AccessProfile, type AppPermission } from "./accessControl";
 import { SESSION_EXPIRED_EVENT } from "../services/apiBase";
 import { clearTokens as clearStoredTokens, getAccessToken, setTokens } from "../services/authTokens";
-import { fetchBranding, applyBranding, removeBranding } from "../services/tenantHost";
+import { extractTenantSlug, fetchBranding, applyBranding, removeBranding } from "../services/tenantHost";
 
 export type Role = "user" | "personal" | "nutri" | "admin";
 
@@ -86,6 +86,21 @@ function normalizeEmail(email: string) {
   return (email ?? "").trim().toLowerCase();
 }
 
+/**
+ * Picks the active academy from the list.
+ * On a tenant subdomain, finds the academy whose slug matches the hostname.
+ * Falls back to single-academy auto-select, or null if ambiguous.
+ */
+function resolveActiveAcademyId(academies: AcademyForUser[]): number | null {
+  if (academies.length === 0) return null;
+  const slug = extractTenantSlug();
+  if (slug) {
+    const match = academies.find((a) => a.slug === slug);
+    if (match) return match.id;
+  }
+  return academies.length === 1 ? academies[0].id : null;
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<AuthState>({
     isAuthenticated: false,
@@ -117,7 +132,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (user) {
           let academies: AcademyForUser[] = [];
           try { academies = await fetchUserAcademies(); } catch { /* schema may not exist yet */ }
-          const activeAcademyId = academies.length === 1 ? academies[0].id : null;
+          const activeAcademyId = resolveActiveAcademyId(academies);
           setState({
             isAuthenticated: true,
             role: user.role,
@@ -227,7 +242,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
           let academies: AcademyForUser[] = [];
           try { academies = await fetchUserAcademies(); } catch { /* schema may not exist yet */ }
-          const activeAcademyId = academies.length === 1 ? academies[0].id : null;
+          const activeAcademyId = resolveActiveAcademyId(academies);
 
           setState({
             isAuthenticated: true,
