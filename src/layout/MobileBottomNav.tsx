@@ -40,14 +40,22 @@ interface Props {
   baseUrl: string;
   showMessages?: boolean;
   showWorkouts?: boolean;
+  showLab?: boolean;
+  showTracker?: boolean;
 }
 
-export default function MobileBottomNav({ baseUrl, showMessages = false, showWorkouts = true }: Props) {
+export default function MobileBottomNav({
+  baseUrl,
+  showMessages = false,
+  showWorkouts = true,
+  showLab = true,
+  showTracker = true,
+}: Props) {
   const items: NavItem[] = [
     { to: `${baseUrl}/today`, label: "Hoje", icon: <HomeIcon /> },
+    ...(showLab ? [{ to: `${baseUrl}/movement-lab`, label: "Lab", icon: <LabIcon /> }] : []),
     ...(showWorkouts ? [{ to: `${baseUrl}/treinos`, label: "Treinos", icon: <WorkoutsIcon /> }] : []),
-    { to: `${baseUrl}/activities`, label: "Tracker", icon: <TrackerIcon /> },
-    { to: `${baseUrl}/movement-lab`, label: "Lab", icon: <LabIcon /> },
+    ...(showTracker ? [{ to: `${baseUrl}/activities`, label: "Tracker", icon: <TrackerIcon /> }] : []),
     ...(showMessages ? [{ to: `${baseUrl}/messages`, label: "Chat", icon: <MessagesIcon /> }] : []),
   ];
 

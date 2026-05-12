@@ -265,6 +265,7 @@ export default function AcademyStudentsPage() {
                 <th>Aluno</th>
                 <th>Status</th>
                 <th>Plano ativo</th>
+                <th>Diferenciais</th>
                 <th>Membro desde</th>
                 <th></th>
               </tr>
@@ -300,6 +301,30 @@ export default function AcademyStudentsPage() {
                       ? <span style={{ fontSize: "var(--text-sm)" }}>{s.activePlan.name} — <strong>R$ {s.activePlan.monthlyPrice.toFixed(2)}</strong></span>
                       : <span className="muted small">Sem plano</span>
                     }
+                  </td>
+                  <td>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                      <span
+                        className="badge"
+                        style={{
+                          fontSize: 10,
+                          opacity: s.hasUsedLab ? 1 : 0.55,
+                          border: `1px solid ${s.hasUsedLab ? "var(--color-success-border)" : "var(--color-border)"}`,
+                        }}
+                      >
+                        Lab{s.hasUsedLab ? "" : " · não usou"}
+                      </span>
+                      <span
+                        className="badge"
+                        style={{
+                          fontSize: 10,
+                          opacity: s.hasUsedTracker ? 1 : 0.55,
+                          border: `1px solid ${s.hasUsedTracker ? "var(--color-success-border)" : "var(--color-border)"}`,
+                        }}
+                      >
+                        Tracker{s.hasUsedTracker ? "" : " · não usou"}
+                      </span>
+                    </div>
                   </td>
                   <td className="small">{s.joinedAt ? new Date(s.joinedAt).toLocaleDateString("pt-BR") : "—"}</td>
                   <td>

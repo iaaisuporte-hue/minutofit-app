@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext";
 import { useFeatureFlags } from "../../auth/FeatureFlagsContext";
 import { useIsMobile } from "../../hooks/useIsMobile";
-import { persistGamificationCheckin } from "../../services/gamificationApi";
+import { persistWellbeingCheckin } from "../../services/gamificationApi";
 import { getDailyMission } from "./gamification";
 import { loadAnswers } from "./onboarding/onboardingStorage";
 import {
@@ -309,6 +309,20 @@ export default function TodayPage() {
           condition={dailyCondition}
           setCondition={setDailyCondition}
           clearCondition={clearDailyCondition}
+          onConditionSaved={async ({ feeling, details: d }) => {
+            try {
+              await persistWellbeingCheckin({
+                feeling,
+                sleptWell: d.sleptWell,
+                inPain: d.inPain,
+                stressed: d.stressed,
+              });
+              refetchGamification();
+              refetchMetabolism();
+            } catch (e) {
+              console.error("[wellbeing] sync failed:", e);
+            }
+          }}
         />
       </motion.div>
 

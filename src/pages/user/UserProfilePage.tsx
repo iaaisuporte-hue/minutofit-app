@@ -7,6 +7,7 @@ import { useAuth } from "../../auth/AuthContext";
 import { useFeatureFlags } from "../../auth/FeatureFlagsContext";
 import { mapCanonicalPlanToLabel, normalizeToCanonicalPlanName } from "../../utils/planNormalization";
 import { useMetabolism } from "../../features/metabolism/useMetabolism";
+import { useGamificationSummary } from "../../features/gamification/useGamificationSummary";
 import {
   itemRevealVariants,
   pageStaggerVariants,
@@ -129,9 +130,128 @@ function maskPhone(phone?: string) {
   return phone || "Nao informado";
 }
 
+function drawEvolutionShareCard(opts: {
+  partnerName: string;
+  userName: string;
+  score: number;
+  trend30Label: string;
+  streak: number;
+  logoUrl?: string | null;
+}): Promise<void> {
+  const W = 1080;
+  const H = 1080;
+  const canvas = document.createElement("canvas");
+  canvas.width = W;
+  canvas.height = H;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return Promise.reject(new Error("Canvas não suportado"));
+
+  const paint = () => {
+    const grd = ctx.createLinearGradient(0, 0, W, H);
+    grd.addColorStop(0, "#0f172a");
+    grd.addColorStop(1, "#1e293b");
+    ctx.fillStyle = grd;
+    ctx.fillRect(0, 0, W, H);
+
+    ctx.fillStyle = "rgba(248,250,252,0.88)";
+    ctx.font = "600 36px system-ui, -apple-system, sans-serif";
+    ctx.fillText(opts.partnerName.slice(0, 40), 72, 100);
+
+    ctx.fillStyle = "#94a3b8";
+    ctx.font = "500 28px system-ui, -apple-system, sans-serif";
+    ctx.fillText(opts.userName.slice(0, 42), 72, 160);
+
+    ctx.fillStyle = "#f8fafc";
+    ctx.font = "800 120px system-ui, -apple-system, sans-serif";
+    ctx.fillText(String(Math.round(opts.score)), 72, 340);
+
+    ctx.fillStyle = "#94a3b8";
+    ctx.font = "600 32px system-ui, -apple-system, sans-serif";
+    ctx.fillText("Score metabólico", 72, 400);
+
+    ctx.fillStyle = "#e2e8f0";
+    ctx.font = "600 34px system-ui, -apple-system, sans-serif";
+    ctx.fillText(`30 dias: ${opts.trend30Label}`, 72, 520);
+
+    const weeks = Math.max(1, Math.floor(opts.streak / 7));
+    const streakLine =
+      weeks >= 4 ? `${weeks} semanas de consistência` : `${weeks} semana${weeks !== 1 ? "s" : ""} de consistência`;
+
+    ctx.fillStyle = "#cbd5e1";
+    ctx.font = "500 30px system-ui, -apple-system, sans-serif";
+    ctx.fillText(`Streak ${opts.streak} dias · ${streakLine}`, 72, 620);
+
+    ctx.fillStyle = "rgba(148,163,184,0.9)";
+    ctx.font = "500 24px system-ui, -apple-system, sans-serif";
+    ctx.fillText("MinutoFit — evolução que importa", 72, H - 72);
+  };
+
+  return new Promise((resolve, reject) => {
+    if (opts.logoUrl) {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => {
+        paint();
+        try {
+          const s = 140;
+          ctx.drawImage(img, W - s - 80, 60, s, s);
+        } catch {
+          /* CORS or draw failure */
+        }
+        canvas.toBlob((blob) => {
+          if (!blob) {
+            reject(new Error("PNG"));
+            return;
+          }
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = "minutofit-evolucao.png";
+          a.click();
+          URL.revokeObjectURL(url);
+          resolve();
+        }, "image/png");
+      };
+      img.onerror = () => {
+        paint();
+        canvas.toBlob((blob) => {
+          if (!blob) {
+            reject(new Error("PNG"));
+            return;
+          }
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = "minutofit-evolucao.png";
+          a.click();
+          URL.revokeObjectURL(url);
+          resolve();
+        }, "image/png");
+      };
+      img.src = opts.logoUrl;
+      return;
+    }
+    paint();
+    canvas.toBlob((blob) => {
+      if (!blob) {
+        reject(new Error("PNG"));
+        return;
+      }
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "minutofit-evolucao.png";
+      a.click();
+      URL.revokeObjectURL(url);
+      resolve();
+    }, "image/png");
+  });
+}
+
 export default function UserProfilePage({ onLogout: _onLogout }: Props) { // eslint-disable-line @typescript-eslint/no-unused-vars
-  const { user, email, profileCompleted } = useAuth();
+  const { user, email, profileCompleted, branding, academies } = useAuth();
   const { data: metabolismData } = useMetabolism();
+  const { data: gamification } = useGamificationSummary();
   const { planName } = useFeatureFlags();
   const isMobile = useIsMobile(720);
   const { shouldReduceMotion, shouldUseParallax, shouldUseTilt } = useTodayMotionSafe({ isMobile });
@@ -298,12 +418,46 @@ export default function UserProfilePage({ onLogout: _onLogout }: Props) { // esl
             <div style={{ display: "grid", gap: 14 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
                 <div style={{ fontSize: 20, fontWeight: 700, color: COLORS.text }}>Estado metabólico</div>
-                <Link
-                  to="/app/user/today"
-                  style={{ color: "#22C55E", fontWeight: 600, textDecoration: "none", fontSize: 13 }}
-                >
-                  Ver evolução →
-                </Link>
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const t30 = metabolismData.trend30d;
+                      const trend30Label =
+                        !t30 || t30.direction === "stable"
+                          ? "estável"
+                          : `${t30.delta >= 0 ? "+" : ""}${t30.delta} pts`;
+                      void drawEvolutionShareCard({
+                        partnerName: branding?.displayName ?? academies?.[0]?.displayName ?? "MinutoFit",
+                        userName: user?.name || accountSummary.name,
+                        score: metabolismData.score,
+                        trend30Label,
+                        streak: gamification?.streak ?? 0,
+                        logoUrl: branding?.logoUrl ?? academies?.[0]?.logoUrl ?? null,
+                      }).catch(() => {
+                        /* ignore */
+                      });
+                    }}
+                    style={{
+                      border: `1px solid ${COLORS.borderStrong}`,
+                      background: COLORS.panelSoft,
+                      color: COLORS.text,
+                      fontWeight: 600,
+                      fontSize: 13,
+                      padding: "8px 14px",
+                      borderRadius: 999,
+                      cursor: "pointer",
+                    }}
+                  >
+                    Baixar card para compartilhar
+                  </button>
+                  <Link
+                    to="/app/user/today"
+                    style={{ color: "#22C55E", fontWeight: 600, textDecoration: "none", fontSize: 13 }}
+                  >
+                    Ver evolução →
+                  </Link>
+                </div>
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 10 }}>
                 <div

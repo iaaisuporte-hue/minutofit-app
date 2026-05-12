@@ -14,6 +14,7 @@ export type PersonalConsultingNextAction =
   | "keep_progression";
 export type PersonalDashboardAlertType =
   | "attention_load"
+  | "cluster_low_sleep"
   | "full_adherence"
   | "silent_disappear"
   | "overtraining"
@@ -41,6 +42,7 @@ export type PersonalDashboardStudent = {
   metabolismBand: PersonalMetabolicBand;
   metabolismTrend: PersonalMetabolicTrend;
   metabolismDelta7d: number | null;
+  latestSleptWell?: boolean | null;
 };
 
 export type PersonalDashboardAlert = {
@@ -85,6 +87,14 @@ export type PersonalStudentSnapshot = {
     checkedInToday: boolean;
     lastCheckinISO: string | null;
     moodAvailable: boolean;
+    wellbeing: {
+      feeling: string | null;
+      sleptWell: boolean | null;
+      inPain: boolean | null;
+      stressed: boolean | null;
+      notes: string | null;
+      dateKey: string;
+    } | null;
     metabolism: {
       score: number;
       status: string;

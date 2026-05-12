@@ -17,12 +17,19 @@ export interface MetabolicRecommendation {
   priority: number;
 }
 
+export interface MetabolicTrendBlock {
+  delta: number;
+  direction: 'up' | 'down' | 'stable';
+}
+
 export interface MetabolicData {
   score: number;
   status: MetabolicStatus;
   trend: MetabolicTrend;
   factors: MetabolicFactor[];
   recommendations: MetabolicRecommendation[];
+  trend7d?: MetabolicTrendBlock;
+  trend30d?: MetabolicTrendBlock;
 }
 
 export interface MetabolicHistoryPoint {

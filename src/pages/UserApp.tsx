@@ -133,6 +133,8 @@ export default function UserApp() {
             baseUrl={USER_BASE}
             showMessages={canMessages}
             showWorkouts={canWorkouts}
+            showLab={canTrainingAi}
+            showTracker={showTracker}
           />
         }
         sidebar={
@@ -144,10 +146,10 @@ export default function UserApp() {
 
             <div className="navStack">
               <MenuLink to={`${USER_BASE}/today`} label="Hoje" iconKey="home" />
+              {canTrainingAi && <MenuLink to={`${USER_BASE}/movement-lab`} label="Lab de Movimento" iconKey="lab" />}
               {canSuggestedTraining && <MenuLink to={`${USER_BASE}/suggested-training`} label="Treino do dia" iconKey="target" />}
               {canWorkouts && <MenuLink to={`${USER_BASE}/treinos`} label="Treinos" iconKey="workouts" />}
               {showTracker && <MenuLink to={`${USER_BASE}/activities`} label="Tracker" iconKey="tracker" />}
-              {showTrainingAi && <MenuLink to={`${USER_BASE}/movement-lab`} label="Lab de Movimento" iconKey="lab" />}
               {canMessages && <MenuLink to={`${USER_BASE}/messages`} label="Mensagens" iconKey="messages" />}
               {canProfile && <MenuLink to={`${USER_BASE}/profile`} label="Perfil" iconKey="profile" />}
 

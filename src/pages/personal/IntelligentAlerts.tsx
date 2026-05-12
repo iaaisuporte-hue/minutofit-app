@@ -10,6 +10,8 @@ function toneFor(type: PersonalDashboardAlert["type"]) {
       return { className: "pp-alert--warn", label: "Sobrecarga" };
     case "recovery_gap":
       return { className: "pp-alert--warn", label: "Recuperação" };
+    case "cluster_low_sleep":
+      return { className: "pp-alert--warn", label: "Recuperação" };
     case "silent_disappear":
       return { className: "pp-alert--danger", label: "Risco" };
     case "metabolic_decline":

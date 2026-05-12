@@ -377,6 +377,42 @@ export default function StudentProfileModal({
                     }
                   />
                 </div>
+                {data.today.wellbeing ? (
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 10 }}>
+                    {data.today.wellbeing.feeling ? (
+                      <span
+                        className="badge badge-accent"
+                        style={{ fontSize: 11 }}
+                      >
+                        Humor:{" "}
+                        {data.today.wellbeing.feeling === "energized"
+                          ? "Disposto"
+                          : data.today.wellbeing.feeling === "tired"
+                            ? "Cansado"
+                            : "Normal"}
+                      </span>
+                    ) : null}
+                    {data.today.wellbeing.sleptWell != null ? (
+                      <span className="badge" style={{ fontSize: 11 }}>
+                        Sono: {data.today.wellbeing.sleptWell ? "ok" : "ruim"}
+                      </span>
+                    ) : null}
+                    {data.today.wellbeing.inPain != null ? (
+                      <span className="badge" style={{ fontSize: 11 }}>
+                        Dor: {data.today.wellbeing.inPain ? "sim" : "não"}
+                      </span>
+                    ) : null}
+                    {data.today.wellbeing.stressed != null ? (
+                      <span className="badge" style={{ fontSize: 11 }}>
+                        Estresse: {data.today.wellbeing.stressed ? "sim" : "não"}
+                      </span>
+                    ) : null}
+                  </div>
+                ) : (
+                  <div style={{ fontSize: 12, color: COLORS.muted, marginTop: 8 }}>
+                    Sem sinais de humor ou recuperação no último check-in.
+                  </div>
+                )}
               </div>
             </Surface>
 

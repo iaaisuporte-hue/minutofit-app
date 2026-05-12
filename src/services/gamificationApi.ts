@@ -3,8 +3,8 @@ import { authFetch } from "./apiClient";
 import { getAccessToken } from "./authTokens";
 
 export async function persistGamificationCheckin(payload: {
-  source: "workout" | "activity";
-  xp: number;
+  source: "workout" | "activity" | "wellbeing";
+  xp?: number;
   workout?: {
     workoutId: string;
     title: string;
@@ -16,6 +16,13 @@ export async function persistGamificationCheckin(payload: {
     distanceKm: number;
     pace: number;
   };
+  signals?: {
+    feeling?: "tired" | "neutral" | "energized" | "normal";
+    sleptWell?: boolean;
+    inPain?: boolean;
+    stressed?: boolean;
+    notes?: string;
+  };
 }) {
   if (!getAccessToken()) return null;
 
@@ -24,7 +31,10 @@ export async function persistGamificationCheckin(payload: {
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify(payload),
+    body: JSON.stringify({
+      ...payload,
+      xp: payload.source === "wellbeing" ? 0 : payload.xp ?? 0,
+    }),
   });
 
   if (response.status === 401) {
@@ -37,6 +47,25 @@ export async function persistGamificationCheckin(payload: {
   }
 
   return data?.data || null;
+}
+
+export async function persistWellbeingCheckin(signals: {
+  feeling: "tired" | "normal" | "energized";
+  sleptWell: boolean;
+  inPain: boolean;
+  stressed: boolean;
+  notes?: string;
+}) {
+  return persistGamificationCheckin({
+    source: "wellbeing",
+    signals: {
+      feeling: signals.feeling === "normal" ? "neutral" : signals.feeling,
+      sleptWell: signals.sleptWell,
+      inPain: signals.inPain,
+      stressed: signals.stressed,
+      notes: signals.notes,
+    },
+  });
 }
 
 export async function fetchGamificationSummary() {

@@ -17,6 +17,12 @@ const STATUS_LABEL: Record<string, string> = {
   high: 'Alto',
 };
 
+const TREND_DELTA_META: Record<'up' | 'down' | 'stable', { icon: string; label: string; color: string }> = {
+  up:     { icon: '↑', label: '', color: 'var(--color-success-text)' },
+  down:   { icon: '↓', label: '', color: 'var(--color-warn)' },
+  stable: { icon: '→', label: 'estável', color: 'var(--color-accent-hover)' },
+};
+
 const TREND_META: Record<MetabolicTrend, { icon: string; label: string; color: string }> = {
   up:     { icon: '↑', label: 'Subindo',  color: 'var(--color-success-text)' },
   down:   { icon: '↓', label: 'Atenção',  color: 'var(--color-warn)' },
@@ -251,6 +257,36 @@ export function MetabolicScoreCard({ data, loading, error, derivedStatus, foreca
             </div>
           </div>
         ) : null}
+
+        {(data.trend7d || data.trend30d) && (
+          <div style={{ display: 'grid', gap: 8 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Evolução
+            </div>
+            {data.trend7d && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, fontSize: 13 }}>
+                <span style={{ color: 'var(--color-text-muted)', minWidth: 118 }}>Últimos 7 dias</span>
+                <span style={{ fontWeight: 700, color: TREND_DELTA_META[data.trend7d.direction].color }}>
+                  {TREND_DELTA_META[data.trend7d.direction].icon}{' '}
+                  {data.trend7d.direction === 'stable'
+                    ? 'estável'
+                    : `${data.trend7d.delta >= 0 ? '+' : ''}${data.trend7d.delta} pontos`}
+                </span>
+              </div>
+            )}
+            {data.trend30d && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, fontSize: 13 }}>
+                <span style={{ color: 'var(--color-text-muted)', minWidth: 118 }}>Últimos 30 dias</span>
+                <span style={{ fontWeight: 700, color: TREND_DELTA_META[data.trend30d.direction].color }}>
+                  {TREND_DELTA_META[data.trend30d.direction].icon}{' '}
+                  {data.trend30d.direction === 'stable'
+                    ? 'estável'
+                    : `${data.trend30d.delta >= 0 ? '+' : ''}${data.trend30d.delta} pontos`}
+                </span>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

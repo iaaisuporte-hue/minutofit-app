@@ -7,6 +7,8 @@ interface Props {
   setCondition: (feeling: DailyFeeling, details?: DailyConditionDetails) => void;
   clearCondition: () => void;
   onConditionSet?: () => void;
+  /** Sync to API after local state is saved (Onda 4). Errors are swallowed here. */
+  onConditionSaved?: (payload: { feeling: DailyFeeling; details: DailyConditionDetails }) => void | Promise<void>;
 }
 
 const FEELING_META: Record<DailyFeeling, { label: string; emoji: string; color: string; bg: string; border: string }> = {
@@ -68,7 +70,7 @@ function ToggleRow({
   );
 }
 
-export function DailyCheckin({ condition, setCondition, clearCondition, onConditionSet }: Props) {
+export function DailyCheckin({ condition, setCondition, clearCondition, onConditionSet, onConditionSaved }: Props) {
   const [pendingFeeling, setPendingFeeling] = useState<DailyFeeling | null>(null);
   const [details, setDetails] = useState<DailyConditionDetails>({
     sleptWell: true,
@@ -80,10 +82,15 @@ export function DailyCheckin({ condition, setCondition, clearCondition, onCondit
     setPendingFeeling(feeling);
   }
 
-  function handleConfirm() {
+  async function handleConfirm() {
     if (!pendingFeeling) return;
     setCondition(pendingFeeling, details);
     onConditionSet?.();
+    try {
+      await onConditionSaved?.({ feeling: pendingFeeling, details: { ...details } });
+    } catch {
+      /* non-blocking */
+    }
   }
 
   function handleChange() {

@@ -273,6 +273,8 @@ export interface Student {
   acceptedTermsAt?: string | null;
   acceptedLgpdAt?: string | null;
   activePlan: { id: number; name: string; monthlyPrice: number; startDate: string } | null;
+  hasUsedLab?: boolean;
+  hasUsedTracker?: boolean;
 }
 
 export interface Enrollment {
