@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useAuth, type Role } from "../auth/AuthContext";
+import { useAuth, type Role, type AcademyForUser } from "../auth/AuthContext";
 import type { AccessProfile } from "../auth/accessControl";
 import MinutoFitLogo from "../components/MinutoFitLogo";
 import AcademySelector from "../components/AcademySelector";
@@ -11,12 +11,29 @@ const ACADEMY_PROFILES: AccessProfile[] = [
   "academy_reception",
 ];
 
-function nextPathByRole(role: Role, accessProfile?: AccessProfile | null) {
-  // Academy-specific staff land in the academy shell
+const ACADEMY_ROLE_SLUGS = new Set([
+  "academy_owner", "academy_manager", "academy_finance", "academy_reception",
+]);
+
+function nextPathByRole(
+  role: Role,
+  accessProfile?: AccessProfile | null,
+  academies?: AcademyForUser[],
+  activeAcademyId?: number | null,
+) {
+  // Fallback: derive destination from the active academy's roleSlug when
+  // accessProfile in the JWT hasn't been set yet (e.g. during first render
+  // after login before token refresh).
+  if (activeAcademyId && academies?.length) {
+    const active = academies.find((a) => a.id === activeAcademyId);
+    if (active && ACADEMY_ROLE_SLUGS.has(active.roleSlug)) {
+      return "/app/academy/dashboard";
+    }
+  }
+  // Primary path: JWT accessProfile
   if (accessProfile && ACADEMY_PROFILES.includes(accessProfile)) {
     return "/app/academy/dashboard";
   }
-  // academy_personal and academy_nutri keep using their existing apps
   switch (role) {
     case "user":     return "/app/user/today";
     case "personal": return "/app/personal";
@@ -29,6 +46,7 @@ function nextPathByRole(role: Role, accessProfile?: AccessProfile | null) {
 export default function LoginPage() {
   const nav = useNavigate();
   const { login, isAuthenticated, role, academies, activeAcademyId, accessProfile } = useAuth();
+
 
   const [email, setEmail]             = useState("");
   const [password, setPassword]       = useState("");
@@ -51,7 +69,7 @@ export default function LoginPage() {
     if (isAuthenticated && role) {
       const needsSelector = (academies?.length ?? 0) > 1 && !activeAcademyId;
       if (!needsSelector) {
-        nav(nextPathByRole(role, accessProfile), { replace: true });
+        nav(nextPathByRole(role, accessProfile, academies, activeAcademyId), { replace: true });
       }
     }
   }, [isAuthenticated, role, accessProfile, academies, activeAcademyId, nav]);
@@ -76,7 +94,7 @@ export default function LoginPage() {
   if (pendingRole && (academies?.length ?? 0) > 1 && !activeAcademyId) {
     return (
       <main className="auth-page">
-        <AcademySelector onSelected={() => nav(nextPathByRole(pendingRole, accessProfile), { replace: true })} />
+        <AcademySelector onSelected={() => nav(nextPathByRole(pendingRole, accessProfile, academies, activeAcademyId), { replace: true })} />
       </main>
     );
   }

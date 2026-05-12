@@ -2,6 +2,7 @@ import type { Role } from "../auth/AuthContext";
 import type { AccessProfile, AppPermission } from "../auth/accessControl";
 import { API_URL, parseJson } from "./apiBase";
 import { authFetch } from "./apiClient";
+import { extractTenantSlug } from "./tenantHost";
 
 export interface AuthApiHealthFlags {
   semHistoricoHipertensao?: boolean;
@@ -89,11 +90,14 @@ export interface AuthApiSuccess {
 }
 
 export async function loginWithPassword(email: string, password: string): Promise<AuthApiSuccess> {
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  const tenantSlug = extractTenantSlug();
+  if (tenantSlug && typeof window !== "undefined") {
+    headers["X-Tenant-Host"] = window.location.hostname;
+  }
   const response = await fetch(`${API_URL}/auth/login`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers,
     body: JSON.stringify({ email, password }),
   });
 
