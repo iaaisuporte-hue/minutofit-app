@@ -15,6 +15,7 @@ import AcademyStudentsPage        from "./academy/AcademyStudentsPage";
 import AcademyStudentDetailPage   from "./academy/AcademyStudentDetailPage";
 import AcademyPlansPage           from "./academy/AcademyPlansPage";
 import AcademyFinancePage         from "./academy/AcademyFinancePage";
+import { academyFallbackLogoUrl } from "./academy/academyFallbackLogo";
 
 function MenuLink({ to, label }: { to: string; label: string }) {
   return (
@@ -95,6 +96,7 @@ export default function AcademyApp() {
     : auth.academies?.find((a) => a.id === auth.activeAcademyId);
   const academyLabel = activeAcademy?.displayName ?? "Academia";
   const isTenantSubdomain = !!slug;
+  const tenantFallbackLogo = academyFallbackLogoUrl(slug ?? activeAcademy?.slug);
 
   function handleLogout() {
     auth.logout();
@@ -106,9 +108,13 @@ export default function AcademyApp() {
       {/* Logo / wordmark */}
       <div style={{ padding: "var(--space-5) var(--space-4) var(--space-3)" }}>
         {isTenantSubdomain ? (
-          auth.branding?.logoUrl
-            ? <img src={auth.branding.logoUrl} alt={academyLabel} className="tenant-logo" />
-            : <div className="tenant-wordmark" title={academyLabel}>{academyLabel}</div>
+          auth.branding?.logoUrl ? (
+            <img src={auth.branding.logoUrl} alt={academyLabel} className="tenant-logo" />
+          ) : tenantFallbackLogo ? (
+            <img src={tenantFallbackLogo} alt={academyLabel} className="tenant-logo" />
+          ) : (
+            <div className="tenant-wordmark" title={academyLabel}>{academyLabel}</div>
+          )
         ) : (
           <>
             <MinutoFitLogo />

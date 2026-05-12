@@ -7,6 +7,7 @@ import {
   type AcademyTopPersonal,
 } from "../../services/academyApi";
 import { EmptyState } from "../../components/EmptyState";
+import { resolveAcademyHeroLogo } from "./academyFallbackLogo";
 
 function dayLabel(n: number) {
   return n === 1 ? "1 dia" : `${n} dias`;
@@ -205,6 +206,7 @@ export default function AcademyDashboardPage() {
   const academyName            = branding?.display_name ?? academy?.display_name ?? "Academia";
   const logoColor      = branding?.primary_color ?? "var(--color-primary)";
   const initial        = academyName.slice(0, 2).toUpperCase();
+  const heroLogo       = resolveAcademyHeroLogo(branding?.logo_url, academy?.slug);
 
   const students          = retention?.totalStudents ?? (members["academy_student"] ?? 0);
   const studentsActive    = retention?.studentsActive ?? 0;
@@ -220,11 +222,29 @@ export default function AcademyDashboardPage() {
         <div>
           <div className="dash-hero-eyebrow">Visão geral</div>
           <div style={{ display: "flex", alignItems: "center", gap: "var(--space-4)", marginTop: "var(--space-2)" }}>
-            {branding?.logo_url ? (
+            {heroLogo.kind === "img" ? (
               <img
-                src={branding.logo_url}
+                src={heroLogo.src}
                 alt={academyName}
-                style={{ width: 44, height: 44, borderRadius: "var(--radius-md)", objectFit: "cover", flexShrink: 0 }}
+                style={
+                  heroLogo.layout === "wide"
+                    ? {
+                        maxHeight: 52,
+                        maxWidth: 220,
+                        width: "auto",
+                        height: "auto",
+                        objectFit: "contain",
+                        flexShrink: 0,
+                        alignSelf: "center",
+                      }
+                    : {
+                        width: 44,
+                        height: 44,
+                        borderRadius: "var(--radius-md)",
+                        objectFit: "cover",
+                        flexShrink: 0,
+                      }
+                }
               />
             ) : (
               <span
