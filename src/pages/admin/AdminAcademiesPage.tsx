@@ -118,12 +118,12 @@ export default function AdminAcademiesPage() {
       setAssignForm((f) => ({ ...f, searchQ: q, userId: undefined, userLabel: undefined }));
     }
     if (q.length < 2) {
-      target === "create" ? setSuggestions([]) : setAssignSuggestions([]);
+      if (target === "create") setSuggestions([]); else setAssignSuggestions([]);
       return;
     }
     try {
       const results = await searchUsers(q);
-      target === "create" ? setSuggestions(results) : setAssignSuggestions(results);
+      if (target === "create") setSuggestions(results); else setAssignSuggestions(results);
     } catch {
       /* ignore */
     }
