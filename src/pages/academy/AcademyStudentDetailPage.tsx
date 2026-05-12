@@ -7,6 +7,7 @@ import {
   pauseStudentApi,
   cancelStudentApi,
   reactivateStudentApi,
+  resetStudentPasswordApi,
   type StudentDetail,
   type AcademyPlan,
   type Enrollment,
@@ -154,6 +155,8 @@ export default function AcademyStudentDetailPage() {
   const [enrollLoading, setEnrollL] = useState(false);
   const [enrollError, setEnrollErr] = useState("");
 
+  const [tempPassword, setTempPassword] = useState<string | null>(null);
+
   const id = Number(userId);
 
   const load = useCallback(async () => {
@@ -182,6 +185,22 @@ export default function AcademyStudentDetailPage() {
       if (action === "reactivate") await reactivateStudentApi(id);
       await load();
       setSuccess(action === "pause" ? "Aluno pausado." : action === "cancel" ? "Aluno cancelado." : "Aluno reativado.");
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setAction(null);
+    }
+  }
+
+  async function handleResetPassword() {
+    if (!confirm(`Redefinir a senha de ${student?.name || student?.email}? Uma senha temporária será gerada para você compartilhar com o aluno.`)) return;
+    setAction("reset-password");
+    setSuccess("");
+    setError("");
+    setTempPassword(null);
+    try {
+      const pwd = await resetStudentPasswordApi(id);
+      setTempPassword(pwd);
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -385,7 +404,55 @@ export default function AcademyStudentDetailPage() {
                   {actionLoading === "reactivate" ? "Reativando..." : "Reativar aluno"}
                 </button>
               )}
+
+              <button
+                className="btn btn-ghost btn-sm"
+                disabled={actionLoading === "reset-password"}
+                onClick={handleResetPassword}
+                style={{ marginTop: "var(--space-1)" }}
+              >
+                {actionLoading === "reset-password" ? "Gerando senha..." : "Redefinir senha"}
+              </button>
             </div>
+
+            {tempPassword && (
+              <div style={{
+                marginTop: "var(--space-3)",
+                padding: "var(--space-3)",
+                background: "var(--color-surface-2, rgba(0,0,0,.04))",
+                borderRadius: "var(--radius-md)",
+                border: "1px solid var(--color-border)",
+              }}>
+                <div className="dash-eyebrow" style={{ marginBottom: 6 }}>Senha temporária — compartilhe com o aluno</div>
+                <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
+                  <code style={{
+                    fontSize: "var(--text-base)",
+                    fontWeight: "var(--font-bold)",
+                    letterSpacing: "0.05em",
+                    flex: 1,
+                  }}>
+                    {tempPassword}
+                  </code>
+                  <button
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => { navigator.clipboard.writeText(tempPassword); }}
+                    style={{ flexShrink: 0 }}
+                  >
+                    Copiar
+                  </button>
+                </div>
+                <p style={{ fontSize: "var(--text-xs)", color: "var(--color-text-muted)", marginTop: "var(--space-2)" }}>
+                  O aluno deve trocar a senha após o primeiro login.
+                </p>
+                <button
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => setTempPassword(null)}
+                  style={{ marginTop: "var(--space-2)", fontSize: "var(--text-xs)" }}
+                >
+                  Fechar
+                </button>
+              </div>
+            )}
           </div>
         </div>
 

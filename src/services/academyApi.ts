@@ -383,6 +383,12 @@ export async function reactivateStudentApi(userId: number): Promise<void> {
   if (!data.success) throw new Error(data.error);
 }
 
+export async function resetStudentPasswordApi(userId: number): Promise<string> {
+  const data = await authFetch(`${API_URL}/academy/students/${userId}/reset-password`, { method: 'POST' }).then(parseJson);
+  if (!data.success) throw new Error(data.error);
+  return data.tempPassword as string;
+}
+
 // ─── Plans ─────────────────────────────────────────────────────────────────────
 
 export interface AcademyPlan {
