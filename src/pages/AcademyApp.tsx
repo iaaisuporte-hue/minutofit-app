@@ -90,6 +90,7 @@ export default function AcademyApp() {
     ? auth.academies?.find((a) => a.slug === slug)
     : auth.academies?.find((a) => a.id === auth.activeAcademyId);
   const academyLabel = activeAcademy?.displayName ?? "Academia";
+  const isTenantSubdomain = !!slug;
 
   function handleLogout() {
     auth.logout();
@@ -98,10 +99,18 @@ export default function AcademyApp() {
 
   const sidebar = (
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
-      {/* Logo */}
+      {/* Logo / wordmark */}
       <div style={{ padding: "var(--space-5) var(--space-4) var(--space-3)" }}>
-        <MinutoFitLogo />
-        <div className="shellSubtitle" title={academyLabel} style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "100%" }}>{academyLabel}</div>
+        {isTenantSubdomain ? (
+          auth.branding?.logoUrl
+            ? <img src={auth.branding.logoUrl} alt={academyLabel} className="tenant-logo" />
+            : <div className="tenant-wordmark" title={academyLabel}>{academyLabel}</div>
+        ) : (
+          <>
+            <MinutoFitLogo />
+            <div className="shellSubtitle" title={academyLabel} style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "100%" }}>{academyLabel}</div>
+          </>
+        )}
       </div>
 
       {/* Nav groups */}
@@ -123,6 +132,9 @@ export default function AcademyApp() {
       {/* Footer */}
       <div className="sidebar-footer" style={{ padding: "var(--space-3) var(--space-2)" }}>
         <button className="logoutButton" onClick={handleLogout}>Sair</button>
+        {isTenantSubdomain && (
+          <div className="powered-by">powered by MinutoFit</div>
+        )}
       </div>
     </div>
   );

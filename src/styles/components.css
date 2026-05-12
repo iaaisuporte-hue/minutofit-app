@@ -1827,9 +1827,9 @@ html[data-color-mode="daltonic"] .navLinkActive {
 }
 
 .admin-pill-positive {
-  border: 1px solid rgba(34,197,94,.28);
-  background: rgba(34,197,94,.1);
-  color: #22C55E;
+  border: 1px solid var(--color-success-border, rgba(34,197,94,.28));
+  background: var(--color-success-soft, rgba(34,197,94,.1));
+  color: var(--color-success-text, #22C55E);
 }
 
 .admin-pill-warning {
@@ -1865,4 +1865,59 @@ html[data-color-mode="daltonic"] .navLinkActive {
     text-align: center;
     white-space: normal;
   }
+}
+
+/* ── Tenant branding: sidebar logo / wordmark / powered-by ──────── */
+
+.tenant-logo {
+  height: 32px;
+  width: auto;
+  max-width: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.tenant-wordmark {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.powered-by {
+  font-size: var(--text-xs, 11px);
+  color: var(--color-text-tertiary, var(--color-text-muted));
+  opacity: 0.7;
+  margin-top: var(--space-2);
+  text-align: center;
+}
+
+/* ── When academy branding is active, persistent status indicators  ─
+   adopt the tenant primary colour instead of the global success green.
+   Action-result toasts (banner-success, etc.) are intentionally excluded
+   so universal semantic green is preserved for transient feedback.     */
+
+html[data-academy-branding="applied"] .badge-success,
+html[data-academy-branding="applied"] .badgeSuccess {
+  border-color: var(--color-border-primary);
+  background:   var(--color-primary-soft);
+  color:        var(--color-primary);
+}
+
+html[data-academy-branding="applied"] .dash-alert-ok-signal {
+  color: var(--color-primary);
+}
+
+html[data-academy-branding="applied"] .dash-alert-ok-signal::before {
+  background:  var(--color-primary);
+  box-shadow:  0 0 0 4px var(--color-primary-soft);
+}
+
+html[data-academy-branding="applied"] .admin-pill-positive {
+  border-color: var(--color-border-primary);
+  background:   var(--color-primary-soft);
+  color:        var(--color-primary);
 }

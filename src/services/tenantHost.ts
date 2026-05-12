@@ -26,6 +26,14 @@ export interface AcademyBrandingPublic {
   accentColor?: string | null;
   ctaTextColor?: string | null;
   welcomeMessage?: string | null;
+  // Derived tokens (computed by backend, never stored in DB)
+  primarySoftStrong?: string | null;
+  primaryGlow?: string | null;
+  primaryLight?: string | null;
+  primaryDeep?: string | null;
+  borderPrimary?: string | null;
+  borderStrong?: string | null;
+  gradientPrimary?: string | null;
 }
 
 /** Returns the academy slug from the hostname, or null if not a tenant subdomain. */
@@ -78,12 +86,24 @@ export function applyBranding(branding: AcademyBrandingPublic | null): void {
     vars.push(`  ${token}: ${value};`);
   }
 
-  add('--color-primary',       branding.primaryColor);
-  add('--color-primary-hover', branding.primaryHover);
-  add('--color-primary-soft',  branding.primarySoft);
-  add('--color-secondary',     branding.secondaryColor);
-  add('--color-accent',        branding.accentColor);
-  add('--color-cta-text',      branding.ctaTextColor);
+  add('--color-primary',            branding.primaryColor);
+  add('--color-primary-hover',      branding.primaryHover);
+  add('--color-primary-soft',       branding.primarySoft);
+  add('--color-secondary',          branding.secondaryColor);
+  add('--color-accent',             branding.accentColor);
+  add('--color-cta-text',           branding.ctaTextColor);
+  add('--color-primary-deep',       branding.primaryDeep);
+  // rgba() and linear-gradient() values pass through (don't start with '#')
+  add('--color-primary-soft-strong', branding.primarySoftStrong);
+  add('--color-primary-glow',        branding.primaryGlow);
+  add('--color-primary-light',       branding.primaryLight);
+  add('--color-border-primary',      branding.borderPrimary);
+  add('--color-border-strong',       branding.borderStrong);
+
+  // Gradient requires its own validation to prevent CSS injection
+  if (branding.gradientPrimary && /^linear-gradient\([^<>"'{}]+\)$/.test(branding.gradientPrimary)) {
+    vars.push(`  --gradient-primary: ${branding.gradientPrimary};`);
+  }
 
   if (vars.length === 0) return;
 

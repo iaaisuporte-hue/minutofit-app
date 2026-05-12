@@ -152,7 +152,7 @@ export default function AcademyTeamPage() {
 
       {/* Result banner */}
       {result && (
-        <div className="card" style={{ marginBottom: "var(--space-5)", borderColor: "var(--color-success)", background: "var(--color-success-bg, #f0fdf4)" }}>
+        <div className="card" style={{ marginBottom: "var(--space-5)", borderColor: "var(--color-success)", background: "var(--color-success-soft)" }}>
           {result.tempPassword && (
             <>
               <p style={{ margin: "0 0 var(--space-2) 0", fontWeight: 600 }}>Membro cadastrado. Compartilhe a senha por canal seguro:</p>
