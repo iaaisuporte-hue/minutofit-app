@@ -221,7 +221,7 @@ export default function AcademyDashboardPage() {
       <div className="dash-hero">
         <div>
           <div className="dash-hero-eyebrow">Visão geral</div>
-          <div style={{ display: "flex", alignItems: "center", gap: "var(--space-4)", marginTop: "var(--space-2)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "var(--space-5)", marginTop: "var(--space-3)" }}>
             {heroLogo.kind === "img" ? (
               <img
                 src={heroLogo.src}
@@ -229,27 +229,29 @@ export default function AcademyDashboardPage() {
                 style={
                   heroLogo.layout === "wide"
                     ? {
-                        maxHeight: 52,
-                        maxWidth: 220,
+                        maxHeight: 80,
+                        maxWidth: 280,
                         width: "auto",
                         height: "auto",
                         objectFit: "contain",
                         flexShrink: 0,
                         alignSelf: "center",
+                        filter: "drop-shadow(0 1px 4px rgba(0,0,0,.10))",
                       }
                     : {
-                        width: 44,
-                        height: 44,
+                        width: 56,
+                        height: 56,
                         borderRadius: "var(--radius-md)",
                         objectFit: "cover",
                         flexShrink: 0,
+                        boxShadow: "0 1px 6px rgba(0,0,0,.12)",
                       }
                 }
               />
             ) : (
               <span
                 className="avatar-initials avatar-initials--md"
-                style={{ background: logoColor, color: "#fff", width: 44, height: 44 }}
+                style={{ background: logoColor, color: "#fff", width: 56, height: 56, fontSize: 22 }}
               >
                 {initial}
               </span>

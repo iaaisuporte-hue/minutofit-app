@@ -106,7 +106,7 @@ export default function AcademyApp() {
   const sidebar = (
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
       {/* Logo / wordmark */}
-      <div style={{ padding: "var(--space-5) var(--space-4) var(--space-3)" }}>
+      <div style={{ padding: "var(--space-6) var(--space-4) var(--space-4)", display: "flex", flexDirection: "column", alignItems: "center" }}>
         {isTenantSubdomain ? (
           auth.branding?.logoUrl ? (
             <img src={auth.branding.logoUrl} alt={academyLabel} className="tenant-logo" />

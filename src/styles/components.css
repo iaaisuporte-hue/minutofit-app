@@ -1870,7 +1870,7 @@ html[data-color-mode="daltonic"] .navLinkActive {
 /* ── Tenant branding: sidebar logo / wordmark / powered-by ──────── */
 
 .tenant-logo {
-  height: 32px;
+  height: 48px;
   width: auto;
   max-width: 100%;
   object-fit: contain;
