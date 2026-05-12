@@ -422,7 +422,7 @@ html[data-color-mode="daltonic"] .navLinkActive {
   color: var(--color-warn-text);
 }
 
-.badge-danger, .badgeDanger {
+.badge-danger, .badgeDanger, .badge-error {
   border-color: var(--color-danger-border);
   background: var(--color-danger-soft);
   color: var(--color-danger);
@@ -854,6 +854,13 @@ html[data-color-mode="daltonic"] .navLinkActive {
   gap: var(--space-4);
   flex-wrap: wrap;
   margin-top: var(--space-4);
+}
+
+.dash-hero-hint {
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+  margin-top: var(--space-3);
+  line-height: 1.5;
 }
 
 .dash-hero-link {

@@ -102,6 +102,11 @@ export default function AcademyDashboardPage() {
               Identidade visual
             </button>
           </div>
+          {students === 0 && staff <= 1 && (
+            <p className="dash-hero-hint">
+              Configure a identidade visual da academia e adicione o primeiro aluno para começar.
+            </p>
+          )}
         </div>
 
         <div className="dash-hero-right">
@@ -114,10 +119,10 @@ export default function AcademyDashboardPage() {
       {total > 0 ? (
         <div className="dash-kpi-grid">
           {[
-            { label: "Alunos",     value: students,                          note: "na academia" },
-            { label: "Equipe",     value: staff,                             note: "recepção, gestão, staff" },
-            { label: "Personais",  value: members["academy_personal"] ?? 0,  note: "vinculados" },
-            { label: "Financeiro", value: members["academy_finance"]  ?? 0,  note: "acesso financeiro" },
+            { label: "Alunos",    value: students,                          note: students === 1 ? "ativo" : "ativos" },
+            { label: "Equipe",    value: staff,                             note: staff === 1 ? "membro" : "membros" },
+            { label: "Personais", value: members["academy_personal"] ?? 0,  note: (members["academy_personal"] ?? 0) === 0 ? "nenhum vinculado" : "vinculados" },
+            { label: "Financeiro",value: members["academy_finance"]  ?? 0,  note: (members["academy_finance"]  ?? 0) === 0 ? "sem acesso ativo" : "com acesso" },
           ].map(({ label, value, note }) => (
             <div key={label} className="dash-kpi-item">
               <div className="dash-kpi-item-label">{label}</div>

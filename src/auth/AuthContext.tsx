@@ -7,6 +7,7 @@ import {
   registerWithPassword,
   fetchUserAcademies,
   switchAcademy as apiSwitchAcademy,
+  type AuthApiUser,
   type AuthApiHealthFlags,
   type RegisterPayload,
   type AcademyForUser,
@@ -101,6 +102,35 @@ function resolveActiveAcademyId(academies: AcademyForUser[]): number | null {
   return academies.length === 1 ? academies[0].id : null;
 }
 
+const ACADEMY_PROFILES_SET = new Set([
+  "academy_owner", "academy_manager", "academy_finance",
+  "academy_reception", "academy_personal", "academy_nutri",
+]);
+
+/**
+ * When the JWT was issued without academy context (e.g. old frontend without X-Tenant-Host),
+ * but the frontend resolved an activeAcademyId from the tenant host, silently call
+ * switch-academy to get a fresh token with proper accessProfile and permissions.
+ * Returns the updated user, or the original if switch fails.
+ */
+async function ensureAcademyContext(
+  user: AuthApiUser,
+  resolvedAcademyId: number | null,
+): Promise<{ user: AuthApiUser; refreshedToken: boolean }> {
+  // Skip if JWT already carries a valid academy access profile
+  const hasAcademyContext = ACADEMY_PROFILES_SET.has(user.accessProfile ?? "");
+  if (hasAcademyContext || !resolvedAcademyId) return { user, refreshedToken: false };
+
+  try {
+    const data = await apiSwitchAcademy(resolvedAcademyId);
+    setTokens(data.accessToken, getAccessToken() ?? "");
+    const updated = await fetchCurrentUser();
+    return { user: updated ?? user, refreshedToken: true };
+  } catch {
+    return { user, refreshedToken: false };
+  }
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<AuthState>({
     isAuthenticated: false,
@@ -133,15 +163,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           let academies: AcademyForUser[] = [];
           try { academies = await fetchUserAcademies(); } catch { /* schema may not exist yet */ }
           const activeAcademyId = resolveActiveAcademyId(academies);
+          // If JWT was issued without academy context, auto-switch to get proper permissions
+          const { user: finalUser } = await ensureAcademyContext(user, activeAcademyId);
           setState({
             isAuthenticated: true,
-            role: user.role,
-            email: user.email,
-            id: user.id?.toString(),
-            user,
-            profileCompleted: user.profileCompleted,
-            accessProfile: user.accessProfile ?? null,
-            permissions: user.permissions ?? [],
+            role: finalUser.role,
+            email: finalUser.email,
+            id: finalUser.id?.toString(),
+            user: finalUser,
+            profileCompleted: finalUser.profileCompleted,
+            accessProfile: finalUser.accessProfile ?? null,
+            permissions: finalUser.permissions ?? [],
             activeAcademyId,
             academies,
             branding: null,
@@ -243,16 +275,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           let academies: AcademyForUser[] = [];
           try { academies = await fetchUserAcademies(); } catch { /* schema may not exist yet */ }
           const activeAcademyId = resolveActiveAcademyId(academies);
+          const { user: finalUser } = await ensureAcademyContext(data.user, activeAcademyId);
 
           setState({
             isAuthenticated: true,
-            role: data.user.role,
-            email: data.user.email,
-            id: data.user.id?.toString(),
-            user: data.user,
-            profileCompleted: data.user.profileCompleted,
-            accessProfile: data.user.accessProfile ?? null,
-            permissions: data.user.permissions ?? [],
+            role: finalUser.role,
+            email: finalUser.email,
+            id: finalUser.id?.toString(),
+            user: finalUser,
+            profileCompleted: finalUser.profileCompleted,
+            accessProfile: finalUser.accessProfile ?? null,
+            permissions: finalUser.permissions ?? [],
             activeAcademyId,
             academies,
             branding: null,
@@ -260,9 +293,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
           return {
             ok: true as const,
-            role: data.user.role,
-            email: data.user.email,
-            id: data.user.id?.toString(),
+            role: finalUser.role,
+            email: finalUser.email,
+            id: finalUser.id?.toString(),
           };
         } catch (err: any) {
           return {

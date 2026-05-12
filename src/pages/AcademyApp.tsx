@@ -4,6 +4,7 @@ import { useAuth } from "../auth/AuthContext";
 import AppShell from "../layout/AppShell";
 import MinutoFitLogo from "../components/MinutoFitLogo";
 import type { AppPermission } from "../auth/accessControl";
+import { extractTenantSlug } from "../services/tenantHost";
 
 import AcademyDashboardPage       from "./academy/AcademyDashboardPage";
 import AcademyTeamPage            from "./academy/AcademyTeamPage";
@@ -83,6 +84,13 @@ export default function AcademyApp() {
   const auth     = useAuth();
   const navigate = useNavigate();
 
+  // Display the academy name in the sidebar when available
+  const slug = extractTenantSlug();
+  const activeAcademy = slug
+    ? auth.academies?.find((a) => a.slug === slug)
+    : auth.academies?.find((a) => a.id === auth.activeAcademyId);
+  const academyLabel = activeAcademy?.displayName ?? "Academia";
+
   function handleLogout() {
     auth.logout();
     navigate("/login", { replace: true });
@@ -93,7 +101,7 @@ export default function AcademyApp() {
       {/* Logo */}
       <div style={{ padding: "var(--space-5) var(--space-4) var(--space-3)" }}>
         <MinutoFitLogo />
-        <div className="shellSubtitle">Academia</div>
+        <div className="shellSubtitle" title={academyLabel} style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "100%" }}>{academyLabel}</div>
       </div>
 
       {/* Nav groups */}
