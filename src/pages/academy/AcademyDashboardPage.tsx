@@ -1,6 +1,11 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { fetchAcademyDashboard, type AcademyDashboard, type AcademyDashboardAtRiskStudent } from "../../services/academyApi";
+import {
+  fetchAcademyDashboard,
+  type AcademyDashboard,
+  type AcademyDashboardAtRiskStudent,
+  type AcademyTopPersonal,
+} from "../../services/academyApi";
 import { EmptyState } from "../../components/EmptyState";
 
 function dayLabel(n: number) {
@@ -107,17 +112,29 @@ function AtRiskCard({ students }: { students: AcademyDashboardAtRiskStudent[] })
               </div>
             </div>
 
-            <span
-              className="badge"
-              style={{
-                background: "var(--color-danger-soft, rgba(239,68,68,.08))",
-                color: "var(--color-danger, #ef4444)",
-                border: "1px solid rgba(239,68,68,.2)",
-                flexShrink: 0,
-              }}
-            >
-              Em risco
-            </span>
+            <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", flexShrink: 0 }}>
+              <span
+                className="badge"
+                style={{
+                  background: "var(--color-danger-soft, rgba(239,68,68,.08))",
+                  color: "var(--color-danger, #ef4444)",
+                  border: "1px solid rgba(239,68,68,.2)",
+                }}
+              >
+                Em risco
+              </span>
+              <button
+                className="btn btn-sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(`/app/academy/students/${s.id}#chat`);
+                }}
+                title="Enviar mensagem ao aluno"
+                style={{ whiteSpace: "nowrap" }}
+              >
+                Mensagem
+              </button>
+            </div>
           </div>
         ))}
       </div>
@@ -181,8 +198,11 @@ export default function AcademyDashboardPage() {
   const members        = data?.membersByRole ?? {};
   const total          = data?.totalMembers ?? 0;
   const retention      = data?.retention;
-  const atRiskStudents = data?.atRiskStudents ?? [];
-  const academyName    = branding?.display_name ?? academy?.display_name ?? "Academia";
+  const atRiskStudents         = data?.atRiskStudents ?? [];
+  const averageMetabolismScore = data?.averageMetabolismScore ?? null;
+  const topPersonals           = data?.topPersonals ?? [];
+  const adoption               = data?.adoption;
+  const academyName            = branding?.display_name ?? academy?.display_name ?? "Academia";
   const logoColor      = branding?.primary_color ?? "var(--color-primary)";
   const initial        = academyName.slice(0, 2).toUpperCase();
 
@@ -303,6 +323,112 @@ export default function AcademyDashboardPage() {
 
       {/* At-risk students card */}
       <AtRiskCard students={atRiskStudents} />
+
+      {/* 3.4 — Average metabolism score */}
+      <div className="dash-section" style={{ marginTop: "var(--space-6)" }}>
+        <div className="dash-section-header">
+          <div className="dash-section-title">Score metabólico médio</div>
+          <div className="dash-section-subtitle">Média dos últimos 30 dias · mínimo 5 alunos com snapshot</div>
+        </div>
+        {averageMetabolismScore == null ? (
+          <EmptyState
+            variant="info"
+            eyebrow="Score em formação"
+            title="Score metabólico em formação"
+            description="Aparece após os primeiros check-ins e sessões de treino dos alunos. Você verá a média assim que 5 alunos tiverem registros."
+          />
+        ) : (
+          <div style={{ display: "flex", alignItems: "baseline", gap: "var(--space-3)", marginTop: "var(--space-3)" }}>
+            <span style={{ fontSize: 56, fontWeight: 700, lineHeight: 1, color: "var(--color-text)" }}>
+              {averageMetabolismScore}
+            </span>
+            <span style={{
+              fontSize: "var(--text-sm)",
+              color: averageMetabolismScore >= 70
+                ? "var(--color-success)"
+                : averageMetabolismScore >= 40
+                ? "var(--color-warn)"
+                : "var(--color-danger)",
+              fontWeight: 600,
+            }}>
+              {averageMetabolismScore >= 70 ? "Alta" : averageMetabolismScore >= 40 ? "Moderada" : "Baixa"}
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* 3.5 — Top personals by adherence */}
+      {topPersonals.length > 0 && (
+        <div className="dash-section" style={{ marginTop: "var(--space-6)" }}>
+          <div className="dash-section-header">
+            <div className="dash-section-title">Destaques da semana</div>
+            <div className="dash-section-subtitle">Personais com maior aderência da carteira · últimos 7 dias</div>
+          </div>
+          <ul style={{ listStyle: "none", padding: 0, margin: "var(--space-3) 0 0", display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
+            {topPersonals.map((p: AcademyTopPersonal, i: number) => (
+              <li key={p.userId} style={{
+                display: "flex", alignItems: "center", gap: "var(--space-3)",
+                padding: "var(--space-2) var(--space-3)",
+                background: "var(--color-surface-1, var(--color-surface))",
+                border: "1px solid var(--color-border)",
+                borderRadius: "var(--radius-md)",
+              }}>
+                <span style={{
+                  width: 24, height: 24, borderRadius: "50%",
+                  background: "var(--color-primary-soft, rgba(0,0,0,.08))",
+                  color: "var(--color-primary)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontWeight: 700, fontSize: "var(--text-xs)", flexShrink: 0,
+                }}>{i + 1}</span>
+                <span style={{ flex: 1, fontWeight: 500, fontSize: "var(--text-sm)" }}>{p.name}</span>
+                <span style={{ fontSize: "var(--text-xs)", color: "var(--color-text-secondary)" }}>
+                  {p.studentsCount} aluno{p.studentsCount !== 1 ? "s" : ""}
+                </span>
+                {p.adherenceRate != null && (
+                  <span style={{
+                    fontWeight: 700, fontSize: "var(--text-sm)",
+                    color: p.adherenceRate >= 70 ? "var(--color-success)" : p.adherenceRate >= 40 ? "var(--color-warn)" : "var(--color-danger)",
+                  }}>
+                    {p.adherenceRate}%
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* 3.6 — Adoption indicators */}
+      {adoption && students > 0 && (
+        <div className="dash-kpi-grid" style={{ marginTop: "var(--space-6)" }}>
+          <div className="dash-kpi-item">
+            <div className="dash-kpi-item-label">Crescimento líquido</div>
+            <div
+              className="dash-kpi-item-value"
+              style={{ color: adoption.netGrowth >= 0 ? "var(--color-success)" : "var(--color-danger)" }}
+            >
+              {adoption.netGrowth >= 0 ? "+" : ""}{adoption.netGrowth}
+            </div>
+            <div className="dash-kpi-item-note">matrículas - cancelamentos (mês)</div>
+          </div>
+
+          <div className="dash-kpi-item">
+            <div className="dash-kpi-item-label">Adoção Lab</div>
+            <div className="dash-kpi-item-value">
+              {adoption.labAdoptionPct != null ? `${adoption.labAdoptionPct}%` : "—"}
+            </div>
+            <div className="dash-kpi-item-note">alunos com sessão de Lab</div>
+          </div>
+
+          <div className="dash-kpi-item">
+            <div className="dash-kpi-item-label">Adoção Tracker</div>
+            <div className="dash-kpi-item-value">
+              {adoption.trackerAdoptionPct != null ? `${adoption.trackerAdoptionPct}%` : "—"}
+            </div>
+            <div className="dash-kpi-item-note">alunos com sessão GPS</div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

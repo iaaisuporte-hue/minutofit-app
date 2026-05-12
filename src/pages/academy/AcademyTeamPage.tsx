@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { EmptyState } from "../../components/EmptyState";
+import { LoadingSkeleton } from "../../components/LoadingSkeleton";
 import {
   fetchTeam,
   addMemberDirect,
@@ -7,8 +8,10 @@ import {
   updateMember,
   fetchInvitations,
   revokeInvitation,
+  fetchAcademyAudit,
   type TeamMember,
   type PendingInvitation,
+  type AcademyAuditRow,
 } from "../../services/academyApi";
 
 const ROLE_OPTIONS = [
@@ -30,7 +33,48 @@ const ROLE_GROUP_ORDER = [
   "academy_student",
 ];
 
-type Tab = "team" | "invitations";
+type Tab = "team" | "invitations" | "history";
+
+const ACTION_LABELS: Record<string, string> = {
+  "student.enroll":       "Aluno matriculado",
+  "student.pause":        "Aluno pausado",
+  "student.cancel":       "Aluno cancelado",
+  "student.reactivate":   "Aluno reativado",
+  "student.password_reset": "Senha redefinida",
+  "team.add_member":      "Membro adicionado",
+  "team.role_update":     "Papel atualizado",
+  "team.remove_member":   "Membro removido",
+  "invitation.create":    "Convite enviado",
+  "invitation.revoke":    "Convite revogado",
+  "invitation.accept":    "Convite aceito",
+  "branding.update":      "Identidade visual atualizada",
+  "auth.switch_academy":  "Academia acessada",
+};
+
+const ACTION_DOT: Record<string, string> = {
+  "student.enroll":     "var(--color-success)",
+  "student.reactivate": "var(--color-success)",
+  "invitation.accept":  "var(--color-success)",
+  "team.add_member":    "var(--color-info)",
+  "invitation.create":  "var(--color-info)",
+  "branding.update":    "var(--color-info)",
+  "student.pause":      "var(--color-warn)",
+  "student.cancel":     "var(--color-danger)",
+  "team.remove_member": "var(--color-danger)",
+  "invitation.revoke":  "var(--color-danger)",
+};
+
+function timeAgo(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const min  = Math.floor(diff / 60_000);
+  const h    = Math.floor(diff / 3_600_000);
+  const d    = Math.floor(diff / 86_400_000);
+  if (min < 2)  return "agora";
+  if (min < 60) return `há ${min}min`;
+  if (h < 24)   return `há ${h}h`;
+  if (d < 30)   return `há ${d}d`;
+  return new Date(iso).toLocaleDateString("pt-BR");
+}
 
 export default function AcademyTeamPage() {
   const [tab, setTab] = useState<Tab>("team");
@@ -38,6 +82,9 @@ export default function AcademyTeamPage() {
   const [invitations, setInvitations] = useState<PendingInvitation[]>([]);
   const [loading, setLoading]         = useState(true);
   const [error, setError]             = useState<string | null>(null);
+
+  const [auditRows, setAuditRows]     = useState<AcademyAuditRow[]>([]);
+  const [auditLoading, setAuditLoading] = useState(false);
 
   // Add-member panel
   const [panelOpen, setPanelOpen]   = useState(false);
@@ -69,6 +116,15 @@ export default function AcademyTeamPage() {
   };
 
   useEffect(() => { load(); }, []);
+
+  useEffect(() => {
+    if (tab !== "history" || auditRows.length > 0) return;
+    setAuditLoading(true);
+    fetchAcademyAudit(50, 0)
+      .then(setAuditRows)
+      .catch(() => setAuditRows([]))
+      .finally(() => setAuditLoading(false));
+  }, [tab, auditRows.length]);
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
@@ -251,7 +307,7 @@ export default function AcademyTeamPage() {
 
       {/* Tabs */}
       <div style={{ display: "flex", gap: 0, marginBottom: "var(--space-4)", borderBottom: "1px solid var(--color-border)" }}>
-        {(["team", "invitations"] as Tab[]).map((t) => (
+        {(["team", "invitations", "history"] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -264,7 +320,9 @@ export default function AcademyTeamPage() {
               marginBottom: -1, transition: "color .15s",
             }}
           >
-            {t === "team" ? "Membros" : `Convites${pendingCount > 0 ? ` (${pendingCount})` : ""}`}
+            {t === "team"        ? "Membros"
+             : t === "invitations" ? `Convites${pendingCount > 0 ? ` (${pendingCount})` : ""}`
+             : "Histórico"}
           </button>
         ))}
       </div>
@@ -397,6 +455,58 @@ export default function AcademyTeamPage() {
                 </tbody>
               </table>
             </div>
+          )}
+        </>
+      )}
+
+      {/* History tab */}
+      {tab === "history" && (
+        <>
+          {auditLoading && <LoadingSkeleton variant="list" lines={6} />}
+          {!auditLoading && auditRows.length === 0 && (
+            <EmptyState
+              eyebrow="Histórico de ações"
+              title="Nenhuma ação registrada ainda"
+              description="Toda alteração feita na academia — matrículas, convites, edições de equipe — aparece aqui como linha do tempo."
+            />
+          )}
+          {!auditLoading && auditRows.length > 0 && (
+            <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
+              {auditRows.map((row) => (
+                <li key={row.id} style={{
+                  display: "flex", alignItems: "flex-start", gap: "var(--space-3)",
+                  padding: "var(--space-2) 0",
+                  borderBottom: "1px solid var(--color-border)",
+                }}>
+                  <span style={{
+                    flexShrink: 0,
+                    width: 8, height: 8,
+                    borderRadius: "50%",
+                    marginTop: 6,
+                    background: ACTION_DOT[row.action] ?? "var(--color-text-muted)",
+                  }} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <span style={{ fontWeight: 500, fontSize: "var(--text-sm)" }}>
+                      {ACTION_LABELS[row.action] ?? row.action}
+                    </span>
+                    {row.meta && (row.meta as any).email && (
+                      <span style={{ color: "var(--color-text-secondary)", fontSize: "var(--text-xs)", marginLeft: 4 }}>
+                        · {(row.meta as any).email}
+                      </span>
+                    )}
+                    {row.meta && (row.meta as any).name && (
+                      <span style={{ color: "var(--color-text-secondary)", fontSize: "var(--text-xs)", marginLeft: 4 }}>
+                        · {(row.meta as any).name}
+                      </span>
+                    )}
+                    <div style={{ fontSize: "var(--text-xs)", color: "var(--color-text-muted)", marginTop: 2 }}>
+                      {timeAgo(row.created_at)}
+                      {row.actor_name && <span> · por {row.actor_name}</span>}
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
           )}
         </>
       )}

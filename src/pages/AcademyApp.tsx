@@ -12,6 +12,7 @@ import AcademyBrandingSettingsPage from "./academy/AcademyBrandingSettingsPage";
 import AcademyStudentsPage        from "./academy/AcademyStudentsPage";
 import AcademyStudentDetailPage   from "./academy/AcademyStudentDetailPage";
 import AcademyPlansPage           from "./academy/AcademyPlansPage";
+import AcademyFinancePage         from "./academy/AcademyFinancePage";
 
 function MenuLink({ to, label }: { to: string; label: string }) {
   return (
@@ -39,24 +40,6 @@ function AcademyPermissionRoute({
   return <>{children}</>;
 }
 
-function PlaceholderPage({ title }: { title: string }) {
-  return (
-    <div className="page-container">
-      <div className="page-header">
-        <h1 className="page-title">{title}</h1>
-      </div>
-      <div className="section-card">
-        <div className="empty-state">
-          <p className="empty-state__title">Recurso ainda não disponível</p>
-          <p className="empty-state__body">
-            Esta funcionalidade está sendo desenvolvida e será liberada em uma atualização futura.
-            Caso seja urgente, entre em contato com o suporte MinutoFit.
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 interface NavItem {
   to:         string;
@@ -71,7 +54,7 @@ const NAV_GROUPS: Array<{ label: string; items: NavItem[] }> = [
       { to: "/app/academy/dashboard", label: "Visão geral",       permission: "academy.dashboard"          },
       { to: "/app/academy/students",  label: "Alunos",            permission: "academy.students.read"      },
       { to: "/app/academy/plans",     label: "Planos",            permission: "academy.plans.read"         },
-      // "Financeiro" é placeholder — oculto até implementação real
+      { to: "/app/academy/finance",   label: "Financeiro",        permission: "academy.finance.read"       },
     ],
   },
   {
@@ -183,7 +166,7 @@ export default function AcademyApp() {
           path="finance"
           element={
             <AcademyPermissionRoute permission="academy.finance.read">
-              <PlaceholderPage title="Financeiro" />
+              <AcademyFinancePage />
             </AcademyPermissionRoute>
           }
         />

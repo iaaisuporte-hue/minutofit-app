@@ -56,6 +56,19 @@ export interface AcademyDashboardAtRiskStudent {
   daysInactive: number;
 }
 
+export interface AcademyTopPersonal {
+  userId: number;
+  name: string;
+  studentsCount: number;
+  adherenceRate: number | null;
+}
+
+export interface AcademyAdoption {
+  labAdoptionPct: number | null;
+  trackerAdoptionPct: number | null;
+  netGrowth: number;
+}
+
 export interface AcademyDashboard {
   academy: {
     display_name: string;
@@ -73,6 +86,42 @@ export interface AcademyDashboard {
   professionalsActive: number;
   retention: AcademyDashboardRetention;
   atRiskStudents: AcademyDashboardAtRiskStudent[];
+  averageMetabolismScore: number | null;
+  topPersonals: AcademyTopPersonal[];
+  adoption: AcademyAdoption;
+}
+
+export interface AcademyAuditRow {
+  id: number;
+  user_id: number | null;
+  actor_name: string | null;
+  action: string;
+  entity_type: string | null;
+  entity_id: number | null;
+  meta: Record<string, unknown> | null;
+  created_at: string;
+}
+
+export interface AcademyPaymentRow {
+  id: number;
+  user_id: number;
+  student_name: string | null;
+  student_email: string;
+  plan_name: string | null;
+  amount: number;
+  currency: string;
+  status: string;
+  paid_at: string | null;
+  created_at: string;
+}
+
+export interface AcademyFinanceKPIs {
+  totalPaid: number;
+  totalPending: number;
+  totalFailed: number;
+  countPaid: number;
+  countPending: number;
+  countFailed: number;
 }
 
 export interface InvitationInfo {
@@ -454,6 +503,35 @@ export async function searchUsers(q: string): Promise<{ id: number; name: string
   const data = await authFetch(`${API_URL}/admin/users/search?q=${encodeURIComponent(q)}`).then(parseJson);
   if (!data.success) throw new Error(data.error);
   return data.data.users;
+}
+
+// ─── Audit log ───────────────────────────────────────────────────────────────
+
+export async function fetchAcademyAudit(limit = 50, offset = 0): Promise<AcademyAuditRow[]> {
+  const data = await authFetch(`${API_URL}/academy/audit-log?limit=${limit}&offset=${offset}`).then(parseJson);
+  if (!data.success) throw new Error(data.error);
+  return data.data as AcademyAuditRow[];
+}
+
+// ─── Finance ─────────────────────────────────────────────────────────────────
+
+export async function fetchAcademyPayments(params?: {
+  from?: string;
+  to?: string;
+  status?: string;
+  limit?: number;
+  offset?: number;
+}): Promise<{ rows: AcademyPaymentRow[]; total: number; kpis: AcademyFinanceKPIs }> {
+  const qs = new URLSearchParams();
+  if (params?.from)   qs.set('from',   params.from);
+  if (params?.to)     qs.set('to',     params.to);
+  if (params?.status) qs.set('status', params.status);
+  if (params?.limit)  qs.set('limit',  String(params.limit));
+  if (params?.offset) qs.set('offset', String(params.offset));
+  const query = qs.toString() ? `?${qs.toString()}` : '';
+  const data = await authFetch(`${API_URL}/academy/payments${query}`).then(parseJson);
+  if (!data.success) throw new Error(data.error);
+  return data.data as { rows: AcademyPaymentRow[]; total: number; kpis: AcademyFinanceKPIs };
 }
 
 export async function assignAcademyOwner(
