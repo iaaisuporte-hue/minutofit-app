@@ -1,18 +1,24 @@
 /*
- * Área Personal — canvas com mais contraste (tokens locais herdados; :root global intacto).
- * Camadas: fundo mais frio, cartões off-white, bordas mais legíveis.
+ * Área Personal — canvas da camada de insights/metabolismo.
+ * Fundo cyan-soft alinhado ao accent token do DS; cartões brancos; :root global intacto.
  */
 .personal-app-canvas {
-  --color-bg-main: #dfe5ee;
-  --color-bg: #dfe5ee;
-  --color-surface: #eef2f8;
-  --color-surface-raised: #e4e9f2;
-  --color-surface-subtle: #d8dfea;
-  --color-border-subtle: #c3cedd;
-  --color-border: #9dadc2;
-  --color-text-tertiary: #5b677a;
-  --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.08);
-  --shadow-md: 0 8px 24px rgba(15, 23, 42, 0.09);
+  /* Camada accent (data/insights/metabolism) — fundo da área Personal */
+  --color-bg-main: #F2F8FB;
+  --color-bg: var(--color-bg-main);
+
+  /* Cartões brancos — leitura premium tipo Oura/Linear */
+  --color-surface: #FFFFFF;
+  --color-surface-raised: #F6FAFC;
+  --color-surface-subtle: #ECF3F7;
+
+  /* Bordas com leve toque cyan — visíveis sem serem pesadas */
+  --color-border-subtle: #DCE7EE;
+  --color-border: #C9D7E0;
+
+  --color-text-tertiary: #4A5A6A;
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
+  --shadow-md: 0 8px 24px rgba(6, 95, 130, 0.08);
 
   min-height: 100%;
   background: var(--color-bg-main);
