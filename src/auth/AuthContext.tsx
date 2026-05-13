@@ -245,6 +245,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         ),
       hasProduct: (productKey: string) => {
         if (state.role === 'admin') return true; // MetaCore admin bypasses all product gates
+        // Academy staff profiles implicitly hold the 'academia' product even if
+        // user_products was not yet seeded (e.g. seed missing in production).
+        if (
+          productKey === 'academia' &&
+          typeof state.user?.accessProfile === 'string' &&
+          state.user.accessProfile.startsWith('academy_') &&
+          state.user.accessProfile !== 'academy_student'
+        ) {
+          return true;
+        }
         return (state.products ?? []).includes(productKey);
       },
 
