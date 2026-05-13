@@ -15,6 +15,7 @@ import {
   type Student,
 } from "../../../services/academyApi";
 import { ExceptionReasonDialog } from "./ExceptionReasonDialog";
+import { LotacaoChart } from "./LotacaoChart";
 import { initials, statusBadge, statusLabel, timeLabel } from "./recepcaoUtils";
 import "./recepcao.css";
 
@@ -525,6 +526,9 @@ export default function RecepcaoHubPage() {
         </div>
       ) : dashboard && (
         <>
+          {/* ── Lotação Chart ── */}
+          <LotacaoChart occupancyNow={dashboard.kpis.occupancyNow} />
+
           <div className="rec-main">
             {/* ── Feed ── */}
             <div className="rec-feed-card">
