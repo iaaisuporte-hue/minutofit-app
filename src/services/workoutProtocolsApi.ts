@@ -81,3 +81,20 @@ export async function fetchProtocolSuggestions(studentId: string) {
   }
   return (data?.data || []) as ProtocolSuggestion[];
 }
+
+export async function createWorkoutProtocol(input: {
+  title: string;
+  description?: string;
+  weekPreset: string;
+  selectedGroup: string | null;
+  items: WorkoutPlanItem[];
+}) {
+  const response = await authFetch(`${API_URL}/personal/protocols`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ scope: "personal", ...input }),
+  });
+  const data = await parseJson(response);
+  if (!response.ok) throw new Error(data?.error || "Nao foi possivel salvar o template.");
+  return data?.data as WorkoutProtocol;
+}

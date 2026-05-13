@@ -5,11 +5,13 @@ import type { PersonalDashboardStudent } from "../../services/personalDashboardA
 import { createPersonalWorkoutPlan, fetchPersonalWorkoutPlans } from "../../services/personalWorkoutApi";
 import { fetchExerciseCatalog, type ExerciseCatalogEntry } from "../../services/exerciseCatalogApi";
 import {
+  createWorkoutProtocol,
   fetchProtocolSuggestions,
   fetchWorkoutProtocolById,
   type ProtocolSuggestion,
   type WorkoutProtocol,
 } from "../../services/workoutProtocolsApi";
+import { generateWorkoutWithAi, type AiGeneratedExercise } from "../../services/aiWorkoutApi";
 import {
   FeedbackBanner,
   IconArrowDown,
@@ -163,6 +165,12 @@ export default function WorkoutBuilderPage() {
   // ── UI ────────────────────────────────────────────────────────────
   const [feedback, setFeedback] = useState<{ kind: "success" | "error"; message: string } | null>(null);
   const [saving, setSaving] = useState(false);
+  const [savingTemplate, setSavingTemplate] = useState(false);
+
+  // ── AI ────────────────────────────────────────────────────────────
+  const [aiPrompt, setAiPrompt] = useState("");
+  const [aiLoading, setAiLoading] = useState(false);
+  const [showAi, setShowAi] = useState(false);
 
   // ── Effects ───────────────────────────────────────────────────────
   useEffect(() => {
@@ -383,6 +391,64 @@ export default function WorkoutBuilderPage() {
     }
   }
 
+  // ── Save as template ──────────────────────────────────────────────
+  async function saveAsTemplate() {
+    if (items.length === 0) return;
+    setSavingTemplate(true);
+    setFeedback(null);
+    try {
+      await createWorkoutProtocol({ title: workoutName, weekPreset, selectedGroup, items });
+      setFeedback({ kind: "success", message: `Template "${workoutName}" salvo na sua biblioteca.` });
+    } catch (e) {
+      setFeedback({
+        kind: "error",
+        message: e instanceof Error ? e.message : "Não foi possível salvar o template.",
+      });
+    } finally {
+      setSavingTemplate(false);
+    }
+  }
+
+  // ── AI generation ─────────────────────────────────────────────────
+  function resolveAiExercises(generated: AiGeneratedExercise[]): WorkoutExercise[] {
+    return generated.map((g) => {
+      const nameLower = g.name.toLowerCase();
+      const match =
+        allExercises.find((c) => c.name.toLowerCase() === nameLower) ??
+        allExercises.find((c) => c.name.toLowerCase().includes(nameLower.split(" ")[0]));
+      return {
+        exerciseId: match?.id ?? `ai-${Math.random().toString(36).slice(2)}`,
+        name: match?.name ?? g.name,
+        sets: g.sets,
+        reps: g.reps,
+        rest: g.rest,
+      };
+    });
+  }
+
+  async function generateWithAi() {
+    if (!aiPrompt.trim() || aiLoading) return;
+    setAiLoading(true);
+    setFeedback(null);
+    try {
+      const catalogNames = allExercises.map((e) => e.name);
+      const result = await generateWorkoutWithAi(aiPrompt.trim(), catalogNames);
+      if (result.title) setWorkoutName(result.title);
+      if (result.weekPreset) setWeekPreset(coerceWeekPreset(result.weekPreset));
+      const resolved = resolveAiExercises(result.exercises ?? []);
+      setItems(resolved);
+      setFeedback({ kind: "success", message: `IA gerou ${resolved.length} exercícios. Revise e ajuste conforme necessário.` });
+      setShowAi(false);
+    } catch (e) {
+      setFeedback({
+        kind: "error",
+        message: e instanceof Error ? e.message : "Não foi possível gerar a ficha.",
+      });
+    } finally {
+      setAiLoading(false);
+    }
+  }
+
   // ── Shared styles ─────────────────────────────────────────────────
   const inputS: React.CSSProperties = {
     minHeight: 34,
@@ -509,6 +575,16 @@ export default function WorkoutBuilderPage() {
           <WbButton variant="ghost" onClick={() => navigate("/app/personal/library")}>
             Biblioteca
           </WbButton>
+          {items.length > 0 ? (
+            <WbButton
+              variant="ghost"
+              disabled={savingTemplate}
+              title="Salvar como template reutilizável na sua biblioteca"
+              onClick={() => void saveAsTemplate()}
+            >
+              {savingTemplate ? "Salvando…" : "Salvar template"}
+            </WbButton>
+          ) : null}
           <WbButton
             variant="primary"
             disabled={!canSave || saving}
@@ -694,6 +770,59 @@ export default function WorkoutBuilderPage() {
                       </div>
                     ))
                   )}
+                </div>
+              ) : null}
+            </div>
+
+            {/* AI generation accordion */}
+            <div style={{ borderTop: `1px solid ${WB.border}`, paddingTop: 10 }}>
+              <button
+                type="button"
+                onClick={() => setShowAi((v) => !v)}
+                style={{
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  color: WB.muted,
+                  fontSize: 12,
+                  fontWeight: 650,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 5,
+                  padding: 0,
+                }}
+              >
+                <span style={{ fontSize: 10 }}>{showAi ? "▲" : "▼"}</span>
+                Gerar com IA
+              </button>
+
+              {showAi ? (
+                <div style={{ marginTop: 10, display: "grid", gap: 8 }}>
+                  <div style={{ fontSize: 12, color: WB.muted, lineHeight: 1.45 }}>
+                    Descreva o treino em linguagem natural. A IA escolherá exercícios do catálogo e preencherá séries, reps e descanso.
+                  </div>
+                  <textarea
+                    value={aiPrompt}
+                    onChange={(e) => setAiPrompt(e.target.value)}
+                    placeholder="Ex: Treino de perna para iniciante, 4 dias na semana, foco em hipertrofia"
+                    rows={3}
+                    style={{
+                      ...inputS,
+                      width: "100%",
+                      minHeight: 72,
+                      resize: "vertical",
+                      fontFamily: "inherit",
+                      fontSize: 13,
+                    }}
+                    maxLength={400}
+                  />
+                  <WbButton
+                    variant="primary"
+                    disabled={!aiPrompt.trim() || aiLoading}
+                    onClick={() => void generateWithAi()}
+                  >
+                    {aiLoading ? "Gerando…" : "Gerar ficha"}
+                  </WbButton>
                 </div>
               ) : null}
             </div>
