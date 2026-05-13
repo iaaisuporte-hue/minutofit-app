@@ -455,6 +455,8 @@ export interface ReceptionStudent {
   studentStatus: StudentStatus | null;
   activePlan: { id: number; name: string; monthlyPrice: number } | null;
   lastAccessAt: string | null;
+  daysOverdue?: number | null;
+  lastStaffNote?: { from: string; preview: string; sentAt: string } | null;
 }
 
 export interface ReceptionAccessEvent {
@@ -525,6 +527,87 @@ export async function fetchReceptionDashboard(): Promise<ReceptionDashboard> {
   return data.data as ReceptionDashboard;
 }
 
+export type ReceptionPanelApiKey =
+  | "occupancyNow"
+  | "accessToday"
+  | "overdueStudents"
+  | "birthdaysToday"
+  | "exceptionsToday"
+  | "deniedToday"
+  | "newStudents7d";
+
+export async function fetchReceptionPanel(
+  key: ReceptionPanelApiKey,
+  page: number,
+  pageSize: number,
+  q?: string
+): Promise<{ total: number; events: ReceptionAccessEvent[]; students: ReceptionDashboardStudent[] }> {
+  const qs = new URLSearchParams({ page: String(page), pageSize: String(pageSize) });
+  if (q?.trim()) qs.set("q", q.trim());
+  const data = await authFetch(`${API_URL}/academy/recepcao/panel/${key}?${qs}`).then(parseJson);
+  if (!data.success) throw new Error(data.error);
+  return data.data as { total: number; events: ReceptionAccessEvent[]; students: ReceptionDashboardStudent[] };
+}
+
+export interface ReceptionStudentContext {
+  adherence7dPct: number;
+  streakDays: number;
+  lastWorkoutAt: string | null;
+  productMaaSActive: boolean;
+  unreadStaffMessageCount: number;
+  welcomeContext: string | null;
+  staffMessages: Array<{
+    id: number;
+    text: string;
+    fromName: string;
+    senderRole: string;
+    createdAt: string;
+  }>;
+}
+
+export async function fetchReceptionStudentContext(userId: number): Promise<ReceptionStudentContext> {
+  const data = await authFetch(`${API_URL}/academy/students/${userId}/reception-context`).then(parseJson);
+  if (!data.success) throw new Error(data.error);
+  return data.data as ReceptionStudentContext;
+}
+
+export async function postReceptionStudentNotesAudit(studentUserId: number): Promise<void> {
+  const data = await authFetch(`${API_URL}/academy/recepcao/student-notes-audit`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ studentUserId }),
+  }).then(parseJson);
+  if (!data.success) throw new Error(data.error);
+}
+
+export interface AcademyAuditLogRow {
+  id: number;
+  academy_id: number | null;
+  user_id: number | null;
+  actor_name: string | null;
+  action: string;
+  entity_type: string | null;
+  entity_id: number | null;
+  meta: Record<string, unknown> | null;
+  created_at: string;
+}
+
+export async function fetchAcademyAuditLog(params: {
+  limit?: number;
+  offset?: number;
+  actorUserId?: number;
+  actionPrefix?: string;
+}): Promise<AcademyAuditLogRow[]> {
+  const qs = new URLSearchParams();
+  if (params.limit != null) qs.set("limit", String(params.limit));
+  if (params.offset != null) qs.set("offset", String(params.offset));
+  if (params.actorUserId != null) qs.set("actor_user_id", String(params.actorUserId));
+  if (params.actionPrefix) qs.set("action_prefix", params.actionPrefix);
+  const data = await authFetch(`${API_URL}/academy/audit-log?${qs}`).then(parseJson);
+  if (!data.success) throw new Error(data.error);
+  return data.data as AcademyAuditLogRow[];
+}
+
 export async function searchReceptionStudents(q: string, limit = 8): Promise<ReceptionStudent[]> {
   const qs = new URLSearchParams({ q, limit: String(limit) });
   const data = await authFetch(`${API_URL}/academy/students/search?${qs}`).then(parseJson);
@@ -532,50 +615,61 @@ export async function searchReceptionStudents(q: string, limit = 8): Promise<Rec
   return data.data.students as ReceptionStudent[];
 }
 
-export async function registerReceptionCheckin(userId: number): Promise<{ event: unknown; student: ReceptionStudent }> {
+export type ReceptionCheckinResult = {
+  duplicate?: boolean;
+  event: { id: number; eventType: string; source: string; reason: string | null; createdAt: string };
+  student: ReceptionStudent;
+};
+
+export async function registerReceptionCheckin(userId: number): Promise<ReceptionCheckinResult> {
   const data = await authFetch(`${API_URL}/academy/checkins`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ userId }),
   }).then(parseJson);
   if (!data.success) throw new Error(data.error);
-  return data.data as { event: unknown; student: ReceptionStudent };
+  return data.data as ReceptionCheckinResult;
 }
 
 export async function registerReceptionException(
   userId: number,
   reason: string
-): Promise<{ event: unknown; student: ReceptionStudent }> {
+): Promise<ReceptionCheckinResult> {
   const data = await authFetch(`${API_URL}/academy/checkins/exception`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ userId, reason }),
   }).then(parseJson);
   if (!data.success) throw new Error(data.error);
-  return data.data as { event: unknown; student: ReceptionStudent };
+  return data.data as ReceptionCheckinResult;
 }
 
-export async function registerReceptionDenied(userId: number, reason: string): Promise<void> {
+export async function registerReceptionDenied(userId: number, reason: string): Promise<ReceptionCheckinResult> {
   const data = await authFetch(`${API_URL}/academy/checkins/deny`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ userId, reason }),
   }).then(parseJson);
   if (!data.success) throw new Error(data.error);
+  return data.data as ReceptionCheckinResult;
 }
 
 export async function registerReceptionVisitor(params: {
   name: string;
   document?: string;
-  visitorType?: 'visitor' | 'external_personal';
+  visitorType?: 'visitor' | 'external_personal' | 'prospect' | 'trial_class';
+  phone?: string;
+  referredBy?: string;
+  validUntil?: string;
   reason?: string;
-}): Promise<void> {
+}): Promise<{ duplicate?: boolean; visitor: unknown; event: unknown }> {
   const data = await authFetch(`${API_URL}/academy/visitors`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(params),
   }).then(parseJson);
   if (!data.success) throw new Error(data.error);
+  return data.data as { duplicate?: boolean; visitor: unknown; event: unknown };
 }
 
 // ─── Plans ─────────────────────────────────────────────────────────────────────

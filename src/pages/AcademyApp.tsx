@@ -1,5 +1,5 @@
 import React from "react";
-import { NavLink, Navigate, Route, Routes, useNavigate } from "react-router-dom";
+import { NavLink, Navigate, Outlet, Route, Routes, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import AppShell from "../layout/AppShell";
 import MinutoFitLogo from "../components/MinutoFitLogo";
@@ -17,8 +17,17 @@ import AcademyPlansPage           from "./academy/AcademyPlansPage";
 import AcademyFinancePage         from "./academy/AcademyFinancePage";
 import { academyFallbackLogoUrl } from "./academy/academyFallbackLogo";
 import RecepcaoHubPage            from "./academy/recepcao/RecepcaoHubPage";
+import RecepcaoDisplayPage        from "./academy/recepcao/RecepcaoDisplayPage";
 import RecepcaoCheckinPage        from "./academy/recepcao/RecepcaoCheckinPage";
 import RecepcaoNovoAlunoPage      from "./academy/recepcao/RecepcaoNovoAlunoPage";
+
+function AcademyShellLayout({ sidebar }: { sidebar: React.ReactNode }) {
+  return (
+    <AppShell sidebar={sidebar}>
+      <Outlet />
+    </AppShell>
+  );
+}
 
 function MenuLink({ to, label }: { to: string; label: string }) {
   return (
@@ -167,92 +176,100 @@ export default function AcademyApp() {
         </div>
       }
     >
-    <AppShell sidebar={sidebar}>
       <Routes>
-        <Route index element={<RedirectToFirstAcademyRoute />} />
         <Route
-          path="recepcao"
+          path="recepcao/display"
           element={
-            <AcademyPermissionRoute permission="academy.recepcao.dashboard" fallbackTo="/app/academy/students">
-              <RecepcaoHubPage />
+            <AcademyPermissionRoute permission="academy.recepcao.dashboard" fallbackTo="/app/academy/recepcao">
+              <RecepcaoDisplayPage />
             </AcademyPermissionRoute>
           }
         />
-        <Route
-          path="recepcao/checkin"
-          element={
-            <AcademyPermissionRoute permission="academy.checkin.write" fallbackTo="/app/academy/recepcao">
-              <RecepcaoCheckinPage />
-            </AcademyPermissionRoute>
-          }
-        />
-        <Route
-          path="recepcao/novo-aluno"
-          element={
-            <AcademyPermissionRoute permission="academy.students.write" fallbackTo="/app/academy/recepcao">
-              <RecepcaoNovoAlunoPage />
-            </AcademyPermissionRoute>
-          }
-        />
-        <Route
-          path="dashboard"
-          element={
-            <AcademyPermissionRoute permission="academy.dashboard" fallbackTo="/app/academy/students">
-              <AcademyDashboardPage />
-            </AcademyPermissionRoute>
-          }
-        />
-        <Route
-          path="students"
-          element={
-            <AcademyPermissionRoute permission="academy.students.read">
-              <AcademyStudentsPage />
-            </AcademyPermissionRoute>
-          }
-        />
-        <Route
-          path="students/:userId"
-          element={
-            <AcademyPermissionRoute permission="academy.students.read">
-              <AcademyStudentDetailPage />
-            </AcademyPermissionRoute>
-          }
-        />
-        <Route
-          path="plans"
-          element={
-            <AcademyPermissionRoute permission="academy.plans.read">
-              <AcademyPlansPage />
-            </AcademyPermissionRoute>
-          }
-        />
-        <Route
-          path="team"
-          element={
-            <AcademyPermissionRoute permission="academy.invitations.write">
-              <AcademyTeamPage />
-            </AcademyPermissionRoute>
-          }
-        />
-        <Route
-          path="finance"
-          element={
-            <AcademyPermissionRoute permission="academy.finance.read">
-              <AcademyFinancePage />
-            </AcademyPermissionRoute>
-          }
-        />
-        <Route
-          path="branding"
-          element={
-            <AcademyPermissionRoute permission="academy.branding">
-              <AcademyBrandingSettingsPage />
-            </AcademyPermissionRoute>
-          }
-        />
-        <Route path="*" element={<RedirectToFirstAcademyRoute />} />
+        <Route element={<AcademyShellLayout sidebar={sidebar} />}>
+          <Route index element={<RedirectToFirstAcademyRoute />} />
+          <Route
+            path="recepcao"
+            element={
+              <AcademyPermissionRoute permission="academy.recepcao.dashboard" fallbackTo="/app/academy/students">
+                <RecepcaoHubPage />
+              </AcademyPermissionRoute>
+            }
+          />
+          <Route
+            path="recepcao/checkin"
+            element={
+              <AcademyPermissionRoute permission="academy.checkin.write" fallbackTo="/app/academy/recepcao">
+                <RecepcaoCheckinPage />
+              </AcademyPermissionRoute>
+            }
+          />
+          <Route
+            path="recepcao/novo-aluno"
+            element={
+              <AcademyPermissionRoute permission="academy.students.write" fallbackTo="/app/academy/recepcao">
+                <RecepcaoNovoAlunoPage />
+              </AcademyPermissionRoute>
+            }
+          />
+          <Route
+            path="dashboard"
+            element={
+              <AcademyPermissionRoute permission="academy.dashboard" fallbackTo="/app/academy/students">
+                <AcademyDashboardPage />
+              </AcademyPermissionRoute>
+            }
+          />
+          <Route
+            path="students"
+            element={
+              <AcademyPermissionRoute permission="academy.students.read">
+                <AcademyStudentsPage />
+              </AcademyPermissionRoute>
+            }
+          />
+          <Route
+            path="students/:userId"
+            element={
+              <AcademyPermissionRoute permission="academy.students.read">
+                <AcademyStudentDetailPage />
+              </AcademyPermissionRoute>
+            }
+          />
+          <Route
+            path="plans"
+            element={
+              <AcademyPermissionRoute permission="academy.plans.read">
+                <AcademyPlansPage />
+              </AcademyPermissionRoute>
+            }
+          />
+          <Route
+            path="team"
+            element={
+              <AcademyPermissionRoute permission="academy.invitations.write">
+                <AcademyTeamPage />
+              </AcademyPermissionRoute>
+            }
+          />
+          <Route
+            path="finance"
+            element={
+              <AcademyPermissionRoute permission="academy.finance.read">
+                <AcademyFinancePage />
+              </AcademyPermissionRoute>
+            }
+          />
+          <Route
+            path="branding"
+            element={
+              <AcademyPermissionRoute permission="academy.branding">
+                <AcademyBrandingSettingsPage />
+              </AcademyPermissionRoute>
+            }
+          />
+          <Route path="*" element={<RedirectToFirstAcademyRoute />} />
+        </Route>
       </Routes>
-    </AppShell>
     </ProductGate>
   );
 }
