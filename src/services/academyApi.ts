@@ -478,6 +478,18 @@ export interface ReceptionAccessEvent {
   actorName: string | null;
 }
 
+export interface ReceptionDashboardStudent {
+  userId: number;
+  name: string;
+  email: string;
+  phone: string | null;
+  birthDate: string | null;
+  studentStatus: StudentStatus | null;
+  joinedAt: string | null;
+  activePlan: { id: number; name: string; monthlyPrice: number } | null;
+  lastAccessAt: string | null;
+}
+
 export interface ReceptionDashboard {
   kpis: {
     occupancyNow: number;
@@ -496,6 +508,15 @@ export interface ReceptionDashboard {
   };
   recentEvents: ReceptionAccessEvent[];
   exceptions: ReceptionAccessEvent[];
+  related?: {
+    occupancyNow: ReceptionAccessEvent[];
+    accessToday: ReceptionAccessEvent[];
+    exceptionsToday: ReceptionAccessEvent[];
+    deniedToday: ReceptionAccessEvent[];
+    overdueStudents: ReceptionDashboardStudent[];
+    newStudents7d: ReceptionDashboardStudent[];
+    birthdaysToday: ReceptionDashboardStudent[];
+  };
 }
 
 export async function fetchReceptionDashboard(): Promise<ReceptionDashboard> {
