@@ -7,7 +7,7 @@ export default function HomePage() {
       <div className="landingBackdrop" />
 
       <header className="landingHeader">
-        <div className="landingBrand">MinutoFit</div>
+        <div className="landingBrand">MetaCore</div>
         <nav className="landingActions">
           <Link to="/login" className="landingButton ghost">
             Entrar

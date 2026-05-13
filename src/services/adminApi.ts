@@ -1,6 +1,7 @@
 import { API_URL, parseJson } from "./apiBase";
 import { authFetch } from "./apiClient";
 import { getAccessToken } from "./authTokens";
+import type { WorkoutProtocol } from "./workoutProtocolsApi";
 
 export type AdminDashboardMetrics = {
   totalUsers: number;
@@ -168,7 +169,7 @@ export const PRODUCT_KEYS = ['app', 'personal', 'nutri', 'academia', 'metabolism
 export type ProductKey = (typeof PRODUCT_KEYS)[number];
 
 export const PRODUCT_LABELS: Record<ProductKey, string> = {
-  app: 'App MinutoFit',
+  app: "App MetaCore",
   personal: 'Personal',
   nutri: 'Nutricionista',
   academia: 'Academia',
@@ -212,5 +213,65 @@ export async function revokeUserProduct(userId: string | number, productKey: Pro
   });
   const data = await parseJson(response);
   if (!response.ok) throw new Error(data?.error || "Nao foi possivel revogar produto.");
+}
+
+export async function fetchAdminPlatformProtocols(limit = 100) {
+  const response = await authFetch(`${API_URL}/admin/workout-protocols/platform?limit=${limit}`);
+  const data = await parseJson(response);
+  if (!response.ok) {
+    throw new Error(data?.error || "Nao foi possivel carregar protocolos da plataforma.");
+  }
+  return (data?.data || []) as WorkoutProtocol[];
+}
+
+export async function createAdminPlatformProtocol(body: {
+  title: string;
+  description?: string | null;
+  weekPreset?: string;
+  selectedGroup?: string | null;
+  items: unknown[];
+}) {
+  const response = await authFetch(`${API_URL}/admin/workout-protocols/platform`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const data = await parseJson(response);
+  if (!response.ok) {
+    throw new Error(data?.error || "Nao foi possivel criar o protocolo.");
+  }
+  return data?.data as WorkoutProtocol;
+}
+
+export async function deleteAdminPlatformProtocol(protocolId: number) {
+  const response = await authFetch(`${API_URL}/admin/workout-protocols/platform/${protocolId}`, {
+    method: "DELETE",
+  });
+  const data = await parseJson(response);
+  if (!response.ok) {
+    throw new Error(data?.error || "Nao foi possivel excluir o protocolo.");
+  }
+}
+
+export async function updateAdminPlatformProtocol(
+  protocolId: number,
+  body: Partial<{
+    title: string;
+    description: string | null;
+    weekPreset: string;
+    selectedGroup: string | null;
+    items: unknown[];
+  }>
+) {
+  const response = await authFetch(`${API_URL}/admin/workout-protocols/platform/${protocolId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const data = await parseJson(response);
+  if (!response.ok) {
+    throw new Error(data?.error || "Nao foi possivel atualizar o protocolo.");
+  }
+  return data?.data as WorkoutProtocol;
 }
 

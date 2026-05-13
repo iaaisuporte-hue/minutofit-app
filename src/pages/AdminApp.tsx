@@ -16,6 +16,7 @@ import AdminAccessProfilesPage from "./admin/AdminAccessProfilesPage";
 import AdminAcademiesPage from "./admin/AdminAcademiesPage";
 import AdminAcademyDetailPage from "./admin/AdminAcademyDetailPage";
 import AcademyBrandingSettingsPage from "./academy/AcademyBrandingSettingsPage";
+import AdminWorkoutProtocolsPage from "./admin/AdminWorkoutProtocolsPage";
 
 function MenuLink({ to, label }: { to: string; label: string }) {
   return (
@@ -63,6 +64,7 @@ export default function AdminApp() {
 
   const platformItems: Array<{ to: string; label: string; permission: AppPermission }> = [
     { to: "/app/admin/dashboard",       label: "Visão geral",       permission: "admin.dashboard" },
+    { to: "/app/admin/workout-protocols", label: "Protocolos treino", permission: "admin.dashboard" },
     { to: "/app/admin/users",           label: "Alunos",            permission: "admin.users" },
     { to: "/app/admin/personals",       label: "Personais",         permission: "admin.personals" },
     { to: "/app/admin/nutris",          label: "Nutricionistas",    permission: "admin.nutris" },
@@ -129,6 +131,14 @@ export default function AdminApp() {
               element={
                 <AdminPermissionRoute permission="admin.dashboard">
                   <AdminDashboardPage />
+                </AdminPermissionRoute>
+              }
+            />
+            <Route
+              path="workout-protocols"
+              element={
+                <AdminPermissionRoute permission="admin.dashboard">
+                  <AdminWorkoutProtocolsPage />
                 </AdminPermissionRoute>
               }
             />

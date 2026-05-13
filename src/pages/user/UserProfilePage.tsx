@@ -183,7 +183,7 @@ function drawEvolutionShareCard(opts: {
 
     ctx.fillStyle = "rgba(148,163,184,0.9)";
     ctx.font = "500 24px system-ui, -apple-system, sans-serif";
-    ctx.fillText("MinutoFit — evolução que importa", 72, H - 72);
+    ctx.fillText("MetaCore — evolução que importa", 72, H - 72);
   };
 
   return new Promise((resolve, reject) => {
@@ -206,7 +206,7 @@ function drawEvolutionShareCard(opts: {
           const url = URL.createObjectURL(blob);
           const a = document.createElement("a");
           a.href = url;
-          a.download = "minutofit-evolucao.png";
+          a.download = "metacore-evolucao.png";
           a.click();
           URL.revokeObjectURL(url);
           resolve();
@@ -222,7 +222,7 @@ function drawEvolutionShareCard(opts: {
           const url = URL.createObjectURL(blob);
           const a = document.createElement("a");
           a.href = url;
-          a.download = "minutofit-evolucao.png";
+          a.download = "metacore-evolucao.png";
           a.click();
           URL.revokeObjectURL(url);
           resolve();
@@ -240,7 +240,7 @@ function drawEvolutionShareCard(opts: {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = "minutofit-evolucao.png";
+      a.download = "metacore-evolucao.png";
       a.click();
       URL.revokeObjectURL(url);
       resolve();
@@ -428,7 +428,7 @@ export default function UserProfilePage({ onLogout: _onLogout }: Props) { // esl
                           ? "estável"
                           : `${t30.delta >= 0 ? "+" : ""}${t30.delta} pts`;
                       void drawEvolutionShareCard({
-                        partnerName: branding?.displayName ?? academies?.[0]?.displayName ?? "MinutoFit",
+                        partnerName: branding?.displayName ?? academies?.[0]?.displayName ?? "MetaCore",
                         userName: user?.name || accountSummary.name,
                         score: metabolismData.score,
                         trend30Label,

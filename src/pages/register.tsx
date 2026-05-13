@@ -261,6 +261,7 @@ export default function RegisterPage() {
 
         <div className="auth-links">
           <Link to="/login">Já tenho conta — entrar</Link>
+          <Link to="/privacidade">Privacidade e cookies</Link>
         </div>
       </form>
     </main>

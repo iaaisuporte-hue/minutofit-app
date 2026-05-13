@@ -1,5 +1,6 @@
 import { useNavigate, useParams } from "react-router-dom";
 import StudentProfileModal from "./StudentProfileModal";
+import "./personalPremium.css";
 
 export default function StudentProfilePage() {
   const { studentId } = useParams();

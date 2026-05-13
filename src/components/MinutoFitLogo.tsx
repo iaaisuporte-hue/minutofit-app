@@ -9,8 +9,7 @@ type Props = {
 };
 
 /**
- * Logomarca MinutoFit — anel (tempo) + pulso (energia) + wordmark.
- * Arquivos estáticos: /minutofit-logo.svg, /minutofit-icon.svg
+ * Logomarca MetaCore — assets em /minutofit-logo.svg e /minutofit-icon.svg (nomes legados de arquivo).
  */
 export default function MinutoFitLogo({ width = 200, variant = "horizontal", className, style }: Props) {
   const src = variant === "mark" ? "/minutofit-icon.svg" : "/minutofit-logo.svg";

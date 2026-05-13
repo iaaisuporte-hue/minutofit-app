@@ -157,7 +157,7 @@ export default function AcademyApp() {
       <div className="sidebar-footer" style={{ padding: "var(--space-3) var(--space-2)" }}>
         <button className="logoutButton" onClick={handleLogout}>Sair</button>
         {isTenantSubdomain && (
-          <div className="powered-by">powered by MinutoFit</div>
+          <div className="powered-by">powered by MetaCore</div>
         )}
       </div>
     </div>

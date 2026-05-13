@@ -6,6 +6,7 @@ import AppShell from "../layout/AppShell";
 import PersonalMobileBottomNav from "../layout/PersonalMobileBottomNav";
 import MinutoFitLogo from "../components/MinutoFitLogo";
 import { fetchChatConversations } from "../services/messagesApi";
+import "./personal/personalPremium.css";
 
 import DashboardPage from "./personal/DashboardPage";
 import StudentsListPage from "./personal/StudentsListPage";
@@ -173,7 +174,7 @@ export default function PersonalApp() {
             <MenuLink to="/app/personal/dashboard" label="Hoje" />
             <MenuLink to="/app/personal/students" label="Alunos" />
             <MenuLink to="/app/personal/review" label="Revisões" />
-            <MenuLink to="/app/personal/library" label="Programas" />
+            <MenuLink to="/app/personal/library" label="Protocolos" />
           </div>
 
           <div style={{ flex: 1 }} />
@@ -186,7 +187,7 @@ export default function PersonalApp() {
         </>
       }
     >
-      <div style={{ display: "grid", gap: 16 }}>
+      <div className="personal-app-canvas" style={{ display: "grid", gap: 16 }}>
         <div style={{ maxWidth: 1180, margin: "0 auto", width: "100%" }}>
           <Routes>
             <Route index element={<RedirectToDashboard />} />

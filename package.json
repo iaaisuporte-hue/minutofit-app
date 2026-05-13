@@ -2,7 +2,7 @@
   "name": "minutofit-app",
   "private": true,
   "version": "0.1.0",
-  "description": "Frontend web MinutoFit (React + Vite) — aluno, login e cadastro.",
+  "description": "Frontend web MetaCore (React + Vite) — aluno, login e cadastro.",
   "type": "module",
   "engines": {
     "node": ">=20.19.0"

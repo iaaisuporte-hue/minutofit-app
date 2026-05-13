@@ -230,7 +230,7 @@ export default function AcademyBrandingSettingsPage() {
               <div className="card-header">
                 <h2 className="card-title">Imagens</h2>
                 <p className="card-subtitle" style={{ fontSize: "var(--text-xs)", color: "var(--color-text-muted)" }}>
-                  URLs devem apontar para o CDN ou S3 do MinutoFit (HTTPS).
+                  URLs devem apontar para um CDN ou armazenamento HTTPS confiável (ex.: S3).
                 </p>
               </div>
 
@@ -243,7 +243,7 @@ export default function AcademyBrandingSettingsPage() {
                     type="url"
                     value={form.logoUrl}
                     onChange={(e) => setField("logoUrl", e.target.value)}
-                    placeholder="https://cdn.minutofit.com.br/logos/academia.png"
+                    placeholder="https://cdn.exemplo.com/logos/academia.png"
                     disabled={saving}
                   />
                 </div>
@@ -256,7 +256,7 @@ export default function AcademyBrandingSettingsPage() {
                     type="url"
                     value={form.bannerUrl}
                     onChange={(e) => setField("bannerUrl", e.target.value)}
-                    placeholder="https://cdn.minutofit.com.br/banners/academia.jpg"
+                    placeholder="https://cdn.exemplo.com/banners/academia.jpg"
                     disabled={saving}
                   />
                   <span className="field-hint">Exibido acima do formulário de login (recomendado: 1200×400px).</span>
@@ -350,7 +350,7 @@ export default function AcademyBrandingSettingsPage() {
                       borderRadius: "var(--radius-md)", color: "#fff",
                       fontSize: "var(--text-sm)", fontWeight: 700,
                     }}>
-                      {form.displayName || "MinutoFit Academia"}
+                      {form.displayName || "MetaCore Academia"}
                     </div>
                   )}
                   {form.welcomeMessage && (

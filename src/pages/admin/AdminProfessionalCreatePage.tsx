@@ -266,7 +266,7 @@ export default function AdminProfessionalCreatePage({ role }: Props) {
             <input value={form.name} onChange={(e) => update("name", e.target.value)} style={baseInputStyle()} placeholder="Nome do profissional" required />
           </Field>
           <Field label="E-mail profissional *">
-            <input type="email" value={form.email} onChange={(e) => update("email", e.target.value)} style={baseInputStyle()} placeholder="profissional@minutofit.app" required />
+            <input type="email" value={form.email} onChange={(e) => update("email", e.target.value)} style={baseInputStyle()} placeholder="profissional@exemplo.com" required />
           </Field>
           <Field label="Telefone">
             <input value={form.phone} onChange={(e) => update("phone", e.target.value)} style={baseInputStyle()} placeholder="(85) 99999-9999" />

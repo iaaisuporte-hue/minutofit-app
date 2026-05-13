@@ -31,9 +31,13 @@ const TreinosIcon = () => (
   </svg>
 );
 
-const ConteudoIcon = () => (
+const ProtocolLibraryIcon = () => (
   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <path d="M6 4v16M18 4v16M1 9h5M18 9h5M1 15h5M18 15h5" />
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+    <path d="M14 2v6h6" />
+    <path d="M8 13h8" />
+    <path d="M8 17h8" />
+    <path d="M8 9h3" />
   </svg>
 );
 
@@ -48,7 +52,7 @@ export default function PersonalMobileBottomNav() {
     { to: "/app/personal/dashboard", label: "Hoje", icon: <HojeIcon /> },
     { to: "/app/personal/students", label: "Alunos", icon: <StudentsIcon /> },
     { to: "/app/personal/review", label: "Revisões", icon: <TreinosIcon /> },
-    { to: "/app/personal/library", label: "Programas", icon: <ConteudoIcon /> },
+    { to: "/app/personal/library", label: "Protocolos", icon: <ProtocolLibraryIcon /> },
     { to: "/app/personal/messages", label: "Mensagens", icon: <MessagesIcon /> },
   ];
 

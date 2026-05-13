@@ -1,3 +1,33 @@
+/*
+ * Área Personal — canvas com mais contraste (tokens locais herdados; :root global intacto).
+ * Camadas: fundo mais frio, cartões off-white, bordas mais legíveis.
+ */
+.personal-app-canvas {
+  --color-bg-main: #dfe5ee;
+  --color-bg: #dfe5ee;
+  --color-surface: #eef2f8;
+  --color-surface-raised: #e4e9f2;
+  --color-surface-subtle: #d8dfea;
+  --color-border-subtle: #c3cedd;
+  --color-border: #9dadc2;
+  --color-text-tertiary: #5b677a;
+  --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.08);
+  --shadow-md: 0 8px 24px rgba(15, 23, 42, 0.09);
+
+  min-height: 100%;
+  background: var(--color-bg-main);
+  border-radius: var(--radius-lg, 14px);
+  padding: var(--space-3);
+  box-sizing: border-box;
+}
+
+@media (max-width: 979px) {
+  .personal-app-canvas {
+    border-radius: 0;
+    padding: var(--space-3) var(--space-2);
+  }
+}
+
 .pp-page {
   display: grid;
   gap: 12px;
@@ -7,7 +37,7 @@
 .pp-hero,
 .pp-panel,
 .pp-surface {
-  border: 1px solid var(--color-border-subtle);
+  border: 1px solid var(--color-border);
   background: var(--color-surface);
   box-shadow: var(--shadow-sm);
 }
@@ -57,8 +87,8 @@
 .pp-btn {
   min-height: 36px;
   border-radius: 10px;
-  border: 1px solid var(--color-border-subtle);
-  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-raised);
   color: var(--color-text-primary);
   cursor: pointer;
   display: inline-flex;
@@ -74,7 +104,7 @@
 
 .pp-btn:hover {
   border-color: var(--color-border-strong);
-  background: #fff;
+  background: var(--color-surface);
 }
 
 .pp-btn:active {
@@ -109,8 +139,8 @@
   width: 36px;
   height: 36px;
   border-radius: 10px;
-  border: 1px solid var(--color-border-subtle);
-  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-raised);
   color: var(--color-text-secondary);
   cursor: pointer;
 }
@@ -122,7 +152,7 @@
 
 .pp-panel__header {
   padding: 13px 14px 11px;
-  border-bottom: 1px solid var(--color-border-subtle);
+  border-bottom: 1px solid var(--color-border);
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
@@ -152,8 +182,8 @@
   gap: 6px;
   width: fit-content;
   border-radius: 999px;
-  border: 1px solid var(--color-border-subtle);
-  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-raised);
   color: var(--color-text-secondary);
   font-size: 11px;
   font-weight: 650;
@@ -177,7 +207,7 @@
 
 .pp-student-row,
 .pp-alert {
-  border-bottom: 1px solid var(--color-border-subtle);
+  border-bottom: 1px solid var(--color-border);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -239,8 +269,8 @@
   gap: 4px;
   padding: 3px 9px;
   border-radius: 999px;
-  background: rgba(15, 23, 42, 0.04);
-  color: var(--color-text-tertiary);
+  background: var(--color-surface-subtle);
+  color: var(--color-text-secondary);
   font-size: 12px;
   font-weight: 500;
 }
@@ -257,7 +287,7 @@
   align-items: center;
   padding: 18px 18px 16px;
   border-radius: 18px;
-  border: 1px solid var(--color-border-subtle);
+  border: 1px solid var(--color-border);
   background: var(--color-surface);
   box-shadow: var(--shadow-sm);
 }
@@ -312,7 +342,7 @@
 .pp-progress {
   height: 7px;
   border-radius: 999px;
-  background: rgba(15, 23, 42, 0.05);
+  background: var(--color-surface-subtle);
   overflow: hidden;
 }
 
@@ -350,8 +380,8 @@
 
 .pp-filter {
   border-radius: 999px;
-  border: 1px solid var(--color-border-subtle);
-  background: transparent;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-raised);
   color: var(--color-text-secondary);
   cursor: pointer;
   font-size: 12px;
@@ -360,15 +390,15 @@
 }
 
 .pp-filter[aria-pressed="true"] {
-  background: rgba(15, 23, 42, 0.05);
+  background: var(--color-surface-subtle);
   color: var(--color-text-primary);
 }
 
 .pp-input,
 .pp-select {
   border-radius: 10px;
-  border: 1px solid var(--color-border-subtle);
-  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-raised);
   color: var(--color-text-primary);
   min-height: 38px;
   outline: none;
@@ -392,7 +422,7 @@
 .pp-alert--neutral { --alert-rail: var(--color-primary); }
 
 .pp-surface {
-  border-color: var(--color-border-subtle);
+  border-color: var(--color-border);
   border-radius: 12px;
   background: var(--color-surface);
   box-shadow: var(--shadow-sm);
@@ -414,7 +444,7 @@
   width: min(100%, 520px);
   height: 100%;
   overflow-y: auto;
-  border-left: 1px solid var(--color-border-subtle);
+  border-left: 1px solid var(--color-border);
   background: var(--color-surface);
   box-shadow: -18px 0 48px rgba(15, 23, 42, 0.12);
   display: grid;
@@ -428,7 +458,7 @@
   width: 46px;
   height: 46px;
   border-radius: 12px;
-  border: 1px solid var(--color-border-subtle);
+  border: 1px solid var(--color-border);
   background: var(--color-surface-elevated, var(--color-surface));
   color: var(--color-text-primary);
   display: grid;
@@ -455,9 +485,9 @@
   flex-wrap: wrap;
   align-items: center;
   width: fit-content;
-  border: 1px solid rgba(148, 163, 184, 0.22);
+  border: 1px solid var(--color-border);
   border-radius: 12px;
-  background: rgba(241, 245, 249, 0.92);
+  background: var(--color-surface-subtle);
   padding: 4px;
 }
 
@@ -479,25 +509,25 @@
 }
 
 .pp-tab[aria-selected="true"] {
-  border-color: var(--color-border-subtle);
+  border-color: var(--color-border);
   background: var(--color-surface);
   color: var(--color-text-primary);
   box-shadow: var(--shadow-sm);
 }
 
 .pp-error-state {
-  border: 1px solid rgba(148, 163, 184, 0.24);
+  border: 1px solid var(--color-border);
   border-radius: 12px;
-  background: #fff;
+  background: var(--color-surface-raised);
   display: grid;
   gap: 6px;
   padding: 14px;
 }
 
 .pp-week-day {
-  border: 1px solid var(--color-border-subtle);
+  border: 1px solid var(--color-border);
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.84);
+  background: var(--color-surface-raised);
   display: grid;
   gap: 5px;
   padding: 9px 6px;
@@ -539,7 +569,7 @@
   height: 52px;
   border-radius: var(--radius-xl, 14px);
   border: 2px solid var(--color-border);
-  background: var(--color-surface);
+  background: var(--color-surface-raised);
   box-shadow: var(--shadow-sm);
 }
 
@@ -565,7 +595,7 @@
   right: 0;
   top: calc(100% + 6px);
   border-radius: 12px;
-  border: 1px solid var(--color-border-subtle);
+  border: 1px solid var(--color-border);
   background: var(--color-surface);
   box-shadow: var(--shadow-md);
   max-height: 280px;
@@ -577,7 +607,7 @@
   text-align: left;
   padding: 10px 14px;
   border: 0;
-  border-bottom: 1px solid var(--color-border-subtle);
+  border-bottom: 1px solid var(--color-border);
   background: transparent;
   cursor: pointer;
   display: grid;
@@ -589,7 +619,7 @@
 }
 
 .pp-search-result:hover {
-  background: rgba(15, 23, 42, 0.04);
+  background: var(--color-surface-subtle);
 }
 
 .pp-search-result__name {
@@ -613,8 +643,8 @@
 
 .pp-pulse-chip {
   border-radius: 999px;
-  border: 1px solid var(--color-border-subtle);
-  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-raised);
   padding: 6px 12px;
   font-size: 12px;
   font-weight: 650;
@@ -667,8 +697,8 @@
   align-items: center;
   padding: 10px 14px;
   border-radius: 12px;
-  border: 1px solid var(--color-border-subtle);
-  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-raised);
   font-size: 12px;
   color: var(--color-text-tertiary);
 }

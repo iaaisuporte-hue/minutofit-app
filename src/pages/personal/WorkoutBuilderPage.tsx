@@ -1,9 +1,15 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { fetchPersonalDashboard } from "../../services/personalDashboardApi";
 import type { PersonalDashboardStudent } from "../../services/personalDashboardApi";
 import { createPersonalWorkoutPlan, fetchPersonalWorkoutPlans } from "../../services/personalWorkoutApi";
-import { fetchVideosSearch } from "../../services/videosSearchApi";
+import { fetchExerciseCatalog, type ExerciseCatalogEntry } from "../../services/exerciseCatalogApi";
+import {
+  fetchProtocolSuggestions,
+  fetchWorkoutProtocolById,
+  type ProtocolSuggestion,
+  type WorkoutProtocol,
+} from "../../services/workoutProtocolsApi";
 import {
   BuilderStepRail,
   FeedbackBanner,
@@ -61,6 +67,49 @@ type WorkoutExercise = {
 const RPE_REGEX = /^([0-9]|10)(-([0-9]|10))?$/;
 const CADENCE_REGEX = /^\d-\d-\d-\d$/;
 
+const KNOWN_GROUPS: MuscleGroup[] = [
+  "Perna",
+  "Peito",
+  "Costas",
+  "Ombro",
+  "Bíceps",
+  "Tríceps",
+  "Abdômen",
+  "Glúteo",
+  "Cardio",
+  "Outros",
+];
+
+function catalogEntryToExercise(e: ExerciseCatalogEntry): Exercise {
+  const group = (KNOWN_GROUPS.includes(e.group as MuscleGroup) ? e.group : "Outros") as MuscleGroup;
+  return {
+    id: e.id,
+    name: e.name,
+    group,
+    videoUrl: e.videoUrl ?? undefined,
+  };
+}
+
+function coerceWeekPreset(raw: string): "semana_util" | "4" | "5" | "6" {
+  const w = String(raw || "5");
+  if (w === "semana_util" || w === "4" || w === "5" || w === "6") return w;
+  return "5";
+}
+
+function protocolToWorkoutItems(p: WorkoutProtocol): WorkoutExercise[] {
+  return p.items.map((it) => ({
+    exerciseId: it.exerciseId,
+    name: it.name,
+    sets: it.sets,
+    reps: it.reps,
+    rest: it.rest,
+    rpe: it.rpe,
+    cadence: it.cadence,
+    restPause: it.restPause,
+    notes: it.notes,
+  }));
+}
+
 function mapDashboardToStudents(rows: PersonalDashboardStudent[]): Student[] {
   return rows.map((s) => ({
     id: s.id,
@@ -111,6 +160,7 @@ export default function WorkoutBuilderPage() {
   const navigate = useNavigate();
   const { studentId: studentIdParam } = useParams();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
 
   const prefilledStudentName = (location.state as { studentName?: string } | null)?.studentName;
   const prefilledStudentId = (location.state as { studentId?: string } | null)?.studentId;
@@ -121,14 +171,19 @@ export default function WorkoutBuilderPage() {
   const [studentsLoading, setStudentsLoading] = useState(true);
   const [studentsError, setStudentsError] = useState<string | null>(null);
 
+  const [seedExercises, setSeedExercises] = useState<Exercise[]>([]);
   const [videoExercises, setVideoExercises] = useState<Exercise[]>([]);
-  const [videosLoading, setVideosLoading] = useState(false);
-  const [videosError, setVideosError] = useState<string | null>(null);
+  const [catalogLoading, setCatalogLoading] = useState(false);
+  const [catalogError, setCatalogError] = useState<string | null>(null);
 
   const [feedback, setFeedback] = useState<{ kind: "success" | "error"; message: string } | null>(null);
   const [saving, setSaving] = useState(false);
   const [summaryError, setSummaryError] = useState<string | null>(null);
   const [recentPlansCount, setRecentPlansCount] = useState<number | null>(null);
+
+  const [protocolSuggestions, setProtocolSuggestions] = useState<ProtocolSuggestion[]>([]);
+  const [suggestionsLoading, setSuggestionsLoading] = useState(false);
+  const [suggestionsError, setSuggestionsError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -165,25 +220,22 @@ export default function WorkoutBuilderPage() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      setVideosLoading(true);
-      setVideosError(null);
+      setCatalogLoading(true);
+      setCatalogError(null);
       try {
-        const rows = await fetchVideosSearch({ limit: 48 });
+        const rows = await fetchExerciseCatalog({ limit: 100 });
         if (cancelled) return;
-        setVideoExercises(
-          rows.map((v) => ({
-            id: `v-${v.id}`,
-            name: v.title,
-            group: "Outros" as MuscleGroup,
-            videoUrl: v.url,
-          }))
-        );
+        const seeds = rows.filter((r) => r.source === "seed").map(catalogEntryToExercise);
+        const vids = rows.filter((r) => r.source === "video").map(catalogEntryToExercise);
+        setSeedExercises(seeds);
+        setVideoExercises(vids);
       } catch (e) {
         if (cancelled) return;
+        setSeedExercises([]);
         setVideoExercises([]);
-        setVideosError(e instanceof Error ? e.message : "Biblioteca de vídeos indisponível.");
+        setCatalogError(e instanceof Error ? e.message : "Catalogo de exercicios indisponivel.");
       } finally {
-        if (!cancelled) setVideosLoading(false);
+        if (!cancelled) setCatalogLoading(false);
       }
     })();
     return () => {
@@ -191,31 +243,7 @@ export default function WorkoutBuilderPage() {
     };
   }, []);
 
-  const staticExercises: Exercise[] = useMemo(
-    () => [
-      { id: "e1", name: "Cadeira Extensora", group: "Perna", videoUrl: "/videos/cadeira-extensora.mp4" },
-      { id: "e2", name: "Agachamento Livre", group: "Perna", videoUrl: "/videos/agachamento-livre.mp4" },
-      { id: "e3", name: "Leg Press 45°", group: "Perna", videoUrl: "/videos/leg-press-45.mp4" },
-      { id: "e4", name: "Mesa Flexora", group: "Perna", videoUrl: "/videos/mesa-flexora.mp4" },
-      { id: "e5", name: "Panturrilha em Pé", group: "Perna", videoUrl: "/videos/panturrilha-em-pe.mp4" },
-      { id: "e6", name: "Panturrilha Sentado", group: "Perna", videoUrl: "/videos/panturrilha-sentado.mp4" },
-      { id: "p1", name: "Supino Reto", group: "Peito", videoUrl: "/videos/supino-reto.mp4" },
-      { id: "p2", name: "Supino Inclinado", group: "Peito", videoUrl: "/videos/supino-inclinado.mp4" },
-      { id: "p3", name: "Crucifixo", group: "Peito", videoUrl: "/videos/crucifixo.mp4" },
-      { id: "c1", name: "Puxada Frente", group: "Costas", videoUrl: "/videos/puxada-frente.mp4" },
-      { id: "c2", name: "Remada Curvada", group: "Costas", videoUrl: "/videos/remada-curvada.mp4" },
-      { id: "c3", name: "Remada Baixa", group: "Costas", videoUrl: "/videos/remada-baixa.mp4" },
-      { id: "o1", name: "Desenvolvimento", group: "Ombro", videoUrl: "/videos/desenvolvimento.mp4" },
-      { id: "o2", name: "Elevação Lateral", group: "Ombro", videoUrl: "/videos/elevacao-lateral.mp4" },
-      { id: "b1", name: "Rosca Direta", group: "Bíceps", videoUrl: "/videos/rosca-direta.mp4" },
-      { id: "t1", name: "Tríceps Corda", group: "Tríceps", videoUrl: "/videos/triceps-corda.mp4" },
-      { id: "a1", name: "Abdominal Infra", group: "Abdômen", videoUrl: "/videos/abdominal-infra.mp4" },
-      { id: "k1", name: "Esteira (HIIT)", group: "Cardio", videoUrl: "/videos/esteira-hiit.mp4" },
-    ],
-    []
-  );
-
-  const EXERCISES = useMemo(() => [...staticExercises, ...videoExercises], [staticExercises, videoExercises]);
+  const EXERCISES = useMemo(() => [...seedExercises, ...videoExercises], [seedExercises, videoExercises]);
 
   const catalogExercises = useMemo(() => EXERCISES.filter((e) => !e.id.startsWith("v-")), [EXERCISES]);
 
@@ -296,6 +324,37 @@ export default function WorkoutBuilderPage() {
   const [items, setItems] = useState<WorkoutExercise[]>([]);
   const [showSummary, setShowSummary] = useState(false);
 
+  const hydrateFromProtocol = useCallback((p: WorkoutProtocol) => {
+    setWorkoutName(p.title);
+    setWeekPreset(coerceWeekPreset(p.weekPreset));
+    const sg = p.selectedGroup;
+    if (sg && KNOWN_GROUPS.includes(sg as MuscleGroup)) {
+      setSelectedGroup(sg as MuscleGroup);
+    }
+    setItems(protocolToWorkoutItems(p));
+  }, []);
+
+  const loadProtocolIntoBuilder = useCallback(
+    async (protocolId: number, successMessage?: string): Promise<boolean> => {
+      try {
+        const p = await fetchWorkoutProtocolById(protocolId);
+        hydrateFromProtocol(p);
+        setFeedback({
+          kind: "success",
+          message: successMessage ?? `Protocolo "${p.title}" carregado na ficha.`,
+        });
+        return true;
+      } catch (e) {
+        setFeedback({
+          kind: "error",
+          message: e instanceof Error ? e.message : "Nao foi possivel carregar o protocolo.",
+        });
+        return false;
+      }
+    },
+    [hydrateFromProtocol]
+  );
+
   const firstExerciseGroup = useMemo((): MuscleGroup => {
     const id = items[0]?.exerciseId;
     if (!id) return selectedGroup;
@@ -338,6 +397,49 @@ export default function WorkoutBuilderPage() {
     if (!selectedStudentId) return;
     void refreshRecentPlans(selectedStudentId);
   }, [selectedStudentId, refreshRecentPlans]);
+
+  useEffect(() => {
+    const raw = searchParams.get("protocol");
+    if (!raw) return;
+    const pid = Number(raw);
+    if (!Number.isFinite(pid)) return;
+    let cancelled = false;
+    void (async () => {
+      const ok = await loadProtocolIntoBuilder(pid, "Protocolo da biblioteca aplicado a esta ficha.");
+      if (!cancelled && ok) {
+        navigate({ pathname: location.pathname, search: "" }, { replace: true });
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [searchParams, navigate, location.pathname, loadProtocolIntoBuilder]);
+
+  useEffect(() => {
+    if (!selectedStudentId) {
+      setProtocolSuggestions([]);
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      setSuggestionsLoading(true);
+      setSuggestionsError(null);
+      try {
+        const rows = await fetchProtocolSuggestions(selectedStudentId);
+        if (!cancelled) setProtocolSuggestions(rows);
+      } catch (e) {
+        if (!cancelled) {
+          setProtocolSuggestions([]);
+          setSuggestionsError(e instanceof Error ? e.message : "Sugestoes indisponiveis.");
+        }
+      } finally {
+        if (!cancelled) setSuggestionsLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedStudentId]);
 
   function addExercise(ex: Exercise) {
     setItems((prev) => [...prev, { exerciseId: ex.id, name: ex.name, sets: "4", reps: "10-12", rest: "60s" }]);
@@ -511,10 +613,61 @@ export default function WorkoutBuilderPage() {
                 <strong style={{ color: WB.text }}>ordem dos exercícios</strong> — é essa lista que o aluno seguirá.
               </p>
               <BuilderStepRail steps={railSteps} />
+              {selectedStudentId ? (
+                <WbCard>
+                  <div style={{ padding: 12, display: "grid", gap: 10 }}>
+                    <div style={{ fontWeight: 650, fontSize: 13, color: WB.text }}>
+                      Sugestoes de protocolo (MetaCore)
+                    </div>
+                    {suggestionsLoading ? (
+                      <span style={{ color: WB.muted, fontSize: 13 }}>Carregando sugestoes…</span>
+                    ) : suggestionsError ? (
+                      <span style={{ color: "#b91c1c", fontSize: 13 }}>{suggestionsError}</span>
+                    ) : protocolSuggestions.length === 0 ? (
+                      <span style={{ color: WB.muted, fontSize: 13 }}>
+                        Nenhuma sugestao automatica para este perfil no momento.
+                      </span>
+                    ) : (
+                      <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "grid", gap: 8 }}>
+                        {protocolSuggestions.map((s) => (
+                          <li
+                            key={s.protocolId}
+                            style={{
+                              display: "flex",
+                              flexWrap: "wrap",
+                              gap: 8,
+                              alignItems: "flex-start",
+                              border: `1px solid ${WB.border}`,
+                              borderRadius: 10,
+                              padding: 10,
+                              background: "rgba(255,255,255,0.5)",
+                            }}
+                          >
+                            <div style={{ flex: "1 1 200px", minWidth: 0 }}>
+                              <div style={{ fontWeight: 650 }}>{s.title}</div>
+                              <div style={{ fontSize: 12, color: WB.muted, lineHeight: 1.45 }}>{s.reason}</div>
+                            </div>
+                            <WbButton
+                              variant="ghost"
+                              type="button"
+                              onClick={() => void loadProtocolIntoBuilder(s.protocolId)}
+                            >
+                              Carregar
+                            </WbButton>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </WbCard>
+              ) : null}
             </div>
             <div className="pp-actions">
               <WbButton variant="ghost" onClick={() => navigate("/app/personal/students")}>
                 Ver alunos
+              </WbButton>
+              <WbButton variant="ghost" onClick={() => navigate("/app/personal/library")}>
+                Biblioteca de protocolos
               </WbButton>
               <WbButton
                 variant="primary"
@@ -723,7 +876,7 @@ export default function WorkoutBuilderPage() {
               </div>
             ) : (
               <div style={{ color: WB.muted, fontSize: 13 }}>
-                {videosLoading ? "Carregando vídeos…" : videosError ? videosError : "Busque pelo nome e toque em Adicionar para incluir na ficha."}
+                {catalogLoading ? "Carregando catalogo…" : catalogError ? catalogError : "Busque pelo nome e toque em Adicionar para incluir na ficha."}
               </div>
             )}
 

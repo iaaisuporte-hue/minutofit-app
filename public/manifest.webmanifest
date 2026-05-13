@@ -1,7 +1,7 @@
 {
-  "name": "MinutoFit",
-  "short_name": "MinutoFit",
-  "description": "Plataforma de treino, acompanhamento e cadastro — experiência aluno.",
+  "name": "MetaCore",
+  "short_name": "MetaCore",
+  "description": "Metabolismo, treino e acompanhamento — experiência aluno e equipe.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
