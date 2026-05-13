@@ -42,6 +42,9 @@ export async function fetchWorkoutProtocols(filters?: {
   const qs = params.toString();
   const response = await authFetch(`${API_URL}/personal/protocols${qs ? `?${qs}` : ""}`);
   const data = await parseJson(response);
+  if (response.status === 404) {
+    return [];
+  }
   if (!response.ok) {
     throw new Error(data?.error || "Nao foi possivel carregar os protocolos.");
   }

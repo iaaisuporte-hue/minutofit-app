@@ -75,79 +75,7 @@ export function WbButton({
   );
 }
 
-/** Passos horizontais: aluno → ficha → exercícios (leitura rápida do fluxo). */
-export function BuilderStepRail({
-  steps,
-}: {
-  steps: { id: string; label: string; status: "todo" | "current" | "done" }[];
-}) {
-  return (
-    <div
-      style={{
-        display: "flex",
-        flexWrap: "wrap",
-        alignItems: "stretch",
-        gap: 0,
-        borderRadius: 10,
-        border: `1px solid ${WB.border}`,
-        overflow: "hidden",
-        width: "fit-content",
-        maxWidth: "100%",
-      }}
-    >
-      {steps.map((s, i) => {
-        const isDone = s.status === "done";
-        const isCurrent = s.status === "current";
-        const bg = isDone ? WB.primarySoft : isCurrent ? "rgba(15,23,42,0.04)" : "#FFFFFF";
-        const bd = isDone || isCurrent ? WB.primaryBorder : WB.border;
-        return (
-          <div
-            key={s.id}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              padding: "8px 12px",
-              background: bg,
-              borderRight: i < steps.length - 1 ? `1px solid ${WB.border}` : undefined,
-              fontSize: 13,
-              fontWeight: 650,
-              color: WB.text,
-              minWidth: 0,
-            }}
-          >
-            <span
-              style={{
-                flexShrink: 0,
-                width: 22,
-                height: 22,
-                borderRadius: "50%",
-                border: `1px solid ${bd}`,
-                display: "grid",
-                placeItems: "center",
-                fontSize: 11,
-                fontWeight: 650,
-                background: isDone ? WB.primary : "transparent",
-                color: isDone ? WB.ctaText : WB.muted,
-              }}
-            >
-              {isDone ? "✓" : i + 1}
-            </span>
-            <span style={{ lineHeight: 1.25 }}>{s.label}</span>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-export function SectionLabel({
-  title,
-  hint,
-}: {
-  title: string;
-  hint?: string;
-}) {
+export function SectionLabel({ title, hint }: { title: string; hint?: string }) {
   return (
     <div style={{ marginBottom: 10 }}>
       <div style={{ fontWeight: 650, fontSize: 15, letterSpacing: "-0.02em", color: WB.text }}>{title}</div>
@@ -204,5 +132,21 @@ export function FeedbackBanner({
         </button>
       ) : null}
     </div>
+  );
+}
+
+export function IconArrowUp() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <path d="M7 11V3M3.5 6.5L7 3l3.5 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+export function IconArrowDown() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <path d="M7 3v8M3.5 7.5L7 11l3.5-3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   );
 }

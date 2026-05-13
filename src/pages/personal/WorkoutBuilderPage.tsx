@@ -11,10 +11,10 @@ import {
   type WorkoutProtocol,
 } from "../../services/workoutProtocolsApi";
 import {
-  BuilderStepRail,
   FeedbackBanner,
+  IconArrowDown,
+  IconArrowUp,
   pillStyle,
-  SectionLabel,
   WbButton,
   WbCard,
 } from "./workoutBuilder/WorkoutBuilderUi";
@@ -50,6 +50,7 @@ type Exercise = {
   name: string;
   group: MuscleGroup;
   videoUrl?: string;
+  source: "seed" | "video";
 };
 
 type WorkoutExercise = {
@@ -68,26 +69,16 @@ const RPE_REGEX = /^([0-9]|10)(-([0-9]|10))?$/;
 const CADENCE_REGEX = /^\d-\d-\d-\d$/;
 
 const KNOWN_GROUPS: MuscleGroup[] = [
-  "Perna",
-  "Peito",
-  "Costas",
-  "Ombro",
-  "Bíceps",
-  "Tríceps",
-  "Abdômen",
-  "Glúteo",
-  "Cardio",
-  "Outros",
+  "Perna", "Peito", "Costas", "Ombro", "Bíceps", "Tríceps", "Abdômen", "Glúteo", "Cardio", "Outros",
+];
+
+const CATALOG_GROUPS: MuscleGroup[] = [
+  "Perna", "Peito", "Costas", "Ombro", "Bíceps", "Tríceps", "Abdômen", "Glúteo", "Cardio",
 ];
 
 function catalogEntryToExercise(e: ExerciseCatalogEntry): Exercise {
   const group = (KNOWN_GROUPS.includes(e.group as MuscleGroup) ? e.group : "Outros") as MuscleGroup;
-  return {
-    id: e.id,
-    name: e.name,
-    group,
-    videoUrl: e.videoUrl ?? undefined,
-  };
+  return { id: e.id, name: e.name, group, videoUrl: e.videoUrl ?? undefined, source: e.source };
 }
 
 function coerceWeekPreset(raw: string): "semana_util" | "4" | "5" | "6" {
@@ -111,47 +102,17 @@ function protocolToWorkoutItems(p: WorkoutProtocol): WorkoutExercise[] {
 }
 
 function mapDashboardToStudents(rows: PersonalDashboardStudent[]): Student[] {
-  return rows.map((s) => ({
-    id: s.id,
-    name: s.name,
-    plan: s.plan,
-    gender: null,
-  }));
-}
-
-
-function suggestNextExercises(firstExerciseName: string, group: MuscleGroup, all: Exercise[]) {
-  const name = firstExerciseName.toLowerCase();
-  const inGroup = all.filter((e) => e.group === group);
-
-  if (group === "Outros") {
-    return inGroup.slice(0, 6);
-  }
-
-  if (group === "Perna") {
-    if (name.includes("extensora")) {
-      return ["Agachamento Livre", "Leg Press 45°", "Mesa Flexora", "Panturrilha em Pé"]
-        .map((n) => inGroup.find((e) => e.name === n))
-        .filter(Boolean) as Exercise[];
-    }
-    if (name.includes("agach")) {
-      return ["Leg Press 45°", "Cadeira Extensora", "Mesa Flexora", "Panturrilha Sentado"]
-        .map((n) => inGroup.find((e) => e.name === n))
-        .filter(Boolean) as Exercise[];
-    }
-  }
-
-  return inGroup.slice(0, 6);
+  return rows.map((s) => ({ id: s.id, name: s.name, plan: s.plan, gender: null }));
 }
 
 function useNarrowLayout(maxPx = 900) {
   const [narrow, setNarrow] = useState(false);
   useEffect(() => {
     const mq = window.matchMedia(`(max-width: ${maxPx}px)`);
-    const fn = () => setNarrow(mq.matches);
-    mq.addEventListener("change", fn);
-    fn();
-    return () => mq.removeEventListener("change", fn);
+    const update = () => setNarrow(mq.matches);
+    mq.addEventListener("change", update);
+    update();
+    return () => mq.removeEventListener("change", update);
   }, [maxPx]);
   return narrow;
 }
@@ -167,222 +128,118 @@ export default function WorkoutBuilderPage() {
 
   const narrow = useNarrowLayout(900);
 
+  // ── Students ──────────────────────────────────────────────────────
   const [students, setStudents] = useState<Student[]>([]);
   const [studentsLoading, setStudentsLoading] = useState(true);
   const [studentsError, setStudentsError] = useState<string | null>(null);
+  const [selectedStudentId, setSelectedStudentId] = useState<string>(
+    studentIdParam ?? prefilledStudentId ?? ""
+  );
 
-  const [seedExercises, setSeedExercises] = useState<Exercise[]>([]);
-  const [videoExercises, setVideoExercises] = useState<Exercise[]>([]);
+  // ── Catalog ───────────────────────────────────────────────────────
+  const [allExercises, setAllExercises] = useState<Exercise[]>([]);
   const [catalogLoading, setCatalogLoading] = useState(false);
   const [catalogError, setCatalogError] = useState<string | null>(null);
 
-  const [feedback, setFeedback] = useState<{ kind: "success" | "error"; message: string } | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [summaryError, setSummaryError] = useState<string | null>(null);
-  const [recentPlansCount, setRecentPlansCount] = useState<number | null>(null);
-
+  // ── Protocols ─────────────────────────────────────────────────────
   const [protocolSuggestions, setProtocolSuggestions] = useState<ProtocolSuggestion[]>([]);
   const [suggestionsLoading, setSuggestionsLoading] = useState(false);
-  const [suggestionsError, setSuggestionsError] = useState<string | null>(null);
+  const [showProtocols, setShowProtocols] = useState(false);
 
+  // ── Plan meta ─────────────────────────────────────────────────────
+  const [workoutName, setWorkoutName] = useState("Treino A");
+  const [weekPreset, setWeekPreset] = useState<"semana_util" | "4" | "5" | "6">("5");
+  const [selectedGroup, setSelectedGroup] = useState<MuscleGroup>("Perna");
+  const [recentPlansCount, setRecentPlansCount] = useState<number | null>(null);
+
+  // ── Library filters ───────────────────────────────────────────────
+  const [exerciseQuery, setExerciseQuery] = useState("");
+  const [libGroupFilter, setLibGroupFilter] = useState<MuscleGroup | "all">("all");
+  const [showVideoOnly, setShowVideoOnly] = useState(false);
+
+  // ── Workout list ──────────────────────────────────────────────────
+  const [items, setItems] = useState<WorkoutExercise[]>([]);
+
+  // ── UI ────────────────────────────────────────────────────────────
+  const [feedback, setFeedback] = useState<{ kind: "success" | "error"; message: string } | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  // ── Effects ───────────────────────────────────────────────────────
   useEffect(() => {
     let cancelled = false;
-    (async () => {
-      setStudentsLoading(true);
-      setStudentsError(null);
+    setStudentsLoading(true);
+    setStudentsError(null);
+    void (async () => {
       try {
         const dash = await fetchPersonalDashboard();
         if (cancelled) return;
-        if (!dash) {
-          setStudents([]);
-          setStudentsError("Não foi possível carregar o painel. Tente novamente.");
+        if (!dash?.students.length) {
+          setStudentsError("Nenhum aluno vinculado ao seu perfil.");
           return;
         }
-        if (dash.students.length) {
-          setStudents(mapDashboardToStudents(dash.students));
-        } else {
-          setStudents([]);
-          setStudentsError("Nenhum aluno vinculado ao seu perfil.");
+        const list = mapDashboardToStudents(dash.students);
+        setStudents(list);
+        if (studentIdParam && list.some((s) => s.id === studentIdParam)) {
+          setSelectedStudentId(studentIdParam);
+        } else if (prefilledStudentId && list.some((s) => s.id === prefilledStudentId)) {
+          setSelectedStudentId(prefilledStudentId);
+        } else if (prefilledStudentName) {
+          const match = list.find((s) => s.name === prefilledStudentName);
+          if (match) {
+            setSelectedStudentId(match.id);
+            navigate(`${BUILDER_BASE}/${match.id}/workouts/builder`, { replace: true });
+          }
         }
       } catch {
-        if (cancelled) return;
-        setStudents([]);
-        setStudentsError("Não foi possível carregar alunos do servidor. Tente novamente.");
+        if (!cancelled) setStudentsError("Não foi possível carregar alunos. Tente novamente.");
       } finally {
         if (!cancelled) setStudentsLoading(false);
       }
     })();
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     let cancelled = false;
-    (async () => {
-      setCatalogLoading(true);
-      setCatalogError(null);
+    setCatalogLoading(true);
+    setCatalogError(null);
+    void (async () => {
       try {
         const rows = await fetchExerciseCatalog({ limit: 100 });
         if (cancelled) return;
-        const seeds = rows.filter((r) => r.source === "seed").map(catalogEntryToExercise);
-        const vids = rows.filter((r) => r.source === "video").map(catalogEntryToExercise);
-        setSeedExercises(seeds);
-        setVideoExercises(vids);
+        setAllExercises(rows.map(catalogEntryToExercise));
       } catch (e) {
-        if (cancelled) return;
-        setSeedExercises([]);
-        setVideoExercises([]);
-        setCatalogError(e instanceof Error ? e.message : "Catalogo de exercicios indisponivel.");
+        if (!cancelled) {
+          setAllExercises([]);
+          setCatalogError(e instanceof Error ? e.message : "Catálogo indisponível.");
+        }
       } finally {
         if (!cancelled) setCatalogLoading(false);
       }
     })();
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, []);
 
-  const EXERCISES = useMemo(() => [...seedExercises, ...videoExercises], [seedExercises, videoExercises]);
-
-  const catalogExercises = useMemo(() => EXERCISES.filter((e) => !e.id.startsWith("v-")), [EXERCISES]);
-
-  const [libraryTab, setLibraryTab] = useState<"catalog" | "videos">("catalog");
-
-  const derivedInitialStudent =
-    students.find((s) => s.id === (studentIdParam ?? prefilledStudentId)) ??
-    (prefilledStudentName ? students.find((s) => s.name === prefilledStudentName) : undefined);
-
-  const [selectedStudentId, setSelectedStudentId] = useState<string>(derivedInitialStudent?.id ?? "");
-
   useEffect(() => {
-    if (!students.length) return;
-    const fromUrl = studentIdParam && students.some((s) => s.id === studentIdParam);
-    if (fromUrl) {
-      setSelectedStudentId(studentIdParam);
+    if (!selectedStudentId) {
+      setProtocolSuggestions([]);
       return;
     }
-    const byState = prefilledStudentId && students.some((s) => s.id === prefilledStudentId);
-    if (byState) {
-      setSelectedStudentId(prefilledStudentId);
-      return;
-    }
-    const byName = prefilledStudentName && students.find((s) => s.name === prefilledStudentName);
-    if (byName) {
-      setSelectedStudentId(byName.id);
-      navigate(`${BUILDER_BASE}/${byName.id}/workouts/builder`, { replace: true });
-    }
-  }, [students, studentIdParam, prefilledStudentId, prefilledStudentName, navigate]);
-
-  const [expandStudentPicker, setExpandStudentPicker] = useState(!studentIdParam);
-
-  useEffect(() => {
-    if (studentIdParam && selectedStudentId === studentIdParam) {
-      setExpandStudentPicker(false);
-    }
-  }, [studentIdParam, selectedStudentId]);
-
-  const selectedStudent = useMemo(
-    () => students.find((s) => s.id === selectedStudentId),
-    [students, selectedStudentId]
-  );
-
-  const [weekPreset, setWeekPreset] = useState<"semana_util" | "4" | "5" | "6">("5");
-
-  const groups: MuscleGroup[] = useMemo(
-    () => ["Perna", "Peito", "Costas", "Ombro", "Bíceps", "Tríceps", "Abdômen", "Glúteo", "Cardio", "Outros"],
-    []
-  );
-  const [selectedGroup, setSelectedGroup] = useState<MuscleGroup>("Perna");
-
-  const [exerciseQuery, setExerciseQuery] = useState("");
-
-  const catalogGroups = useMemo(
-    () => groups.filter((g) => g !== "Outros"),
-    [groups]
-  );
-
-  useEffect(() => {
-    if (libraryTab === "catalog" && selectedGroup === "Outros") {
-      setSelectedGroup("Perna");
-    }
-  }, [libraryTab, selectedGroup]);
-
-  const libraryList = useMemo(() => {
-    const q = exerciseQuery.trim().toLowerCase();
-    if (libraryTab === "videos") {
-      const base = videoExercises;
-      if (!q) return base;
-      return base.filter((e) => e.name.toLowerCase().includes(q));
-    }
-    const inGroup = catalogExercises.filter((e) => e.group === selectedGroup);
-    if (!q) return inGroup;
-    return inGroup.filter((e) => e.name.toLowerCase().includes(q));
-  }, [libraryTab, videoExercises, catalogExercises, selectedGroup, exerciseQuery]);
-
-  const [workoutName, setWorkoutName] = useState<string>("Treino A");
-  const [items, setItems] = useState<WorkoutExercise[]>([]);
-  const [showSummary, setShowSummary] = useState(false);
-
-  const hydrateFromProtocol = useCallback((p: WorkoutProtocol) => {
-    setWorkoutName(p.title);
-    setWeekPreset(coerceWeekPreset(p.weekPreset));
-    const sg = p.selectedGroup;
-    if (sg && KNOWN_GROUPS.includes(sg as MuscleGroup)) {
-      setSelectedGroup(sg as MuscleGroup);
-    }
-    setItems(protocolToWorkoutItems(p));
-  }, []);
-
-  const loadProtocolIntoBuilder = useCallback(
-    async (protocolId: number, successMessage?: string): Promise<boolean> => {
+    let cancelled = false;
+    setSuggestionsLoading(true);
+    void (async () => {
       try {
-        const p = await fetchWorkoutProtocolById(protocolId);
-        hydrateFromProtocol(p);
-        setFeedback({
-          kind: "success",
-          message: successMessage ?? `Protocolo "${p.title}" carregado na ficha.`,
-        });
-        return true;
-      } catch (e) {
-        setFeedback({
-          kind: "error",
-          message: e instanceof Error ? e.message : "Nao foi possivel carregar o protocolo.",
-        });
-        return false;
+        const rows = await fetchProtocolSuggestions(selectedStudentId);
+        if (!cancelled) setProtocolSuggestions(rows);
+      } catch {
+        if (!cancelled) setProtocolSuggestions([]);
+      } finally {
+        if (!cancelled) setSuggestionsLoading(false);
       }
-    },
-    [hydrateFromProtocol]
-  );
-
-  const firstExerciseGroup = useMemo((): MuscleGroup => {
-    const id = items[0]?.exerciseId;
-    if (!id) return selectedGroup;
-    return EXERCISES.find((e) => e.id === id)?.group ?? selectedGroup;
-  }, [items, EXERCISES, selectedGroup]);
-
-  const suggestions = useMemo(() => {
-    if (items.length === 0) return [];
-    return suggestNextExercises(items[0].name, firstExerciseGroup, EXERCISES).filter(
-      (e) => !items.some((it) => it.exerciseId === e.id)
-    );
-  }, [items, firstExerciseGroup, EXERCISES]);
-
-  const [genderFilter, setGenderFilter] = useState<"all" | Gender>("all");
-  const [planFilter, setPlanFilter] = useState<"all" | Plan>("all");
-  const [studentQuery, setStudentQuery] = useState("");
-
-  const filteredStudents = useMemo(() => {
-    const q = studentQuery.trim().toLowerCase();
-    return students
-      .filter((s) => {
-        if (genderFilter === "all") return true;
-        if (s.gender == null) return false;
-        return s.gender === genderFilter;
-      })
-      .filter((s) => (planFilter === "all" ? true : s.plan === planFilter))
-      .filter((s) => (!q ? true : s.name.toLowerCase().includes(q)));
-  }, [students, genderFilter, planFilter, studentQuery]);
+    })();
+    return () => { cancelled = true; };
+  }, [selectedStudentId]);
 
   const refreshRecentPlans = useCallback(async (sid: string) => {
     try {
@@ -394,9 +251,34 @@ export default function WorkoutBuilderPage() {
   }, []);
 
   useEffect(() => {
-    if (!selectedStudentId) return;
-    void refreshRecentPlans(selectedStudentId);
+    if (selectedStudentId) void refreshRecentPlans(selectedStudentId);
   }, [selectedStudentId, refreshRecentPlans]);
+
+  const hydrateFromProtocol = useCallback((p: WorkoutProtocol) => {
+    setWorkoutName(p.title);
+    setWeekPreset(coerceWeekPreset(p.weekPreset));
+    const sg = p.selectedGroup;
+    if (sg && KNOWN_GROUPS.includes(sg as MuscleGroup)) setSelectedGroup(sg as MuscleGroup);
+    setItems(protocolToWorkoutItems(p));
+  }, []);
+
+  const loadProtocolIntoBuilder = useCallback(
+    async (protocolId: number, msg?: string): Promise<boolean> => {
+      try {
+        const p = await fetchWorkoutProtocolById(protocolId);
+        hydrateFromProtocol(p);
+        setFeedback({ kind: "success", message: msg ?? `Protocolo "${p.title}" carregado.` });
+        return true;
+      } catch (e) {
+        setFeedback({
+          kind: "error",
+          message: e instanceof Error ? e.message : "Não foi possível carregar o protocolo.",
+        });
+        return false;
+      }
+    },
+    [hydrateFromProtocol]
+  );
 
   useEffect(() => {
     const raw = searchParams.get("protocol");
@@ -405,44 +287,42 @@ export default function WorkoutBuilderPage() {
     if (!Number.isFinite(pid)) return;
     let cancelled = false;
     void (async () => {
-      const ok = await loadProtocolIntoBuilder(pid, "Protocolo da biblioteca aplicado a esta ficha.");
+      const ok = await loadProtocolIntoBuilder(pid, "Protocolo da biblioteca aplicado.");
       if (!cancelled && ok) {
         navigate({ pathname: location.pathname, search: "" }, { replace: true });
       }
     })();
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [searchParams, navigate, location.pathname, loadProtocolIntoBuilder]);
 
-  useEffect(() => {
-    if (!selectedStudentId) {
-      setProtocolSuggestions([]);
-      return;
-    }
-    let cancelled = false;
-    void (async () => {
-      setSuggestionsLoading(true);
-      setSuggestionsError(null);
-      try {
-        const rows = await fetchProtocolSuggestions(selectedStudentId);
-        if (!cancelled) setProtocolSuggestions(rows);
-      } catch (e) {
-        if (!cancelled) {
-          setProtocolSuggestions([]);
-          setSuggestionsError(e instanceof Error ? e.message : "Sugestoes indisponiveis.");
-        }
-      } finally {
-        if (!cancelled) setSuggestionsLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [selectedStudentId]);
+  // ── Derived ───────────────────────────────────────────────────────
+  const selectedStudent = useMemo(
+    () => students.find((s) => s.id === selectedStudentId),
+    [students, selectedStudentId]
+  );
 
+  const libraryList = useMemo(() => {
+    const q = exerciseQuery.trim().toLowerCase();
+    let base: Exercise[];
+
+    if (showVideoOnly) {
+      base = allExercises.filter((e) => e.source === "video");
+    } else if (libGroupFilter === "all") {
+      base = allExercises.filter((e) => e.source === "seed");
+    } else {
+      base = allExercises.filter((e) => e.source === "seed" && e.group === libGroupFilter);
+    }
+
+    if (!q) return base;
+    return base.filter((e) => e.name.toLowerCase().includes(q));
+  }, [allExercises, exerciseQuery, showVideoOnly, libGroupFilter]);
+
+  // ── Exercise ops ──────────────────────────────────────────────────
   function addExercise(ex: Exercise) {
-    setItems((prev) => [...prev, { exerciseId: ex.id, name: ex.name, sets: "4", reps: "10-12", rest: "60s" }]);
+    setItems((prev) => [
+      ...prev,
+      { exerciseId: ex.id, name: ex.name, sets: "4", reps: "10-12", rest: "60s" },
+    ]);
   }
 
   function removeExercise(exerciseId: string) {
@@ -453,12 +333,10 @@ export default function WorkoutBuilderPage() {
     setItems((prev) => {
       const idx = prev.findIndex((i) => i.exerciseId === exerciseId);
       if (idx < 0) return prev;
-      const nextIdx = idx + dir;
-      if (nextIdx < 0 || nextIdx >= prev.length) return prev;
+      const next = idx + dir;
+      if (next < 0 || next >= prev.length) return prev;
       const copy = [...prev];
-      const tmp = copy[idx];
-      copy[idx] = copy[nextIdx];
-      copy[nextIdx] = tmp;
+      [copy[idx], copy[next]] = [copy[next], copy[idx]];
       return copy;
     });
   }
@@ -467,45 +345,21 @@ export default function WorkoutBuilderPage() {
     setItems((prev) => prev.map((i) => (i.exerciseId === exerciseId ? { ...i, ...patch } : i)));
   }
 
-  function resolveVideoUrl(exerciseId: string): string {
-    return EXERCISES.find((e) => e.id === exerciseId)?.videoUrl ?? "(definir)";
+  function onStudentSelect(id: string) {
+    setSelectedStudentId(id);
+    if (id) navigate(`${BUILDER_BASE}/${id}/workouts/builder`, { replace: true });
   }
 
-  const requestCloseSummary = useCallback(() => {
-    if (items.length > 0) {
-      const ok = window.confirm(
-        "Fechar o resumo? O rascunho do treino permanece na página; você pode abrir o resumo de novo quando quiser."
-      );
-      if (!ok) return;
-    }
-    setShowSummary(false);
-    setSummaryError(null);
-  }, [items.length]);
+  function selectGroup(g: MuscleGroup) {
+    setLibGroupFilter(g);
+    setSelectedGroup(g);
+    setShowVideoOnly(false);
+  }
 
-  useEffect(() => {
-    if (!showSummary) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") requestCloseSummary();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [showSummary, requestCloseSummary]);
-
-  useEffect(() => {
-    if (studentIdParam && students.length && !students.some((s) => s.id === studentIdParam)) {
-      setExpandStudentPicker(true);
-    }
-  }, [studentIdParam, students]);
-
-  async function confirmWorkout() {
-    if (!selectedStudentId) {
-      const msg = "Selecione um aluno antes de salvar.";
-      setFeedback({ kind: "error", message: msg });
-      setSummaryError(msg);
-      return;
-    }
+  // ── Save (direct, no modal) ────────────────────────────────────────
+  async function saveWorkout() {
+    if (!selectedStudentId || items.length === 0) return;
     setSaving(true);
-    setSummaryError(null);
     setFeedback(null);
     try {
       await createPersonalWorkoutPlan(selectedStudentId, {
@@ -514,385 +368,220 @@ export default function WorkoutBuilderPage() {
         selectedGroup,
         items,
       });
-      setShowSummary(false);
-      setSummaryError(null);
       setFeedback({
         kind: "success",
         message: `Ficha "${workoutName}" salva para ${selectedStudent?.name ?? "o aluno"}.`,
       });
       await refreshRecentPlans(selectedStudentId);
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "Não foi possível salvar a ficha.";
       setFeedback({
         kind: "error",
-        message: msg,
+        message: e instanceof Error ? e.message : "Não foi possível salvar a ficha.",
       });
-      setSummaryError(msg);
     } finally {
       setSaving(false);
     }
   }
 
-  function onStudentSelect(id: string) {
-    setSelectedStudentId(id);
-    if (id) {
-      navigate(`${BUILDER_BASE}/${id}/workouts/builder`, { replace: true });
-    }
-  }
-
-  const stepAluno = Boolean(selectedStudent);
-  const stepFicha = workoutName.trim().length > 0;
-  const stepEx = items.length > 0;
-
-  const inputStyle: React.CSSProperties = {
-    minHeight: 38,
-    padding: "9px 11px",
-    borderRadius: 10,
+  // ── Shared styles ─────────────────────────────────────────────────
+  const inputS: React.CSSProperties = {
+    minHeight: 34,
+    padding: "7px 10px",
+    borderRadius: 8,
     border: `1px solid ${WB.border}`,
-    background: "rgba(255,255,255,0.88)",
+    background: "#FFFFFF",
     color: WB.text,
     outline: "none",
-  };
-
-  const compactInputStyle: React.CSSProperties = {
-    ...inputStyle,
-    padding: "6px 8px",
-    borderRadius: 8,
     fontSize: 13,
-    width: "100%",
-    minWidth: 0,
     boxSizing: "border-box",
   };
 
-  const railSteps: { id: string; label: string; status: "todo" | "current" | "done" }[] = [
-    { id: "aluno", label: "Aluno", status: stepAluno ? "done" : "current" },
-    {
-      id: "meta",
-      label: "Nome e frequência",
-      status: !stepAluno ? "todo" : stepFicha ? "done" : "current",
-    },
-    {
-      id: "lista",
-      label: "Lista na ordem",
-      status: !stepAluno || !stepFicha ? "todo" : stepEx ? "done" : "current",
-    },
-  ];
+  const compactInput: React.CSSProperties = {
+    ...inputS,
+    padding: "5px 7px",
+    borderRadius: 7,
+    fontSize: 12,
+    width: "100%",
+    minWidth: 0,
+  };
 
-  const tabBtn = (active: boolean): React.CSSProperties => ({
-    minHeight: 32,
-    padding: "8px 12px",
-    borderRadius: 9,
+  const chip = (active: boolean): React.CSSProperties => ({
+    padding: "5px 10px",
+    borderRadius: 999,
+    border: `1px solid ${active ? WB.borderStrong : WB.border}`,
+    background: active ? "rgba(15,23,42,0.05)" : "transparent",
+    color: WB.text,
+    cursor: "pointer",
+    fontWeight: 650,
+    fontSize: 12,
+    whiteSpace: "nowrap",
+    flexShrink: 0,
+  });
+
+  const freqBtn = (active: boolean): React.CSSProperties => ({
+    padding: "5px 10px",
+    borderRadius: 8,
     border: `1px solid ${active ? WB.borderStrong : "transparent"}`,
     background: active ? "#FFFFFF" : "transparent",
     color: WB.text,
     cursor: "pointer",
     fontWeight: 650,
-    fontSize: 13,
+    fontSize: 12,
     boxShadow: active ? "0 1px 2px rgba(15,23,42,0.06)" : "none",
   });
+
+  const iconBtn = (disabled: boolean): React.CSSProperties => ({
+    padding: 4,
+    borderRadius: 6,
+    border: `1px solid ${WB.border}`,
+    background: "transparent",
+    cursor: disabled ? "not-allowed" : "pointer",
+    opacity: disabled ? 0.35 : 1,
+    display: "grid",
+    placeItems: "center",
+    color: WB.text,
+    lineHeight: 0,
+  });
+
+  const canSave = Boolean(selectedStudent) && items.length > 0;
 
   return (
     <div className="pp-page" style={{ maxWidth: 1200 }}>
       {feedback ? (
         <FeedbackBanner kind={feedback.kind} message={feedback.message} onDismiss={() => setFeedback(null)} />
       ) : null}
-
       {studentsError ? (
         <FeedbackBanner kind="error" message={studentsError} onDismiss={() => setStudentsError(null)} />
       ) : null}
+      {catalogError ? (
+        <FeedbackBanner kind="error" message={catalogError} onDismiss={() => setCatalogError(null)} />
+      ) : null}
 
-      {/* Cabeçalho + fluxo */}
-      <div className="pp-hero">
-        <div style={{ display: "grid", gap: 14, flex: "1 1 620px", minWidth: 0 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "flex-start" }}>
-            <div style={{ display: "grid", gap: 8, maxWidth: 720 }}>
-              <div className="pp-kicker">Builder do personal</div>
-              <h1 className="pp-title" style={{ fontSize: 24 }}>Montar ficha de treino</h1>
-              <p style={{ margin: 0, color: WB.muted, fontSize: 14, lineHeight: 1.5 }}>
-                Primeiro confira o aluno. Depois dê um nome à ficha e escolha quantos dias na semana. Por fim, monte a{" "}
-                <strong style={{ color: WB.text }}>ordem dos exercícios</strong> — é essa lista que o aluno seguirá.
-              </p>
-              <BuilderStepRail steps={railSteps} />
-              {selectedStudentId ? (
-                <WbCard>
-                  <div style={{ padding: 12, display: "grid", gap: 10 }}>
-                    <div style={{ fontWeight: 650, fontSize: 13, color: WB.text }}>
-                      Sugestoes de protocolo (MetaCore)
-                    </div>
-                    {suggestionsLoading ? (
-                      <span style={{ color: WB.muted, fontSize: 13 }}>Carregando sugestoes…</span>
-                    ) : suggestionsError ? (
-                      <span style={{ color: "#b91c1c", fontSize: 13 }}>{suggestionsError}</span>
-                    ) : protocolSuggestions.length === 0 ? (
-                      <span style={{ color: WB.muted, fontSize: 13 }}>
-                        Nenhuma sugestao automatica para este perfil no momento.
-                      </span>
-                    ) : (
-                      <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "grid", gap: 8 }}>
-                        {protocolSuggestions.map((s) => (
-                          <li
-                            key={s.protocolId}
-                            style={{
-                              display: "flex",
-                              flexWrap: "wrap",
-                              gap: 8,
-                              alignItems: "flex-start",
-                              border: `1px solid ${WB.border}`,
-                              borderRadius: 10,
-                              padding: 10,
-                              background: "rgba(255,255,255,0.5)",
-                            }}
-                          >
-                            <div style={{ flex: "1 1 200px", minWidth: 0 }}>
-                              <div style={{ fontWeight: 650 }}>{s.title}</div>
-                              <div style={{ fontSize: 12, color: WB.muted, lineHeight: 1.45 }}>{s.reason}</div>
-                            </div>
-                            <WbButton
-                              variant="ghost"
-                              type="button"
-                              onClick={() => void loadProtocolIntoBuilder(s.protocolId)}
-                            >
-                              Carregar
-                            </WbButton>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </div>
-                </WbCard>
-              ) : null}
-            </div>
-            <div className="pp-actions">
-              <WbButton variant="ghost" onClick={() => navigate("/app/personal/students")}>
-                Ver alunos
-              </WbButton>
-              <WbButton variant="ghost" onClick={() => navigate("/app/personal/library")}>
-                Biblioteca de protocolos
-              </WbButton>
-              <WbButton
-                variant="primary"
-                disabled={!selectedStudent || items.length === 0}
-                title={!selectedStudent ? "Selecione um aluno" : items.length === 0 ? "Adicione exercícios" : ""}
-                onClick={() => setShowSummary(true)}
-              >
-                Revisar e salvar
-              </WbButton>
-            </div>
+      {/* ── Compact header ─────────────────────────────────────────── */}
+      <div className="wb-header">
+        {/* Student */}
+        <div style={{ display: "grid", gap: 4, minWidth: 150 }}>
+          <span style={{ fontSize: 11, fontWeight: 600, color: WB.muted, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+            Aluno
+          </span>
+          <select
+            value={selectedStudentId}
+            onChange={(e) => onStudentSelect(e.target.value)}
+            disabled={studentsLoading}
+            style={{ ...inputS, minWidth: 150, cursor: "pointer" }}
+          >
+            <option value="">— Selecionar —</option>
+            {students.map((s) => (
+              <option key={s.id} value={s.id}>{s.name}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Plan name */}
+        <div style={{ display: "grid", gap: 4, flex: "1 1 180px", minWidth: 130 }}>
+          <span style={{ fontSize: 11, fontWeight: 600, color: WB.muted, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+            Nome da ficha
+          </span>
+          <input
+            value={workoutName}
+            onChange={(e) => setWorkoutName(e.target.value)}
+            placeholder="Treino A"
+            style={{ ...inputS, width: "100%" }}
+          />
+        </div>
+
+        {/* Frequency */}
+        <div style={{ display: "grid", gap: 4 }}>
+          <span style={{ fontSize: 11, fontWeight: 600, color: WB.muted, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+            Frequência
+          </span>
+          <div style={{ display: "flex", gap: 2, border: `1px solid ${WB.border}`, borderRadius: 10, background: "rgba(241,245,249,.92)", padding: 3 }}>
+            {(["semana_util", "4", "5", "6"] as const).map((v) => (
+              <button key={v} type="button" style={freqBtn(weekPreset === v)} onClick={() => setWeekPreset(v)}>
+                {v === "semana_util" ? "Útil" : `${v}x`}
+              </button>
+            ))}
           </div>
-          <div style={{ color: WB.muted, fontSize: 13 }}>
-            {studentsLoading ? (
-              "Carregando dados do aluno…"
-            ) : selectedStudent ? (
-              <>
-                <strong style={{ color: WB.text }}>{selectedStudent.name}</strong>
-                {" · "}
-                Plano {selectedStudent.plan.toUpperCase()}
-                {recentPlansCount != null ? (
-                  <>
-                    {" · "}
-                    {recentPlansCount} ficha(s) salva(s) recente(s) para este aluno
-                  </>
-                ) : null}
-              </>
-            ) : (
-              "Selecione um aluno na caixa abaixo para continuar."
-            )}
-          </div>
+        </div>
+
+        {/* Actions */}
+        <div style={{ display: "flex", gap: 8, alignItems: "flex-end", marginLeft: "auto" }}>
+          <WbButton variant="ghost" onClick={() => navigate("/app/personal/library")}>
+            Biblioteca
+          </WbButton>
+          <WbButton
+            variant="primary"
+            disabled={!canSave || saving}
+            title={!selectedStudent ? "Selecione um aluno" : items.length === 0 ? "Adicione exercícios" : ""}
+            onClick={() => void saveWorkout()}
+          >
+            {saving ? "Salvando…" : "Salvar ficha"}
+          </WbButton>
         </div>
       </div>
 
-      {/* Passo 1: aluno */}
-      <WbCard>
-        <div style={{ padding: 18 }}>
-          <SectionLabel
-            title="1. Para qual aluno é esta ficha?"
-            hint="Se você entrou por um link com o ID do aluno, ele já vem selecionado. Use Trocar apenas se precisar mudar."
-          />
-
-          {studentIdParam && selectedStudent && !expandStudentPicker ? (
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center" }}>
-              <div
-                style={pillStyle("#FFFFFF", WB.border)}
-              >
-                {selectedStudent.name}
-              </div>
-              <WbButton variant="ghost" onClick={() => setExpandStudentPicker(true)}>
-                Trocar aluno
-              </WbButton>
-            </div>
-          ) : (
-            <div style={{ display: "grid", gap: 12 }}>
-              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "flex-end" }}>
-                <div style={{ display: "grid", gap: 6 }}>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: WB.muted }}>Buscar</div>
-                  <input
-                    value={studentQuery}
-                    onChange={(e) => setStudentQuery(e.target.value)}
-                    placeholder="Nome do aluno…"
-                    style={{ ...inputStyle, minWidth: 200 }}
-                  />
-                </div>
-                <div style={{ display: "grid", gap: 6 }}>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: WB.muted }}>Gênero</div>
-                  <select
-                    value={genderFilter}
-                    onChange={(e) => setGenderFilter(e.target.value as "all" | Gender)}
-                    style={{ ...inputStyle, minWidth: 140, cursor: "pointer" }}
-                  >
-                    <option value="all">Todos</option>
-                    <option value="M">Masculino</option>
-                    <option value="F">Feminino</option>
-                  </select>
-                </div>
-                <div style={{ display: "grid", gap: 6 }}>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: WB.muted }}>Plano</div>
-                  <select
-                    value={planFilter}
-                    onChange={(e) => setPlanFilter(e.target.value as "all" | Plan)}
-                    style={{ ...inputStyle, minWidth: 140, cursor: "pointer" }}
-                  >
-                    <option value="all">Todos</option>
-                    <option value="basic">Básico</option>
-                    <option value="silver">Silver</option>
-                    <option value="gold">Gold</option>
-                    <option value="black">Black</option>
-                  </select>
-                </div>
-                <div style={{ display: "grid", gap: 6, flex: 1, minWidth: 220 }}>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: WB.muted }}>Aluno</div>
-                  <select
-                    value={selectedStudentId}
-                    onChange={(e) => onStudentSelect(e.target.value)}
-                    style={{ ...inputStyle, cursor: "pointer", width: "100%" }}
-                  >
-                    <option value="">— Escolha —</option>
-                    {filteredStudents.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.name} · {s.plan.toUpperCase()}
-                        {s.gender ? ` · ${s.gender}` : ""}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-              {studentIdParam ? (
-                <WbButton variant="ghost" onClick={() => setExpandStudentPicker(false)}>
-                  Recolher
-                </WbButton>
-              ) : null}
-            </div>
-          )}
+      {/* Context subline */}
+      {selectedStudent ? (
+        <div style={{ fontSize: 12, color: WB.muted, paddingLeft: 2 }}>
+          <strong style={{ color: WB.text }}>{selectedStudent.name}</strong>
+          {" · "}Plano {selectedStudent.plan.toUpperCase()}
+          {recentPlansCount != null ? ` · ${recentPlansCount} ficha(s) existente(s)` : ""}
         </div>
-      </WbCard>
+      ) : null}
 
-      {/* Passo 2: meta da ficha */}
-      <WbCard>
-        <div style={{ padding: 18, display: "grid", gap: 14 }}>
-          <SectionLabel
-            title="2. Nome da ficha e frequência na semana"
-            hint="Isso fica salvo no servidor junto com os exercícios. O nome ajuda você e o aluno a identificarem o treino (ex.: Treino A — Perna)."
-          />
-          <div style={{ display: "grid", gap: 12, gridTemplateColumns: narrow ? "1fr" : "1fr 1fr" }}>
-            <div style={{ display: "grid", gap: 8 }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: WB.muted }}>Nome da ficha</div>
-              <input
-                value={workoutName}
-                onChange={(e) => setWorkoutName(e.target.value)}
-                placeholder="Ex.: Treino A — Perna"
-                style={inputStyle}
-              />
-            </div>
-            <div style={{ display: "grid", gap: 8 }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: WB.muted }}>Quantos treinos na semana (referência)</div>
-              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", width: "fit-content", border: `1px solid ${WB.border}`, borderRadius: 12, background: "rgba(241,245,249,.92)", padding: 4 }}>
-                <button type="button" style={tabBtn(weekPreset === "semana_util")} onClick={() => setWeekPreset("semana_util")}>
-                  Semana útil
-                </button>
-                <button type="button" style={tabBtn(weekPreset === "4")} onClick={() => setWeekPreset("4")}>
-                  4
-                </button>
-                <button type="button" style={tabBtn(weekPreset === "5")} onClick={() => setWeekPreset("5")}>
-                  5
-                </button>
-                <button type="button" style={tabBtn(weekPreset === "6")} onClick={() => setWeekPreset("6")}>
-                  6
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </WbCard>
-
-      {/* Passo 3: duas colunas — no mobile o treino vem primeiro */}
+      {/* ── Split panels ───────────────────────────────────────────── */}
       <div
-        style={{
-          display: "grid",
-          gap: 14,
-          gridTemplateColumns: narrow ? "1fr" : "minmax(0,1fr) minmax(300px, 400px)",
-        }}
+        className="wb-split"
+        style={{ gridTemplateColumns: narrow ? "1fr" : "1fr minmax(300px, 380px)" }}
       >
-        {/* Biblioteca */}
+        {/* ── Library ─────────────────────────────────────────────── */}
         <WbCard>
-          <div style={{ padding: 18, display: "grid", gap: 14, order: narrow ? 2 : 1 }}>
-            <SectionLabel
-              title="3. Adicionar exercícios à ficha"
-              hint="Use o catálogo por grupo muscular ou a biblioteca de vídeos do app. Cada clique em Adicionar coloca o movimento ao final da lista ao lado."
-            />
+          <div style={{ padding: 16, display: "grid", gap: 12, order: narrow ? 2 : 1 }}>
+            <div style={{ fontWeight: 650, fontSize: 15, color: WB.text }}>Exercícios</div>
 
-            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", width: "fit-content", border: `1px solid ${WB.border}`, borderRadius: 12, background: "rgba(241,245,249,.92)", padding: 4 }}>
-              <button type="button" style={tabBtn(libraryTab === "catalog")} onClick={() => setLibraryTab("catalog")}>
-                Catálogo por grupo
-              </button>
-              <button type="button" style={tabBtn(libraryTab === "videos")} onClick={() => setLibraryTab("videos")}>
-                Vídeos do app
-                {videoExercises.length ? ` (${videoExercises.length})` : ""}
-              </button>
-            </div>
-
-            {libraryTab === "catalog" ? (
-              <div style={{ display: "grid", gap: 10 }}>
-                <div style={{ fontSize: 12, fontWeight: 600, color: WB.muted }}>Grupo muscular</div>
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  {catalogGroups.map((g) => (
-                    <button
-                      key={g}
-                      type="button"
-                      onClick={() => setSelectedGroup(g)}
-                      style={{
-                        padding: "7px 10px",
-                        borderRadius: 999,
-                        border: `1px solid ${selectedGroup === g ? WB.borderStrong : WB.border}`,
-                        background: selectedGroup === g ? "rgba(15,23,42,0.05)" : "transparent",
-                        color: WB.text,
-                        cursor: "pointer",
-                        fontWeight: 650,
-                        fontSize: 12,
-                      }}
-                    >
-                      {g}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ) : (
-              <div style={{ color: WB.muted, fontSize: 13 }}>
-                {catalogLoading ? "Carregando catalogo…" : catalogError ? catalogError : "Busque pelo nome e toque em Adicionar para incluir na ficha."}
-              </div>
-            )}
-
+            {/* Search */}
             <input
               value={exerciseQuery}
               onChange={(e) => setExerciseQuery(e.target.value)}
-              placeholder={libraryTab === "videos" ? "Buscar vídeo por nome…" : "Filtrar exercício…"}
-              style={{ ...inputStyle, width: "100%" }}
+              placeholder="Buscar exercício…"
+              style={{ ...inputS, width: "100%" }}
             />
 
-            <div style={{ display: "grid", gap: 8 }}>
-              {libraryList.length === 0 ? (
-                <div style={{ color: WB.muted, fontSize: 14 }}>
-                  {libraryTab === "catalog"
-                    ? "Nenhum exercício neste grupo com esse filtro."
-                    : "Nenhum vídeo encontrado. Ajuste a busca ou aguarde o carregamento."}
+            {/* Group chips */}
+            <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 2 }}>
+              <button
+                type="button"
+                style={chip(libGroupFilter === "all" && !showVideoOnly)}
+                onClick={() => { setLibGroupFilter("all"); setShowVideoOnly(false); }}
+              >
+                Todos
+              </button>
+              {CATALOG_GROUPS.map((g) => (
+                <button
+                  key={g}
+                  type="button"
+                  style={chip(libGroupFilter === g && !showVideoOnly)}
+                  onClick={() => selectGroup(g)}
+                >
+                  {g}
+                </button>
+              ))}
+              <button
+                type="button"
+                style={chip(showVideoOnly)}
+                onClick={() => { setShowVideoOnly((v) => !v); setLibGroupFilter("all"); }}
+              >
+                Vídeos
+              </button>
+            </div>
+
+            {/* Exercise rows */}
+            <div style={{ display: "grid", gap: 6 }}>
+              {catalogLoading ? (
+                <div style={{ color: WB.muted, fontSize: 13 }}>Carregando exercícios…</div>
+              ) : libraryList.length === 0 ? (
+                <div style={{ color: WB.muted, fontSize: 13 }}>
+                  {exerciseQuery ? "Nenhum resultado para esta busca." : "Nenhum exercício neste grupo."}
                 </div>
               ) : (
                 libraryList.map((ex) => {
@@ -901,75 +590,129 @@ export default function WorkoutBuilderPage() {
                     <div
                       key={ex.id}
                       style={{
-                        border: `1px solid ${WB.border}`,
-                        borderRadius: 10,
-                        padding: 12,
-                        background: "#FFFFFF",
                         display: "flex",
-                        justifyContent: "space-between",
-                        gap: 10,
                         alignItems: "center",
-                        flexWrap: "wrap",
+                        gap: 10,
+                        padding: "9px 11px",
+                        borderRadius: 9,
+                        border: `1px solid ${WB.border}`,
+                        background: "#FFFFFF",
+                        opacity: already ? 0.55 : 1,
                       }}
                     >
-                      <div style={{ display: "grid", gap: 4, minWidth: 0 }}>
-                        <div style={{ fontWeight: 650 }}>{ex.name}</div>
-                        <div style={{ color: WB.muted2, fontSize: 12 }}>
-                          {libraryTab === "videos" ? "Vídeo da plataforma" : `Grupo: ${ex.group}`}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontWeight: 650, fontSize: 13, lineHeight: 1.3 }}>{ex.name}</div>
+                        <div style={{ fontSize: 11, color: WB.muted, marginTop: 1 }}>
+                          {ex.source === "video" ? "Vídeo" : ex.group}
                         </div>
                       </div>
-                      <WbButton disabled={already} onClick={() => addExercise(ex)} variant={already ? "ghost" : "primary"}>
-                        {already ? "Na lista" : "Adicionar"}
-                      </WbButton>
+                      <button
+                        type="button"
+                        disabled={already}
+                        onClick={() => addExercise(ex)}
+                        title={already ? "Já na lista" : "Adicionar"}
+                        style={{
+                          width: 28,
+                          height: 28,
+                          borderRadius: 8,
+                          border: `1px solid ${already ? WB.border : WB.primaryBorder}`,
+                          background: already ? "transparent" : WB.primary,
+                          color: already ? WB.muted : "#FFFFFF",
+                          cursor: already ? "default" : "pointer",
+                          fontWeight: 700,
+                          fontSize: 16,
+                          display: "grid",
+                          placeItems: "center",
+                          flexShrink: 0,
+                          lineHeight: 1,
+                        }}
+                      >
+                        {already ? "✓" : "+"}
+                      </button>
                     </div>
                   );
                 })
               )}
             </div>
 
-            {items.length > 0 && suggestions.length > 0 ? (
-              <div style={{ display: "grid", gap: 8, paddingTop: 4 }}>
-                <div style={{ fontWeight: 650, fontSize: 14 }}>Sugestões heurísticas</div>
-                <div style={{ color: WB.muted, fontSize: 12, lineHeight: 1.35 }}>
-                  A partir do primeiro exercício da lista ({items[0]?.name}). Opcional.
+            {/* Protocol suggestions accordion */}
+            <div style={{ borderTop: `1px solid ${WB.border}`, paddingTop: 10 }}>
+              <button
+                type="button"
+                onClick={() => setShowProtocols((v) => !v)}
+                style={{
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  color: WB.muted,
+                  fontSize: 12,
+                  fontWeight: 650,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 5,
+                  padding: 0,
+                }}
+              >
+                <span style={{ fontSize: 10 }}>{showProtocols ? "▲" : "▼"}</span>
+                Carregar protocolo
+                {protocolSuggestions.length > 0 ? ` (${protocolSuggestions.length})` : ""}
+              </button>
+
+              {showProtocols ? (
+                <div style={{ marginTop: 10, display: "grid", gap: 8 }}>
+                  {suggestionsLoading ? (
+                    <div style={{ color: WB.muted, fontSize: 13 }}>Carregando…</div>
+                  ) : protocolSuggestions.length === 0 ? (
+                    <div style={{ color: WB.muted, fontSize: 13 }}>
+                      Nenhuma sugestão automática para este perfil.
+                    </div>
+                  ) : (
+                    protocolSuggestions.map((s) => (
+                      <div
+                        key={s.protocolId}
+                        style={{
+                          padding: "9px 11px",
+                          borderRadius: 9,
+                          border: `1px solid ${WB.border}`,
+                          background: "#FFFFFF",
+                          display: "flex",
+                          gap: 10,
+                          alignItems: "center",
+                        }}
+                      >
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontWeight: 650, fontSize: 13 }}>{s.title}</div>
+                          <div style={{ fontSize: 11, color: WB.muted, marginTop: 1 }}>{s.reason}</div>
+                        </div>
+                        <WbButton
+                          variant="ghost"
+                          type="button"
+                          onClick={() => void loadProtocolIntoBuilder(s.protocolId)}
+                        >
+                          Carregar
+                        </WbButton>
+                      </div>
+                    ))
+                  )}
                 </div>
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  {suggestions.slice(0, 6).map((ex) => (
-                    <button
-                      key={ex.id}
-                      type="button"
-                      onClick={() => addExercise(ex)}
-                      style={{
-                        padding: "7px 10px",
-                        borderRadius: 999,
-                        border: `1px solid ${WB.border}`,
-                        background: "#FFFFFF",
-                        color: WB.text,
-                        cursor: "pointer",
-                        fontWeight: 650,
-                        fontSize: 12,
-                      }}
-                    >
-                      + {ex.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ) : null}
+              ) : null}
+            </div>
           </div>
         </WbCard>
 
-        {/* Lista do treino — destaque */}
-        <div style={{ order: narrow ? 1 : 2, position: narrow ? "static" : "sticky", top: 12, alignSelf: "start" }}>
+        {/* ── Workout list ─────────────────────────────────────────── */}
+        <div
+          style={{
+            order: narrow ? 1 : 2,
+            position: narrow ? "static" : "sticky",
+            top: 12,
+            alignSelf: "start",
+          }}
+        >
           <WbCard>
-            <div style={{ padding: 18, display: "grid", gap: 12 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-                <div>
-                  <div style={{ fontWeight: 650, fontSize: 16 }}>Sua lista (ordem do treino)</div>
-                  <div style={{ color: WB.muted, fontSize: 12, marginTop: 4 }}>
-                    O aluno executa de cima para baixo. Use as setas para mudar a ordem.
-                  </div>
-                </div>
+            <div style={{ padding: 16, display: "grid", gap: 10 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+                <div style={{ fontWeight: 650, fontSize: 15, color: WB.text }}>Lista do treino</div>
                 <span style={pillStyle(WB.primarySoft, WB.primaryBorder)}>{items.length} exercício(s)</span>
               </div>
 
@@ -977,123 +720,78 @@ export default function WorkoutBuilderPage() {
                 <div
                   style={{
                     border: `1px dashed ${WB.border}`,
-                    borderRadius: 10,
+                    borderRadius: 9,
                     padding: 20,
                     textAlign: "center",
                     color: WB.muted,
-                    fontSize: 14,
+                    fontSize: 13,
                     lineHeight: 1.5,
                   }}
                 >
-                  Nenhum exercício ainda.
-                  <br />
-                  Escolha itens em <strong style={{ color: WB.text }}>Adicionar exercícios</strong> à esquerda (ou acima no celular).
+                  Adicione exercícios da biblioteca{narrow ? " abaixo" : " ao lado"}.
                 </div>
               ) : (
-                <div style={{ display: "grid", gap: 10 }}>
+                <div style={{ display: "grid", gap: 8 }}>
                   {items.map((it, idx) => (
                     <div
                       key={it.exerciseId}
                       style={{
                         border: `1px solid ${WB.border}`,
-                        borderRadius: 10,
+                        borderRadius: 9,
                         background: "#FFFFFF",
-                        padding: 12,
+                        padding: "10px 11px",
                         display: "grid",
-                        gap: 8,
-                        minWidth: 0,
+                        gap: 7,
                       }}
                     >
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          gap: 8,
-                          flexWrap: "wrap",
-                          alignItems: "flex-start",
-                          minWidth: 0,
-                        }}
-                      >
-                        <div style={{ fontWeight: 650, minWidth: 0, flex: "1 1 140px", lineHeight: 1.3 }}>
-                          {idx + 1}. {it.name}
-                        </div>
-                        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", flexShrink: 0 }}>
+                      {/* Row header */}
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: WB.muted, minWidth: 18, flexShrink: 0 }}>
+                          {idx + 1}.
+                        </span>
+                        <span style={{ flex: 1, fontWeight: 650, fontSize: 13, lineHeight: 1.3 }}>
+                          {it.name}
+                        </span>
+                        <div style={{ display: "flex", gap: 3, flexShrink: 0 }}>
                           <button
                             type="button"
                             disabled={idx === 0}
                             onClick={() => moveExercise(it.exerciseId, -1)}
-                            style={{
-                              padding: "6px 10px",
-                              borderRadius: 8,
-                              border: `1px solid ${WB.border}`,
-                              background: "transparent",
-                              color: WB.text,
-                              cursor: idx === 0 ? "not-allowed" : "pointer",
-                              fontWeight: 650,
-                              opacity: idx === 0 ? 0.4 : 1,
-                            }}
+                            style={iconBtn(idx === 0)}
+                            title="Mover para cima"
                           >
-                            Subir
+                            <IconArrowUp />
                           </button>
                           <button
                             type="button"
                             disabled={idx >= items.length - 1}
                             onClick={() => moveExercise(it.exerciseId, 1)}
-                            style={{
-                              padding: "6px 10px",
-                              borderRadius: 8,
-                              border: `1px solid ${WB.border}`,
-                              background: "transparent",
-                              color: WB.text,
-                              cursor: idx >= items.length - 1 ? "not-allowed" : "pointer",
-                              fontWeight: 650,
-                              opacity: idx >= items.length - 1 ? 0.4 : 1,
-                            }}
+                            style={iconBtn(idx >= items.length - 1)}
+                            title="Mover para baixo"
                           >
-                            Descer
+                            <IconArrowDown />
                           </button>
                           <button
                             type="button"
                             onClick={() => removeExercise(it.exerciseId)}
-                            style={{
-                              padding: "6px 10px",
-                              borderRadius: 8,
-                              border: `1px solid ${WB.border}`,
-                              background: "transparent",
-                              color: WB.text,
-                              cursor: "pointer",
-                              fontWeight: 650,
-                            }}
+                            style={{ ...iconBtn(false), color: WB.muted, fontSize: 12 }}
+                            title="Remover"
                           >
-                            Remover
+                            ✕
                           </button>
                         </div>
                       </div>
 
-                      <div
-                        style={{
-                          display: "flex",
-                          flexDirection: "row",
-                          alignItems: "flex-end",
-                          gap: 8,
-                          width: "100%",
-                          minWidth: 0,
-                        }}
-                      >
-                        {(
-                          [
-                            { key: "sets", label: "Séries", value: it.sets, field: "sets" as const },
-                            { key: "reps", label: "Reps", value: it.reps, field: "reps" as const },
-                            { key: "rest", label: "Descanso", value: it.rest, field: "rest" as const },
-                          ] as const
-                        ).map((col) => (
+                      {/* Sets / Reps / Rest */}
+                      <div style={{ display: "flex", gap: 6 }}>
+                        {(["sets", "reps", "rest"] as const).map((field) => (
                           <label
-                            key={col.key}
+                            key={field}
                             style={{
-                              flex: "1 1 0",
+                              flex: 1,
                               minWidth: 0,
                               display: "grid",
-                              gap: 3,
+                              gap: 2,
                               fontSize: 10,
                               fontWeight: 600,
                               color: WB.muted,
@@ -1101,18 +799,19 @@ export default function WorkoutBuilderPage() {
                               letterSpacing: "0.03em",
                             }}
                           >
-                            {col.label}
+                            {field === "sets" ? "Séries" : field === "reps" ? "Reps" : "Desc."}
                             <input
-                              value={col.value}
-                              onChange={(e) => updateItem(it.exerciseId, { [col.field]: e.target.value })}
-                              style={compactInputStyle}
-                              inputMode="text"
+                              value={it[field]}
+                              onChange={(e) => updateItem(it.exerciseId, { [field]: e.target.value })}
+                              style={compactInput}
                               autoComplete="off"
                             />
                           </label>
                         ))}
                       </div>
-                      <details style={{ marginTop: 4 }}>
+
+                      {/* Technical details */}
+                      <details>
                         <summary
                           style={{
                             cursor: "pointer",
@@ -1122,23 +821,23 @@ export default function WorkoutBuilderPage() {
                             textTransform: "uppercase",
                             letterSpacing: "0.04em",
                             listStyle: "none",
-                            padding: "4px 0",
+                            padding: "2px 0",
                           }}
                         >
-                          Detalhes técnicos {it.rpe || it.cadence || it.restPause || it.notes ? "•" : ""}
+                          Técnico {it.rpe || it.cadence || it.restPause || it.notes ? "•" : ""}
                         </summary>
                         <div
                           style={{
                             display: "grid",
-                            gap: 8,
-                            paddingTop: 8,
-                            gridTemplateColumns: "repeat(auto-fit, minmax(110px, 1fr))",
+                            gap: 7,
+                            paddingTop: 7,
+                            gridTemplateColumns: "repeat(auto-fit, minmax(100px, 1fr))",
                           }}
                         >
                           <label
                             style={{
                               display: "grid",
-                              gap: 3,
+                              gap: 2,
                               fontSize: 10,
                               fontWeight: 600,
                               color: WB.muted,
@@ -1146,26 +845,25 @@ export default function WorkoutBuilderPage() {
                               letterSpacing: "0.03em",
                             }}
                           >
-                            RPE (0-10)
+                            RPE
                             <input
                               value={it.rpe ?? ""}
-                              placeholder="ex: 7-8"
+                              placeholder="7-8"
                               onChange={(e) => updateItem(it.exerciseId, { rpe: e.target.value })}
                               style={{
-                                ...compactInputStyle,
+                                ...compactInput,
                                 borderColor:
                                   it.rpe && !RPE_REGEX.test(it.rpe)
                                     ? "rgba(248,113,113,.55)"
-                                    : compactInputStyle.borderColor,
+                                    : undefined,
                               }}
-                              inputMode="text"
                               autoComplete="off"
                             />
                           </label>
                           <label
                             style={{
                               display: "grid",
-                              gap: 3,
+                              gap: 2,
                               fontSize: 10,
                               fontWeight: 600,
                               color: WB.muted,
@@ -1176,16 +874,15 @@ export default function WorkoutBuilderPage() {
                             Cadência
                             <input
                               value={it.cadence ?? ""}
-                              placeholder="ex: 3-1-2-0"
+                              placeholder="3-1-2-0"
                               onChange={(e) => updateItem(it.exerciseId, { cadence: e.target.value })}
                               style={{
-                                ...compactInputStyle,
+                                ...compactInput,
                                 borderColor:
                                   it.cadence && !CADENCE_REGEX.test(it.cadence)
                                     ? "rgba(248,113,113,.55)"
-                                    : compactInputStyle.borderColor,
+                                    : undefined,
                               }}
-                              inputMode="text"
                               autoComplete="off"
                             />
                           </label>
@@ -1193,7 +890,7 @@ export default function WorkoutBuilderPage() {
                             style={{
                               display: "flex",
                               alignItems: "center",
-                              gap: 6,
+                              gap: 5,
                               fontSize: 11,
                               fontWeight: 600,
                               color: WB.text,
@@ -1211,24 +908,24 @@ export default function WorkoutBuilderPage() {
                         <label
                           style={{
                             display: "grid",
-                            gap: 3,
+                            gap: 2,
                             fontSize: 10,
                             fontWeight: 600,
                             color: WB.muted,
                             textTransform: "uppercase",
                             letterSpacing: "0.03em",
-                            marginTop: 8,
+                            marginTop: 7,
                           }}
                         >
-                          Observações técnicas
+                          Observações
                           <textarea
                             value={it.notes ?? ""}
                             onChange={(e) => updateItem(it.exerciseId, { notes: e.target.value })}
-                            placeholder="cues de execução, amplitude, foco do movimento…"
+                            placeholder="cues de execução, amplitude…"
                             rows={2}
                             style={{
-                              ...compactInputStyle,
-                              minHeight: 52,
+                              ...compactInput,
+                              minHeight: 48,
                               resize: "vertical",
                               fontFamily: "inherit",
                             }}
@@ -1236,148 +933,23 @@ export default function WorkoutBuilderPage() {
                           />
                         </label>
                       </details>
-                      <div style={{ color: WB.muted2, fontSize: 11, lineHeight: 1.35, wordBreak: "break-word" }}>
-                        Referência de vídeo: {resolveVideoUrl(it.exerciseId)}
-                      </div>
                     </div>
                   ))}
                 </div>
               )}
 
+              {/* CTA duplicated at bottom */}
               <WbButton
                 variant="primary"
-                disabled={!selectedStudent || items.length === 0}
-                onClick={() => setShowSummary(true)}
+                disabled={!canSave || saving}
+                onClick={() => void saveWorkout()}
               >
-                Revisar e salvar ficha
+                {saving ? "Salvando…" : "Salvar ficha"}
               </WbButton>
             </div>
           </WbCard>
         </div>
       </div>
-
-      {showSummary ? (
-        <div
-          role="dialog"
-          aria-modal="true"
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(15,23,42,.40)",
-            display: "grid",
-            placeItems: "center",
-            padding: 16,
-            zIndex: 50,
-          }}
-          onClick={requestCloseSummary}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              width: "min(920px, 100%)",
-              borderRadius: 14,
-              border: `1px solid ${WB.borderStrong}`,
-              background: "linear-gradient(180deg, #ffffff, #f8fafc)",
-              boxShadow: "0 20px 60px rgba(15,23,42,.18)",
-              overflow: "hidden",
-            }}
-          >
-            <div
-              style={{
-                padding: 16,
-                borderBottom: `1px solid ${WB.border}`,
-                display: "flex",
-                justifyContent: "space-between",
-                gap: 10,
-                flexWrap: "wrap",
-                alignItems: "center",
-              }}
-            >
-              <div style={{ display: "grid", gap: 6 }}>
-                <div style={{ fontWeight: 650, fontSize: 16 }}>Resumo do treino</div>
-                <div style={{ color: WB.muted, fontSize: 13 }}>
-                  Aluno: <b style={{ color: WB.text }}>{selectedStudent?.name ?? "—"}</b> • Nome:{" "}
-                  <b style={{ color: WB.text }}>{workoutName}</b> • Grupo: <b style={{ color: WB.text }}>{selectedGroup}</b>
-                </div>
-              </div>
-
-              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                <WbButton variant="ghost" onClick={requestCloseSummary}>
-                  Cancelar
-                </WbButton>
-                <WbButton variant="primary" disabled={saving} onClick={() => void confirmWorkout()}>
-                  {saving ? "Salvando…" : "Confirmar e salvar"}
-                </WbButton>
-              </div>
-            </div>
-
-            <div style={{ padding: 16, display: "grid", gap: 10 }}>
-              {summaryError ? (
-                <div
-                  role="alert"
-                  style={{
-                    padding: "10px 12px",
-                    borderRadius: 10,
-                    border: "1px solid rgba(248, 113, 113, 0.32)",
-                    background: "rgba(220, 38, 38, 0.08)",
-                    color: WB.text,
-                    fontSize: 13,
-                  }}
-                >
-                  {summaryError}
-                </div>
-              ) : null}
-              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                <span style={pillStyle(WB.primarySoft, WB.primaryBorder)}>
-                  Preset: <b>{weekPreset === "semana_util" ? "Semana útil" : `${weekPreset} treinos`}</b>
-                </span>
-                <span style={pillStyle("#F9FAFB", WB.borderStrong)}>
-                  Total: <b>{items.length}</b> exercício(s)
-                </span>
-              </div>
-
-              <div style={{ display: "grid", gap: 8 }}>
-                {items.map((it, idx) => (
-                  <div
-                    key={it.exerciseId}
-                    style={{
-                      border: `1px solid ${WB.border}`,
-                      borderRadius: 10,
-                      background: "#FFFFFF",
-                      padding: 12,
-                      display: "grid",
-                      gap: 6,
-                    }}
-                  >
-                    <div style={{ fontWeight: 650 }}>
-                      {idx + 1}. {it.name}
-                    </div>
-                    <div style={{ color: WB.muted, fontSize: 13 }}>
-                      Séries: <b style={{ color: WB.text }}>{it.sets}</b> • Reps: <b style={{ color: WB.text }}>{it.reps}</b>{" "}
-                      • Descanso: <b style={{ color: WB.text }}>{it.rest}</b>
-                      {it.rpe ? <> • RPE: <b style={{ color: WB.text }}>{it.rpe}</b></> : null}
-                      {it.cadence ? <> • Cadência: <b style={{ color: WB.text }}>{it.cadence}</b></> : null}
-                      {it.restPause ? <> • <b style={{ color: WB.text }}>Rest-pause</b></> : null}
-                    </div>
-                    {it.notes ? (
-                      <div style={{ color: WB.muted, fontSize: 12, lineHeight: 1.4 }}>
-                        <b style={{ color: WB.text }}>Obs:</b> {it.notes}
-                      </div>
-                    ) : null}
-                    <div style={{ color: WB.muted2, fontSize: 12 }}>
-                      Vídeo: <b style={{ color: WB.text }}>{resolveVideoUrl(it.exerciseId)}</b>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div style={{ color: WB.muted2, fontSize: 12, lineHeight: 1.35 }}>
-                Ao confirmar, a ficha é enviada ao servidor e fica disponível na listagem deste aluno.
-              </div>
-            </div>
-          </div>
-        </div>
-      ) : null}
     </div>
   );
 }

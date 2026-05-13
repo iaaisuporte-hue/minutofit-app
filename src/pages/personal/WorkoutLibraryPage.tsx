@@ -193,7 +193,7 @@ export default function WorkoutLibraryPage() {
               variant="info"
               eyebrow="Biblioteca"
               title="Nenhum protocolo encontrado"
-              description="Ajuste filtros ou aguarde a curadoria MetaCore na sua base. Protocolos da academia e os seus aparecem aqui quando existirem."
+              description="Crie o primeiro protocolo usando o builder ou aguarde a curadoria MetaCore. Protocolos da academia e os seus aparecem aqui quando existirem."
             />
           ) : (
             <div style={{ display: "grid", gap: 12 }}>
