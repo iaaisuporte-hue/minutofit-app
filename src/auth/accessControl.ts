@@ -45,7 +45,10 @@ export type AppPermission =
   | "academy.reports.read"
   | "academy.branding"
   | "academy.audit.read"
-  | "academy.invitations.write";
+  | "academy.invitations.write"
+  | "academy.recepcao.dashboard"
+  | "academy.checkin.write"
+  | "academy.billing.operate";
 
 const ALL_ADMIN_PERMISSIONS: AppPermission[] = [
   "admin.accessProfiles",
@@ -75,6 +78,9 @@ const ALL_ACADEMY_OWNER_PERMISSIONS: AppPermission[] = [
   "academy.branding",
   "academy.audit.read",
   "academy.invitations.write",
+  "academy.recepcao.dashboard",
+  "academy.checkin.write",
+  "academy.billing.operate",
 ];
 
 const PROFILE_PERMISSIONS: Record<AccessProfile, AppPermission[]> = {
@@ -116,6 +122,9 @@ const PROFILE_PERMISSIONS: Record<AccessProfile, AppPermission[]> = {
     "academy.finance.read",
     "academy.reports.read",
     "academy.invitations.write",
+    "academy.recepcao.dashboard",
+    "academy.checkin.write",
+    "academy.billing.operate",
   ],
   academy_finance: [
     "academy.dashboard",
@@ -127,8 +136,13 @@ const PROFILE_PERMISSIONS: Record<AccessProfile, AppPermission[]> = {
   ],
   academy_reception: [
     "academy.students.read",
+    "academy.students.write",
     "academy.plans.read",
     "academy.invitations.write",
+    "academy.recepcao.dashboard",
+    "academy.checkin.write",
+    "academy.billing.operate",
+    "academy.audit.read",
   ],
   academy_personal: [
     "academy.students.read",
@@ -208,7 +222,7 @@ export const ACCESS_PROFILE_META: Record<
   academy_reception: {
     label: "Recepção",
     roleScope: "mixed",
-    description: "Matrículas, convites e consulta de alunos.",
+    description: "Operação de balcão, check-in, matrículas rápidas e consulta de alunos.",
   },
   academy_personal: {
     label: "Personal / Professor",
@@ -288,6 +302,9 @@ export const APP_PERMISSION_META: Record<AppPermission, { label: string; group: 
   "academy.branding": { label: "Branding da academia", group: "Academia", description: "Configurar logo, cores e identidade visual." },
   "academy.audit.read": { label: "Auditoria", group: "Academia", description: "Ver trilha de auditoria da academia." },
   "academy.invitations.write": { label: "Enviar convites", group: "Academia", description: "Convidar novos usuários para a academia." },
+  "academy.recepcao.dashboard": { label: "Recepção", group: "Academia", description: "Acessar o hub operacional da recepção." },
+  "academy.checkin.write": { label: "Check-in operacional", group: "Academia", description: "Registrar entrada, exceções e visitantes." },
+  "academy.billing.operate": { label: "Cobrança operacional", group: "Financeiro Academia", description: "Operar cobranças simples sem acesso a DRE." },
 };
 
 export const ACCESS_PROFILE_ORDER: AccessProfile[] = [
@@ -334,6 +351,9 @@ export const APP_PERMISSION_ORDER: AppPermission[] = [
   "academy.branding",
   "academy.audit.read",
   "academy.invitations.write",
+  "academy.recepcao.dashboard",
+  "academy.checkin.write",
+  "academy.billing.operate",
 ];
 
 export function getProfilePermissions(profile: AccessProfile) {

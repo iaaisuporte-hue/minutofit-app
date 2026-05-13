@@ -253,7 +253,7 @@ export default function AcademyStudentsPage() {
           <form onSubmit={handleSearch} style={{ display: "flex", gap: "var(--space-2)", flex: 1, minWidth: 200 }}>
             <input
               className="input"
-              placeholder="Buscar por nome ou e-mail..."
+              placeholder="Buscar por nome, e-mail, CPF ou telefone..."
               value={searchInput}
               onChange={(e) => setInput(e.target.value)}
               style={{ flex: 1 }}

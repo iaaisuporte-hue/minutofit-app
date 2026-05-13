@@ -443,6 +443,120 @@ export async function resetStudentPasswordApi(userId: number): Promise<string> {
   return data.tempPassword as string;
 }
 
+// ─── Recepção ─────────────────────────────────────────────────────────────────
+
+export interface ReceptionStudent {
+  userId: number;
+  name: string;
+  email: string;
+  phone: string | null;
+  cpf: string | null;
+  avatarUrl: string | null;
+  studentStatus: StudentStatus | null;
+  activePlan: { id: number; name: string; monthlyPrice: number } | null;
+  lastAccessAt: string | null;
+}
+
+export interface ReceptionAccessEvent {
+  id: number;
+  eventType: 'checkin' | 'exception' | 'denied' | 'visitor';
+  source: 'manual' | 'qr' | 'facial' | 'catraca_vendor_webhook';
+  reason: string | null;
+  createdAt: string;
+  student: {
+    userId: number | null;
+    name: string | null;
+    email: string | null;
+    avatarUrl: string | null;
+    studentStatus: StudentStatus | null;
+  };
+  visitor: {
+    id: number | null;
+    name: string | null;
+    type: string | null;
+  };
+  actorName: string | null;
+}
+
+export interface ReceptionDashboard {
+  kpis: {
+    occupancyNow: number;
+    accessToday: number;
+    exceptionsToday: number;
+    deniedToday: number;
+    overdueStudents: number;
+    newStudents7d: number;
+    activeStudents: number;
+    birthdaysToday: number;
+  };
+  status: {
+    catraca: 'manual_only' | string;
+    facial: 'planned' | string;
+    partners: 'planned' | string;
+  };
+  recentEvents: ReceptionAccessEvent[];
+  exceptions: ReceptionAccessEvent[];
+}
+
+export async function fetchReceptionDashboard(): Promise<ReceptionDashboard> {
+  const data = await authFetch(`${API_URL}/academy/recepcao/dashboard`).then(parseJson);
+  if (!data.success) throw new Error(data.error);
+  return data.data as ReceptionDashboard;
+}
+
+export async function searchReceptionStudents(q: string, limit = 8): Promise<ReceptionStudent[]> {
+  const qs = new URLSearchParams({ q, limit: String(limit) });
+  const data = await authFetch(`${API_URL}/academy/students/search?${qs}`).then(parseJson);
+  if (!data.success) throw new Error(data.error);
+  return data.data.students as ReceptionStudent[];
+}
+
+export async function registerReceptionCheckin(userId: number): Promise<{ event: unknown; student: ReceptionStudent }> {
+  const data = await authFetch(`${API_URL}/academy/checkins`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ userId }),
+  }).then(parseJson);
+  if (!data.success) throw new Error(data.error);
+  return data.data as { event: unknown; student: ReceptionStudent };
+}
+
+export async function registerReceptionException(
+  userId: number,
+  reason: string
+): Promise<{ event: unknown; student: ReceptionStudent }> {
+  const data = await authFetch(`${API_URL}/academy/checkins/exception`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ userId, reason }),
+  }).then(parseJson);
+  if (!data.success) throw new Error(data.error);
+  return data.data as { event: unknown; student: ReceptionStudent };
+}
+
+export async function registerReceptionDenied(userId: number, reason: string): Promise<void> {
+  const data = await authFetch(`${API_URL}/academy/checkins/deny`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ userId, reason }),
+  }).then(parseJson);
+  if (!data.success) throw new Error(data.error);
+}
+
+export async function registerReceptionVisitor(params: {
+  name: string;
+  document?: string;
+  visitorType?: 'visitor' | 'external_personal';
+  reason?: string;
+}): Promise<void> {
+  const data = await authFetch(`${API_URL}/academy/visitors`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(params),
+  }).then(parseJson);
+  if (!data.success) throw new Error(data.error);
+}
+
 // ─── Plans ─────────────────────────────────────────────────────────────────────
 
 export interface AcademyPlan {

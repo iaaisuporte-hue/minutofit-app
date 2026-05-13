@@ -16,6 +16,9 @@ import AcademyStudentDetailPage   from "./academy/AcademyStudentDetailPage";
 import AcademyPlansPage           from "./academy/AcademyPlansPage";
 import AcademyFinancePage         from "./academy/AcademyFinancePage";
 import { academyFallbackLogoUrl } from "./academy/academyFallbackLogo";
+import RecepcaoHubPage            from "./academy/recepcao/RecepcaoHubPage";
+import RecepcaoCheckinPage        from "./academy/recepcao/RecepcaoCheckinPage";
+import RecepcaoNovoAlunoPage      from "./academy/recepcao/RecepcaoNovoAlunoPage";
 
 function MenuLink({ to, label }: { to: string; label: string }) {
   return (
@@ -27,6 +30,7 @@ function MenuLink({ to, label }: { to: string; label: string }) {
 
 /** Primeira rota de academia que o usuário pode abrir (evita redirect para dashboard sem permissão). */
 const ACADEMY_DEFAULT_ROUTE_ORDER: Array<{ to: string; permission: AppPermission }> = [
+  { to: "/app/academy/recepcao", permission: "academy.recepcao.dashboard" },
   { to: "/app/academy/dashboard", permission: "academy.dashboard" },
   { to: "/app/academy/students", permission: "academy.students.read" },
   { to: "/app/academy/plans", permission: "academy.plans.read" },
@@ -71,6 +75,7 @@ const NAV_GROUPS: Array<{ label: string; items: NavItem[] }> = [
     label: "Operação",
     items: [
       { to: "/app/academy/dashboard", label: "Visão geral",       permission: "academy.dashboard"          },
+      { to: "/app/academy/recepcao",  label: "Recepção",          permission: "academy.recepcao.dashboard" },
       { to: "/app/academy/students",  label: "Alunos",            permission: "academy.students.read"      },
       { to: "/app/academy/plans",     label: "Planos",            permission: "academy.plans.read"         },
       { to: "/app/academy/finance",   label: "Financeiro",        permission: "academy.finance.read"       },
@@ -165,6 +170,30 @@ export default function AcademyApp() {
     <AppShell sidebar={sidebar}>
       <Routes>
         <Route index element={<RedirectToFirstAcademyRoute />} />
+        <Route
+          path="recepcao"
+          element={
+            <AcademyPermissionRoute permission="academy.recepcao.dashboard" fallbackTo="/app/academy/students">
+              <RecepcaoHubPage />
+            </AcademyPermissionRoute>
+          }
+        />
+        <Route
+          path="recepcao/checkin"
+          element={
+            <AcademyPermissionRoute permission="academy.checkin.write" fallbackTo="/app/academy/recepcao">
+              <RecepcaoCheckinPage />
+            </AcademyPermissionRoute>
+          }
+        />
+        <Route
+          path="recepcao/novo-aluno"
+          element={
+            <AcademyPermissionRoute permission="academy.students.write" fallbackTo="/app/academy/recepcao">
+              <RecepcaoNovoAlunoPage />
+            </AcademyPermissionRoute>
+          }
+        />
         <Route
           path="dashboard"
           element={
