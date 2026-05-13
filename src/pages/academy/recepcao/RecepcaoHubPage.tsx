@@ -3,9 +3,11 @@ import { useNavigate } from "react-router-dom";
 import { EmptyState } from "../../../components/EmptyState";
 import {
   fetchReceptionDashboard,
+  fetchStudents,
   type ReceptionAccessEvent,
   type ReceptionDashboard,
   type ReceptionDashboardStudent,
+  type Student,
 } from "../../../services/academyApi";
 import { statusBadge, statusLabel, timeLabel } from "./recepcaoUtils";
 
@@ -77,6 +79,76 @@ function eventRow(event: ReceptionAccessEvent): PanelRow {
   };
 }
 
+function studentToReceptionDashboardStudent(s: Student): ReceptionDashboardStudent {
+  return {
+    userId: s.userId,
+    name: s.name,
+    email: s.email,
+    phone: s.phone ?? null,
+    birthDate: s.birthDate ? new Date(`${s.birthDate}T12:00:00`).toISOString() : null,
+    studentStatus: s.studentStatus,
+    joinedAt: s.joinedAt,
+    activePlan: s.activePlan
+      ? { id: s.activePlan.id, name: s.activePlan.name, monthlyPrice: s.activePlan.monthlyPrice }
+      : null,
+    lastAccessAt: null,
+  };
+}
+
+async function enrichReceptionDashboard(data: ReceptionDashboard): Promise<ReceptionDashboard> {
+  const base = data.related;
+  const merged = {
+    occupancyNow: base?.occupancyNow ?? [],
+    accessToday: base?.accessToday ?? [],
+    exceptionsToday: base?.exceptionsToday ?? [],
+    deniedToday: base?.deniedToday ?? [],
+    overdueStudents: [...(base?.overdueStudents ?? [])],
+    newStudents7d: [...(base?.newStudents7d ?? [])],
+    birthdaysToday: [...(base?.birthdaysToday ?? [])],
+  };
+
+  if (data.kpis.overdueStudents > 0 && merged.overdueStudents.length === 0) {
+    try {
+      const { students } = await fetchStudents({ status: "overdue", pageSize: 100 });
+      merged.overdueStudents = students
+        .filter((s) => s.isActive)
+        .map(studentToReceptionDashboardStudent);
+    } catch {
+      /* lista opcional */
+    }
+  }
+
+  if (data.kpis.newStudents7d > 0 && merged.newStudents7d.length === 0) {
+    try {
+      const cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
+      const { students } = await fetchStudents({ pageSize: 200 });
+      merged.newStudents7d = students
+        .filter((s) => s.isActive && s.joinedAt && new Date(s.joinedAt).getTime() >= cutoff)
+        .map(studentToReceptionDashboardStudent);
+    } catch {
+      /* lista opcional */
+    }
+  }
+
+  if (data.kpis.birthdaysToday > 0 && merged.birthdaysToday.length === 0) {
+    try {
+      const now = new Date();
+      const { students } = await fetchStudents({ pageSize: 400 });
+      merged.birthdaysToday = students
+        .filter((s) => {
+          if (!s.isActive || !s.birthDate) return false;
+          const bd = new Date(`${s.birthDate}T12:00:00`);
+          return bd.getMonth() === now.getMonth() && bd.getDate() === now.getDate();
+        })
+        .map(studentToReceptionDashboardStudent);
+    } catch {
+      /* lista opcional */
+    }
+  }
+
+  return { ...data, related: merged };
+}
+
 function studentRow(student: ReceptionDashboardStudent, context: "pending" | "new" | "birthday"): PanelRow {
   const plan = student.activePlan ? student.activePlan.name : "Sem plano";
   const contextLabel = {
@@ -105,6 +177,7 @@ export default function RecepcaoHubPage() {
 
   useEffect(() => {
     fetchReceptionDashboard()
+      .then((data) => enrichReceptionDashboard(data))
       .then((data) => {
         setDashboard(data);
         setError("");
@@ -339,13 +412,13 @@ export default function RecepcaoHubPage() {
       ) : null}
 
       {panel && (
-        <div className="drawer-overlay" onClick={(event) => { if (event.target === event.currentTarget) setActivePanel(null); }}>
-          <div className="drawer-panel" style={{ maxWidth: 860 }}>
+        <div className="recepcao-modal-overlay" onClick={(event) => { if (event.target === event.currentTarget) setActivePanel(null); }}>
+          <div className="recepcao-modal-panel" role="dialog" aria-modal="true" aria-labelledby="recepcao-panel-title">
             <div style={{ display: "grid", gap: "var(--space-4)" }}>
               <div className="section-card__header" style={{ marginBottom: 0 }}>
                 <div>
                   <div className="dash-eyebrow">Dados relacionados</div>
-                  <h2 style={{ margin: "4px 0 0", fontSize: "var(--text-lg)" }}>{panel.title}</h2>
+                  <h2 id="recepcao-panel-title" style={{ margin: "4px 0 0", fontSize: "var(--text-lg)" }}>{panel.title}</h2>
                   <p className="small muted" style={{ margin: "var(--space-2) 0 0" }}>
                     {panel.description} Total: {panel.total}.
                   </p>
@@ -355,7 +428,12 @@ export default function RecepcaoHubPage() {
                 </button>
               </div>
 
-              {panel.rows.length === 0 ? (
+              {panel.rows.length === 0 && panel.total > 0 ? (
+                <div className="banner-error">
+                  O total indica {panel.total} registro(s), mas a lista não veio da API ou não pôde ser carregada.
+                  Atualize a página; se persistir, confira se o backend está na mesma versão do app.
+                </div>
+              ) : panel.rows.length === 0 ? (
                 <div className="banner-success">{panel.emptyTitle}</div>
               ) : (
                 <>
