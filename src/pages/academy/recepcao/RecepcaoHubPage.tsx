@@ -320,6 +320,7 @@ export default function RecepcaoHubPage() {
       setCheckinMsg(successMsg);
       setSelected(null);
       loadDashboard();
+      setTimeout(() => inputRef.current?.focus(), 50);
     } catch (err: unknown) {
       setCheckinErr((err as Error).message ?? "Erro desconhecido.");
     } finally {
@@ -381,7 +382,7 @@ export default function RecepcaoHubPage() {
             ref={inputRef}
             autoFocus
             className="rec-search-input"
-            placeholder="Buscar aluno, CPF, QR ou facial..."
+            placeholder="Buscar aluno por nome, e-mail ou telefone..."
             value={query}
             onChange={(e) => { setQuery(e.target.value); setShowResults(true); }}
             onFocus={() => query.trim().length >= 2 && setShowResults(true)}
@@ -391,7 +392,7 @@ export default function RecepcaoHubPage() {
             aria-label="Buscar aluno"
           />
         </div>
-        <div className="rec-search-hint">Nome, CPF, e-mail ou telefone · mín. 2 caracteres · auto-refresh {REFRESH_INTERVAL / 1000}s</div>
+        <div className="rec-search-hint">Mínimo 2 caracteres · auto-refresh {REFRESH_INTERVAL / 1000}s · QR e facial na V2</div>
 
         {showResults && (searchLoading || searchResults.length > 0 || query.trim().length >= 2) && (
           <div className="rec-results" role="listbox">

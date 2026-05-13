@@ -27,12 +27,12 @@ function nextPathByRole(
   if (activeAcademyId && academies?.length) {
     const active = academies.find((a) => a.id === activeAcademyId);
     if (active && ACADEMY_ROLE_SLUGS.has(active.roleSlug)) {
-      return "/app/academy/dashboard";
+      return "/app/academy";
     }
   }
   // Primary path: JWT accessProfile
   if (accessProfile && ACADEMY_PROFILES.includes(accessProfile)) {
-    return "/app/academy/dashboard";
+    return "/app/academy";
   }
   switch (role) {
     case "user":     return "/app/user/today";

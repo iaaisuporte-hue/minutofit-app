@@ -36,12 +36,12 @@ export function ExceptionReasonDialog({
               onChange={(event) => setReason(event.target.value)}
               placeholder="Ex.: autorizado pelo gestor, pagamento em negociação, visitante agendado..."
             />
-            <span className="field-hint">Será salvo em auditoria da academia.</span>
+            <span className="field-hint">Mínimo 10 caracteres · salvo na auditoria da academia.</span>
           </div>
           <div style={{ display: "flex", gap: "var(--space-3)" }}>
             <button
               className="btn btn-primary"
-              disabled={reason.trim().length < 3}
+              disabled={reason.trim().length < 10}
               onClick={() => onConfirm(reason.trim())}
             >
               {confirmLabel}

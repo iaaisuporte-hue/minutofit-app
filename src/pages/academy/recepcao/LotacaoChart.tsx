@@ -104,7 +104,7 @@ export function LotacaoChart({ occupancyNow }: LotacaoChartProps) {
       <div className="rec-chart-header">
         <div>
           <div className="rec-chart-title">Lotação em tempo real</div>
-          <div className="rec-chart-sub">Histórico dos últimos 5 dias · tendência por horário</div>
+          <div className="rec-chart-sub">Curva típica por horário + lotação ao vivo nesta hora · série histórica real na V2</div>
         </div>
         <div className="rec-chart-stats">
           <div className="rec-chart-stat">
@@ -116,7 +116,7 @@ export function LotacaoChart({ occupancyNow }: LotacaoChartProps) {
           <div className="rec-chart-stat">
             <span
               className="rec-chart-stat-value"
-              style={{ color: pct > 75 ? "var(--color-warn)" : pct > 90 ? "var(--color-danger)" : "var(--color-primary)" }}
+              style={{ color: pct > 90 ? "var(--color-danger)" : pct > 75 ? "var(--color-warn)" : "var(--color-primary)" }}
             >
               {pct}%
             </span>
