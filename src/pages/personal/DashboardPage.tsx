@@ -140,6 +140,17 @@ function signalChipLabel(student: PersonalDashboardStudent): string | null {
   return null;
 }
 
+function technicalNoteReminder(student: PersonalDashboardStudent): string | null {
+  const iso = student.lastTechnicalNoteAt;
+  if (iso == null || iso === "") {
+    return "Sem nota técnica ainda";
+  }
+  const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
+  if (days < 14) return null;
+  const weeks = Math.floor(days / 7);
+  return weeks >= 2 ? `Sem nota técnica há ${weeks} sem.` : "Sem nota técnica há 2+ sem.";
+}
+
 export default function DashboardPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -432,6 +443,10 @@ export default function DashboardPage() {
                           return sig ? <span className="pp-badge pp-badge--warn">{sig}</span> : null;
                         })()}
                         <MetabolismChip student={student} />
+                        {(() => {
+                          const t = technicalNoteReminder(student);
+                          return t ? <span className="pp-meta-chip">{t}</span> : null;
+                        })()}
                         <span>
                           Último treino <b>{fmtDate(student.lastWorkoutISO)}</b>
                         </span>

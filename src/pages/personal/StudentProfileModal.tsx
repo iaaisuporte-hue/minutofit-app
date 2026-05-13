@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { COLORS } from "../../styles/colors";
 import {
   fetchPersonalStudentActivities,
@@ -20,9 +20,11 @@ import {
   deriveMetabolicForecast,
   buildForecastHistory,
 } from "../../features/metabolism/metabolismDerivations";
+import { suggestCockpitAction, type CockpitTabId } from "./lib/cockpitActions";
+import StudentTechnicalNotes from "./StudentTechnicalNotes";
 import "./personalPremium.css";
 
-type TabId = "today" | "week" | "history";
+type TabId = CockpitTabId;
 
 const PLAN_LABEL: Record<PersonalDashboardPlan, string> = {
   basic: "Básico",
@@ -210,6 +212,25 @@ export default function StudentProfileModal({
   const [error, setError] = useState<string | null>(null);
   const [activities, setActivities] = useState<PersonalStudentActivity[]>([]);
 
+  const loadSnapshot = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const snapshot = await fetchPersonalStudentSnapshot(studentId);
+      setData(snapshot);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Não foi possível carregar o perfil do aluno.";
+      setError(snapshotErrorMessage(message));
+      setData(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [studentId]);
+
+  useEffect(() => {
+    void loadSnapshot();
+  }, [loadSnapshot]);
+
   useEffect(() => {
     if (variant === "overlay") {
       function onKeyDown(event: KeyboardEvent) {
@@ -220,30 +241,6 @@ export default function StudentProfileModal({
     }
     return undefined;
   }, [onClose, variant]);
-
-  useEffect(() => {
-    let active = true;
-    async function load() {
-      try {
-        setLoading(true);
-        setError(null);
-        const snapshot = await fetchPersonalStudentSnapshot(studentId);
-        if (!active) return;
-        setData(snapshot);
-      } catch (err: unknown) {
-        if (!active) return;
-        const message = err instanceof Error ? err.message : "Não foi possível carregar o perfil do aluno.";
-        setError(snapshotErrorMessage(message));
-        setData(null);
-      } finally {
-        if (active) setLoading(false);
-      }
-    }
-    load();
-    return () => {
-      active = false;
-    };
-  }, [studentId]);
 
   useEffect(() => {
     let active = true;
@@ -274,6 +271,8 @@ export default function StudentProfileModal({
     if (!data?.week.days.length) return 0;
     return data.week.days.filter((d) => d.workedOut).length;
   }, [data]);
+
+  const cockpitSuggestion = useMemo(() => (data ? suggestCockpitAction(data) : null), [data]);
 
   const muscleRanking = useMemo(() => {
     if (!data?.history.muscleGroupCounts.length) return { top: [], bottom: [] };
@@ -399,6 +398,9 @@ export default function StudentProfileModal({
             <button type="button" className="pp-tab" aria-selected={tab === "history"} onClick={() => setTab("history")}>
               Histórico
             </button>
+            <button type="button" className="pp-tab" aria-selected={tab === "technical"} onClick={() => setTab("technical")}>
+              Técnica
+            </button>
           </div>
         ) : null}
 
@@ -447,6 +449,58 @@ export default function StudentProfileModal({
                 </div>
               </div>
             )}
+
+            {cockpitSuggestion ? (
+              <Surface>
+                <div className="pp-kicker">Próxima ação sugerida</div>
+                <div style={{ fontSize: 14, color: COLORS.text, lineHeight: 1.45, marginTop: 6 }}>
+                  {cockpitSuggestion.message}
+                </div>
+                <button
+                  type="button"
+                  className="pp-btn pp-btn--ghost pp-btn--sm"
+                  style={{ marginTop: 10 }}
+                  onClick={() => setTab(cockpitSuggestion.tab)}
+                >
+                  {cockpitSuggestion.tab === "technical"
+                    ? "Ir para Técnica"
+                    : cockpitSuggestion.tab === "week"
+                      ? "Ir para Semana"
+                      : cockpitSuggestion.tab === "history"
+                        ? "Ir para Histórico"
+                        : "Ir para Hoje"}
+                </button>
+              </Surface>
+            ) : null}
+
+            {(data.technical?.recentNotes ?? []).length > 0 ? (
+              <Surface>
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
+                  <div style={{ fontWeight: 650, color: COLORS.text }}>Observações recentes</div>
+                  <button type="button" className="pp-btn pp-btn--ghost pp-btn--sm" onClick={() => setTab("technical")}>
+                    Ver tudo
+                  </button>
+                </div>
+                <div style={{ display: "grid", gap: 10, marginTop: 10 }}>
+                  {(data.technical?.recentNotes ?? []).slice(0, 3).map((n) => (
+                    <div
+                      key={n.id}
+                      style={{
+                        padding: "10px 12px",
+                        borderRadius: 10,
+                        border: `1px solid ${COLORS.border}`,
+                        fontSize: 13,
+                        color: COLORS.muted,
+                      }}
+                    >
+                      <div style={{ fontWeight: 600, color: COLORS.text }}>{n.exerciseName}</div>
+                      <div style={{ marginTop: 4, lineHeight: 1.4 }}>{n.note.length > 140 ? `${n.note.slice(0, 140)}…` : n.note}</div>
+                      <div style={{ marginTop: 6, fontSize: 11 }}>{formatDateTime(n.recordedAt)}</div>
+                    </div>
+                  ))}
+                </div>
+              </Surface>
+            ) : null}
 
             <div className="pp-metrics-grid">
               <Surface>
@@ -750,6 +804,14 @@ export default function StudentProfileModal({
               </Surface>
             ) : null}
           </>
+        ) : null}
+
+        {!loading && !error && data && tab === "technical" ? (
+          <StudentTechnicalNotes
+            studentId={studentId}
+            highlights={data.technical?.highlights ?? []}
+            onSaved={() => void loadSnapshot()}
+          />
         ) : null}
     </aside>
   );

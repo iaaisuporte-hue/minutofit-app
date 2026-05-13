@@ -43,6 +43,7 @@ export type PersonalDashboardStudent = {
   metabolismTrend: PersonalMetabolicTrend;
   metabolismDelta7d: number | null;
   latestSleptWell?: boolean | null;
+  lastTechnicalNoteAt?: string | null;
 };
 
 export type PersonalDashboardAlert = {
@@ -172,6 +173,27 @@ export type PersonalStudentSnapshot = {
       sleptWell: boolean | null;
       inPain: boolean | null;
       stressed: boolean | null;
+    }>;
+  };
+  technical?: {
+    highlights: Array<{
+      exerciseName: string;
+      kind: string;
+      count: number;
+      lastNoteAt: string;
+    }>;
+    recentNotes: Array<{
+      id: number;
+      exerciseName: string;
+      exerciseKey: string | null;
+      kind: string;
+      note: string;
+      recordedAt: string;
+      loadKg: number | null;
+      reps: string | null;
+      sets: string | null;
+      severity: number | null;
+      personalId: number;
     }>;
   };
 };
