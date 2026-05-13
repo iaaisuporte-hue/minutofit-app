@@ -83,6 +83,22 @@ export type PersonalStudentSnapshot = {
   engagementStatus: PersonalDashboardEngagementStatus;
   adherencePct: number;
   streakDays: number;
+  metabolismDetail: {
+    score: number;
+    status: "low" | "moderate" | "high";
+    trend: "up" | "down" | "stable";
+    factors: Array<{ id: string; label: string; delta: number; hint: string }>;
+    recommendations: Array<{
+      id: string;
+      title: string;
+      reason: string;
+      impact: string;
+      cta?: { label: string; route: string };
+      priority: number;
+    }>;
+    trend7d: { delta: number; direction: "up" | "down" | "stable" };
+    trend30d: { delta: number; direction: "up" | "down" | "stable" };
+  } | null;
   today: {
     checkedInToday: boolean;
     lastCheckinISO: string | null;
@@ -105,6 +121,9 @@ export type PersonalStudentSnapshot = {
       distanceKm: number;
       durationMinutes: number;
       intensity: string | null;
+      score: number | null;
+      caloriesEstimated: number | null;
+      validationFlag: boolean;
       createdAt: string;
     } | null;
     latestWorkout: {
@@ -147,6 +166,13 @@ export type PersonalStudentSnapshot = {
       count: number;
     }>;
     xp: number;
+    wellbeingHistory14d: Array<{
+      dateKey: string;
+      feeling: string | null;
+      sleptWell: boolean | null;
+      inPain: boolean | null;
+      stressed: boolean | null;
+    }>;
   };
 };
 
@@ -222,4 +248,35 @@ export async function fetchPersonalStudentSnapshot(studentId: string) {
   }
 
   return (data?.data || null) as PersonalStudentSnapshot | null;
+}
+
+export type PersonalStudentActivity = {
+  id: number;
+  activityType: string;
+  durationSeconds: number;
+  distanceKm: number;
+  caloriesEstimated: number;
+  avgPace: number | null;
+  intensity: string | null;
+  score: number | null;
+  validationFlag: boolean;
+  createdAt: string;
+};
+
+export async function fetchPersonalStudentActivities(studentId: string, limit = 10) {
+  if (!getAccessToken()) return null;
+
+  const q = Number.isFinite(limit) ? `?limit=${limit}` : "";
+  const response = await authFetch(`${API_URL}/personal/students/${studentId}/activities${q}`);
+
+  if (response.status === 401) {
+    return null;
+  }
+
+  const data = await parseJson(response);
+  if (!response.ok) {
+    throw new Error(data?.error || "Nao foi possivel carregar as sessoes de atividade.");
+  }
+
+  return (data?.data || []) as PersonalStudentActivity[];
 }

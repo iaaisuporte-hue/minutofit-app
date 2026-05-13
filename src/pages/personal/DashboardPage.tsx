@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   fetchPersonalDashboard,
@@ -9,10 +9,12 @@ import {
   type PersonalDashboardStudent,
 } from "../../services/personalDashboardApi";
 import { COLORS } from "../../styles/colors";
-import { useIsMobile } from "../../hooks/useIsMobile";
+import { useAdaptivePolling } from "../../hooks/useAdaptivePolling";
+import { useAuth } from "../../auth/AuthContext";
 import IntelligentAlerts from "./IntelligentAlerts";
 import { EmptyState } from "../../components/EmptyState";
 import StudentProfileModal from "./StudentProfileModal";
+import PersonalQuickSearch from "./PersonalQuickSearch";
 import {
   buildAttentionList,
   buildPortfolioHeadline,
@@ -39,6 +41,10 @@ const routes = {
 function fmtDate(iso?: string | null) {
   if (!iso) return "—";
   return new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+}
+
+function formatShortTime(iso: string) {
+  return new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 }
 
 function Badge({
@@ -126,38 +132,54 @@ function MetabolismChip({ student }: { student: PersonalDashboardStudent }) {
   );
 }
 
+function signalChipLabel(student: PersonalDashboardStudent): string | null {
+  if (student.latestSleptWell === false) return "Sono ruim";
+  if (student.workouts7d > 5) return "Alta carga";
+  if (student.engagementStatus === "fading" || student.engagementStatus === "at_risk") return "Sumindo / risco";
+  if (student.metabolismTrend === "down") return "Score em queda";
+  return null;
+}
+
 export default function DashboardPage() {
   const navigate = useNavigate();
-  const isMobile = useIsMobile(720);
+  const { user } = useAuth();
   const [response, setResponse] = useState<PersonalDashboardResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedStudent, setSelectedStudent] = useState<{ id: string; name: string } | null>(null);
+  const [pulseFilter, setPulseFilter] = useState<"all" | "healthy" | "attention" | "risk">("all");
+
+  const loadDashboard = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await fetchPersonalDashboard();
+      setResponse(data);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Nao foi possivel carregar o dashboard.");
+      setResponse(null);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    let active = true;
+    void loadDashboard();
+  }, [loadDashboard]);
 
-    async function loadDashboard() {
-      try {
-        setLoading(true);
-        setError(null);
-        const data = await fetchPersonalDashboard();
-        if (!active) return;
-        setResponse(data);
-      } catch (err: unknown) {
-        if (!active) return;
-        setError(err instanceof Error ? err.message : "Nao foi possivel carregar o dashboard.");
-        setResponse(null);
-      } finally {
-        if (active) setLoading(false);
-      }
-    }
-
-    loadDashboard();
-    return () => {
-      active = false;
-    };
-  }, []);
+  useAdaptivePolling(
+    () => {
+      void (async () => {
+        try {
+          const data = await fetchPersonalDashboard();
+          setResponse(data);
+        } catch {
+          /* keep last good snapshot */
+        }
+      })();
+    },
+    { activeIntervalMs: 30000, idleIntervalMs: 60000, hiddenIntervalMs: 120000 }
+  );
 
   const students = response?.students ?? [];
   const summary = response?.summary;
@@ -169,13 +191,25 @@ export default function DashboardPage() {
   }, [summary, students]);
 
   const attentionList: StudentNarrative[] = useMemo(() => {
-    return buildAttentionList(students, 5);
+    return buildAttentionList(students, 12);
   }, [students]);
+
+  const filteredAttention = useMemo(() => {
+    if (pulseFilter === "all") return attentionList;
+    return attentionList.filter((item) => {
+      const st = students.find((s) => s.id === item.studentId);
+      if (!st) return false;
+      if (pulseFilter === "healthy") return st.engagementStatus === "evolving" || st.engagementStatus === "on_track";
+      if (pulseFilter === "attention") return st.engagementStatus === "attention";
+      return st.engagementStatus === "fading" || st.engagementStatus === "at_risk";
+    });
+  }, [attentionList, pulseFilter, students]);
 
   const aggregates = useMemo(() => {
     if (!students.length) {
       return {
         evolving: 0,
+        onTrack: 0,
         attention: 0,
         fading: 0,
         atRisk: 0,
@@ -189,6 +223,7 @@ export default function DashboardPage() {
     const total30d = students.reduce((acc, s) => acc + s.workouts30d, 0);
     return {
       evolving: students.filter((s) => s.engagementStatus === "evolving").length,
+      onTrack: students.filter((s) => s.engagementStatus === "on_track").length,
       attention: students.filter((s) => s.engagementStatus === "attention").length,
       fading: students.filter((s) => s.engagementStatus === "fading").length,
       atRisk: students.filter((s) => s.engagementStatus === "at_risk").length,
@@ -201,6 +236,21 @@ export default function DashboardPage() {
 
   const dist = summary?.metabolismDistribution;
 
+  const avgAdherence = useMemo(() => {
+    if (!students.length) return 0;
+    return Math.round(students.reduce((a, s) => a + s.adherencePct, 0) / students.length);
+  }, [students]);
+
+  const avgStreak = useMemo(() => {
+    if (!students.length) return 0;
+    return Math.round((students.reduce((a, s) => a + s.streakDays, 0) / students.length) * 10) / 10;
+  }, [students]);
+
+  const liveFresh = useMemo(() => {
+    if (!response?.generatedAt) return false;
+    return Date.now() - new Date(response.generatedAt).getTime() < 5 * 60 * 1000;
+  }, [response?.generatedAt]);
+
   function openStudent(studentId: string, studentName?: string) {
     const fallback = students.find((s) => s.id === studentId)?.name || studentName || "Aluno";
     setSelectedStudent({ id: studentId, name: fallback });
@@ -209,11 +259,21 @@ export default function DashboardPage() {
   return (
     <div className="pp-page">
       <div className="pp-hero">
-        <div style={{ display: "grid", gap: 8 }}>
-          <div className="pp-kicker">Pulse metabólico — hoje</div>
+        <div style={{ display: "grid", gap: 8, flex: "1 1 280px" }}>
+          <div className="pp-kicker">Personal · Hoje</div>
           <h1 className="pp-title">
-            {loading ? "Lendo a carteira…" : error ? "Não consegui carregar a carteira." : headline}
+            {loading
+              ? "Lendo a carteira…"
+              : error
+                ? "Não consegui carregar a carteira."
+                : `${user?.name ? `${user.name.split(" ")[0]}, ` : ""}${headline}`}
           </h1>
+          {response?.generatedAt ? (
+            <div className="pp-meta" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              {liveFresh ? <span className="pp-live-dot pp-live-dot--pulse" aria-hidden /> : <span className="pp-live-dot" aria-hidden />}
+              <span>Atualizado {formatShortTime(response.generatedAt)}</span>
+            </div>
+          ) : null}
           {dist && students.length > 0 ? (
             <div className="pp-meta" style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
               <span>
@@ -232,19 +292,79 @@ export default function DashboardPage() {
               ) : null}
             </div>
           ) : null}
+
+          {students.length > 0 ? (
+            <div className="pp-pulse-meta" role="toolbar" aria-label="Filtrar prioridades">
+              <button
+                type="button"
+                className="pp-pulse-chip"
+                aria-pressed={pulseFilter === "all"}
+                onClick={() => setPulseFilter("all")}
+              >
+                Todos ({attentionList.length})
+              </button>
+              <button
+                type="button"
+                className="pp-pulse-chip"
+                aria-pressed={pulseFilter === "healthy"}
+                onClick={() => setPulseFilter("healthy")}
+              >
+                No ritmo ({aggregates.evolving + aggregates.onTrack})
+              </button>
+              <button
+                type="button"
+                className="pp-pulse-chip"
+                aria-pressed={pulseFilter === "attention"}
+                onClick={() => setPulseFilter("attention")}
+              >
+                Atenção ({aggregates.attention})
+              </button>
+              <button
+                type="button"
+                className="pp-pulse-chip"
+                aria-pressed={pulseFilter === "risk"}
+                onClick={() => setPulseFilter("risk")}
+              >
+                Risco ({aggregates.fading + aggregates.atRisk})
+              </button>
+            </div>
+          ) : null}
+
+          {students.length > 0 ? (
+            <PersonalQuickSearch students={students} onSelect={(id, name) => openStudent(id, name)} />
+          ) : null}
+
+          {students.length > 0 && summary ? (
+            <div className="pp-metacore-strip">
+              <span>
+                Aderência média <b>{avgAdherence}%</b>
+              </span>
+              <span>
+                Streak médio <b>{avgStreak}d</b>
+              </span>
+              <span>
+                Alunos <b>{students.length}</b>
+              </span>
+              {alerts[0] ? (
+                <span>
+                  Sinal: <b>{alerts[0].title}</b>
+                </span>
+              ) : (
+                <span>Sem alertas automáticos agora</span>
+              )}
+            </div>
+          ) : null}
         </div>
 
         <div className="pp-actions">
-          <ActionButton primary onClick={() => navigate(routes.messages())}>
+          <button type="button" className="btn btn-primary" onClick={() => navigate(routes.messages())}>
             Abrir mensagens
-          </ActionButton>
-          <ActionButton onClick={() => navigate(routes.students())}>Ver alunos</ActionButton>
-          <button
-            type="button"
-            className="pp-btn pp-btn--quiet"
-            onClick={() => navigate(routes.review())}
-          >
-            Revisar treinos
+          </button>
+          <button type="button" className="btn btn-ghost" onClick={() => navigate(routes.students())}>
+            Ver alunos
+          </button>
+          <button type="button" className="btn btn-sm btn-ghost" onClick={() => navigate(routes.review())}>
+            Revisões
           </button>
         </div>
       </div>
@@ -261,7 +381,7 @@ export default function DashboardPage() {
         <Card title="Não foi possível carregar o dashboard" right={<Badge tone="danger">Falha</Badge>}>
           <div style={{ display: "grid", gap: 12 }}>
             <div style={{ color: COLORS.muted, fontSize: 14 }}>{error}</div>
-            <ActionButton onClick={() => window.location.reload()}>Tentar novamente</ActionButton>
+            <ActionButton onClick={() => void loadDashboard()}>Tentar novamente</ActionButton>
           </div>
         </Card>
       ) : null}
@@ -281,10 +401,15 @@ export default function DashboardPage() {
           <Card
             title="Precisam de você agora"
             subtitle="Leitura rápida do que cada aluno está sinalizando."
-            right={<Badge tone="soft">{attentionList.length} alunos</Badge>}
+            right={<Badge tone="soft">{filteredAttention.length} alunos</Badge>}
           >
             <div style={{ display: "grid" }}>
-              {attentionList.map((item) => {
+              {filteredAttention.length === 0 ? (
+                <div style={{ color: COLORS.muted, fontSize: 14, padding: "8px 0" }}>
+                  Nenhum aluno neste filtro — ajuste o chip acima ou abra a lista completa.
+                </div>
+              ) : null}
+              {filteredAttention.map((item) => {
                 const student = students.find((s) => s.id === item.studentId);
                 if (!student) return null;
                 return (
@@ -302,6 +427,10 @@ export default function DashboardPage() {
                       </div>
                       <div className="pp-narrative">{item.headline}</div>
                       <div className="pp-meta" style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                        {(() => {
+                          const sig = signalChipLabel(student);
+                          return sig ? <span className="pp-badge pp-badge--warn">{sig}</span> : null;
+                        })()}
                         <MetabolismChip student={student} />
                         <span>
                           Último treino <b>{fmtDate(student.lastWorkoutISO)}</b>
@@ -312,14 +441,14 @@ export default function DashboardPage() {
                     <div className="pp-actions">
                       <button
                         type="button"
-                        className="pp-btn pp-btn--quiet"
+                        className="btn btn-sm btn-ghost"
                         onClick={() => openStudent(item.studentId, item.studentName)}
                       >
                         Ver aluno
                       </button>
                       <button
                         type="button"
-                        className="pp-btn pp-btn--primary"
+                        className="btn btn-sm btn-primary"
                         onClick={() => navigate(routes.workoutBuilder(item.studentId))}
                       >
                         Ajustar treino
@@ -345,50 +474,16 @@ export default function DashboardPage() {
             </Card>
           ) : null}
 
-          <details
-            open={!isMobile && students.length <= 10}
-            style={{
-              border: `1px solid ${COLORS.border}`,
-              borderRadius: 14,
-              background: COLORS.panel,
-              overflow: "hidden",
-            }}
-          >
-            <summary
-              style={{
-                listStyle: "none",
-                cursor: "pointer",
-                padding: 14,
-                fontWeight: 650,
-                color: COLORS.text,
-                borderBottom: `1px solid ${COLORS.border}`,
-              }}
-            >
-              Visão da carteira (números crus)
-            </summary>
-            <div
-              style={{
-                padding: 14,
-                display: "grid",
-                gap: 12,
-                gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-              }}
-            >
-              <Card title="Atividade (7 dias)" right={<Badge tone="neutral">{aggregates.total7d} treinos</Badge>}>
-                <div className="pp-metric__value">{aggregates.avg7d}/sem</div>
-              </Card>
-              <Card title="Consistência (30 dias)" right={<Badge tone="neutral">{aggregates.total30d} treinos</Badge>}>
-                <div className="pp-metric__value">{aggregates.avg30d}/mês</div>
-              </Card>
-              <Card title="Status da carteira" right={<Badge tone="soft">{students.length} alunos</Badge>}>
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  <Badge tone="success">Evoluindo: {aggregates.evolving}</Badge>
-                  <Badge tone="warn">Atenção: {aggregates.attention}</Badge>
-                  <Badge tone="danger">Sumindo + risco: {aggregates.fading + aggregates.atRisk}</Badge>
-                </div>
-              </Card>
+          <Card title="Resumo da carteira" subtitle="Números rápidos sem abrir planilha.">
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center" }}>
+              <Badge tone="neutral">{aggregates.total7d} treinos / 7d</Badge>
+              <Badge tone="neutral">{aggregates.avg7d}/aluno · semana</Badge>
+              <Badge tone="soft">{students.length} alunos</Badge>
+              <Badge tone="success">Evoluindo: {aggregates.evolving}</Badge>
+              <Badge tone="warn">Atenção: {aggregates.attention}</Badge>
+              <Badge tone="danger">Risco: {aggregates.fading + aggregates.atRisk}</Badge>
             </div>
-          </details>
+          </Card>
         </>
       ) : null}
 

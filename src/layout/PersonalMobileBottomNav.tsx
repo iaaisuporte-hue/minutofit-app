@@ -47,8 +47,8 @@ export default function PersonalMobileBottomNav() {
   const items: NavItem[] = [
     { to: "/app/personal/dashboard", label: "Hoje", icon: <HojeIcon /> },
     { to: "/app/personal/students", label: "Alunos", icon: <StudentsIcon /> },
-    { to: "/app/personal/review", label: "Treinos", icon: <TreinosIcon /> },
-    { to: "/app/personal/library", label: "Conteúdo", icon: <ConteudoIcon /> },
+    { to: "/app/personal/review", label: "Revisões", icon: <TreinosIcon /> },
+    { to: "/app/personal/library", label: "Programas", icon: <ConteudoIcon /> },
     { to: "/app/personal/messages", label: "Mensagens", icon: <MessagesIcon /> },
   ];
 

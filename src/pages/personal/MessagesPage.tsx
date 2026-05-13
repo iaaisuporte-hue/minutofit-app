@@ -13,6 +13,8 @@ import {
   type ChatMessage,
   type EligibleStudent,
 } from "../../services/messagesApi";
+import { usePersonalStudentSnapshot } from "./hooks/usePersonalStudentSnapshot";
+import "./personalPremium.css";
 
 type Role = "user" | "personal" | "admin" | "nutri";
 
@@ -103,6 +105,8 @@ export default function MessagesPage() {
       name: selectedConv.studentName,
     };
   }, [selectedConv]);
+
+  const { data: studentSnapshot } = usePersonalStudentSnapshot(selectedStudent?.id ?? null);
 
   const filteredInbox = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -406,29 +410,57 @@ export default function MessagesPage() {
 
         <Card>
           <div style={{ display: "grid", gridTemplateRows: "auto 1fr auto", minHeight: 520 }}>
-            <div
-              style={{
-                padding: 14,
-                borderBottom: "1px solid rgba(255,255,255,.10)",
-                display: "flex",
-                justifyContent: "space-between",
-                gap: 12,
-                alignItems: "center",
-                flexWrap: "wrap",
-              }}
-            >
-              <div style={{ display: "grid", gap: 4 }}>
-                <div style={{ fontWeight: 700, fontSize: 15 }}>
-                  {selectedStudent ? selectedStudent.name : "Selecione uma conversa"}
+            <div>
+              <div
+                style={{
+                  padding: 14,
+                  borderBottom: "1px solid rgba(255,255,255,.10)",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  gap: 12,
+                  alignItems: "center",
+                  flexWrap: "wrap",
+                }}
+              >
+                <div style={{ display: "grid", gap: 4 }}>
+                  <div style={{ fontWeight: 700, fontSize: 15 }}>
+                    {selectedStudent ? selectedStudent.name : "Selecione uma conversa"}
+                  </div>
+                  <div style={{ color: COLORS.mutedSoft, fontSize: 12 }}>
+                    {selectedStudent ? `Aluno ${selectedStudent.id}` : "Inbox → escolha um aluno para abrir"}
+                  </div>
                 </div>
-                <div style={{ color: COLORS.mutedSoft, fontSize: 12 }}>
-                  {selectedStudent ? `Aluno ${selectedStudent.id}` : "Inbox → escolha um aluno para abrir"}
-                </div>
+
+                {selectedConv ? <Pill variant="orange">Conversa ativa</Pill> : <Pill variant="neutral">Sem conversa</Pill>}
               </div>
 
-              {selectedConv ? <Pill variant="orange">Conversa ativa</Pill> : <Pill variant="neutral">Sem conversa</Pill>}
+              {studentSnapshot && selectedStudent ? (
+                <div className="pp-metacore-strip" style={{ margin: "0 14px 12px" }}>
+                  <span>
+                    Aderência <b>{studentSnapshot.adherencePct}%</b>
+                  </span>
+                  <span>
+                    Streak <b>{studentSnapshot.streakDays}d</b>
+                  </span>
+                  {studentSnapshot.today.metabolism ? (
+                    <span>
+                      Metabolismo <b>{studentSnapshot.today.metabolism.score}</b> (
+                      {studentSnapshot.today.metabolism.trend})
+                    </span>
+                  ) : null}
+                  {studentSnapshot.today.latestWorkout ? (
+                    <span>
+                      Último treino{" "}
+                      <b>
+                        {new Date(studentSnapshot.today.latestWorkout.completedAt).toLocaleDateString("pt-BR")}
+                      </b>
+                    </span>
+                  ) : (
+                    <span>Sem treino recente registrado</span>
+                  )}
+                </div>
+              ) : null}
             </div>
-
             <div
               style={{
                 padding: 14,

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { EmptyState } from "../../components/EmptyState";
 import { COLORS } from "../../styles/colors";
 import {
@@ -13,20 +13,14 @@ import {
   updateWorkoutReview,
   type WorkoutReview,
 } from "../../services/workoutReviewsApi";
-import { fetchPersonalDashboard } from "../../services/personalDashboardApi";
+import {
+  fetchPersonalDashboard,
+  type PersonalDashboardStudent,
+} from "../../services/personalDashboardApi";
 
 /**
- * ==========================================
- * ✅ REVIEW WORKOUTS (Personal) — Treinaí UI
- * ==========================================
- * O que essa tela resolve:
- * - Personal abre e enxerga a “fila” de revisões
- * - Decide rápido: aprova / pede ajuste / arquiva
- * - Prioriza quem está parado, quem é urgente e quem é Black
- *
- * MVP:
- * - Dados mock
- * - Pode persistir em localStorage (ligado abaixo)
+ * Fila de revisões de treino (Personal) — dados reais via `/api/personal/reviews`.
+ * Chips de sinal cruzam com o dashboard do personal (sono, carga, risco metabólico).
  */
 
 type Plan = "basic" | "silver" | "gold" | "black";
@@ -51,6 +45,7 @@ type ReviewItem = {
   risk: "low" | "medium" | "high"; // “alta chance de dar ruim”
   priority: "low" | "normal" | "high"; // urgência operacional
   lastCheckinAt?: string; // ISO (se o aluno está sumido)
+  signalChips?: string[];
 
   notes?: string; // observações do personal
   lastFeedback?: string; // último feedback enviado ao aluno (quando devolve)
@@ -214,7 +209,22 @@ function planPill(plan: Plan) {
   return <Pill variant="neutral">Básico</Pill>;
 }
 
-function mapReview(review: WorkoutReview, planByStudent: Map<string, Plan>): ReviewItem {
+function buildSignalChips(student?: PersonalDashboardStudent): string[] {
+  if (!student) return [];
+  const chips: string[] = [];
+  if (student.latestSleptWell === false) chips.push("Sono ruim");
+  if (student.workouts7d > 5) chips.push("Alta carga");
+  if (student.engagementStatus === "fading" || student.engagementStatus === "at_risk") chips.push("Sumindo / risco");
+  if (student.metabolismTrend === "down") chips.push("Score em queda");
+  return chips;
+}
+
+function mapReview(
+  review: WorkoutReview,
+  planByStudent: Map<string, Plan>,
+  studentById: Map<string, PersonalDashboardStudent>
+): ReviewItem {
+  const st = studentById.get(review.studentId);
   return {
     id: review.id,
     studentId: review.studentId,
@@ -228,6 +238,7 @@ function mapReview(review: WorkoutReview, planByStudent: Map<string, Plan>): Rev
     risk: review.risk as ReviewItem["risk"],
     priority: review.priority as ReviewItem["priority"],
     lastCheckinAt: undefined,
+    signalChips: buildSignalChips(st),
     notes: review.internalNotes ?? undefined,
     lastFeedback: review.studentFeedback ?? undefined,
   };
@@ -256,6 +267,7 @@ export default function ReviewWorkoutsPage() {
   const [notes, setNotes] = useState("");
   const [studentContext, setStudentContext] = useState<PersonalStudentSnapshot | null>(null);
   const [contextLoading, setContextLoading] = useState(false);
+  const studentLookupRef = useRef<Map<string, PersonalDashboardStudent>>(new Map());
 
   useEffect(() => {
     let active = true;
@@ -268,10 +280,13 @@ export default function ReviewWorkoutsPage() {
         ]);
         if (!active) return;
         const planByStudent = new Map<string, Plan>();
+        const studentById = new Map<string, PersonalDashboardStudent>();
         (dashboard?.students ?? []).forEach((student) => {
           planByStudent.set(student.id, student.plan as Plan);
+          studentById.set(student.id, student);
         });
-        setQueue(reviews.map((review) => mapReview(review, planByStudent)));
+        studentLookupRef.current = studentById;
+        setQueue(reviews.map((review) => mapReview(review, planByStudent, studentById)));
         setLoadError(null);
       } catch (err: unknown) {
         if (!active) return;
@@ -389,7 +404,9 @@ export default function ReviewWorkoutsPage() {
     setQueue((prev) => {
       const map =
         planByStudent ?? new Map<string, Plan>(prev.map((q) => [q.studentId, q.plan]));
-      return prev.map((q) => (q.id === updated.id ? mapReview(updated, map) : q));
+      return prev.map((q) =>
+        q.id === updated.id ? mapReview(updated, map, studentLookupRef.current) : q
+      );
     });
   }
 
@@ -649,6 +666,16 @@ export default function ReviewWorkoutsPage() {
 
                     <Pill variant={riskVariant as any} title="Risco de execução">Risco {item.risk}</Pill>
                   </div>
+
+                  {item.signalChips && item.signalChips.length > 0 ? (
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                      {item.signalChips.map((c) => (
+                        <Pill key={c} variant="warn">
+                          {c}
+                        </Pill>
+                      ))}
+                    </div>
+                  ) : null}
 
                   <div style={{ color: COLORS.text, fontWeight: 600 }}>
                     {item.title}

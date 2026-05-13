@@ -1,11 +1,18 @@
 import { useCallback, useEffect, useRef } from "react";
 
-export const DEFAULT_ADAPTIVE_POLLING = {
+export type AdaptivePollingIntervals = {
+  activeIntervalMs: number;
+  idleIntervalMs: number;
+  hiddenIntervalMs: number;
+  idleAfterMs: number;
+};
+
+export const DEFAULT_ADAPTIVE_POLLING: AdaptivePollingIntervals = {
   activeIntervalMs: 5000,
   idleIntervalMs: 15000,
   hiddenIntervalMs: 60000,
   idleAfterMs: 60000,
-} as const;
+};
 
 /**
  * Polling whose interval depends on tab visibility and time since last interaction.
@@ -13,7 +20,7 @@ export const DEFAULT_ADAPTIVE_POLLING = {
  */
 export function useAdaptivePolling(
   callback: () => void,
-  options: Partial<typeof DEFAULT_ADAPTIVE_POLLING> = {}
+  options: Partial<AdaptivePollingIntervals> = {}
 ) {
   const cfg = { ...DEFAULT_ADAPTIVE_POLLING, ...options };
   const lastIx = useRef(0);

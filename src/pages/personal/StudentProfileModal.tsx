@@ -1,12 +1,25 @@
+import { Link } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
 import { COLORS } from "../../styles/colors";
 import {
+  fetchPersonalStudentActivities,
   fetchPersonalStudentSnapshot,
   type PersonalDashboardEngagementStatus,
   type PersonalDashboardPlan,
   type PersonalDashboardRisk,
+  type PersonalStudentActivity,
   type PersonalStudentSnapshot,
 } from "../../services/personalDashboardApi";
+import type { MetabolicData } from "../../features/metabolism/metabolism.types";
+import type { MetabolicHistory } from "../../features/metabolism/metabolism.types";
+import { MetabolicScoreCard } from "../../features/metabolism/MetabolicScoreCard";
+import { MetabolicChart } from "../../features/metabolism/MetabolicChart";
+import {
+  deriveEnergyStatus,
+  deriveHistoryMarkers,
+  deriveMetabolicForecast,
+  buildForecastHistory,
+} from "../../features/metabolism/metabolismDerivations";
 import "./personalPremium.css";
 
 type TabId = "today" | "week" | "history";
@@ -184,23 +197,29 @@ export default function StudentProfileModal({
   studentId,
   studentName,
   onClose,
+  variant = "overlay",
 }: {
   studentId: string;
   studentName: string;
   onClose: () => void;
+  variant?: "overlay" | "inline";
 }) {
   const [tab, setTab] = useState<TabId>("today");
   const [data, setData] = useState<PersonalStudentSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [activities, setActivities] = useState<PersonalStudentActivity[]>([]);
 
   useEffect(() => {
-    function onKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") onClose();
+    if (variant === "overlay") {
+      function onKeyDown(event: KeyboardEvent) {
+        if (event.key === "Escape") onClose();
+      }
+      document.addEventListener("keydown", onKeyDown);
+      return () => document.removeEventListener("keydown", onKeyDown);
     }
-    document.addEventListener("keydown", onKeyDown);
-    return () => document.removeEventListener("keydown", onKeyDown);
-  }, [onClose]);
+    return undefined;
+  }, [onClose, variant]);
 
   useEffect(() => {
     let active = true;
@@ -221,6 +240,22 @@ export default function StudentProfileModal({
       }
     }
     load();
+    return () => {
+      active = false;
+    };
+  }, [studentId]);
+
+  useEffect(() => {
+    let active = true;
+    void (async () => {
+      try {
+        const rows = await fetchPersonalStudentActivities(studentId, 10);
+        if (!active) return;
+        setActivities(rows ?? []);
+      } catch {
+        if (active) setActivities([]);
+      }
+    })();
     return () => {
       active = false;
     };
@@ -248,10 +283,53 @@ export default function StudentProfileModal({
     return { top, bottom };
   }, [data]);
 
-  return (
-    <div className="pp-drawer-backdrop" onClick={onClose}>
-      <aside onClick={(event) => event.stopPropagation()} className="pp-drawer">
-        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start" }}>
+  const metabolicData: MetabolicData | null = useMemo(() => {
+    const d = data?.metabolismDetail;
+    if (!d) return null;
+    return {
+      score: d.score,
+      status: d.status,
+      trend: d.trend,
+      factors: d.factors ?? [],
+      recommendations: (d.recommendations ?? []) as MetabolicData["recommendations"],
+      trend7d: d.trend7d,
+      trend30d: d.trend30d,
+    };
+  }, [data]);
+
+  const chartHistory: MetabolicHistory = useMemo(
+    () => (data?.history.adherence14d ?? []).map((p) => ({ date: p.date, score: p.score })),
+    [data]
+  );
+
+  const metabolicForecast = useMemo(
+    () =>
+      deriveMetabolicForecast(metabolicData, {
+        streak: data?.streakDays ?? 0,
+        todayCheckedIn: data?.today.checkedInToday ?? false,
+        activityImpact: Math.min(14, workoutsThisWeek * 2),
+      }),
+    [metabolicData, data?.streakDays, data?.today.checkedInToday, workoutsThisWeek]
+  );
+
+  const historyMarkers = useMemo(
+    () =>
+      deriveHistoryMarkers(chartHistory, {
+        todayCheckedIn: data?.today.checkedInToday ?? false,
+      }),
+    [chartHistory, data?.today.checkedInToday]
+  );
+
+  const derivedEnergy = useMemo(() => deriveEnergyStatus(metabolicData), [metabolicData]);
+
+  const wellbeingSeries = data?.history.wellbeingHistory14d ?? [];
+
+  const aside = (
+    <aside
+      onClick={(event) => event.stopPropagation()}
+      className={`pp-drawer${variant === "inline" ? " pp-drawer--inline" : ""}`}
+    >
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start", flexWrap: "wrap" }}>
           <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
             <div className="pp-avatar">{initialFromName(data?.name || studentName)}</div>
             <div style={{ display: "grid", gap: 5 }}>
@@ -279,9 +357,33 @@ export default function StudentProfileModal({
                   </span>
                 ) : null}
               </div>
+              {variant === "overlay" ? (
+                <div style={{ marginTop: 6 }}>
+                  <Link
+                    to={`/app/personal/students/${studentId}`}
+                    className="btn btn-sm btn-ghost"
+                    style={{ paddingLeft: 0 }}
+                  >
+                    Ver perfil completo
+                  </Link>
+                </div>
+              ) : (
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
+                  <Link to={`/app/personal/students/${studentId}/workouts/builder`} className="btn btn-sm btn-primary">
+                    Ajustar plano
+                  </Link>
+                  <Link
+                    to="/app/personal/messages"
+                    state={{ studentId }}
+                    className="btn btn-sm btn-ghost"
+                  >
+                    Mensagens
+                  </Link>
+                </div>
+              )}
             </div>
           </div>
-          <button type="button" onClick={onClose} className="pp-icon-btn">
+          <button type="button" onClick={onClose} className="pp-icon-btn" aria-label="Fechar">
             ×
           </button>
         </div>
@@ -317,24 +419,34 @@ export default function StudentProfileModal({
 
         {!loading && !error && data && tab === "today" ? (
           <>
-            <div
-              className={`pp-metabo-card ${
-                metabolismBandLabel(data.today.metabolism?.score ?? null)?.toneClass ?? ""
-              }`}
-            >
-              <div className="pp-metabo-card__score">
-                <div className="pp-kicker">Score metabólico</div>
-                <div className="pp-metabo-card__value">{data.today.metabolism?.score ?? "—"}</div>
-                <div className="pp-metabo-card__meta">
-                  {data.today.metabolism
-                    ? `${metabolismBandLabel(data.today.metabolism.score)?.label} · tendência ${data.today.metabolism.trend}`
-                    : "Sem snapshot ainda"}
+            {metabolicData ? (
+              <MetabolicScoreCard
+                data={metabolicData}
+                loading={false}
+                error={null}
+                derivedStatus={derivedEnergy}
+                forecast={metabolicForecast}
+              />
+            ) : (
+              <div
+                className={`pp-metabo-card ${
+                  metabolismBandLabel(data.today.metabolism?.score ?? null)?.toneClass ?? ""
+                }`}
+              >
+                <div className="pp-metabo-card__score">
+                  <div className="pp-kicker">Score metabólico</div>
+                  <div className="pp-metabo-card__value">{data.today.metabolism?.score ?? "—"}</div>
+                  <div className="pp-metabo-card__meta">
+                    {data.today.metabolism
+                      ? `${metabolismBandLabel(data.today.metabolism.score)?.label} · tendência ${data.today.metabolism.trend}`
+                      : "Sem snapshot ainda"}
+                  </div>
+                </div>
+                <div className="pp-metabo-card__narrative">
+                  {metabolismNarrative(data.today.metabolism, workoutsThisWeek)}
                 </div>
               </div>
-              <div className="pp-metabo-card__narrative">
-                {metabolismNarrative(data.today.metabolism, workoutsThisWeek)}
-              </div>
-            </div>
+            )}
 
             <div className="pp-metrics-grid">
               <Surface>
@@ -419,13 +531,47 @@ export default function StudentProfileModal({
             {data.today.latestActivity ? (
               <Surface>
                 <div style={{ display: "grid", gap: 6 }}>
-                  <div style={{ fontWeight: 650, color: COLORS.text }}>Atividade mais recente</div>
+                  <div style={{ fontWeight: 650, color: COLORS.text }}>Atividade mais recente (GPS)</div>
                   <div style={{ fontWeight: 700 }}>{data.today.latestActivity.type}</div>
                   <div style={{ color: COLORS.muted, fontSize: 13 }}>
                     {data.today.latestActivity.distanceKm.toFixed(2)} km ·{" "}
-                    {data.today.latestActivity.durationMinutes} min ·{" "}
+                    {data.today.latestActivity.durationMinutes} min
+                    {data.today.latestActivity.score != null
+                      ? ` · score ${data.today.latestActivity.score}`
+                      : ""}
+                    {data.today.latestActivity.caloriesEstimated != null
+                      ? ` · ~${data.today.latestActivity.caloriesEstimated} kcal`
+                      : ""}
+                    {data.today.latestActivity.validationFlag ? " · validada" : ""}
+                    {" · "}
                     {formatDateTime(data.today.latestActivity.createdAt)}
                   </div>
+                </div>
+              </Surface>
+            ) : null}
+
+            {activities.length > 0 ? (
+              <Surface>
+                <div style={{ fontWeight: 650, color: COLORS.text, marginBottom: 8 }}>Últimas sessões GPS</div>
+                <div style={{ display: "grid", gap: 8 }}>
+                  {activities.slice(0, 5).map((a) => (
+                    <div
+                      key={a.id}
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        gap: 8,
+                        fontSize: 13,
+                        color: COLORS.muted,
+                      }}
+                    >
+                      <span style={{ fontWeight: 600, color: COLORS.text }}>{a.activityType}</span>
+                      <span>
+                        {a.distanceKm.toFixed(1)} km · {Math.round(a.durationSeconds / 60)} min
+                        {a.score != null ? ` · ${a.score}` : ""}
+                      </span>
+                    </div>
+                  ))}
                 </div>
               </Surface>
             ) : null}
@@ -437,12 +583,34 @@ export default function StudentProfileModal({
             <Surface>
               <div style={{ display: "grid", gap: 10 }}>
                 <div style={{ fontWeight: 650, color: COLORS.text }}>Aderência metabólica (14 dias)</div>
-                <AdherenceSparkline series={data.history.adherence14d} />
+                {chartHistory.length >= 2 ? (
+                  <MetabolicChart
+                    data={buildForecastHistory(chartHistory, metabolicForecast)}
+                    loading={false}
+                    forecast={metabolicForecast}
+                    markers={historyMarkers}
+                  />
+                ) : (
+                  <AdherenceSparkline series={data.history.adherence14d} />
+                )}
                 <div style={{ color: COLORS.muted, fontSize: 13 }}>
                   {buildAdherenceNarrative(data.history.adherence14d)}
                 </div>
               </div>
             </Surface>
+
+            {wellbeingSeries.length > 0 ? (
+              <Surface>
+                <div style={{ fontWeight: 650, color: COLORS.text, marginBottom: 8 }}>Bem-estar (14 dias)</div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
+                  {wellbeingSeries.map((w) => (
+                    <span key={w.dateKey} className="pp-meta-chip" title={w.dateKey}>
+                      {w.sleptWell === false ? "Sono" : w.feeling === "tired" ? "Cansado" : "·"}
+                    </span>
+                  ))}
+                </div>
+              </Surface>
+            ) : null}
 
             <Surface>
               <div style={{ display: "grid", gap: 10 }}>
@@ -583,7 +751,16 @@ export default function StudentProfileModal({
             ) : null}
           </>
         ) : null}
-      </aside>
+    </aside>
+  );
+
+  if (variant === "inline") {
+    return <div className="pp-inline-profile">{aside}</div>;
+  }
+
+  return (
+    <div className="pp-drawer-backdrop" onClick={onClose}>
+      {aside}
     </div>
   );
 }

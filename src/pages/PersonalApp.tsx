@@ -14,6 +14,7 @@ import MessagesPage from "./personal/MessagesPage";
 import ReviewWorkoutsPage from "./personal/ReviewWorkoutsPage";
 import WorkoutLibraryPage from "./personal/WorkoutLibraryPage";
 import VideoLibraryPage from "./personal/VideoLibraryPage";
+import StudentProfilePage from "./personal/StudentProfilePage";
 
 // ✅ BUILDER REAL
 import WorkoutBuilderPage from "./personal/WorkoutBuilderPage";
@@ -171,7 +172,7 @@ export default function PersonalApp() {
           <div className="navStack">
             <MenuLink to="/app/personal/dashboard" label="Hoje" />
             <MenuLink to="/app/personal/students" label="Alunos" />
-            <MenuLink to="/app/personal/review" label="Pendentes" />
+            <MenuLink to="/app/personal/review" label="Revisões" />
             <MenuLink to="/app/personal/library" label="Programas" />
           </div>
 
@@ -210,18 +211,12 @@ export default function PersonalApp() {
               }
             />
 
-            {/* BUILDER (sem aluno) */}
-            <Route
-              path="workout-builder"
-              element={
-                <SafeBoundary>
-                  <WorkoutBuilderPage />
-                </SafeBoundary>
-              }
-            />
+            <Route path="workout-builder" element={<Navigate to="/app/personal/students" replace />} />
 
             {/* compatibilidade com rotas antigas */}
             <Route path="students/:studentId/workouts/new" element={<RedirectToBuilder />} />
+
+            <Route path="students/:studentId" element={<StudentProfilePage />} />
 
             <Route path="*" element={<RedirectToDashboard />} />
           </Routes>
