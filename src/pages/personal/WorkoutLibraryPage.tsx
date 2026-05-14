@@ -4,6 +4,7 @@ import { EmptyState } from "../../components/EmptyState";
 import { fetchPersonalDashboard } from "../../services/personalDashboardApi";
 import type { PersonalDashboardStudent } from "../../services/personalDashboardApi";
 import {
+  deleteWorkoutProtocol,
   fetchWorkoutProtocols,
   setProtocolFavorite,
   type ProtocolScope,
@@ -93,6 +94,20 @@ export default function WorkoutLibraryPage() {
     }
   }
 
+  async function handleDelete(p: WorkoutProtocol) {
+    if (!window.confirm(`Excluir protocolo "${p.title}"? Esta ação não pode ser desfeita.`)) return;
+    try {
+      await deleteWorkoutProtocol(p.id);
+      setProtocols((prev) => prev.filter((row) => row.id !== p.id));
+      setFeedback({ kind: "success", message: `Protocolo "${p.title}" excluído.` });
+    } catch (e) {
+      setFeedback({
+        kind: "error",
+        message: e instanceof Error ? e.message : "Não foi possível excluir o protocolo.",
+      });
+    }
+  }
+
   const sortedProtocols = useMemo(() => {
     return [...protocols].sort((a, b) => {
       if (Boolean(b.isFavorite) !== Boolean(a.isFavorite)) return Number(b.isFavorite) - Number(a.isFavorite);
@@ -101,11 +116,10 @@ export default function WorkoutLibraryPage() {
   }, [protocols]);
 
   function openInBuilder(protocolId: number) {
-    if (!selectedStudentId) {
-      setFeedback({ kind: "error", message: "Selecione um aluno para abrir o builder com este protocolo." });
-      return;
-    }
-    navigate(`${BUILDER_BASE}/${selectedStudentId}/workouts/builder?protocol=${protocolId}`);
+    const path = selectedStudentId
+      ? `${BUILDER_BASE}/${selectedStudentId}/workouts/builder?protocol=${protocolId}`
+      : `/app/personal/builder?protocol=${protocolId}`;
+    navigate(path);
   }
 
   const inputStyle: React.CSSProperties = {
@@ -221,6 +235,16 @@ export default function WorkoutLibraryPage() {
                       >
                         {p.isFavorite ? "Remover favorito" : "Favoritar"}
                       </WbButton>
+                      {p.scope === "personal" ? (
+                        <WbButton
+                          variant="ghost"
+                          type="button"
+                          onClick={() => void handleDelete(p)}
+                          title="Excluir este protocolo permanentemente"
+                        >
+                          Excluir
+                        </WbButton>
+                      ) : null}
                       <span style={{ fontSize: 12, color: WB.muted }}>
                         Atualizado {new Date(p.updatedAt).toLocaleDateString("pt-BR")}
                       </span>

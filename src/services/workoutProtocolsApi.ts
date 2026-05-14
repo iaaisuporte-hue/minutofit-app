@@ -82,6 +82,14 @@ export async function fetchProtocolSuggestions(studentId: string) {
   return (data?.data || []) as ProtocolSuggestion[];
 }
 
+export async function deleteWorkoutProtocol(protocolId: number): Promise<void> {
+  const response = await authFetch(`${API_URL}/personal/protocols/${protocolId}`, {
+    method: "DELETE",
+  });
+  const data = await parseJson(response);
+  if (!response.ok) throw new Error(data?.error || "Não foi possível excluir o protocolo.");
+}
+
 export async function createWorkoutProtocol(input: {
   title: string;
   description?: string;
