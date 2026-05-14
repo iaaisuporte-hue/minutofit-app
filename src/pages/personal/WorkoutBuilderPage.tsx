@@ -22,6 +22,7 @@ import {
 } from "./workoutBuilder/WorkoutBuilderUi";
 import { WB } from "./workoutBuilder/workoutBuilderTheme";
 import { ExerciseDetailModal } from "./workoutBuilder/ExerciseDetailModal";
+import { QuickStartCard } from "./workoutBuilder/QuickStartCard";
 import "./personalPremium.css";
 
 const BUILDER_BASE = "/app/personal/students";
@@ -69,6 +70,12 @@ type WorkoutExercise = {
   cadence?: string;
   restPause?: boolean;
   notes?: string;
+};
+
+type DayMeta = {
+  index: number;
+  name: string;
+  focus: string | null;
 };
 
 const RPE_REGEX = /^([0-9]|10)(-([0-9]|10))?$/;
@@ -132,7 +139,6 @@ function useNarrowLayout(maxPx = 900) {
   return narrow;
 }
 
-/** Single global ticker for catalog thumb animations (700ms). */
 function useThumbTick() {
   const [tick, setTick] = useState(false);
   useEffect(() => {
@@ -176,7 +182,6 @@ export default function WorkoutBuilderPage() {
   // ── Protocols ─────────────────────────────────────────────────────
   const [protocolSuggestions, setProtocolSuggestions] = useState<ProtocolSuggestion[]>([]);
   const [suggestionsLoading, setSuggestionsLoading] = useState(false);
-  const [showProtocols, setShowProtocols] = useState(false);
 
   // ── Plan meta ─────────────────────────────────────────────────────
   const [workoutName, setWorkoutName] = useState("Treino A");
@@ -189,8 +194,11 @@ export default function WorkoutBuilderPage() {
   const [libGroupFilter, setLibGroupFilter] = useState<MuscleGroup | "all">("all");
   const [showVideoOnly, setShowVideoOnly] = useState(false);
 
-  // ── Workout list ──────────────────────────────────────────────────
-  const [items, setItems] = useState<WorkoutExercise[]>([]);
+  // ── Multi-day workout state ────────────────────────────────────────
+  // daysItems: dict idx -> exercises for that day
+  const [daysItems, setDaysItems] = useState<Record<number, WorkoutExercise[]>>({ 0: [] });
+  const [daysMeta, setDaysMeta] = useState<DayMeta[]>([{ index: 1, name: "Único", focus: null }]);
+  const [selectedDayIdx, setSelectedDayIdx] = useState(0);
 
   // ── UI ────────────────────────────────────────────────────────────
   const [feedback, setFeedback] = useState<{ kind: "success" | "error"; message: string } | null>(null);
@@ -199,19 +207,12 @@ export default function WorkoutBuilderPage() {
   const [viewingExerciseId, setViewingExerciseId] = useState<string | null>(null);
 
   // ── AI ────────────────────────────────────────────────────────────
-  const [aiPrompt, setAiPrompt] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
   const [weeklyPlan, setWeeklyPlan] = useState<AiGeneratedWeeklyPlan | null>(null);
-  const [selectedDayIdx, setSelectedDayIdx] = useState(0);
 
-  const AI_QUICK_PROMPTS = useMemo(
-    () => [
-      "Treino ABC para iniciante focado em hipertrofia, 4 dias por semana",
-      "Plano de perna intermediário com técnica de drop set",
-      "Treino full body 3 dias para emagrecimento com pausas curtas",
-    ],
-    []
-  );
+  // Active items for current day
+  const items = useMemo(() => daysItems[selectedDayIdx] ?? [], [daysItems, selectedDayIdx]);
+  const isMultiDay = daysMeta.length > 1;
 
   // ── Effects ───────────────────────────────────────────────────────
   useEffect(() => {
@@ -303,12 +304,128 @@ export default function WorkoutBuilderPage() {
     if (selectedStudentId) void refreshRecentPlans(selectedStudentId);
   }, [selectedStudentId, refreshRecentPlans]);
 
+  // ── Resolve AI exercises ──────────────────────────────────────────
+  async function resolveAiExercises(
+    generated: AiGeneratedExercise[]
+  ): Promise<{ resolved: WorkoutExercise[]; unresolved: string[] }> {
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+    type Pending = { g: AiGeneratedExercise; match: Exercise | null };
+
+    const pass1: Pending[] = generated.map((g) => {
+      const byId = (g as { exercise_id?: string }).exercise_id;
+      if (byId && UUID_RE.test(byId)) {
+        const m = allExercises.find((c) => c.id === byId);
+        if (m) return { g, match: m };
+      }
+      const nameLower = g.name.toLowerCase();
+      const m =
+        allExercises.find((c) => c.name.toLowerCase() === nameLower) ??
+        allExercises.find((c) => c.name.toLowerCase().includes(nameLower.split(" ")[0]));
+      return { g, match: m ?? null };
+    });
+
+    const needsApi = pass1.filter((p) => !p.match);
+    if (needsApi.length > 0) {
+      const apiResults = await Promise.all(
+        needsApi.slice(0, 10).map(async (p) => {
+          try {
+            const rows = await searchExercises({ q: p.g.name, limit: 1 });
+            return { g: p.g, match: rows[0] ? ({ id: rows[0].id, name: rows[0].name } as Exercise) : null };
+          } catch {
+            return { g: p.g, match: null };
+          }
+        })
+      );
+      for (const r of apiResults) {
+        const entry = pass1.find((p) => p.g === r.g);
+        if (entry) entry.match = r.match;
+      }
+    }
+
+    const resolved: WorkoutExercise[] = [];
+    const unresolved: string[] = [];
+
+    for (const { g, match } of pass1) {
+      if (match) {
+        resolved.push({
+          exerciseId: match.id,
+          name: match.name,
+          sets: g.sets,
+          reps: g.reps,
+          rest: g.rest,
+          notes: g.note ?? undefined,
+        });
+      } else {
+        unresolved.push(g.name);
+      }
+    }
+
+    return { resolved, unresolved };
+  }
+
+  // ── AI generation — resolve all days at once ──────────────────────
+  async function generateWithAi(prompt: string) {
+    if (!prompt.trim() || aiLoading) return;
+    setAiLoading(true);
+    setFeedback(null);
+    try {
+      const catalogNames = allExercises.map((e) => e.name);
+      const result = await generateWorkoutWithAi(prompt.trim(), catalogNames);
+      if (result.weekPreset) setWeekPreset(coerceWeekPreset(result.weekPreset));
+      setWeeklyPlan(result);
+
+      // Resolve ALL days at once
+      const allUnresolved: string[] = [];
+      const newDaysItems: Record<number, WorkoutExercise[]> = {};
+      const newDaysMeta: DayMeta[] = [];
+
+      for (let i = 0; i < result.days.length; i++) {
+        const day = result.days[i];
+        const { resolved, unresolved } = await resolveAiExercises(day.exercises);
+        newDaysItems[i] = resolved;
+        newDaysMeta.push({ index: i + 1, name: day.name, focus: day.focus });
+        allUnresolved.push(...unresolved);
+      }
+
+      setDaysItems(newDaysItems);
+      setDaysMeta(newDaysMeta);
+      setSelectedDayIdx(0);
+      setWorkoutName(result.title);
+
+      const totalEx = Object.values(newDaysItems).reduce((s, arr) => s + arr.length, 0);
+      if (allUnresolved.length > 0) {
+        setFeedback({
+          kind: "error",
+          message: `${allUnresolved.length} exercício(s) não encontrado(s): ${allUnresolved.slice(0, 3).map((n) => `"${n}"`).join(", ")}${allUnresolved.length > 3 ? "…" : ""} — adicione manualmente.`,
+        });
+      } else {
+        setFeedback({
+          kind: "success",
+          message: `Plano ${result.split ?? ""} gerado: ${result.days.length} dias, ${totalEx} exercícios. Selecione o dia e revise.`,
+        });
+      }
+    } catch (e) {
+      setFeedback({
+        kind: "error",
+        message: e instanceof Error ? e.message : "Não foi possível gerar a ficha.",
+      });
+    } finally {
+      setAiLoading(false);
+    }
+  }
+
+  // ── Protocol loading ──────────────────────────────────────────────
   const hydrateFromProtocol = useCallback((p: WorkoutProtocol) => {
     setWorkoutName(p.title);
     setWeekPreset(coerceWeekPreset(p.weekPreset));
     const sg = p.selectedGroup;
     if (sg && KNOWN_GROUPS.includes(sg as MuscleGroup)) setSelectedGroup(sg as MuscleGroup);
-    setItems(protocolToWorkoutItems(p));
+    const resolved = protocolToWorkoutItems(p);
+    setDaysItems({ 0: resolved });
+    setDaysMeta([{ index: 1, name: "Único", focus: sg ?? null }]);
+    setSelectedDayIdx(0);
+    setWeeklyPlan(null);
   }, []);
 
   const loadProtocolIntoBuilder = useCallback(
@@ -366,32 +483,43 @@ export default function WorkoutBuilderPage() {
     return base.filter((e) => e.name.toLowerCase().includes(q));
   }, [allExercises, exerciseQuery, showVideoOnly, libGroupFilter]);
 
-  // ── Exercise ops ──────────────────────────────────────────────────
+  // ── Exercise ops (always on active day) ──────────────────────────
   function addExercise(ex: Exercise) {
-    setItems((prev) => [
+    setDaysItems((prev) => ({
       ...prev,
-      { exerciseId: ex.id, name: ex.name, sets: "4", reps: "10-12", rest: "60s" },
-    ]);
+      [selectedDayIdx]: [
+        ...(prev[selectedDayIdx] ?? []),
+        { exerciseId: ex.id, name: ex.name, sets: "4", reps: "10-12", rest: "60s" },
+      ],
+    }));
   }
 
   function removeExercise(exerciseId: string) {
-    setItems((prev) => prev.filter((i) => i.exerciseId !== exerciseId));
+    setDaysItems((prev) => ({
+      ...prev,
+      [selectedDayIdx]: (prev[selectedDayIdx] ?? []).filter((i) => i.exerciseId !== exerciseId),
+    }));
   }
 
   function moveExercise(exerciseId: string, dir: -1 | 1) {
-    setItems((prev) => {
-      const idx = prev.findIndex((i) => i.exerciseId === exerciseId);
+    setDaysItems((prev) => {
+      const dayItems = [...(prev[selectedDayIdx] ?? [])];
+      const idx = dayItems.findIndex((i) => i.exerciseId === exerciseId);
       if (idx < 0) return prev;
       const next = idx + dir;
-      if (next < 0 || next >= prev.length) return prev;
-      const copy = [...prev];
-      [copy[idx], copy[next]] = [copy[next], copy[idx]];
-      return copy;
+      if (next < 0 || next >= dayItems.length) return prev;
+      [dayItems[idx], dayItems[next]] = [dayItems[next], dayItems[idx]];
+      return { ...prev, [selectedDayIdx]: dayItems };
     });
   }
 
   function updateItem(exerciseId: string, patch: Partial<WorkoutExercise>) {
-    setItems((prev) => prev.map((i) => (i.exerciseId === exerciseId ? { ...i, ...patch } : i)));
+    setDaysItems((prev) => ({
+      ...prev,
+      [selectedDayIdx]: (prev[selectedDayIdx] ?? []).map((i) =>
+        i.exerciseId === exerciseId ? { ...i, ...patch } : i
+      ),
+    }));
   }
 
   function onStudentSelect(id: string) {
@@ -405,18 +533,36 @@ export default function WorkoutBuilderPage() {
     setShowVideoOnly(false);
   }
 
-  // ── Save (direct, no modal) ────────────────────────────────────────
+  // ── Save ─────────────────────────────────────────────────────────
   async function saveWorkout() {
-    if (!selectedStudentId || items.length === 0) return;
+    if (!selectedStudentId) return;
+    const totalExercises = Object.values(daysItems).reduce((s, arr) => s + arr.length, 0);
+    if (totalExercises === 0) return;
+
     setSaving(true);
     setFeedback(null);
     try {
-      await createPersonalWorkoutPlan(selectedStudentId, {
-        title: workoutName,
-        weekPreset,
-        selectedGroup,
-        items,
-      });
+      if (isMultiDay) {
+        // Multi-day: send days[]
+        const days = daysMeta.map((m, i) => ({
+          name: m.name,
+          focus: m.focus,
+          items: daysItems[i] ?? [],
+        }));
+        await createPersonalWorkoutPlan(selectedStudentId, {
+          title: workoutName,
+          weekPreset,
+          days,
+        });
+      } else {
+        // Single day: legacy format
+        await createPersonalWorkoutPlan(selectedStudentId, {
+          title: workoutName,
+          weekPreset,
+          selectedGroup,
+          items: daysItems[0] ?? [],
+        });
+      }
       setFeedback({
         kind: "success",
         message: `Ficha "${workoutName}" salva para ${selectedStudent?.name ?? "o aluno"}.`,
@@ -432,7 +578,7 @@ export default function WorkoutBuilderPage() {
     }
   }
 
-  // ── Save as template ──────────────────────────────────────────────
+  // ── Save as template (single day only) ───────────────────────────
   async function saveAsTemplate() {
     if (items.length === 0) return;
     setSavingTemplate(true);
@@ -448,124 +594,6 @@ export default function WorkoutBuilderPage() {
     } finally {
       setSavingTemplate(false);
     }
-  }
-
-  // ── AI generation ─────────────────────────────────────────────────
-
-  /**
-   * Resolve exercícios gerados pela IA contra a biblioteca local e, se necessário,
-   * faz fallback async por nome via API. Nunca retorna exerciseId não-UUID.
-   * Retorna itens resolvidos + lista de nomes não encontrados.
-   */
-  async function resolveAiExercises(
-    generated: AiGeneratedExercise[]
-  ): Promise<{ resolved: WorkoutExercise[]; unresolved: string[] }> {
-    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-    type Pending = { g: AiGeneratedExercise; match: Exercise | null };
-
-    // Pass 1: local match (in-memory, instant)
-    const pass1: Pending[] = generated.map((g) => {
-      const byId = (g as { exercise_id?: string }).exercise_id;
-      if (byId && UUID_RE.test(byId)) {
-        const m = allExercises.find((c) => c.id === byId);
-        if (m) return { g, match: m };
-      }
-      const nameLower = g.name.toLowerCase();
-      const m =
-        allExercises.find((c) => c.name.toLowerCase() === nameLower) ??
-        allExercises.find((c) => c.name.toLowerCase().includes(nameLower.split(" ")[0]));
-      return { g, match: m ?? null };
-    });
-
-    // Pass 2: async API fallback for unresolved (max 10 parallel)
-    const needsApi = pass1.filter((p) => !p.match);
-    if (needsApi.length > 0) {
-      const apiResults = await Promise.all(
-        needsApi.slice(0, 10).map(async (p) => {
-          try {
-            const rows = await searchExercises({ q: p.g.name, limit: 1 });
-            return { g: p.g, match: rows[0] ? ({ id: rows[0].id, name: rows[0].name } as Exercise) : null };
-          } catch {
-            return { g: p.g, match: null };
-          }
-        })
-      );
-      for (const r of apiResults) {
-        const entry = pass1.find((p) => p.g === r.g);
-        if (entry) entry.match = r.match;
-      }
-    }
-
-    const resolved: WorkoutExercise[] = [];
-    const unresolved: string[] = [];
-
-    for (const { g, match } of pass1) {
-      if (match) {
-        resolved.push({
-          exerciseId: match.id,
-          name: match.name,
-          sets: g.sets,
-          reps: g.reps,
-          rest: g.rest,
-          notes: g.note ?? undefined,
-        });
-      } else {
-        unresolved.push(g.name);
-      }
-    }
-
-    return { resolved, unresolved };
-  }
-
-  async function loadDay(plan: AiGeneratedWeeklyPlan, dayIdx: number) {
-    const day = plan.days[dayIdx];
-    if (!day) return;
-    setSelectedDayIdx(dayIdx);
-    setWorkoutName(`${plan.title} — ${day.name}`);
-    const { resolved, unresolved } = await resolveAiExercises(day.exercises);
-    setItems(resolved);
-    if (unresolved.length > 0) {
-      setFeedback({
-        kind: "error",
-        message: `${unresolved.length} exercício(s) não encontrado(s) na biblioteca: ${unresolved.slice(0, 3).map((n) => `"${n}"`).join(", ")}${unresolved.length > 3 ? "…" : ""} — adicione manualmente.`,
-      });
-    }
-  }
-
-  async function generateWithAi() {
-    if (!aiPrompt.trim() || aiLoading) return;
-    setAiLoading(true);
-    setFeedback(null);
-    try {
-      const catalogNames = allExercises.map((e) => e.name);
-      const result = await generateWorkoutWithAi(aiPrompt.trim(), catalogNames);
-      if (result.weekPreset) setWeekPreset(coerceWeekPreset(result.weekPreset));
-      setWeeklyPlan(result);
-      setSelectedDayIdx(0);
-      await loadDay(result, 0);
-      const totalEx = result.days.reduce((s, d) => s + d.exercises.length, 0);
-      setFeedback((prev) =>
-        // Only overwrite with success if there's no unresolved warning already set
-        prev?.kind === "error"
-          ? prev
-          : {
-              kind: "success",
-              message: `Plano ${result.split ?? ""} gerado: ${result.days.length} dias, ${totalEx} exercícios. Selecione o dia e revise.`,
-            }
-      );
-    } catch (e) {
-      setFeedback({
-        kind: "error",
-        message: e instanceof Error ? e.message : "Não foi possível gerar a ficha.",
-      });
-    } finally {
-      setAiLoading(false);
-    }
-  }
-
-  function setQuickPrompt(text: string) {
-    setAiPrompt(text);
   }
 
   // ── Shared styles ─────────────────────────────────────────────────
@@ -628,7 +656,8 @@ export default function WorkoutBuilderPage() {
     lineHeight: 0,
   });
 
-  const canSave = Boolean(selectedStudent) && items.length > 0;
+  const canSave = Boolean(selectedStudent) &&
+    Object.values(daysItems).some((arr) => arr.length > 0);
 
   return (
     <div className="pp-page" style={{ maxWidth: 1200 }}>
@@ -694,7 +723,7 @@ export default function WorkoutBuilderPage() {
           <WbButton variant="ghost" onClick={() => navigate("/app/personal/library")}>
             Biblioteca
           </WbButton>
-          {items.length > 0 ? (
+          {items.length > 0 && !isMultiDay ? (
             <WbButton
               variant="ghost"
               disabled={savingTemplate}
@@ -704,10 +733,19 @@ export default function WorkoutBuilderPage() {
               {savingTemplate ? "Salvando…" : "Salvar template"}
             </WbButton>
           ) : null}
+          {isMultiDay && items.length > 0 ? (
+            <WbButton
+              variant="ghost"
+              disabled
+              title="Templates suportam um dia por vez"
+            >
+              Salvar template
+            </WbButton>
+          ) : null}
           <WbButton
             variant="primary"
             disabled={!canSave || saving}
-            title={!selectedStudent ? "Selecione um aluno" : items.length === 0 ? "Adicione exercícios" : ""}
+            title={!selectedStudent ? "Selecione um aluno" : !canSave ? "Adicione exercícios" : ""}
             onClick={() => void saveWorkout()}
           >
             {saving ? "Salvando…" : "Salvar ficha"}
@@ -737,6 +775,15 @@ export default function WorkoutBuilderPage() {
         />
       ) : null}
 
+      {/* ── Quick start card (IA + Protocolos) ────────────────────── */}
+      <QuickStartCard
+        protocolSuggestions={protocolSuggestions}
+        suggestionsLoading={suggestionsLoading}
+        aiLoading={aiLoading}
+        onGenerate={(prompt) => void generateWithAi(prompt)}
+        onLoadProtocol={(id) => void loadProtocolIntoBuilder(id)}
+      />
+
       {/* ── Split panels ───────────────────────────────────────────── */}
       <div
         className="wb-split"
@@ -745,106 +792,7 @@ export default function WorkoutBuilderPage() {
         {/* ── Library ─────────────────────────────────────────────── */}
         <WbCard>
           <div style={{ padding: 16, display: "grid", gap: 12, order: narrow ? 2 : 1 }}>
-            {/* ── AI generation — top of card, always visible ────────────── */}
-            <div
-              data-testid="ai-workout-cta"
-              style={{
-                position: "relative",
-                borderRadius: 12,
-                padding: 14,
-                background:
-                  "linear-gradient(135deg, rgba(22,163,74,0.10) 0%, rgba(59,130,246,0.10) 100%)",
-                border: `1px solid ${WB.primaryBorder}`,
-                display: "grid",
-                gap: 10,
-                overflow: "hidden",
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
-                <span
-                  aria-hidden="true"
-                  style={{
-                    width: 28,
-                    height: 28,
-                    borderRadius: 8,
-                    background: WB.primary,
-                    display: "grid",
-                    placeItems: "center",
-                    color: "#FFFFFF",
-                    flexShrink: 0,
-                  }}
-                >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M12 3l1.9 4.6L18.5 9.5l-4.6 1.9L12 16l-1.9-4.6L5.5 9.5l4.6-1.9z" />
-                    <path d="M19 14l.7 1.7L21.4 16l-1.7.7L19 18l-.7-1.3L16.6 16l1.7-.3z" />
-                  </svg>
-                </span>
-                <div style={{ display: "grid", gap: 2 }}>
-                  <div style={{ fontWeight: 700, fontSize: 14, color: WB.text, letterSpacing: "-0.01em" }}>
-                    Gerar treino com IA
-                  </div>
-                  <div style={{ fontSize: 11.5, color: WB.muted, lineHeight: 1.4 }}>
-                    Descreva o treino — a IA monta a ficha semanal com base no catálogo.
-                  </div>
-                </div>
-              </div>
-
-              <textarea
-                value={aiPrompt}
-                onChange={(e) => setAiPrompt(e.target.value)}
-                placeholder="Ex: Treino ABC para iniciante focado em hipertrofia, 4 dias por semana"
-                rows={2}
-                style={{
-                  ...inputS,
-                  width: "100%",
-                  minHeight: 60,
-                  resize: "vertical",
-                  fontFamily: "inherit",
-                  fontSize: 13,
-                  background: "rgba(255,255,255,0.85)",
-                }}
-                maxLength={400}
-                disabled={aiLoading}
-              />
-
-              {!aiPrompt.trim() ? (
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                  {AI_QUICK_PROMPTS.map((qp) => (
-                    <button
-                      key={qp}
-                      type="button"
-                      onClick={() => setQuickPrompt(qp)}
-                      style={{
-                        padding: "4px 9px",
-                        borderRadius: 999,
-                        border: `1px solid ${WB.border}`,
-                        background: "rgba(255,255,255,0.7)",
-                        color: WB.text,
-                        cursor: "pointer",
-                        fontWeight: 600,
-                        fontSize: 11,
-                        lineHeight: 1.35,
-                        textAlign: "left",
-                        maxWidth: "100%",
-                      }}
-                      title="Usar este prompt"
-                    >
-                      {qp.length > 40 ? `${qp.slice(0, 38)}…` : qp}
-                    </button>
-                  ))}
-                </div>
-              ) : null}
-
-              <WbButton
-                variant="primary"
-                disabled={!aiPrompt.trim() || aiLoading}
-                onClick={() => void generateWithAi()}
-              >
-                {aiLoading ? "Gerando ficha…" : "Gerar ficha com IA"}
-              </WbButton>
-            </div>
-
-            <div style={{ fontWeight: 650, fontSize: 15, color: WB.text, marginTop: 4 }}>Exercícios</div>
+            <div style={{ fontWeight: 650, fontSize: 15, color: WB.text }}>Exercícios</div>
 
             {/* Search */}
             <input
@@ -1034,70 +982,6 @@ export default function WorkoutBuilderPage() {
                 })
               )}
             </div>
-
-            {/* Protocol suggestions accordion */}
-            <div style={{ borderTop: `1px solid ${WB.border}`, paddingTop: 10 }}>
-              <button
-                type="button"
-                onClick={() => setShowProtocols((v) => !v)}
-                style={{
-                  background: "none",
-                  border: "none",
-                  cursor: "pointer",
-                  color: WB.muted,
-                  fontSize: 12,
-                  fontWeight: 650,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 5,
-                  padding: 0,
-                }}
-              >
-                <span style={{ fontSize: 10 }}>{showProtocols ? "▲" : "▼"}</span>
-                Carregar protocolo
-                {protocolSuggestions.length > 0 ? ` (${protocolSuggestions.length})` : ""}
-              </button>
-
-              {showProtocols ? (
-                <div style={{ marginTop: 10, display: "grid", gap: 8 }}>
-                  {suggestionsLoading ? (
-                    <div style={{ color: WB.muted, fontSize: 13 }}>Carregando…</div>
-                  ) : protocolSuggestions.length === 0 ? (
-                    <div style={{ color: WB.muted, fontSize: 13 }}>
-                      Nenhuma sugestão automática para este perfil.
-                    </div>
-                  ) : (
-                    protocolSuggestions.map((s) => (
-                      <div
-                        key={s.protocolId}
-                        style={{
-                          padding: "9px 11px",
-                          borderRadius: 9,
-                          border: `1px solid ${WB.border}`,
-                          background: "#FFFFFF",
-                          display: "flex",
-                          gap: 10,
-                          alignItems: "center",
-                        }}
-                      >
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontWeight: 650, fontSize: 13 }}>{s.title}</div>
-                          <div style={{ fontSize: 11, color: WB.muted, marginTop: 1 }}>{s.reason}</div>
-                        </div>
-                        <WbButton
-                          variant="ghost"
-                          type="button"
-                          onClick={() => void loadProtocolIntoBuilder(s.protocolId)}
-                        >
-                          Carregar
-                        </WbButton>
-                      </div>
-                    ))
-                  )}
-                </div>
-              ) : null}
-            </div>
-
           </div>
         </WbCard>
 
@@ -1117,18 +1001,18 @@ export default function WorkoutBuilderPage() {
                 <span style={pillStyle(WB.primarySoft, WB.primaryBorder)}>{items.length} exercício(s)</span>
               </div>
 
-              {/* Day selector — appears when IA returns a weekly plan */}
-              {weeklyPlan && weeklyPlan.days.length > 1 ? (
+              {/* Day selector — multi-day mode */}
+              {daysMeta.length > 1 ? (
                 <div>
                   <div style={{ fontSize: 11, fontWeight: 600, color: WB.muted, textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 6 }}>
-                    Plano {weeklyPlan.split} — selecione o dia
+                    {weeklyPlan?.split ? `Plano ${weeklyPlan.split} — ` : ""}Selecione o dia
                   </div>
                   <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-                    {weeklyPlan.days.map((day, idx) => (
+                    {daysMeta.map((meta, idx) => (
                       <button
-                        key={day.name}
+                        key={meta.name}
                         type="button"
-                        onClick={() => void loadDay(weeklyPlan, idx)}
+                        onClick={() => setSelectedDayIdx(idx)}
                         style={{
                           padding: "5px 11px",
                           borderRadius: 8,
@@ -1140,10 +1024,12 @@ export default function WorkoutBuilderPage() {
                           fontWeight: 650,
                           lineHeight: 1.4,
                         }}
-                        title={day.focus}
+                        title={meta.focus ?? undefined}
                       >
-                        {day.name}
-                        <span style={{ display: "block", fontSize: 10, fontWeight: 400, opacity: 0.8 }}>{day.focus}</span>
+                        {meta.name}
+                        {meta.focus ? (
+                          <span style={{ display: "block", fontSize: 10, fontWeight: 400, opacity: 0.8 }}>{meta.focus}</span>
+                        ) : null}
                       </button>
                     ))}
                   </div>

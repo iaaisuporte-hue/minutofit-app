@@ -26,6 +26,12 @@ export default defineConfig([
       'react-hooks/set-state-in-effect': 'warn',
       'react-hooks/purity': 'warn',
       'react-refresh/only-export-components': 'warn',
+      // Permitir params/vars prefixados com _ (convenção de "ignorado intencionalmente")
+      '@typescript-eslint/no-unused-vars': ['error', {
+        argsIgnorePattern: '^_',
+        varsIgnorePattern: '^_',
+        caughtErrorsIgnorePattern: '^_',
+      }],
     },
   },
 ])

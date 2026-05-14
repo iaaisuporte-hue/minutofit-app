@@ -13,6 +13,13 @@ export type WorkoutPlanItem = {
   notes?: string;
 };
 
+export type WorkoutPlanDay = {
+  index: number;
+  name: string;
+  focus: string | null;
+  items: WorkoutPlanItem[];
+};
+
 export type PersonalWorkoutPlanRow = {
   id: number;
   personal_id: number;
@@ -20,7 +27,9 @@ export type PersonalWorkoutPlanRow = {
   title: string;
   week_preset: string;
   selected_group: string | null;
+  /** @deprecated kept for legacy reads; use `days` instead */
   payload_json: WorkoutPlanItem[];
+  days: WorkoutPlanDay[];
   created_at: string;
   updated_at: string;
 };
@@ -34,14 +43,22 @@ export async function fetchPersonalWorkoutPlans(studentId: string, limit = 50) {
   return (data?.data || []) as PersonalWorkoutPlanRow[];
 }
 
+export type CreateWorkoutPlanBody =
+  | {
+      title: string;
+      weekPreset: string;
+      days: Array<{ name: string; focus?: string | null; items: WorkoutPlanItem[] }>;
+    }
+  | {
+      title: string;
+      weekPreset: string;
+      selectedGroup: string | null;
+      items: WorkoutPlanItem[];
+    };
+
 export async function createPersonalWorkoutPlan(
   studentId: string,
-  body: {
-    title: string;
-    weekPreset: string;
-    selectedGroup: string | null;
-    items: WorkoutPlanItem[];
-  }
+  body: CreateWorkoutPlanBody
 ) {
   const response = await authFetch(`${API_URL}/personal/students/${studentId}/workout-plans`, {
     method: "POST",

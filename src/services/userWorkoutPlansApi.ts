@@ -13,6 +13,13 @@ export type UserWorkoutPlanItem = {
   notes?: string;
 };
 
+export type UserWorkoutPlanDay = {
+  index: number;
+  name: string;
+  focus: string | null;
+  items: UserWorkoutPlanItem[];
+};
+
 export type UserWorkoutPlan = {
   id: number;
   personal_id: number;
@@ -20,7 +27,9 @@ export type UserWorkoutPlan = {
   title: string;
   week_preset: string;
   selected_group: string | null;
+  /** @deprecated legacy; use `days` instead */
   payload_json: UserWorkoutPlanItem[];
+  days: UserWorkoutPlanDay[];
   created_at: string;
   updated_at: string;
 };
