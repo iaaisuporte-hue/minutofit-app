@@ -132,6 +132,22 @@ function useNarrowLayout(maxPx = 900) {
   return narrow;
 }
 
+/** Single global ticker for catalog thumb animations (700ms). */
+function useThumbTick() {
+  const [tick, setTick] = useState(false);
+  useEffect(() => {
+    const id = setInterval(() => setTick((v) => !v), 700);
+    return () => clearInterval(id);
+  }, []);
+  return tick;
+}
+
+function frame1FromUrl(url: string | null | undefined): string | null {
+  if (!url) return null;
+  if (url.includes("/0.jpg")) return url.replace("/0.jpg", "/1.jpg");
+  return null;
+}
+
 export default function WorkoutBuilderPage() {
   const navigate = useNavigate();
   const { studentId: studentIdParam } = useParams();
@@ -142,6 +158,7 @@ export default function WorkoutBuilderPage() {
   const prefilledStudentId = (location.state as { studentId?: string } | null)?.studentId;
 
   const narrow = useNarrowLayout(900);
+  const thumbTick = useThumbTick();
 
   // ── Students ──────────────────────────────────────────────────────
   const [students, setStudents] = useState<Student[]>([]);
@@ -426,46 +443,86 @@ export default function WorkoutBuilderPage() {
   }
 
   // ── AI generation ─────────────────────────────────────────────────
-  function resolveAiExercises(generated: AiGeneratedExercise[]): WorkoutExercise[] {
+
+  /**
+   * Resolve exercícios gerados pela IA contra a biblioteca local e, se necessário,
+   * faz fallback async por nome via API. Nunca retorna exerciseId não-UUID.
+   * Retorna itens resolvidos + lista de nomes não encontrados.
+   */
+  async function resolveAiExercises(
+    generated: AiGeneratedExercise[]
+  ): Promise<{ resolved: WorkoutExercise[]; unresolved: string[] }> {
     const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    return generated.map((g) => {
-      // IA nova retorna exercise_id UUID — usa direto se existir na lista carregada
+
+    type Pending = { g: AiGeneratedExercise; match: Exercise | null };
+
+    // Pass 1: local match (in-memory, instant)
+    const pass1: Pending[] = generated.map((g) => {
       const byId = (g as { exercise_id?: string }).exercise_id;
       if (byId && UUID_RE.test(byId)) {
-        const match = allExercises.find((c) => c.id === byId);
-        if (match) {
-          return {
-            exerciseId: match.id,
-            name: match.name,
-            sets: g.sets,
-            reps: g.reps,
-            rest: g.rest,
-            notes: g.note ?? undefined,
-          };
-        }
+        const m = allExercises.find((c) => c.id === byId);
+        if (m) return { g, match: m };
       }
-      // Fallback: match por nome (IA legada ou exercício ainda não em memória)
       const nameLower = g.name.toLowerCase();
-      const match =
+      const m =
         allExercises.find((c) => c.name.toLowerCase() === nameLower) ??
         allExercises.find((c) => c.name.toLowerCase().includes(nameLower.split(" ")[0]));
-      return {
-        exerciseId: match?.id ?? `ai-${Math.random().toString(36).slice(2)}`,
-        name: match?.name ?? g.name,
-        sets: g.sets,
-        reps: g.reps,
-        rest: g.rest,
-        notes: g.note ?? undefined,
-      };
+      return { g, match: m ?? null };
     });
+
+    // Pass 2: async API fallback for unresolved (max 10 parallel)
+    const needsApi = pass1.filter((p) => !p.match);
+    if (needsApi.length > 0) {
+      const apiResults = await Promise.all(
+        needsApi.slice(0, 10).map(async (p) => {
+          try {
+            const rows = await searchExercises({ q: p.g.name, limit: 1 });
+            return { g: p.g, match: rows[0] ? ({ id: rows[0].id, name: rows[0].name } as Exercise) : null };
+          } catch {
+            return { g: p.g, match: null };
+          }
+        })
+      );
+      for (const r of apiResults) {
+        const entry = pass1.find((p) => p.g === r.g);
+        if (entry) entry.match = r.match;
+      }
+    }
+
+    const resolved: WorkoutExercise[] = [];
+    const unresolved: string[] = [];
+
+    for (const { g, match } of pass1) {
+      if (match) {
+        resolved.push({
+          exerciseId: match.id,
+          name: match.name,
+          sets: g.sets,
+          reps: g.reps,
+          rest: g.rest,
+          notes: g.note ?? undefined,
+        });
+      } else {
+        unresolved.push(g.name);
+      }
+    }
+
+    return { resolved, unresolved };
   }
 
-  function loadDay(plan: AiGeneratedWeeklyPlan, dayIdx: number) {
+  async function loadDay(plan: AiGeneratedWeeklyPlan, dayIdx: number) {
     const day = plan.days[dayIdx];
     if (!day) return;
     setSelectedDayIdx(dayIdx);
     setWorkoutName(`${plan.title} — ${day.name}`);
-    setItems(resolveAiExercises(day.exercises));
+    const { resolved, unresolved } = await resolveAiExercises(day.exercises);
+    setItems(resolved);
+    if (unresolved.length > 0) {
+      setFeedback({
+        kind: "error",
+        message: `${unresolved.length} exercício(s) não encontrado(s) na biblioteca: ${unresolved.slice(0, 3).map((n) => `"${n}"`).join(", ")}${unresolved.length > 3 ? "…" : ""} — adicione manualmente.`,
+      });
+    }
   }
 
   async function generateWithAi() {
@@ -478,12 +535,17 @@ export default function WorkoutBuilderPage() {
       if (result.weekPreset) setWeekPreset(coerceWeekPreset(result.weekPreset));
       setWeeklyPlan(result);
       setSelectedDayIdx(0);
-      loadDay(result, 0);
+      await loadDay(result, 0);
       const totalEx = result.days.reduce((s, d) => s + d.exercises.length, 0);
-      setFeedback({
-        kind: "success",
-        message: `Plano ${result.split ?? ""} gerado: ${result.days.length} dias, ${totalEx} exercícios. Selecione o dia e revise.`,
-      });
+      setFeedback((prev) =>
+        // Only overwrite with success if there's no unresolved warning already set
+        prev?.kind === "error"
+          ? prev
+          : {
+              kind: "success",
+              message: `Plano ${result.split ?? ""} gerado: ${result.days.length} dias, ${totalEx} exercícios. Selecione o dia e revise.`,
+            }
+      );
       setShowAi(false);
     } catch (e) {
       setFeedback({
@@ -736,20 +798,59 @@ export default function WorkoutBuilderPage() {
                       }}
                     >
                       {ex.primaryMediaUrl ? (
-                        <img
-                          src={ex.primaryMediaUrl}
-                          alt=""
-                          width={40}
-                          height={40}
-                          loading="lazy"
-                          onError={(e) => { e.currentTarget.style.display = "none"; }}
-                          style={{
-                            borderRadius: 6,
-                            objectFit: "cover",
-                            flexShrink: 0,
-                            background: "#F1F5F9",
-                          }}
-                        />
+                        (() => {
+                          const f1 = frame1FromUrl(ex.primaryMediaUrl);
+                          return (
+                            <div
+                              style={{
+                                position: "relative",
+                                width: 40,
+                                height: 40,
+                                borderRadius: 6,
+                                overflow: "hidden",
+                                flexShrink: 0,
+                                background: "#F1F5F9",
+                              }}
+                            >
+                              <img
+                                src={ex.primaryMediaUrl}
+                                alt=""
+                                width={40}
+                                height={40}
+                                loading="lazy"
+                                onError={(e) => { e.currentTarget.style.display = "none"; }}
+                                style={{
+                                  position: "absolute",
+                                  inset: 0,
+                                  width: "100%",
+                                  height: "100%",
+                                  objectFit: "cover",
+                                  transition: f1 ? "opacity 0.3s ease" : undefined,
+                                  opacity: f1 ? (thumbTick ? 0 : 1) : 1,
+                                }}
+                              />
+                              {f1 ? (
+                                <img
+                                  src={f1}
+                                  alt=""
+                                  aria-hidden="true"
+                                  width={40}
+                                  height={40}
+                                  loading="lazy"
+                                  style={{
+                                    position: "absolute",
+                                    inset: 0,
+                                    width: "100%",
+                                    height: "100%",
+                                    objectFit: "cover",
+                                    transition: "opacity 0.3s ease",
+                                    opacity: thumbTick ? 1 : 0,
+                                  }}
+                                />
+                              ) : null}
+                            </div>
+                          );
+                        })()
                       ) : (
                         <div
                           style={{
@@ -969,7 +1070,7 @@ export default function WorkoutBuilderPage() {
                       <button
                         key={day.name}
                         type="button"
-                        onClick={() => loadDay(weeklyPlan, idx)}
+                        onClick={() => void loadDay(weeklyPlan, idx)}
                         style={{
                           padding: "5px 11px",
                           borderRadius: 8,

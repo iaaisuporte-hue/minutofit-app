@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { getExerciseById, type Exercise } from "../../../services/exercisesApi";
 import { WB } from "./workoutBuilderTheme";
 import { WbButton } from "./WorkoutBuilderUi";
@@ -16,6 +16,9 @@ export function ExerciseDetailModal({ exerciseId, alreadyAdded, onAdd, onClose }
   const [error, setError] = useState<string | null>(null);
   const [tipsOpen, setTipsOpen] = useState(false);
   const [imgError, setImgError] = useState(false);
+  // Animation: alternate between frame 0 and frame 1
+  const [showFrame1, setShowFrame1] = useState(false);
+  const [frame1Error, setFrame1Error] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -23,6 +26,8 @@ export function ExerciseDetailModal({ exerciseId, alreadyAdded, onAdd, onClose }
     setError(null);
     setExercise(null);
     setImgError(false);
+    setShowFrame1(false);
+    setFrame1Error(false);
     void (async () => {
       try {
         const data = await getExerciseById(exerciseId);
@@ -46,6 +51,20 @@ export function ExerciseDetailModal({ exerciseId, alreadyAdded, onAdd, onClose }
   const primaryMedia = exercise?.media.find((m) => m.isPrimary) ?? exercise?.media[0] ?? null;
   const mediaUrl = !imgError ? (primaryMedia?.url ?? null) : null;
   const isYoutube = primaryMedia?.mediaType === "youtube";
+
+  // Derive second frame URL for free-exercise-db images (0.jpg → 1.jpg)
+  const frame1Url = useMemo(() => {
+    if (!mediaUrl || isYoutube || frame1Error) return null;
+    if (mediaUrl.includes("/0.jpg")) return mediaUrl.replace("/0.jpg", "/1.jpg");
+    return null;
+  }, [mediaUrl, isYoutube, frame1Error]);
+
+  // Alternate frames when frame1 is available
+  useEffect(() => {
+    if (!frame1Url) { setShowFrame1(false); return; }
+    const id = setInterval(() => setShowFrame1((v) => !v), 700);
+    return () => clearInterval(id);
+  }, [frame1Url]);
 
   return (
     <div
@@ -138,19 +157,58 @@ export function ExerciseDetailModal({ exerciseId, alreadyAdded, onAdd, onClose }
               {/* Media */}
               {mediaUrl && !isYoutube ? (
                 <div style={{ display: "flex", justifyContent: "center" }}>
-                  <img
-                    src={mediaUrl}
-                    alt={exercise.name}
-                    width={240}
-                    height={240}
-                    onError={() => setImgError(true)}
+                  {/* Cross-fade between frame 0 and frame 1 when available */}
+                  <div
                     style={{
+                      position: "relative",
+                      width: 240,
+                      height: 240,
                       borderRadius: 10,
-                      objectFit: "cover",
+                      overflow: "hidden",
                       background: "#F1F5F9",
-                      maxWidth: "100%",
+                      flexShrink: 0,
                     }}
-                  />
+                  >
+                    {/* Frame 0 (base) */}
+                    <img
+                      src={mediaUrl}
+                      alt={exercise.name}
+                      width={240}
+                      height={240}
+                      onError={() => setImgError(true)}
+                      style={{
+                        position: "absolute",
+                        inset: 0,
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "cover",
+                        borderRadius: 10,
+                        transition: frame1Url ? "opacity 0.3s ease" : undefined,
+                        opacity: frame1Url ? (showFrame1 ? 0 : 1) : 1,
+                      }}
+                    />
+                    {/* Frame 1 (overlay, only when available) */}
+                    {frame1Url ? (
+                      <img
+                        src={frame1Url}
+                        alt=""
+                        aria-hidden="true"
+                        width={240}
+                        height={240}
+                        onError={() => setFrame1Error(true)}
+                        style={{
+                          position: "absolute",
+                          inset: 0,
+                          width: "100%",
+                          height: "100%",
+                          objectFit: "cover",
+                          borderRadius: 10,
+                          transition: "opacity 0.3s ease",
+                          opacity: showFrame1 ? 1 : 0,
+                        }}
+                      />
+                    ) : null}
+                  </div>
                 </div>
               ) : mediaUrl && isYoutube ? (
                 <div style={{ display: "flex", justifyContent: "center" }}>
