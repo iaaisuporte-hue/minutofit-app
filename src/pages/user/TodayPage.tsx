@@ -34,7 +34,7 @@ import { DailyCheckin } from "../../features/dailyCheckin/DailyCheckin";
 import { getDailyConditionState, useDailyCondition } from "../../features/dailyCheckin/useDailyCondition";
 import { buildDailyWorkoutRecommendation, getWorkoutRoute } from "../../features/training/dailyWorkoutAdapter";
 import type { WorkoutGoal } from "../../features/training/generateDailyWorkout";
-import { resolveSupportVideoForActivity } from "./trainingSupportVideos";
+import { searchExercises } from "../../services/exercisesApi";
 import "./todayPage.css";
 
 const GROUP_LABEL: Record<MuscleGroup, string> = {
@@ -238,15 +238,25 @@ export default function TodayPage() {
     }
   }
 
-  function openSupportVideo(activity: string, workoutTitle: string) {
-    const support = resolveSupportVideoForActivity(activity, workoutTitle);
-    if (!support) return;
-
-    navigate(
-      `/app/user/treinos/player/support-video?videoId=${encodeURIComponent(support.video.videoId)}&title=${encodeURIComponent(
-        `${activity} · apoio`
-      )}&durationMin=${support.video.durationMin}&returnTo=${encodeURIComponent("/app/user/today")}`
-    );
+  async function openSupportVideo(activity: string, _workoutTitle?: string) {
+    try {
+      const results = await searchExercises({ q: activity, limit: 1 });
+      const exercise = results[0];
+      if (exercise?.primaryMediaUrl && exercise.primaryMediaType === "youtube") {
+        const videoIdMatch = exercise.primaryMediaUrl.match(/[?&]v=([^&]+)/);
+        const videoId = videoIdMatch?.[1] ?? "";
+        if (videoId) {
+          navigate(
+            `/app/user/treinos/player/support-video?videoId=${encodeURIComponent(videoId)}&title=${encodeURIComponent(
+              `${exercise.name} · apoio`
+            )}&durationMin=2&returnTo=${encodeURIComponent("/app/user/today")}`
+          );
+          return;
+        }
+      }
+    } catch {
+      // silently ignore search errors
+    }
   }
 
   function toggleQuickGroup(group: MuscleGroup) {

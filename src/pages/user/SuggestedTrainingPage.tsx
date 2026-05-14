@@ -9,7 +9,7 @@ import { addWorkoutHistoryEntry } from "./workoutHistory";
 import { COLORS } from "../../styles/colors";
 import { useDailyCondition } from "../../features/dailyCheckin/useDailyCondition";
 import { buildDailyWorkoutRecommendation, getWorkoutRoute } from "../../features/training/dailyWorkoutAdapter";
-import { resolveSupportVideoForActivity } from "./trainingSupportVideos";
+import { searchExercises } from "../../services/exercisesApi";
 import { buildMetabolicRecommendation } from "../../features/training/metabolicRecommendationEngine";
 import {
   type DailySignals,
@@ -190,15 +190,25 @@ export default function SuggestedTrainingPage() {
     : 0;
   const allExercisesCompleted = totalExercises > 0 && completedExercises.length === totalExercises;
 
-  function openSupportVideo(activity: string, workoutFocus?: string) {
-    const support = resolveSupportVideoForActivity(activity, workoutFocus);
-    if (!support) return;
-
-    navigate(
-      `/app/user/treinos/player/support-video?videoId=${encodeURIComponent(support.video.videoId)}&title=${encodeURIComponent(
-        `${activity} · apoio`
-      )}&durationMin=${support.video.durationMin}&returnTo=${encodeURIComponent("/app/user/suggested-training")}`
-    );
+  async function openSupportVideo(activity: string, _workoutFocus?: string) {
+    try {
+      const results = await searchExercises({ q: activity, limit: 1 });
+      const exercise = results[0];
+      if (exercise?.primaryMediaUrl && exercise.primaryMediaType === "youtube") {
+        const videoIdMatch = exercise.primaryMediaUrl.match(/[?&]v=([^&]+)/);
+        const videoId = videoIdMatch?.[1] ?? "";
+        if (videoId) {
+          navigate(
+            `/app/user/treinos/player/support-video?videoId=${encodeURIComponent(videoId)}&title=${encodeURIComponent(
+              `${exercise.name} · apoio`
+            )}&durationMin=2&returnTo=${encodeURIComponent("/app/user/suggested-training")}`
+          );
+          return;
+        }
+      }
+    } catch {
+      // silently ignore search errors
+    }
   }
 
   function toggleSymptom(symptom: Exclude<DailySignals["symptoms"][number], "none">) {

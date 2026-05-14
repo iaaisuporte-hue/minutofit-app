@@ -6,6 +6,7 @@ import { persistGamificationCheckin } from "../../services/gamificationApi";
 import { homeWorkoutCatalog, type HomeWorkoutAccessibility } from "./homeWorkoutCatalog";
 import { useNeonTheme } from "../../theme/minutofitNeonTheme";
 
+
 type Step = {
   id: string;
   title: string;
@@ -23,37 +24,6 @@ type Workout = {
   supportOnly?: boolean;
 };
 
-const BUNDLED_HOME_WORKOUTS: Record<string, Workout> = {
-  "home-10min": {
-    title: "Treino em Casa • 10 minutos",
-    muscleGroup: "full_body",
-    nextSuggestionId: "home-20min",
-    steps: [
-      { id: "s1", title: "Aquecimento", videoId: "ml6cT4AZdqI", durationMin: 2 },
-      { id: "s2", title: "Agachamentos", videoId: "aclHkVaku9U", durationMin: 4 },
-      { id: "s3", title: "Prancha", videoId: "pSHjTRCQxIw", durationMin: 4 },
-    ],
-  },
-  "home-20min": {
-    title: "HIIT • 20 minutos",
-    muscleGroup: "cardio",
-    nextSuggestionId: "home-30min-peso",
-    steps: [
-      { id: "s1", title: "Aquecimento", videoId: "ml6cT4AZdqI", durationMin: 4 },
-      { id: "s2", title: "Circuito", videoId: "aclHkVaku9U", durationMin: 10 },
-      { id: "s3", title: "Core", videoId: "pSHjTRCQxIw", durationMin: 6 },
-    ],
-  },
-  "home-30min-peso": {
-    title: "Full Body com Peso • 30 minutos",
-    muscleGroup: "full_body",
-    steps: [
-      { id: "s1", title: "Aquecimento", videoId: "ml6cT4AZdqI", durationMin: 5 },
-      { id: "s2", title: "Força", videoId: "aclHkVaku9U", durationMin: 15 },
-      { id: "s3", title: "Finalização", videoId: "pSHjTRCQxIw", durationMin: 10 },
-    ],
-  },
-};
 
 function getYoutubeEmbedUrl(videoId: string) {
   const params = new URLSearchParams({
@@ -98,9 +68,6 @@ export default function WorkoutPlayerPage() {
         ],
       } satisfies Workout;
     }
-    const predefined = BUNDLED_HOME_WORKOUTS[workoutId];
-    if (predefined) return predefined;
-
     const short = homeWorkoutCatalog.find((item) => item.id === workoutId);
     if (!short) return null;
 
