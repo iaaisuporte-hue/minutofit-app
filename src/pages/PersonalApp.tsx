@@ -169,12 +169,13 @@ export default function PersonalApp() {
             </NavLink>
           </div>
 
-          {/* 4 destinos principais — sem Consultoria, Vídeos, Mensagens no stack */}
+          {/* destinos principais */}
           <div className="navStack">
             <MenuLink to="/app/personal/dashboard" label="Hoje" />
             <MenuLink to="/app/personal/students" label="Alunos" />
             <MenuLink to="/app/personal/review" label="Revisões" />
             <MenuLink to="/app/personal/library" label="Protocolos" />
+            <MenuLink to="/app/personal/builder" label="Builder" />
           </div>
 
           <div style={{ flex: 1 }} />
@@ -202,7 +203,17 @@ export default function PersonalApp() {
             {/* Vídeos mantida como rota para não quebrar deep links existentes */}
             <Route path="videos" element={<VideoLibraryPage />} />
 
-            {/* BUILDER (com aluno) */}
+            {/* BUILDER standalone (sem aluno pré-selecionado) */}
+            <Route
+              path="builder"
+              element={
+                <SafeBoundary>
+                  <WorkoutBuilderPage />
+                </SafeBoundary>
+              }
+            />
+
+            {/* BUILDER (com aluno via rota de estudante) */}
             <Route
               path="students/:studentId/workouts/builder"
               element={
