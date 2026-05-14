@@ -402,7 +402,7 @@ export default function DashboardPage() {
           <EmptyState
             variant="ok"
             title="Carteira pronta para os primeiros sinais"
-            description="Os indicadores de aderência, risco e evolução aparecem assim que os primeiros alunos forem atribuídos e iniciarem check-ins. Esta tela vai priorizar quem está sumindo ou pedindo ajuste."
+            description="Os indicadores de aderência, risco e evolução aparecem assim que os primeiros alunos forem atribuídos pela academia ou convidados diretamente e iniciarem check-ins. Esta tela vai priorizar quem está sumindo ou pedindo ajuste."
           />
         </Card>
       ) : null}

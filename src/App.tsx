@@ -14,6 +14,7 @@ import NutriApp from "./pages/NutriApp";
 import AdminApp from "./pages/AdminApp";
 import AcademyApp from "./pages/AcademyApp";
 import AcceptInvitationPage from "./pages/AcceptInvitationPage";
+import DirectInviteAcceptPage from "./pages/DirectInviteAcceptPage";
 import ColorModeToggle from "./components/ColorModeToggle";
 import CookieConsentBanner from "./components/CookieConsentBanner";
 import HomePage from "./pages/HomePage";
@@ -88,6 +89,7 @@ export default function App() {
           />
 
           <Route path="/invite/:token" element={<AcceptInvitationPage />} />
+          <Route path="/convite-personal/:token" element={<DirectInviteAcceptPage />} />
 
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>

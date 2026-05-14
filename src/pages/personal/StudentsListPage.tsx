@@ -1,7 +1,13 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { EmptyState } from "../../components/EmptyState";
 import { fetchPersonalDashboard, type PersonalDashboardStudent } from "../../services/personalDashboardApi";
+import {
+  createDirectInvite,
+  listDirectInvites,
+  revokeDirectInvite,
+  type DirectInvite,
+} from "../../services/personalDirectInvitesApi";
 import { COLORS } from "../../styles/colors";
 import StudentProfileModal from "./StudentProfileModal";
 import "./personalPremium.css";
@@ -93,6 +99,69 @@ export default function StudentsListPage() {
   const [loadingStudents, setLoadingStudents] = useState(true);
   const [studentsError, setStudentsError] = useState<string | null>(null);
   const [selectedStudent, setSelectedStudent] = useState<{ id: string; name: string } | null>(null);
+
+  // ── Direct invites ─────────────────────────────────────────────────
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteName, setInviteName] = useState("");
+  const [inviteLoading, setInviteLoading] = useState(false);
+  const [inviteError, setInviteError] = useState<string | null>(null);
+  const [createdInviteUrl, setCreatedInviteUrl] = useState<string | null>(null);
+  const [invites, setInvites] = useState<DirectInvite[]>([]);
+  const [invitesLoading, setInvitesLoading] = useState(false);
+  const [showInvites, setShowInvites] = useState(false);
+  const inviteUrlRef = useRef<HTMLInputElement>(null);
+
+  function loadInvites() {
+    setInvitesLoading(true);
+    listDirectInvites()
+      .then((rows) => setInvites(rows))
+      .catch(() => {})
+      .finally(() => setInvitesLoading(false));
+  }
+
+  async function handleCreateInvite() {
+    setInviteLoading(true);
+    setInviteError(null);
+    try {
+      const result = await createDirectInvite({ invitedEmail: inviteEmail || undefined, invitedName: inviteName || undefined });
+      setCreatedInviteUrl(result.inviteUrl);
+      loadInvites();
+    } catch (e) {
+      setInviteError(e instanceof Error ? e.message : "Não foi possível criar o convite.");
+    } finally {
+      setInviteLoading(false);
+    }
+  }
+
+  async function handleRevoke(id: number) {
+    try {
+      await revokeDirectInvite(id);
+      setInvites((prev) => prev.map((inv) => inv.id === id ? { ...inv, status: "revoked" } : inv));
+    } catch { /* ignore */ }
+  }
+
+  function openInviteModal() {
+    setInviteEmail("");
+    setInviteName("");
+    setInviteError(null);
+    setCreatedInviteUrl(null);
+    setShowInviteModal(true);
+  }
+
+  function closeInviteModal() {
+    setShowInviteModal(false);
+    setCreatedInviteUrl(null);
+  }
+
+  function copyInviteUrl() {
+    if (inviteUrlRef.current) {
+      inviteUrlRef.current.select();
+      document.execCommand("copy");
+    } else if (createdInviteUrl) {
+      navigator.clipboard.writeText(createdInviteUrl).catch(() => {});
+    }
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -243,6 +312,15 @@ export default function StudentsListPage() {
               <option value="black">Black</option>
             </select>
           </div>
+
+          <button
+            type="button"
+            className="pp-btn pp-btn--primary pp-btn--sm"
+            onClick={openInviteModal}
+            style={{ alignSelf: "flex-end" }}
+          >
+            + Convidar aluno direto
+          </button>
         </div>
       </div>
 
@@ -313,7 +391,7 @@ export default function StudentsListPage() {
             description={
               q || filter !== "all"
                 ? "Ajuste o filtro de plano ou o termo de busca."
-                : "Seus alunos aparecerão aqui assim que forem atribuídos a você pela academia."
+                : "Seus alunos aparecerão aqui assim que forem atribuídos pela academia ou convidados diretamente."
             }
           />
         )}
@@ -363,12 +441,258 @@ export default function StudentsListPage() {
         </div>
       </div>
 
+      {/* Pending invites accordion */}
+      <div className="pp-panel" style={{ marginTop: 12 }}>
+        <div className="pp-panel__body">
+          <button
+            type="button"
+            style={{
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              fontWeight: 650,
+              fontSize: 14,
+              color: COLORS.text,
+              padding: 0,
+              width: "100%",
+            }}
+            onClick={() => {
+              const next = !showInvites;
+              setShowInvites(next);
+              if (next && invites.length === 0) loadInvites();
+            }}
+          >
+            <span style={{ fontSize: 10, color: COLORS.muted }}>{showInvites ? "▲" : "▼"}</span>
+            Convites diretos enviados
+            {invites.filter((i) => i.status === "pending").length > 0 && (
+              <span style={{
+                padding: "2px 8px", borderRadius: 999,
+                background: COLORS.primarySoft, border: `1px solid ${COLORS.borderStrong}`,
+                fontSize: 12, fontWeight: 650,
+              }}>
+                {invites.filter((i) => i.status === "pending").length} pendente(s)
+              </span>
+            )}
+          </button>
+
+          {showInvites ? (
+            <div style={{ marginTop: 14, display: "grid", gap: 8 }}>
+              {invitesLoading ? (
+                <div style={{ color: COLORS.muted, fontSize: 13 }}>Carregando…</div>
+              ) : invites.length === 0 ? (
+                <div style={{ color: COLORS.muted, fontSize: 13 }}>
+                  Nenhum convite enviado ainda. Use o botão "+ Convidar aluno direto" para gerar um link.
+                </div>
+              ) : (
+                invites.map((inv) => (
+                  <div
+                    key={inv.id}
+                    style={{
+                      padding: "10px 12px",
+                      borderRadius: 10,
+                      border: `1px solid ${COLORS.border}`,
+                      background: "#FFFFFF",
+                      display: "flex",
+                      gap: 12,
+                      alignItems: "center",
+                      opacity: inv.status !== "pending" ? 0.65 : 1,
+                    }}
+                  >
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 650, fontSize: 13 }}>
+                        {inv.invited_name || inv.invitedName || "Aluno sem nome"}
+                        {(inv.invited_email || inv.invitedEmail) && (
+                          <span style={{ fontWeight: 400, color: COLORS.muted, marginLeft: 6 }}>
+                            {inv.invited_email || inv.invitedEmail}
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ fontSize: 11, color: COLORS.muted, marginTop: 2 }}>
+                        Status: <b>{inv.status === "pending" ? "Aguardando" : inv.status === "accepted" ? "Aceito" : inv.status === "revoked" ? "Revogado" : "Expirado"}</b>
+                        {inv.accepted_user_name || inv.acceptedUserName
+                          ? ` · Aceito por: ${inv.accepted_user_name || inv.acceptedUserName}`
+                          : ""}
+                        {" · Expira: "}
+                        {new Date(inv.expires_at || inv.expiresAt).toLocaleDateString("pt-BR")}
+                      </div>
+                      {inv.status === "pending" ? (
+                        <div style={{ marginTop: 6 }}>
+                          <input
+                            readOnly
+                            value={inv.inviteUrl}
+                            style={{
+                              width: "100%",
+                              fontSize: 11,
+                              padding: "4px 8px",
+                              borderRadius: 6,
+                              border: `1px solid ${COLORS.border}`,
+                              background: "#F9FAFB",
+                              color: COLORS.muted,
+                            }}
+                            onFocus={(e) => e.target.select()}
+                          />
+                        </div>
+                      ) : null}
+                    </div>
+                    {inv.status === "pending" ? (
+                      <button
+                        type="button"
+                        className="pp-btn pp-btn--quiet pp-btn--sm"
+                        onClick={() => void handleRevoke(inv.id)}
+                        style={{ flexShrink: 0 }}
+                      >
+                        Revogar
+                      </button>
+                    ) : null}
+                  </div>
+                ))
+              )}
+            </div>
+          ) : null}
+        </div>
+      </div>
+
       {selectedStudent ? (
         <StudentProfileModal
           studentId={selectedStudent.id}
           studentName={selectedStudent.name}
           onClose={() => setSelectedStudent(null)}
         />
+      ) : null}
+
+      {/* Invite modal */}
+      {showInviteModal ? (
+        <div
+          style={{
+            position: "fixed", inset: 0, zIndex: 1000,
+            background: "rgba(15,23,42,0.45)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            padding: 16,
+          }}
+          onClick={(e) => { if (e.target === e.currentTarget) closeInviteModal(); }}
+        >
+          <div
+            style={{
+              background: "#FFFFFF",
+              borderRadius: 16,
+              padding: 28,
+              maxWidth: 480,
+              width: "100%",
+              display: "grid",
+              gap: 16,
+              boxShadow: "0 20px 60px rgba(0,0,0,.18)",
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div style={{ fontWeight: 700, fontSize: 18, color: COLORS.text }}>
+                Convidar aluno direto
+              </div>
+              <button
+                type="button"
+                onClick={closeInviteModal}
+                style={{ background: "none", border: "none", cursor: "pointer", fontSize: 20, color: COLORS.muted, lineHeight: 1 }}
+              >
+                ×
+              </button>
+            </div>
+
+            {!createdInviteUrl ? (
+              <>
+                <div style={{ fontSize: 13, color: COLORS.muted, lineHeight: 1.5 }}>
+                  Gere um link de convite. O aluno se cadastra pelo link e já aparece na sua carteira — sem precisar de academia.
+                </div>
+
+                <div style={{ display: "grid", gap: 10 }}>
+                  <div>
+                    <label style={{ fontSize: 12, fontWeight: 600, color: COLORS.muted, display: "block", marginBottom: 4 }}>
+                      Nome do aluno (opcional)
+                    </label>
+                    <input
+                      value={inviteName}
+                      onChange={(e) => setInviteName(e.target.value)}
+                      placeholder="Ex: João Silva"
+                      className="pp-input"
+                      style={{ width: "100%" }}
+                      maxLength={255}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 12, fontWeight: 600, color: COLORS.muted, display: "block", marginBottom: 4 }}>
+                      E-mail do aluno (opcional)
+                    </label>
+                    <input
+                      value={inviteEmail}
+                      onChange={(e) => setInviteEmail(e.target.value)}
+                      placeholder="aluno@email.com"
+                      type="email"
+                      className="pp-input"
+                      style={{ width: "100%" }}
+                    />
+                  </div>
+                </div>
+
+                {inviteError ? (
+                  <div style={{ color: COLORS.danger, fontSize: 13, background: COLORS.dangerBg, border: `1px solid ${COLORS.dangerBorder}`, borderRadius: 8, padding: "8px 12px" }}>
+                    {inviteError}
+                  </div>
+                ) : null}
+
+                <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+                  <button type="button" className="pp-btn pp-btn--quiet pp-btn--sm" onClick={closeInviteModal}>
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    className="pp-btn pp-btn--primary pp-btn--sm"
+                    disabled={inviteLoading}
+                    onClick={() => void handleCreateInvite()}
+                  >
+                    {inviteLoading ? "Gerando…" : "Gerar link"}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div style={{ fontSize: 13, color: COLORS.muted, lineHeight: 1.5 }}>
+                  Link gerado com sucesso! Validade de 14 dias. Copie e envie ao aluno pelo canal que preferir.
+                </div>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <input
+                    ref={inviteUrlRef}
+                    readOnly
+                    value={createdInviteUrl}
+                    style={{
+                      flex: 1,
+                      fontSize: 13,
+                      padding: "8px 10px",
+                      borderRadius: 8,
+                      border: `1px solid ${COLORS.border}`,
+                      background: "#F9FAFB",
+                      color: COLORS.text,
+                    }}
+                    onFocus={(e) => e.target.select()}
+                  />
+                  <button
+                    type="button"
+                    className="pp-btn pp-btn--primary pp-btn--sm"
+                    onClick={copyInviteUrl}
+                    style={{ flexShrink: 0 }}
+                  >
+                    Copiar
+                  </button>
+                </div>
+                <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                  <button type="button" className="pp-btn pp-btn--quiet pp-btn--sm" onClick={closeInviteModal}>
+                    Fechar
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
       ) : null}
     </div>
   );

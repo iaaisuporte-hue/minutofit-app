@@ -286,7 +286,7 @@ export default function MessagesPage() {
 
               {students.length === 0 ? (
                 <div style={{ color: "#6B7280", fontSize: 12 }}>
-                  Sem alunos vinculados ativos.
+                  Sem alunos vinculados ativos. Convide alunos diretos pela página de Alunos.
                 </div>
               ) : (
                 <div
