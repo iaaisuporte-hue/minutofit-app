@@ -201,9 +201,17 @@ export default function WorkoutBuilderPage() {
   // ── AI ────────────────────────────────────────────────────────────
   const [aiPrompt, setAiPrompt] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
-  const [showAi, setShowAi] = useState(false);
   const [weeklyPlan, setWeeklyPlan] = useState<AiGeneratedWeeklyPlan | null>(null);
   const [selectedDayIdx, setSelectedDayIdx] = useState(0);
+
+  const AI_QUICK_PROMPTS = useMemo(
+    () => [
+      "Treino ABC para iniciante focado em hipertrofia, 4 dias por semana",
+      "Plano de perna intermediário com técnica de drop set",
+      "Treino full body 3 dias para emagrecimento com pausas curtas",
+    ],
+    []
+  );
 
   // ── Effects ───────────────────────────────────────────────────────
   useEffect(() => {
@@ -557,6 +565,10 @@ export default function WorkoutBuilderPage() {
     }
   }
 
+  function setQuickPrompt(text: string) {
+    setAiPrompt(text);
+  }
+
   // ── Shared styles ─────────────────────────────────────────────────
   const inputS: React.CSSProperties = {
     minHeight: 34,
@@ -734,7 +746,106 @@ export default function WorkoutBuilderPage() {
         {/* ── Library ─────────────────────────────────────────────── */}
         <WbCard>
           <div style={{ padding: 16, display: "grid", gap: 12, order: narrow ? 2 : 1 }}>
-            <div style={{ fontWeight: 650, fontSize: 15, color: WB.text }}>Exercícios</div>
+            {/* ── AI generation — top of card, always visible ────────────── */}
+            <div
+              data-testid="ai-workout-cta"
+              style={{
+                position: "relative",
+                borderRadius: 12,
+                padding: 14,
+                background:
+                  "linear-gradient(135deg, rgba(22,163,74,0.10) 0%, rgba(59,130,246,0.10) 100%)",
+                border: `1px solid ${WB.primaryBorder}`,
+                display: "grid",
+                gap: 10,
+                overflow: "hidden",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
+                <span
+                  aria-hidden="true"
+                  style={{
+                    width: 28,
+                    height: 28,
+                    borderRadius: 8,
+                    background: WB.primary,
+                    display: "grid",
+                    placeItems: "center",
+                    color: "#FFFFFF",
+                    flexShrink: 0,
+                  }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 3l1.9 4.6L18.5 9.5l-4.6 1.9L12 16l-1.9-4.6L5.5 9.5l4.6-1.9z" />
+                    <path d="M19 14l.7 1.7L21.4 16l-1.7.7L19 18l-.7-1.3L16.6 16l1.7-.3z" />
+                  </svg>
+                </span>
+                <div style={{ display: "grid", gap: 2 }}>
+                  <div style={{ fontWeight: 700, fontSize: 14, color: WB.text, letterSpacing: "-0.01em" }}>
+                    Gerar treino com IA
+                  </div>
+                  <div style={{ fontSize: 11.5, color: WB.muted, lineHeight: 1.4 }}>
+                    Descreva o treino — a IA monta a ficha semanal com base no catálogo.
+                  </div>
+                </div>
+              </div>
+
+              <textarea
+                value={aiPrompt}
+                onChange={(e) => setAiPrompt(e.target.value)}
+                placeholder="Ex: Treino ABC para iniciante focado em hipertrofia, 4 dias por semana"
+                rows={2}
+                style={{
+                  ...inputS,
+                  width: "100%",
+                  minHeight: 60,
+                  resize: "vertical",
+                  fontFamily: "inherit",
+                  fontSize: 13,
+                  background: "rgba(255,255,255,0.85)",
+                }}
+                maxLength={400}
+                disabled={aiLoading}
+              />
+
+              {!aiPrompt.trim() ? (
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                  {AI_QUICK_PROMPTS.map((qp) => (
+                    <button
+                      key={qp}
+                      type="button"
+                      onClick={() => setQuickPrompt(qp)}
+                      style={{
+                        padding: "4px 9px",
+                        borderRadius: 999,
+                        border: `1px solid ${WB.border}`,
+                        background: "rgba(255,255,255,0.7)",
+                        color: WB.text,
+                        cursor: "pointer",
+                        fontWeight: 600,
+                        fontSize: 11,
+                        lineHeight: 1.35,
+                        textAlign: "left",
+                        maxWidth: "100%",
+                      }}
+                      title="Usar este prompt"
+                    >
+                      {qp.length > 40 ? `${qp.slice(0, 38)}…` : qp}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+
+              <WbButton
+                variant="primary"
+                disabled={!aiPrompt.trim() || aiLoading}
+                onClick={() => void generateWithAi()}
+              >
+                {aiLoading ? "Gerando ficha…" : "Gerar ficha com IA"}
+              </WbButton>
+            </div>
+
+            <div style={{ fontWeight: 650, fontSize: 15, color: WB.text, marginTop: 4 }}>Exercícios</div>
 
             {/* Search */}
             <input
@@ -988,58 +1099,6 @@ export default function WorkoutBuilderPage() {
               ) : null}
             </div>
 
-            {/* AI generation accordion */}
-            <div style={{ borderTop: `1px solid ${WB.border}`, paddingTop: 10 }}>
-              <button
-                type="button"
-                onClick={() => setShowAi((v) => !v)}
-                style={{
-                  background: "none",
-                  border: "none",
-                  cursor: "pointer",
-                  color: WB.muted,
-                  fontSize: 12,
-                  fontWeight: 650,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 5,
-                  padding: 0,
-                }}
-              >
-                <span style={{ fontSize: 10 }}>{showAi ? "▲" : "▼"}</span>
-                Gerar com IA
-              </button>
-
-              {showAi ? (
-                <div style={{ marginTop: 10, display: "grid", gap: 8 }}>
-                  <div style={{ fontSize: 12, color: WB.muted, lineHeight: 1.45 }}>
-                    Descreva o treino em linguagem natural. A IA escolherá exercícios do catálogo e preencherá séries, reps e descanso.
-                  </div>
-                  <textarea
-                    value={aiPrompt}
-                    onChange={(e) => setAiPrompt(e.target.value)}
-                    placeholder="Ex: Treino de perna para iniciante, 4 dias na semana, foco em hipertrofia"
-                    rows={3}
-                    style={{
-                      ...inputS,
-                      width: "100%",
-                      minHeight: 72,
-                      resize: "vertical",
-                      fontFamily: "inherit",
-                      fontSize: 13,
-                    }}
-                    maxLength={400}
-                  />
-                  <WbButton
-                    variant="primary"
-                    disabled={!aiPrompt.trim() || aiLoading}
-                    onClick={() => void generateWithAi()}
-                  >
-                    {aiLoading ? "Gerando…" : "Gerar ficha"}
-                  </WbButton>
-                </div>
-              ) : null}
-            </div>
           </div>
         </WbCard>
 

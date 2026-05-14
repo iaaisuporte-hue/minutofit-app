@@ -44,6 +44,11 @@ export async function generateWorkoutWithAi(
   if (response.status === 429) {
     throw new Error(data?.error || "Limite de chamadas de IA atingido. Aguarde alguns minutos.");
   }
+  if (response.status === 504) {
+    throw new Error(
+      data?.error || "A IA demorou demais para responder. Tente um prompt mais curto ou tente novamente."
+    );
+  }
   if (!response.ok) {
     throw new Error(data?.error || "Não foi possível gerar a ficha.");
   }
