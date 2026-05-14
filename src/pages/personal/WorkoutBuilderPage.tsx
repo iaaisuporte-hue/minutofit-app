@@ -11,7 +11,7 @@ import {
   type ProtocolSuggestion,
   type WorkoutProtocol,
 } from "../../services/workoutProtocolsApi";
-import { generateWorkoutWithAi, type AiGeneratedExercise } from "../../services/aiWorkoutApi";
+import { generateWorkoutWithAi, type AiGeneratedExercise, type AiGeneratedWeeklyPlan } from "../../services/aiWorkoutApi";
 import {
   FeedbackBanner,
   IconArrowDown,
@@ -171,6 +171,8 @@ export default function WorkoutBuilderPage() {
   const [aiPrompt, setAiPrompt] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
   const [showAi, setShowAi] = useState(false);
+  const [weeklyPlan, setWeeklyPlan] = useState<AiGeneratedWeeklyPlan | null>(null);
+  const [selectedDayIdx, setSelectedDayIdx] = useState(0);
 
   // ── Effects ───────────────────────────────────────────────────────
   useEffect(() => {
@@ -422,8 +424,17 @@ export default function WorkoutBuilderPage() {
         sets: g.sets,
         reps: g.reps,
         rest: g.rest,
+        notes: g.note ?? undefined,
       };
     });
+  }
+
+  function loadDay(plan: AiGeneratedWeeklyPlan, dayIdx: number) {
+    const day = plan.days[dayIdx];
+    if (!day) return;
+    setSelectedDayIdx(dayIdx);
+    setWorkoutName(`${plan.title} — ${day.name}`);
+    setItems(resolveAiExercises(day.exercises));
   }
 
   async function generateWithAi() {
@@ -433,11 +444,15 @@ export default function WorkoutBuilderPage() {
     try {
       const catalogNames = allExercises.map((e) => e.name);
       const result = await generateWorkoutWithAi(aiPrompt.trim(), catalogNames);
-      if (result.title) setWorkoutName(result.title);
       if (result.weekPreset) setWeekPreset(coerceWeekPreset(result.weekPreset));
-      const resolved = resolveAiExercises(result.exercises ?? []);
-      setItems(resolved);
-      setFeedback({ kind: "success", message: `IA gerou ${resolved.length} exercícios. Revise e ajuste conforme necessário.` });
+      setWeeklyPlan(result);
+      setSelectedDayIdx(0);
+      loadDay(result, 0);
+      const totalEx = result.days.reduce((s, d) => s + d.exercises.length, 0);
+      setFeedback({
+        kind: "success",
+        message: `Plano ${result.split ?? ""} gerado: ${result.days.length} dias, ${totalEx} exercícios. Selecione o dia e revise.`,
+      });
       setShowAi(false);
     } catch (e) {
       setFeedback({
@@ -844,6 +859,39 @@ export default function WorkoutBuilderPage() {
                 <div style={{ fontWeight: 650, fontSize: 15, color: WB.text }}>Lista do treino</div>
                 <span style={pillStyle(WB.primarySoft, WB.primaryBorder)}>{items.length} exercício(s)</span>
               </div>
+
+              {/* Day selector — appears when IA returns a weekly plan */}
+              {weeklyPlan && weeklyPlan.days.length > 1 ? (
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: WB.muted, textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 6 }}>
+                    Plano {weeklyPlan.split} — selecione o dia
+                  </div>
+                  <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                    {weeklyPlan.days.map((day, idx) => (
+                      <button
+                        key={day.name}
+                        type="button"
+                        onClick={() => loadDay(weeklyPlan, idx)}
+                        style={{
+                          padding: "5px 11px",
+                          borderRadius: 8,
+                          border: `1px solid ${idx === selectedDayIdx ? WB.primaryBorder : WB.border}`,
+                          background: idx === selectedDayIdx ? WB.primary : "transparent",
+                          color: idx === selectedDayIdx ? "#FFFFFF" : WB.text,
+                          cursor: "pointer",
+                          fontSize: 12,
+                          fontWeight: 650,
+                          lineHeight: 1.4,
+                        }}
+                        title={day.focus}
+                      >
+                        {day.name}
+                        <span style={{ display: "block", fontSize: 10, fontWeight: 400, opacity: 0.8 }}>{day.focus}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
 
               {items.length === 0 ? (
                 <div

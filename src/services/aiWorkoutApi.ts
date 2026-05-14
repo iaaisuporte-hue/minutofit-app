@@ -6,18 +6,26 @@ export type AiGeneratedExercise = {
   sets: string;
   reps: string;
   rest: string;
+  note?: string | null;
 };
 
-export type AiGeneratedWorkout = {
+export type AiGeneratedDay = {
+  name: string;
+  focus: string;
+  exercises: AiGeneratedExercise[];
+};
+
+export type AiGeneratedWeeklyPlan = {
   title: string;
   weekPreset: string;
-  exercises: AiGeneratedExercise[];
+  split: string;
+  days: AiGeneratedDay[];
 };
 
 export async function generateWorkoutWithAi(
   prompt: string,
   catalogNames: string[]
-): Promise<AiGeneratedWorkout> {
+): Promise<AiGeneratedWeeklyPlan> {
   const response = await authFetch(`${API_URL}/personal/ai/generate-workout`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -40,5 +48,5 @@ export async function generateWorkoutWithAi(
     throw new Error(data?.error || "Não foi possível gerar a ficha.");
   }
 
-  return data?.data as AiGeneratedWorkout;
+  return data?.data as AiGeneratedWeeklyPlan;
 }
