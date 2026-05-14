@@ -7,6 +7,10 @@ export type UserWorkoutPlanItem = {
   sets: string;
   reps: string;
   rest: string;
+  rpe?: string;
+  cadence?: string;
+  restPause?: boolean;
+  notes?: string;
 };
 
 export type UserWorkoutPlan = {

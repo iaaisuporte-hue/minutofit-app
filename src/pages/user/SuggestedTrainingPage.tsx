@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext";
 import { loadAnswers } from "./onboarding/onboardingStorage";
-import { getYesterdayMuscleGroups } from "./workoutHistory";
+import { type MuscleGroup, getYesterdayMuscleGroups } from "./workoutHistory";
 import { addXp, registerDailyCheckin } from "./gamification";
 import { persistGamificationCheckin } from "../../services/gamificationApi";
 import { addWorkoutHistoryEntry } from "./workoutHistory";
@@ -17,6 +17,16 @@ import {
   type SelectableStrengthGroup,
   defaultSignals,
 } from "../../features/training/metabolicRecommendationTypes";
+
+const groupLabelMap: Partial<Record<MuscleGroup, string>> = {
+  chest: "peito",
+  back: "costas",
+  legs: "pernas",
+  shoulders: "ombros",
+  arms: "braços",
+  core: "core",
+  cardio: "cardio",
+};
 
 function Card({
   children,

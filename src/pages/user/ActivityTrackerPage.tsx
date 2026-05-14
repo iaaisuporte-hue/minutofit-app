@@ -10,7 +10,7 @@ import "./activityTracker.css";
 import { type Activity } from "../../features/tracker/types";
 import { ACTIVITY_META } from "../../features/tracker/constants";
 import { estimateCalories, classifyIntensity, INTENSITY_LABELS, getTodayStatus, getReadinessAdvice, getPerformanceSignal } from "../../features/tracker/metrics";
-import { calculateRouteDistanceKm } from "../../features/tracker/geometry";
+import { calculateRouteDistanceKm, getDistanceBetweenPointsKm } from "../../features/tracker/geometry";
 import { analyzeActivityValidity } from "../../features/tracker/validation";
 import { formatTime, formatPace, calculatePace, parseStoredActivities } from "../../features/tracker/utils";
 

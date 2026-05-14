@@ -50,7 +50,7 @@ export default function WorkoutPlayerPage() {
   const supportDuration = Number(searchParams.get("durationMin") ?? "1");
   const returnTo = searchParams.get("returnTo") || "/app/user/treinos";
 
-  const workout = useMemo(() => {
+  const workout = useMemo<Workout | null>(() => {
     if (!workoutId) return null;
     if (workoutId === "support-video" && supportVideoId) {
       return {
