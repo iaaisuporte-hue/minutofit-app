@@ -17,7 +17,6 @@ import AcceptInvitationPage from "./pages/AcceptInvitationPage";
 import DirectInviteAcceptPage from "./pages/DirectInviteAcceptPage";
 import ColorModeToggle from "./components/ColorModeToggle";
 import CookieConsentBanner from "./components/CookieConsentBanner";
-import HomePage from "./pages/HomePage";
 import PrivacyPolicyPage from "./pages/PrivacyPolicyPage";
 
 export default function App() {
@@ -30,7 +29,6 @@ export default function App() {
         <Routes>
           <Route path="/privacidade" element={<PrivacyPolicyPage />} />
           <Route path="/" element={<Navigate to="/login" replace />} />
-          <Route path="/home-teste" element={<HomePage />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />

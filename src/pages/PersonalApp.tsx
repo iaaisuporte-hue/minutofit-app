@@ -10,11 +10,9 @@ import "./personal/personalPremium.css";
 
 import DashboardPage from "./personal/DashboardPage";
 import StudentsListPage from "./personal/StudentsListPage";
-import ConsultingStudentsPage from "./personal/ConsultingStudentsPage";
 import MessagesPage from "./personal/MessagesPage";
 import ReviewWorkoutsPage from "./personal/ReviewWorkoutsPage";
 import WorkoutLibraryPage from "./personal/WorkoutLibraryPage";
-import VideoLibraryPage from "./personal/VideoLibraryPage";
 import StudentProfilePage from "./personal/StudentProfilePage";
 
 // ✅ BUILDER REAL
@@ -195,13 +193,11 @@ export default function PersonalApp() {
 
             <Route path="dashboard" element={<DashboardPage />} />
             <Route path="students" element={<StudentsListPage />} />
-            {/* Consultoria mantida como rota para não quebrar deep links existentes */}
-            <Route path="consulting" element={<ConsultingStudentsPage />} />
+            <Route path="consulting" element={<Navigate to="/app/personal/students" replace />} />
             <Route path="messages" element={<MessagesPage />} />
             <Route path="review" element={<ReviewWorkoutsPage />} />
             <Route path="library" element={<WorkoutLibraryPage />} />
-            {/* Vídeos mantida como rota para não quebrar deep links existentes */}
-            <Route path="videos" element={<VideoLibraryPage />} />
+            <Route path="videos" element={<Navigate to="/app/personal/library" replace />} />
 
             {/* BUILDER standalone (sem aluno pré-selecionado) */}
             <Route

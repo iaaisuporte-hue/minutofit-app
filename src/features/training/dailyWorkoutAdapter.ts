@@ -7,6 +7,7 @@ import {
   type DailyWorkoutCondition,
   type DailyWorkoutEngineInput,
 } from "./generateDailyWorkout";
+import { searchExercises, type ExerciseSummary } from "../../services/exercisesApi";
 
 function startOfDay(date: Date) {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate());
@@ -90,4 +91,66 @@ export function buildDailyWorkoutRecommendation(params: {
 
 export function getWorkoutRoute(type: "home" | "gym") {
   return type === "home" ? "/app/user/treinos/em-casa" : "/app/user/treinos";
+}
+
+// ---------------------------------------------------------------------------
+// Resolução assíncrona de exercise_id por nome (para enriquecer o motor diário)
+// ---------------------------------------------------------------------------
+
+let _exerciseCacheTimestamp = 0;
+let _exerciseCache: ExerciseSummary[] = [];
+const EXERCISE_CACHE_TTL = 5 * 60 * 1000;
+
+async function getExerciseCacheLocal(): Promise<ExerciseSummary[]> {
+  if (_exerciseCache.length && Date.now() - _exerciseCacheTimestamp < EXERCISE_CACHE_TTL) {
+    return _exerciseCache;
+  }
+  try {
+    const exercises = await searchExercises({ limit: 200 });
+    _exerciseCache = exercises;
+    _exerciseCacheTimestamp = Date.now();
+    return exercises;
+  } catch {
+    return _exerciseCache; // fallback to stale cache on error
+  }
+}
+
+/**
+ * Enriquece uma lista de nomes de exercícios com exercise_id da biblioteca.
+ * Usado por SuggestedTrainingPage e TodayPage para vincular exercícios à biblioteca.
+ * Retorna um map: nome normalizado → ExerciseSummary (ou null se não encontrado).
+ */
+export async function resolveExerciseNamesBatch(
+  names: string[]
+): Promise<Map<string, ExerciseSummary>> {
+  const result = new Map<string, ExerciseSummary>();
+  if (!names.length) return result;
+
+  try {
+    const all = await getExerciseCacheLocal();
+
+    for (const name of names) {
+      const normalized = name
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9\s]/g, "")
+        .replace(/\s+/g, " ")
+        .trim();
+
+      const exact = all.find((e) => e.normalizedName === normalized);
+      if (exact) {
+        result.set(name, exact);
+        continue;
+      }
+      const partial = all.find(
+        (e) => e.normalizedName.includes(normalized) || normalized.includes(e.normalizedName.split(" ")[0])
+      );
+      if (partial) result.set(name, partial);
+    }
+  } catch {
+    // silent — caller handles empty map
+  }
+
+  return result;
 }

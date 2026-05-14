@@ -1,4 +1,6 @@
 // src/pages/user/onboarding/onboardingStorage.ts
+import { authFetch } from "../../../services/apiClient";
+import { API_URL } from "../../../services/apiBase";
 
 export type UserPlan = "basic" | "silver" | "gold" | "black";
 
@@ -67,6 +69,36 @@ export function saveAnswers(a: OnboardingAnswers, userId: string) {
   const id = normalizeUserId(userId);
   if (!id) return;
   localStorage.setItem(k(KEY_ANSWERS, id), JSON.stringify(a));
+  // Persiste na API de forma assíncrona — falha silenciosa (localStorage é a fonte de verdade local)
+  syncOnboardingToApi(a).catch(() => {});
+}
+
+/** Envia as respostas de onboarding para a API para persistência cross-device. */
+async function syncOnboardingToApi(answers: OnboardingAnswers): Promise<void> {
+  try {
+    await authFetch(`${API_URL}/auth/onboarding`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ answers }),
+    });
+  } catch {
+    // Sem rede ou token expirado — ignora; dado está salvo em localStorage
+  }
+}
+
+/**
+ * Hidrata o localStorage com os dados de onboarding vindos do servidor.
+ * Chamar após login quando o usuário não tem respostas locais (ex: novo device).
+ */
+export function hydrateOnboardingFromUser(
+  userId: string,
+  onboardingAnswers: OnboardingAnswers | null | undefined
+): void {
+  if (!onboardingAnswers) return;
+  const id = normalizeUserId(userId);
+  if (!id) return;
+  if (localStorage.getItem(k(KEY_ANSWERS, id))) return; // já tem dados locais — não sobrescreve
+  localStorage.setItem(k(KEY_ANSWERS, id), JSON.stringify(onboardingAnswers));
 }
 
 export function loadAnswers(userId: string): OnboardingAnswers | null {

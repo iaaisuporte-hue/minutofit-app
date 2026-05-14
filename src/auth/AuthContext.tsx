@@ -18,6 +18,7 @@ import { SESSION_EXPIRED_EVENT } from "../services/apiBase";
 import { clearTokens as clearStoredTokens, getAccessToken, getRefreshToken, setTokens } from "../services/authTokens";
 import { API_URL } from "../services/apiBase";
 import { extractTenantSlug, fetchBranding, applyBranding, removeBranding } from "../services/tenantHost";
+import { hydrateOnboardingFromUser } from "../pages/user/onboarding/onboardingStorage";
 
 export type Role = "user" | "personal" | "nutri" | "admin";
 
@@ -80,9 +81,6 @@ type AuthContextType = AuthState & {
   hasProduct: (productKey: string) => boolean;
   switchAcademy: (academyId: number) => Promise<{ ok: true } | { ok: false; message: string }>;
 
-  /** ✅ Admin (Mock)*/
-  resetUserPassword: (email: string, newPassword?: string) => { ok: true; message: string } | { ok: false; message: string };
-  listUsers: () => Array<{ email: string; role: Role }>;
 };
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -179,6 +177,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const activeAcademyId = resolveActiveAcademyId(academies);
           // If JWT was issued without academy context, auto-switch to get proper permissions
           const { user: finalUser } = await ensureAcademyContext(user, activeAcademyId);
+
+          // Hidrata localStorage com onboarding vindo do servidor (cross-device sync)
+          if (finalUser.id && finalUser.onboardingAnswers) {
+            hydrateOnboardingFromUser(
+              String(finalUser.id),
+              finalUser.onboardingAnswers as any
+            );
+          }
+
           setState({
             isAuthenticated: true,
             role: finalUser.role,
@@ -454,17 +461,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       },
 
-      resetUserPassword: (email, newPassword) => {
-        const target = normalizeEmail(email);
-        if (!target || !target.includes("@")) return { ok: false, message: "Informe um e-mail válido." };
-
-        const pass = (newPassword ?? "123456").trim();
-        if (pass.length < 4) return { ok: false, message: "A senha deve ter pelo menos 4 caracteres." };
-
-        return { ok: false, message: "Reset local desativado. Use o backend/admin para gerenciar senhas." };
-      },
-
-      listUsers: () => [],
     };
   }, [state]);
 

@@ -3,7 +3,7 @@ import { useLocation, useNavigate, useParams, useSearchParams } from "react-rout
 import { fetchPersonalDashboard } from "../../services/personalDashboardApi";
 import type { PersonalDashboardStudent } from "../../services/personalDashboardApi";
 import { createPersonalWorkoutPlan, fetchPersonalWorkoutPlans } from "../../services/personalWorkoutApi";
-import { fetchExerciseCatalog, type ExerciseCatalogEntry } from "../../services/exerciseCatalogApi";
+import { searchExercises, exerciseSummaryToCatalogEntry } from "../../services/exercisesApi";
 import {
   createWorkoutProtocol,
   fetchProtocolSuggestions,
@@ -52,7 +52,10 @@ type Exercise = {
   name: string;
   group: MuscleGroup;
   videoUrl?: string;
-  source: "seed" | "video";
+  source: "seed" | "video" | "metacore";
+  bodyPart?: string;
+  equipment?: string;
+  primaryMediaUrl?: string | null;
 };
 
 type WorkoutExercise = {
@@ -78,9 +81,18 @@ const CATALOG_GROUPS: MuscleGroup[] = [
   "Perna", "Peito", "Costas", "Ombro", "Bíceps", "Tríceps", "Abdômen", "Glúteo", "Cardio",
 ];
 
-function catalogEntryToExercise(e: ExerciseCatalogEntry): Exercise {
+function catalogEntryToExercise(e: ReturnType<typeof exerciseSummaryToCatalogEntry>): Exercise {
   const group = (KNOWN_GROUPS.includes(e.group as MuscleGroup) ? e.group : "Outros") as MuscleGroup;
-  return { id: e.id, name: e.name, group, videoUrl: e.videoUrl ?? undefined, source: e.source };
+  return {
+    id: e.id,
+    name: e.name,
+    group,
+    videoUrl: e.videoUrl ?? undefined,
+    source: "metacore",
+    bodyPart: e.bodyPart,
+    equipment: e.equipment,
+    primaryMediaUrl: e.primaryMediaUrl,
+  };
 }
 
 function coerceWeekPreset(raw: string): "semana_util" | "4" | "5" | "6" {
@@ -216,9 +228,9 @@ export default function WorkoutBuilderPage() {
     setCatalogError(null);
     void (async () => {
       try {
-        const rows = await fetchExerciseCatalog({ limit: 100 });
+        const rows = await searchExercises({ limit: 200 });
         if (cancelled) return;
-        setAllExercises(rows.map(catalogEntryToExercise));
+        setAllExercises(rows.map(exerciseSummaryToCatalogEntry).map(catalogEntryToExercise));
       } catch (e) {
         if (!cancelled) {
           setAllExercises([]);
@@ -316,11 +328,11 @@ export default function WorkoutBuilderPage() {
     let base: Exercise[];
 
     if (showVideoOnly) {
-      base = allExercises.filter((e) => e.source === "video");
+      base = allExercises.filter((e) => e.primaryMediaUrl != null || e.videoUrl != null);
     } else if (libGroupFilter === "all") {
-      base = allExercises.filter((e) => e.source === "seed");
+      base = allExercises;
     } else {
-      base = allExercises.filter((e) => e.source === "seed" && e.group === libGroupFilter);
+      base = allExercises.filter((e) => e.group === libGroupFilter);
     }
 
     if (!q) return base;
@@ -413,7 +425,24 @@ export default function WorkoutBuilderPage() {
 
   // ── AI generation ─────────────────────────────────────────────────
   function resolveAiExercises(generated: AiGeneratedExercise[]): WorkoutExercise[] {
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     return generated.map((g) => {
+      // IA nova retorna exercise_id UUID — usa direto se existir na lista carregada
+      const byId = (g as { exercise_id?: string }).exercise_id;
+      if (byId && UUID_RE.test(byId)) {
+        const match = allExercises.find((c) => c.id === byId);
+        if (match) {
+          return {
+            exerciseId: match.id,
+            name: match.name,
+            sets: g.sets,
+            reps: g.reps,
+            rest: g.rest,
+            notes: g.note ?? undefined,
+          };
+        }
+      }
+      // Fallback: match por nome (IA legada ou exercício ainda não em memória)
       const nameLower = g.name.toLowerCase();
       const match =
         allExercises.find((c) => c.name.toLowerCase() === nameLower) ??
