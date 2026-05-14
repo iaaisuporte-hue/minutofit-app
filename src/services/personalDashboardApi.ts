@@ -32,6 +32,9 @@ export type PersonalDashboardStudent = {
   streakDays: number;
   lastWorkoutISO: string | null;
   adherencePct: number;
+  adherenceScore: number;
+  engagementScore: number;
+  riskScore: number;
   risk: PersonalDashboardRisk;
   goal: PersonalDashboardGoal;
   notes?: string | null;
@@ -54,6 +57,13 @@ export type PersonalDashboardAlert = {
   studentName: string | null;
 };
 
+export type RetentionInsight = {
+  kind: "adherence_correlation" | "individual_drop" | "portfolio_signal";
+  title: string;
+  body: string;
+  studentId: string | null;
+};
+
 export type PersonalDashboardResponse = {
   summary: {
     totalStudents: number;
@@ -69,6 +79,8 @@ export type PersonalDashboardResponse = {
     needsFollowUp: PersonalDashboardStudent[];
     intelligentAlerts: PersonalDashboardAlert[];
     metabolismDistribution: { low: number; moderate: number; high: number; unknown: number };
+    atRiskTop: PersonalDashboardStudent[];
+    insights: RetentionInsight[];
   };
   students: PersonalDashboardStudent[];
   generatedAt: string;

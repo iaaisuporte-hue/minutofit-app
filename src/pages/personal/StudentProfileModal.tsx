@@ -22,6 +22,8 @@ import {
 } from "../../features/metabolism/metabolismDerivations";
 import { suggestCockpitAction, type CockpitTabId } from "./lib/cockpitActions";
 import StudentTechnicalNotes from "./StudentTechnicalNotes";
+import { RelationshipTimeline } from "../../features/personalRetention/RelationshipTimeline";
+import { QuickActionsMenu } from "../../features/personalRetention/QuickActionsMenu";
 import "./personalPremium.css";
 
 type TabId = CockpitTabId;
@@ -400,6 +402,9 @@ export default function StudentProfileModal({
             </button>
             <button type="button" className="pp-tab" aria-selected={tab === "technical"} onClick={() => setTab("technical")}>
               Técnica
+            </button>
+            <button type="button" className="pp-tab" aria-selected={tab === "relationship"} onClick={() => setTab("relationship")}>
+              Relacionamento
             </button>
           </div>
         ) : null}
@@ -812,6 +817,22 @@ export default function StudentProfileModal({
             highlights={data.technical?.highlights ?? []}
             onSaved={() => void loadSnapshot()}
           />
+        ) : null}
+
+        {tab === "relationship" ? (
+          <div style={{ padding: "4px 0" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: "var(--color-text-primary)" }}>
+                Histórico de relacionamento
+              </span>
+              <QuickActionsMenu
+                studentId={studentId}
+                studentName={data?.name ?? ""}
+                onActionDone={() => {}}
+              />
+            </div>
+            <RelationshipTimeline studentId={studentId} />
+          </div>
         ) : null}
     </aside>
   );

@@ -746,6 +746,482 @@
   }
 }
 
+/* ── Retention Intelligence ──────────────────────────────────────── */
+
+.pp-risk-card {
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  border-radius: var(--radius-lg, 14px);
+  padding: 16px;
+  box-shadow: var(--shadow-sm);
+}
+
+.pp-risk-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.pp-risk-card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.pp-risk-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.pp-risk-row:last-child {
+  border-bottom: none;
+}
+
+.pp-risk-row-name {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pp-risk-row-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.pp-risk-row-stat {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
+.pp-risk-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 7px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.pp-risk-chip-ok {
+  background: rgba(var(--color-success-rgb, 34,197,94), 0.12);
+  color: var(--color-success);
+}
+
+.pp-risk-chip-alerta {
+  background: rgba(var(--color-warn-rgb, 234,179,8), 0.12);
+  color: var(--color-warn);
+}
+
+.pp-risk-chip-critico {
+  background: rgba(var(--color-danger-rgb, 239,68,68), 0.12);
+  color: var(--color-danger);
+}
+
+.pp-risk-chip-score {
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.pp-risk-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.pp-risk-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-raised);
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--color-text-secondary);
+  transition: background 0.15s, color 0.15s;
+}
+
+.pp-risk-action-btn:hover {
+  background: var(--color-primary);
+  color: #fff;
+  border-color: var(--color-primary);
+}
+
+/* ── Insights Strip ────────────────────────────────────── */
+
+.pp-insights-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.pp-insight-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 20px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  cursor: default;
+  box-shadow: var(--shadow-sm);
+  transition: border-color 0.15s;
+}
+
+.pp-insight-chip:hover {
+  border-color: var(--color-primary);
+}
+
+.pp-insight-chip-icon {
+  color: var(--color-primary);
+  flex-shrink: 0;
+}
+
+.pp-insight-chip-link {
+  font-size: 11px;
+  color: var(--color-primary);
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  margin-left: 2px;
+}
+
+/* ── Quick Message Modal ───────────────────────────────── */
+
+.pp-quick-msg-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.pp-quick-msg-modal {
+  background: var(--color-surface);
+  border-radius: var(--radius-lg, 14px);
+  padding: 24px;
+  width: 100%;
+  max-width: 520px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.18);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.pp-quick-msg-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.pp-template-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.pp-template-chip {
+  padding: 4px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  font-size: 12px;
+  cursor: pointer;
+  background: var(--color-surface-raised);
+  color: var(--color-text-secondary);
+  transition: all 0.15s;
+}
+
+.pp-template-chip.active,
+.pp-template-chip:hover {
+  background: var(--color-primary);
+  color: #fff;
+  border-color: var(--color-primary);
+}
+
+.pp-quick-msg-textarea {
+  width: 100%;
+  min-height: 100px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.5;
+  resize: vertical;
+  background: var(--color-surface-raised);
+  color: var(--color-text-primary);
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.pp-quick-msg-textarea:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+.pp-quick-msg-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+/* ── Timeline (Aba Relacionamento) ─────────────────────── */
+
+.pp-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.pp-timeline-item {
+  display: flex;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.pp-timeline-item:last-child {
+  border-bottom: none;
+}
+
+.pp-timeline-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--color-surface-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--color-primary);
+}
+
+.pp-timeline-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.pp-timeline-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-primary);
+  margin: 0 0 2px;
+}
+
+.pp-timeline-summary {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pp-timeline-date {
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+/* ── Quick Actions Menu ────────────────────────────────── */
+
+.pp-quick-actions-popover {
+  position: relative;
+  display: inline-block;
+}
+
+.pp-quick-actions-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  z-index: 100;
+  min-width: 200px;
+  overflow: hidden;
+}
+
+.pp-quick-actions-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  font-size: 13px;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  transition: background 0.1s;
+}
+
+.pp-quick-actions-item:hover {
+  background: var(--color-surface-subtle);
+}
+
+/* ── Finance Panel ─────────────────────────────────────── */
+
+.pp-finance-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.pp-finance-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+@media (max-width: 720px) {
+  .pp-finance-kpis {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.pp-finance-kpi {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: var(--shadow-sm);
+}
+
+.pp-finance-kpi-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-tertiary);
+  margin: 0 0 6px;
+}
+
+.pp-finance-kpi-value {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.pp-finance-kpi-value.positive {
+  color: var(--color-success);
+}
+
+.pp-finance-kpi-value.negative {
+  color: var(--color-danger);
+}
+
+.pp-sparkline-wrap {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: var(--shadow-sm);
+}
+
+.pp-sparkline-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin: 0 0 12px;
+}
+
+/* ── Observation Modal ─────────────────────────────────── */
+
+.pp-obs-modal {
+  background: var(--color-surface);
+  border-radius: var(--radius-lg, 14px);
+  padding: 24px;
+  width: 100%;
+  max-width: 420px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.18);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.pp-obs-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.pp-obs-textarea {
+  width: 100%;
+  min-height: 80px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  font-size: 13px;
+  resize: vertical;
+  background: var(--color-surface-raised);
+  color: var(--color-text-primary);
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.pp-obs-textarea:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+/* ── Dashboard Tab Strip ───────────────────────────────── */
+
+.pp-dash-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--color-border);
+  margin-bottom: 16px;
+}
+
+.pp-dash-tab {
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: none;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.pp-dash-tab.active {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+}
+
+.pp-dash-tab:hover:not(.active) {
+  color: var(--color-text-primary);
+}
+
 /* ── Workout Builder ─────────────────────────────────────────────── */
 
 .wb-header {

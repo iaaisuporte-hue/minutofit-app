@@ -554,7 +554,6 @@ export default function WorkoutBuilderPage() {
               message: `Plano ${result.split ?? ""} gerado: ${result.days.length} dias, ${totalEx} exercícios. Selecione o dia e revise.`,
             }
       );
-      setShowAi(false);
     } catch (e) {
       setFeedback({
         kind: "error",

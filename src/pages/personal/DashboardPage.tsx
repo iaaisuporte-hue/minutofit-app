@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   fetchPersonalDashboard,
   type PersonalDashboardAlert,
@@ -21,6 +21,12 @@ import {
   type StudentNarrative,
   type StudentNarrativeTone,
 } from "./lib/studentNarrative";
+import { AtRiskCard } from "../../features/personalRetention/AtRiskCard";
+import { InsightsStrip } from "../../features/personalRetention/InsightsStrip";
+import { FinancePanel } from "../../features/personalRetention/FinancePanel";
+import { QuickMessageModal } from "../../features/personalRetention/QuickMessageModal";
+import { useAtRiskStudents } from "../../features/personalRetention/useAtRiskStudents";
+import { createRelationshipAction } from "../../services/personalRetentionApi";
 import "./personalPremium.css";
 
 const PERSONAL_BASE = "/app/personal" as const;
@@ -153,12 +159,15 @@ function technicalNoteReminder(student: PersonalDashboardStudent): string | null
 
 export default function DashboardPage() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
   const [response, setResponse] = useState<PersonalDashboardResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedStudent, setSelectedStudent] = useState<{ id: string; name: string } | null>(null);
   const [pulseFilter, setPulseFilter] = useState<"all" | "healthy" | "attention" | "risk">("all");
+  const [quickMsgStudent, setQuickMsgStudent] = useState<PersonalDashboardStudent | null>(null);
+  const activeTab = searchParams.get("tab") === "financeiro" ? "financeiro" : "carteira";
 
   const loadDashboard = useCallback(async () => {
     try {
@@ -195,6 +204,8 @@ export default function DashboardPage() {
   const students = response?.students ?? [];
   const summary = response?.summary;
   const alerts: PersonalDashboardAlert[] = summary?.intelligentAlerts ?? [];
+  const atRiskStudents = useAtRiskStudents(response);
+  const insights = summary?.insights ?? [];
 
   const headline = useMemo(() => {
     if (!summary) return "";
@@ -380,6 +391,27 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      {/* Tab strip: Carteira | Financeiro */}
+      <div className="pp-dash-tabs">
+        <button
+          className={`pp-dash-tab${activeTab === "carteira" ? " active" : ""}`}
+          onClick={() => setSearchParams({})}
+        >
+          Carteira
+        </button>
+        <button
+          className={`pp-dash-tab${activeTab === "financeiro" ? " active" : ""}`}
+          onClick={() => setSearchParams({ tab: "financeiro" })}
+        >
+          Financeiro
+        </button>
+      </div>
+
+      {activeTab === "financeiro" ? (
+        <FinancePanel />
+      ) : (
+        <>
+
       {loading ? (
         <Card title="Carregando dashboard" subtitle="Organizando prioridades e sinais da carteira.">
           <div style={{ color: COLORS.muted, fontSize: 14 }}>
@@ -405,6 +437,27 @@ export default function DashboardPage() {
             description="Os indicadores de aderência, risco e evolução aparecem assim que os primeiros alunos forem atribuídos pela academia ou convidados diretamente e iniciarem check-ins. Esta tela vai priorizar quem está sumindo ou pedindo ajuste."
           />
         </Card>
+      ) : null}
+
+      {!loading && !error && students.length > 0 && insights.length > 0 ? (
+        <InsightsStrip
+          insights={insights}
+          onStudentClick={(id) => openStudent(id)}
+        />
+      ) : null}
+
+      {!loading && !error && atRiskStudents.length > 0 ? (
+        <AtRiskCard
+          students={atRiskStudents}
+          onMessage={(s) => setQuickMsgStudent(s)}
+          onFollowUp={(s) => {
+            void createRelationshipAction(s.id, {
+              actionType: "follow_up_marked",
+              dueAt: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
+            });
+          }}
+          onOpenProfile={(s) => openStudent(s.id, s.name)}
+        />
       ) : null}
 
       {!loading && !error && students.length > 0 ? (
@@ -502,11 +555,22 @@ export default function DashboardPage() {
         </>
       ) : null}
 
+        </> /* close activeTab === "carteira" else */
+      )}
+
       {selectedStudent ? (
         <StudentProfileModal
           studentId={selectedStudent.id}
           studentName={selectedStudent.name}
           onClose={() => setSelectedStudent(null)}
+        />
+      ) : null}
+
+      {quickMsgStudent ? (
+        <QuickMessageModal
+          studentId={quickMsgStudent.id}
+          studentName={quickMsgStudent.name}
+          onClose={() => setQuickMsgStudent(null)}
         />
       ) : null}
     </div>
