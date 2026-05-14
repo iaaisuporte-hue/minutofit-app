@@ -21,6 +21,7 @@ import {
   WbCard,
 } from "./workoutBuilder/WorkoutBuilderUi";
 import { WB } from "./workoutBuilder/workoutBuilderTheme";
+import { ExerciseDetailModal } from "./workoutBuilder/ExerciseDetailModal";
 import "./personalPremium.css";
 
 const BUILDER_BASE = "/app/personal/students";
@@ -178,6 +179,7 @@ export default function WorkoutBuilderPage() {
   const [feedback, setFeedback] = useState<{ kind: "success" | "error"; message: string } | null>(null);
   const [saving, setSaving] = useState(false);
   const [savingTemplate, setSavingTemplate] = useState(false);
+  const [viewingExerciseId, setViewingExerciseId] = useState<string | null>(null);
 
   // ── AI ────────────────────────────────────────────────────────────
   const [aiPrompt, setAiPrompt] = useState("");
@@ -649,6 +651,19 @@ export default function WorkoutBuilderPage() {
         </div>
       ) : null}
 
+      {viewingExerciseId ? (
+        <ExerciseDetailModal
+          exerciseId={viewingExerciseId}
+          alreadyAdded={items.some((i) => i.exerciseId === viewingExerciseId)}
+          onAdd={() => {
+            const ex = allExercises.find((e) => e.id === viewingExerciseId);
+            if (ex) addExercise(ex);
+            setViewingExerciseId(null);
+          }}
+          onClose={() => setViewingExerciseId(null)}
+        />
+      ) : null}
+
       {/* ── Split panels ───────────────────────────────────────────── */}
       <div
         className="wb-split"
@@ -720,12 +735,66 @@ export default function WorkoutBuilderPage() {
                         opacity: already ? 0.55 : 1,
                       }}
                     >
+                      {ex.primaryMediaUrl ? (
+                        <img
+                          src={ex.primaryMediaUrl}
+                          alt=""
+                          width={40}
+                          height={40}
+                          loading="lazy"
+                          onError={(e) => { e.currentTarget.style.display = "none"; }}
+                          style={{
+                            borderRadius: 6,
+                            objectFit: "cover",
+                            flexShrink: 0,
+                            background: "#F1F5F9",
+                          }}
+                        />
+                      ) : (
+                        <div
+                          style={{
+                            width: 40,
+                            height: 40,
+                            borderRadius: 6,
+                            background: "#F1F5F9",
+                            flexShrink: 0,
+                            display: "grid",
+                            placeItems: "center",
+                            fontSize: 18,
+                            color: WB.muted,
+                          }}
+                        >
+                          ⚡
+                        </div>
+                      )}
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontWeight: 650, fontSize: 13, lineHeight: 1.3 }}>{ex.name}</div>
                         <div style={{ fontSize: 11, color: WB.muted, marginTop: 1 }}>
-                          {ex.source === "video" ? "Vídeo" : ex.group}
+                          {ex.equipment ? `${ex.group} · ${ex.equipment}` : ex.group}
                         </div>
                       </div>
+                      <button
+                        type="button"
+                        disabled={already}
+                        onClick={() => setViewingExerciseId(ex.id)}
+                        title="Ver detalhes"
+                        style={{
+                          width: 28,
+                          height: 28,
+                          borderRadius: 8,
+                          border: `1px solid ${WB.border}`,
+                          background: "transparent",
+                          color: WB.muted,
+                          cursor: "pointer",
+                          fontWeight: 700,
+                          fontSize: 12,
+                          display: "grid",
+                          placeItems: "center",
+                          flexShrink: 0,
+                        }}
+                      >
+                        ···
+                      </button>
                       <button
                         type="button"
                         disabled={already}
