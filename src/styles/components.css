@@ -10,6 +10,8 @@
   grid-template-columns: 248px 1fr;
   min-height: 100vh;
   background: var(--color-bg-main);
+  /* Em mobile, evita scroll horizontal global se algum filho estourar. */
+  overflow-x: clip;
 }
 
 .sidebar {
@@ -35,6 +37,8 @@
   max-width: var(--maxw-content);
   margin: 0 auto;
   min-width: 0;
+  /* Garante que cards filhos não estourem o grid em mobile. */
+  width: 100%;
   display: grid;
   gap: var(--space-4);
 }
@@ -742,7 +746,29 @@ html[data-color-mode="daltonic"] .navLinkActive {
   }
 
   .appShell--withBottomNav .main {
+    /* Reserva espaço pro bottom nav fixo + área segura iOS */
+    padding-left: var(--space-3);
+    padding-right: var(--space-3);
     padding-bottom: calc(80px + env(safe-area-inset-bottom));
+  }
+
+  /* Guard de overflow em mobile — palavras longas e mídia */
+  .main img,
+  .main video {
+    max-width: 100%;
+    height: auto;
+  }
+
+  .container,
+  .container > * {
+    min-width: 0;
+  }
+
+  .container p,
+  .container h1,
+  .container h2,
+  .container h3 {
+    overflow-wrap: anywhere;
   }
 }
 

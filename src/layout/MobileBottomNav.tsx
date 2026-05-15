@@ -18,6 +18,20 @@ const WorkoutsIcon = () => (
   </svg>
 );
 
+const FichaIcon = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" />
+    <rect x="9" y="3" width="6" height="4" rx="1" />
+  </svg>
+);
+
+const ProfileIcon = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+    <circle cx="12" cy="7" r="4" />
+  </svg>
+);
+
 const TrackerIcon = () => (
   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
@@ -42,22 +56,31 @@ interface Props {
   showWorkouts?: boolean;
   showLab?: boolean;
   showTracker?: boolean;
+  /** Mostra "Minha ficha" — destino primário do aluno do personal autônomo */
+  showFicha?: boolean;
+  showProfile?: boolean;
 }
 
 export default function MobileBottomNav({
   baseUrl,
   showMessages = false,
-  showWorkouts = true,
-  showLab = true,
+  showWorkouts = false,
+  showLab = false,
   showTracker = true,
+  showFicha = false,
+  showProfile = false,
 }: Props) {
+  // Limite prático de 5 slots no bottom nav. Prioridade:
+  // Hoje · Ficha · Tracker · Mensagens · Perfil (com Lab/Treinos como alternativas).
   const items: NavItem[] = [
     { to: `${baseUrl}/today`, label: "Hoje", icon: <HomeIcon /> },
-    ...(showLab ? [{ to: `${baseUrl}/movement-lab`, label: "Lab", icon: <LabIcon /> }] : []),
+    ...(showFicha ? [{ to: `${baseUrl}/ficha`, label: "Ficha", icon: <FichaIcon /> }] : []),
     ...(showWorkouts ? [{ to: `${baseUrl}/treinos`, label: "Treinos", icon: <WorkoutsIcon /> }] : []),
+    ...(showLab ? [{ to: `${baseUrl}/movement-lab`, label: "Lab", icon: <LabIcon /> }] : []),
     ...(showTracker ? [{ to: `${baseUrl}/activities`, label: "Tracker", icon: <TrackerIcon /> }] : []),
     ...(showMessages ? [{ to: `${baseUrl}/messages`, label: "Chat", icon: <MessagesIcon /> }] : []),
-  ];
+    ...(showProfile ? [{ to: `${baseUrl}/profile`, label: "Perfil", icon: <ProfileIcon /> }] : []),
+  ].slice(0, 5);
 
   return (
     <nav className="mobileBottomNav" aria-label="Navegação principal">

@@ -131,10 +131,12 @@ export default function UserApp() {
         bottomNav={
           <MobileBottomNav
             baseUrl={USER_BASE}
+            showFicha={true}
             showMessages={canMessages}
             showWorkouts={canWorkouts}
             showLab={canTrainingAi}
             showTracker={showTracker}
+            showProfile={canProfile}
           />
         }
         sidebar={
