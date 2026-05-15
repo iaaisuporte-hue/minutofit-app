@@ -5,7 +5,7 @@ export default function AdminUsersPage() {
     <AdminPeopleList
       role="user"
       title="Alunos"
-      subtitle="Base de alunos cadastrados — plano ativo, perfil e data de entrada. Busque por nome ou e-mail."
+      subtitle="Quem está dentro da plataforma — plano ativo, identidade e data de entrada. Use a busca para investigar um caso específico."
       detailBasePath="/app/admin/users"
     />
   );

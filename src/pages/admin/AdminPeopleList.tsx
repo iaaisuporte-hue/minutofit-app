@@ -5,6 +5,7 @@ import { COLORS } from "../../styles/colors";
 import { EmptyState } from "../../components/EmptyState";
 import { Banner } from "../../components/Banner";
 import { LoadingSkeleton } from "../../components/LoadingSkeleton";
+import "../personal/personalPremium.css";
 
 type Props = {
   role: "user" | "personal" | "nutri";
@@ -18,9 +19,21 @@ type Props = {
 
 const PAGE_SIZE = 20;
 
+const ROLE_KICKER: Record<Props["role"], string> = {
+  user: "Base de alunos",
+  personal: "Profissionais — Personais",
+  nutri: "Profissionais — Nutricionistas",
+};
+
+const ROLE_EMPTY_LABEL: Record<Props["role"], string> = {
+  user: "aluno",
+  personal: "personal",
+  nutri: "nutricionista",
+};
+
 function formatDate(iso: string) {
   try {
-    return new Date(iso).toLocaleDateString("pt-BR");
+    return new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
   } catch {
     return "—";
   }
@@ -83,100 +96,53 @@ export default function AdminPeopleList({
   const showingTo = Math.min(offset + PAGE_SIZE, total);
 
   return (
-    <div style={{ display: "grid", gap: 16, color: COLORS.text }}>
-      <div
-        style={{
-          border: `1px solid ${COLORS.borderStrong}`,
-          borderRadius: 20,
-          background: COLORS.panelDeep,
-          boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.05)",
-          padding: 18,
-          display: "grid",
-          gap: 10,
-        }}
-      >
-        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
-          <div style={{ display: "grid", gap: 6 }}>
-            <div style={{ fontSize: 28, fontWeight: 700 }}>{title}</div>
-            <div style={{ color: COLORS.muted, lineHeight: 1.6, maxWidth: 720, fontSize: 14 }}>{subtitle}</div>
+    <div className="pp-page" style={{ padding: 16 }}>
+      {/* Hero */}
+      <div className="pp-hero" style={{ alignItems: "flex-end" }}>
+        <div style={{ display: "grid", gap: 6 }}>
+          <div className="pp-kicker">{ROLE_KICKER[role]}</div>
+          <h2 className="pp-title" style={{ fontSize: 24 }}>{title}</h2>
+          <div className="pp-meta">
+            Total: <b style={{ color: COLORS.text }}>{total}</b> registro(s)
           </div>
+          <div className="pp-subtitle" style={{ maxWidth: 620 }}>
+            {subtitle}
+          </div>
+        </div>
+
+        <div className="pp-actions">
+          <form
+            onSubmit={handleSearchSubmit}
+            style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}
+          >
+            <input
+              ref={searchRef}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Buscar por nome ou e-mail..."
+              className="pp-input"
+              style={{ minWidth: 240 }}
+            />
+            <button type="submit" className="pp-btn pp-btn--primary pp-btn--sm">
+              Buscar
+            </button>
+            {searchApplied && (
+              <button
+                type="button"
+                className="pp-btn pp-btn--quiet pp-btn--sm"
+                onClick={() => { setSearch(""); setSearchApplied(""); setPage(0); }}
+              >
+                Limpar
+              </button>
+            )}
+          </form>
+
           {showCreate && createPath && createLabel && (
-            <Link
-              to={createPath}
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                padding: "10px 14px",
-                borderRadius: 14,
-                border: `1px solid ${COLORS.borderStrong}`,
-                background: "#22C55E",
-                color: "#FFFFFF",
-                fontWeight: 700,
-                textDecoration: "none",
-                fontSize: 14,
-                whiteSpace: "nowrap",
-              }}
-            >
+            <Link to={createPath} className="pp-btn pp-btn--primary pp-btn--sm" style={{ textDecoration: "none" }}>
               {createLabel}
             </Link>
           )}
         </div>
-
-        <form
-          onSubmit={handleSearchSubmit}
-          style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}
-        >
-          <input
-            ref={searchRef}
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar por nome ou e-mail..."
-            style={{
-              flex: 1,
-              minWidth: 200,
-              padding: "10px 12px",
-              borderRadius: 14,
-              border: `1px solid ${COLORS.border}`,
-              background: "rgba(8,14,11,.6)",
-              color: COLORS.text,
-              outline: "none",
-              fontSize: 14,
-            }}
-          />
-          <button
-            type="submit"
-            style={{
-              padding: "10px 14px",
-              borderRadius: 14,
-              border: `1px solid ${COLORS.borderStrong}`,
-              background: "#22C55E",
-              color: "#FFFFFF",
-              fontWeight: 700,
-              cursor: "pointer",
-              fontSize: 14,
-            }}
-          >
-            Buscar
-          </button>
-          {searchApplied && (
-            <button
-              type="button"
-              onClick={() => { setSearch(""); setSearchApplied(""); setPage(0); }}
-              style={{
-                padding: "10px 14px",
-                borderRadius: 14,
-                border: `1px solid ${COLORS.border}`,
-                background: COLORS.panelSoft,
-                color: COLORS.text,
-                fontWeight: 600,
-                cursor: "pointer",
-                fontSize: 14,
-              }}
-            >
-              Limpar
-            </button>
-          )}
-        </form>
       </div>
 
       {loading && <LoadingSkeleton variant="list" lines={4} />}
@@ -194,90 +160,81 @@ export default function AdminPeopleList({
           />
         ) : (
           <EmptyState
-            title={`Nenhum ${role === "user" ? "aluno" : role} cadastrado ainda`}
+            title={`Nenhum ${ROLE_EMPTY_LABEL[role]} cadastrado ainda`}
             description="Os registros aparecerão aqui assim que os primeiros usuários forem criados ou convidados."
           />
         )
       )}
 
+      {/* List */}
       {!loading && !error && people.length > 0 && (
-        <div
-          style={{
-            border: `1px solid ${COLORS.border}`,
-            borderRadius: 20,
-            background: COLORS.panel,
-            boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.05)",
-            overflow: "hidden",
-          }}
-        >
-          {/* Header row */}
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "minmax(0, 2fr) minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 1fr) 80px",
-              gap: 8,
-              padding: "10px 18px",
-              borderBottom: `1px solid ${COLORS.border}`,
-              color: COLORS.muted,
-              fontSize: 11,
-              fontWeight: 600,
-              textTransform: "uppercase",
-              letterSpacing: 0.8,
-            }}
-          >
-            <div>Nome</div>
-            <div>E-mail</div>
-            <div>Plano</div>
-            <div>Cadastro</div>
-            <div />
-          </div>
+        <div className="pp-panel">
+          <div className="pp-panel__body" style={{ display: "grid" }}>
+            {people.map((person) => (
+              <div
+                key={person.id}
+                className="pp-student-row"
+                onMouseEnter={(e) => {
+                  (e.currentTarget as HTMLDivElement).style.background = COLORS.cardHover;
+                }}
+                onMouseLeave={(e) => {
+                  (e.currentTarget as HTMLDivElement).style.background = "transparent";
+                }}
+              >
+                <div className="pp-student-main">
+                  <div className="pp-inline">
+                    <Link
+                      to={`${detailBasePath}/${person.id}`}
+                      className="pp-name"
+                      style={{ textDecoration: "none" }}
+                    >
+                      {person.name || "—"}
+                    </Link>
+                    {person.subscription_tier && (
+                      <span
+                        style={{
+                          padding: "5px 9px",
+                          borderRadius: 999,
+                          fontSize: 11,
+                          fontWeight: 650,
+                          border: `1px solid ${COLORS.borderStrong}`,
+                          background: COLORS.primarySoft,
+                          color: COLORS.text,
+                          letterSpacing: 0.2,
+                          lineHeight: "12px",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {person.subscription_tier}
+                      </span>
+                    )}
+                  </div>
 
-          {people.map((person, idx) => (
-            <div
-              key={person.id}
-              style={{
-                display: "grid",
-                gridTemplateColumns: "minmax(0, 2fr) minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 1fr) 80px",
-                gap: 8,
-                padding: "13px 18px",
-                borderBottom: idx < people.length - 1 ? `1px solid ${COLORS.border}` : undefined,
-                alignItems: "center",
-              }}
-            >
-              <div style={{ fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {person.name || "—"}
+                  <div className="pp-meta">
+                    <b style={{ color: COLORS.text }}>{person.email}</b>
+                    {" • "}Entrou em <b style={{ color: COLORS.text }}>{formatDate(person.created_at)}</b>
+                    {!person.profile_completed && (
+                      <> {" • "}<span style={{ color: COLORS.muted }}>perfil incompleto</span></>
+                    )}
+                  </div>
+                </div>
+
+                <div className="pp-actions">
+                  <Link
+                    to={`${detailBasePath}/${person.id}`}
+                    className="pp-btn pp-btn--quiet pp-btn--sm"
+                    style={{ textDecoration: "none" }}
+                  >
+                    Abrir
+                  </Link>
+                </div>
               </div>
-              <div style={{ color: COLORS.muted, fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {person.email}
-              </div>
-              <div style={{ fontSize: 13 }}>
-                {person.subscription_tier ?? <span style={{ color: COLORS.muted }}>—</span>}
-              </div>
-              <div style={{ fontSize: 13, color: COLORS.muted }}>{formatDate(person.created_at)}</div>
-              <div>
-                <Link
-                  to={`${detailBasePath}/${person.id}`}
-                  style={{
-                    display: "inline-flex",
-                    padding: "7px 10px",
-                    borderRadius: 10,
-                    border: `1px solid ${COLORS.border}`,
-                    background: COLORS.panelSoft,
-                    color: COLORS.text,
-                    fontWeight: 600,
-                    textDecoration: "none",
-                    fontSize: 12,
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  Abrir
-                </Link>
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       )}
 
+      {/* Pagination */}
       {!loading && total > PAGE_SIZE && (
         <div
           style={{
@@ -286,26 +243,19 @@ export default function AdminPeopleList({
             alignItems: "center",
             gap: 12,
             flexWrap: "wrap",
+            paddingTop: 4,
           }}
         >
-          <div style={{ color: COLORS.muted, fontSize: 13 }}>
-            {showingFrom}–{showingTo} de {total}
+          <div className="pp-meta">
+            <b style={{ color: COLORS.text }}>{showingFrom}–{showingTo}</b> de {total}
           </div>
           <div style={{ display: "flex", gap: 8 }}>
             <button
               type="button"
               disabled={page === 0}
               onClick={() => setPage((p) => p - 1)}
-              style={{
-                padding: "8px 12px",
-                borderRadius: 12,
-                border: `1px solid ${COLORS.border}`,
-                background: COLORS.panelSoft,
-                color: page === 0 ? COLORS.muted : COLORS.text,
-                fontWeight: 600,
-                cursor: page === 0 ? "default" : "pointer",
-                fontSize: 13,
-              }}
+              className="pp-btn pp-btn--quiet pp-btn--sm"
+              style={{ opacity: page === 0 ? 0.45 : 1, cursor: page === 0 ? "default" : "pointer" }}
             >
               Anterior
             </button>
@@ -313,16 +263,8 @@ export default function AdminPeopleList({
               type="button"
               disabled={page >= totalPages - 1}
               onClick={() => setPage((p) => p + 1)}
-              style={{
-                padding: "8px 12px",
-                borderRadius: 12,
-                border: `1px solid ${COLORS.border}`,
-                background: COLORS.panelSoft,
-                color: page >= totalPages - 1 ? COLORS.muted : COLORS.text,
-                fontWeight: 600,
-                cursor: page >= totalPages - 1 ? "default" : "pointer",
-                fontSize: 13,
-              }}
+              className="pp-btn pp-btn--quiet pp-btn--sm"
+              style={{ opacity: page >= totalPages - 1 ? 0.45 : 1, cursor: page >= totalPages - 1 ? "default" : "pointer" }}
             >
               Próxima
             </button>
