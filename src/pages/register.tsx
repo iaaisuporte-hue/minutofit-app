@@ -45,6 +45,7 @@ export default function RegisterPage() {
   const [form, setForm]             = useState<RegisterForm>(initialState);
   const [captchaToken, setCaptcha]  = useState<string | null>(null);
   const [error, setError]           = useState<string | null>(null);
+  const [emailAlreadyRegistered, setEmailAlreadyRegistered] = useState(false);
   const [isLoading, setIsLoading]   = useState(false);
 
   const errors = useMemo(() => {
@@ -85,6 +86,7 @@ export default function RegisterPage() {
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
+    setEmailAlreadyRegistered(false);
 
     if (!isValid) {
       setError("Revise os campos destacados antes de continuar.");
@@ -102,7 +104,14 @@ export default function RegisterPage() {
     });
 
     if (!result.ok) {
-      setError(result.message);
+      const msg = String(result.message || "").toLowerCase();
+      // 409 do backend: email já tem conta → orientar a fazer login em vez de
+      // mostrar um erro genérico (UX premium / fluxo de identidade única).
+      if (msg.includes("email") && (msg.includes("ja cadastrado") || msg.includes("já cadastrado"))) {
+        setEmailAlreadyRegistered(true);
+      } else {
+        setError(result.message);
+      }
       setIsLoading(false);
       turnstileRef.current?.reset();
       setCaptcha(null);
@@ -133,6 +142,15 @@ export default function RegisterPage() {
         {error && (
           <div className="auth-error" role="alert">
             {error}
+          </div>
+        )}
+
+        {emailAlreadyRegistered && (
+          <div className="auth-error" role="alert" style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <span>Este email já tem conta no MetaCore.</span>
+            <Link to="/login" className="btn btn-sm btn-primary" style={{ alignSelf: "flex-start" }}>
+              Fazer login
+            </Link>
           </div>
         )}
 

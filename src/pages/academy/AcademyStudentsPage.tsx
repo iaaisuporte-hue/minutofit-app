@@ -77,6 +77,8 @@ interface AddForm {
   // Aceites
   acceptedTerms:         boolean;
   acceptedLgpd:          boolean;
+  // Bônus
+  giveAppBonus:          boolean;
 }
 
 const DEFAULT_ADD: AddForm = {
@@ -86,6 +88,7 @@ const DEFAULT_ADD: AddForm = {
   mainGoal: "", medicalRestrictions: "",
   emergencyContactName: "", emergencyContactPhone: "",
   acceptedTerms: false, acceptedLgpd: false,
+  giveAppBonus: true,
 };
 
 export default function AcademyStudentsPage() {
@@ -171,6 +174,7 @@ export default function AcademyStudentsPage() {
           emergencyContactPhone: addForm.emergencyContactPhone || undefined,
           acceptedTerms:         addForm.acceptedTerms,
           acceptedLgpd:          addForm.acceptedLgpd,
+          giveAppBonus:          addForm.giveAppBonus,
         });
         setAddResult({ tempPassword: res.tempPassword });
       } else {
@@ -625,6 +629,27 @@ export default function AcademyStudentsPage() {
                       <p className="field-hint">Os dois aceites são obrigatórios para concluir o cadastro.</p>
                     )}
                   </div>
+                </div>
+
+                <hr style={{ border: "none", borderTop: "1px solid var(--color-border)", margin: 0 }} />
+
+                {/* SECTION: Bônus de produto */}
+                <div>
+                  <div className="dash-eyebrow" style={{ marginBottom: "var(--space-3)" }}>Bônus de produto</div>
+                  <label style={{ display: "flex", alignItems: "flex-start", gap: "var(--space-3)", cursor: "pointer" }}>
+                    <input
+                      type="checkbox"
+                      checked={addForm.giveAppBonus}
+                      onChange={(e) => setField("giveAppBonus", e.target.checked)}
+                      style={{ marginTop: 3, flexShrink: 0, accentColor: "var(--color-primary)", width: 16, height: 16 }}
+                    />
+                    <span style={{ fontSize: "var(--text-sm)", color: "var(--color-text)" }}>
+                      <strong>Conceder acesso ao App MinutoFit como bônus.</strong>
+                      <span className="field-hint" style={{ display: "block", marginTop: 2 }}>
+                        O aluno entra no App junto com a Academia. Se o vínculo for cancelado, mantém acesso por 30 dias para decidir se quer assinar standalone.
+                      </span>
+                    </span>
+                  </label>
                 </div>
 
                 {addError && <p className="field-error">{addError}</p>}

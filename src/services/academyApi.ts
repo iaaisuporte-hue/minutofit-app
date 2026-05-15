@@ -374,6 +374,8 @@ export async function addStudentDirect(params: {
   emergencyContactPhone?: string;
   acceptedTerms?: boolean;
   acceptedLgpd?: boolean;
+  /** Conceder App como bônus ao aluno (default `true` no backend). */
+  giveAppBonus?: boolean;
 }): Promise<{ student: Partial<Student>; tempPassword?: string }> {
   const data = await authFetch(`${API_URL}/academy/students`, {
     method: 'POST',

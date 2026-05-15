@@ -19,6 +19,7 @@ interface FormState {
   medicalRestrictions: string;
   acceptedTerms: boolean;
   acceptedLgpd: boolean;
+  giveAppBonus: boolean;
 }
 
 const DEFAULT_FORM: FormState = {
@@ -33,6 +34,7 @@ const DEFAULT_FORM: FormState = {
   medicalRestrictions: "",
   acceptedTerms: false,
   acceptedLgpd: false,
+  giveAppBonus: true,
 };
 
 export default function RecepcaoNovoAlunoPage() {
@@ -79,6 +81,7 @@ export default function RecepcaoNovoAlunoPage() {
           medicalRestrictions: form.medicalRestrictions || undefined,
           acceptedTerms: form.acceptedTerms,
           acceptedLgpd: form.acceptedLgpd,
+          giveAppBonus: form.giveAppBonus,
         });
         setResult({ tempPassword: response.tempPassword });
       }
@@ -229,6 +232,12 @@ export default function RecepcaoNovoAlunoPage() {
                     <label style={{ display: "flex", gap: "var(--space-3)", alignItems: "flex-start" }}>
                       <input type="checkbox" checked={form.acceptedLgpd} onChange={(event) => setField("acceptedLgpd", event.target.checked)} />
                       <span className="small">Aluno autorizou tratamento de dados conforme LGPD.</span>
+                    </label>
+                    <label style={{ display: "flex", gap: "var(--space-3)", alignItems: "flex-start" }}>
+                      <input type="checkbox" checked={form.giveAppBonus} onChange={(event) => setField("giveAppBonus", event.target.checked)} />
+                      <span className="small">
+                        Conceder acesso ao App MinutoFit como bônus (recomendado). Se a academia cancelar o vínculo, o aluno mantém o App por 30 dias para optar pela assinatura standalone.
+                      </span>
                     </label>
                   </div>
                 )}
