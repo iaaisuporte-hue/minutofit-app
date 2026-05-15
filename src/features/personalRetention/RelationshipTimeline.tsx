@@ -9,6 +9,7 @@ import {
   Star,
   Zap,
   Activity,
+  Phone,
 } from "lucide-react";
 import { listRelationshipTimeline, type TimelineItem } from "../../services/personalRetentionApi";
 
@@ -44,12 +45,26 @@ function formatDate(iso: string): string {
   return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
 }
 
+function isWhatsAppAction(item: TimelineItem): boolean {
+  return (
+    item.kind === "action" &&
+    item.meta.actionType === "message_sent" &&
+    item.meta.payload?.channel === "whatsapp"
+  );
+}
+
 function getIcon(item: TimelineItem): React.ReactNode {
   if (item.kind === "action") {
-    const t = (item.meta as any)?.actionType as string | undefined;
+    if (isWhatsAppAction(item)) return <Phone size={15} />;
+    const t = item.meta.actionType as string | undefined;
     return ACTION_ICON[t ?? ""] ?? <Activity size={15} />;
   }
   return KIND_ICON[item.kind] ?? <Activity size={15} />;
+}
+
+function getTitle(item: TimelineItem): string {
+  if (isWhatsAppAction(item)) return "Mensagem via WhatsApp";
+  return item.title;
 }
 
 export function RelationshipTimeline({ studentId }: Props) {
@@ -86,7 +101,7 @@ export function RelationshipTimeline({ studentId }: Props) {
         <div key={`${item.kind}-${item.id}`} className="pp-timeline-item">
           <div className="pp-timeline-icon">{getIcon(item)}</div>
           <div className="pp-timeline-body">
-            <p className="pp-timeline-title">{item.title}</p>
+            <p className="pp-timeline-title">{getTitle(item)}</p>
             {item.summary && (
               <p className="pp-timeline-summary">{item.summary}</p>
             )}

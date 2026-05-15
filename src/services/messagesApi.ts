@@ -17,6 +17,7 @@ export type ChatConversation = {
   studentId: string;
   studentName: string;
   studentEmail: string;
+  studentPhone: string | null;
   personalId: string;
   personalName: string;
   personalEmail: string;

@@ -27,13 +27,27 @@ export type RelationshipAction = {
   createdAt: string;
 };
 
+export type TimelineMeta = {
+  actionType?: string;
+  dueAt?: string | null;
+  resolvedAt?: string | null;
+  source?: string;
+  payload?: {
+    channel?: string;
+    templateCategory?: string;
+    snippet?: string;
+    note?: string;
+  } | null;
+  [key: string]: unknown;
+};
+
 export type TimelineItem = {
   kind: "action" | "message" | "workout" | "checkin" | "note";
   id: string;
   occurredAt: string;
   title: string;
   summary: string;
-  meta: Record<string, unknown>;
+  meta: TimelineMeta;
 };
 
 export type MessageTemplate = {

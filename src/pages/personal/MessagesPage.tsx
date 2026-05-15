@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext";
-import { COLORS } from "../../styles/colors";
 import {
   ensureChatConversation,
   fetchChatConversations,
@@ -13,74 +12,64 @@ import {
   type ChatMessage,
   type EligibleStudent,
 } from "../../services/messagesApi";
+import {
+  createRelationshipAction,
+  listMessageTemplates,
+  type MessageTemplate,
+} from "../../services/personalRetentionApi";
 import { usePersonalStudentSnapshot } from "./hooks/usePersonalStudentSnapshot";
-import "./personalPremium.css";
+import { normalizePhoneToBRE164, openWhatsappCompose } from "./lib/whatsappLink";
+import "./messagesPersonal.css";
 
 type Role = "user" | "personal" | "admin" | "nutri";
-
 type StudentMini = EligibleStudent;
 
-function Pill({
-  children,
-  variant = "neutral",
-  title,
-}: {
-  children: React.ReactNode;
-  variant?: "neutral" | "success" | "warn" | "danger" | "orange";
-  title?: string;
-}) {
-  const map = {
-    neutral: { bd: COLORS.border, bg: COLORS.highlightSoft },
-    success: { bd: COLORS.borderStrong, bg: COLORS.primarySoft },
-    warn: { bd: "rgba(255,183,3,.35)", bg: "rgba(255,183,3,.12)" },
-    danger: { bd: "rgba(220,38,38,.35)", bg: "rgba(220,38,38,.12)" },
-    orange: { bd: COLORS.borderStrong, bg: COLORS.primarySoft },
-  } as const;
+// Chips de sugestão com fallback hardcoded
+const CHIP_CATEGORIES = [
+  { label: "Reengajamento", category: "aluno_ausente_amigavel" },
+  { label: "Retorno leve",  category: "retorno_progressivo" },
+  { label: "Aula bônus",    category: "oferta_bonus_leve" },
+  { label: "Motivacional",  category: "parabens_consistencia" },
+] as const;
 
-  return (
-    <span
-      title={title}
-      style={{
-        padding: "6px 10px",
-        borderRadius: 999,
-        border: `1px solid ${map[variant].bd}`,
-        background: map[variant].bg,
-        fontSize: 12,
-        fontWeight: 600,
-        lineHeight: 1,
-        color: COLORS.text,
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 8,
-        whiteSpace: "nowrap",
-        width: "fit-content",
-      }}
-    >
-      {children}
-    </span>
-  );
+const FALLBACK_TEMPLATES: Record<string, string> = {
+  aluno_ausente_amigavel:
+    "Oi [nome]! Vi que você ficou alguns dias sem treinar 😄\nEstá tudo bem?\nSe quiser podemos retomar de forma mais leve essa semana.",
+  retorno_progressivo:
+    "Oi [nome]! Que tal voltarmos com um treino mais curto essa semana para pegar o ritmo de volta? Você escolhe o dia.",
+  oferta_bonus_leve:
+    "Oi [nome]! Tenho um horário aberto pra uma sessão bônus essa semana — quer aproveitar?",
+  parabens_consistencia:
+    "Oi [nome]! Queria te parabenizar pela constância nos treinos. Continua assim — está fazendo diferença!",
+};
+
+function daysSince(isoDate: string | null | undefined): number | null {
+  if (!isoDate) return null;
+  const diff = Date.now() - new Date(isoDate).getTime();
+  return Math.floor(diff / 86_400_000);
 }
 
-function Card({ children }: { children: React.ReactNode }) {
-  return (
-    <div
-      style={{
-        border: `1px solid ${COLORS.border}`,
-        borderRadius: 20,
-        background: COLORS.panel,
-        boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.05)",
-      }}
-    >
-      {children}
-    </div>
-  );
+function formatPhone(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  const digits = raw.replace(/\D/g, "");
+  if (digits.length === 11) {
+    return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+  }
+  if (digits.length === 10) {
+    return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
+  }
+  return raw;
 }
+
+type Toast = { kind: "success" | "warn"; text: string };
 
 export default function MessagesPage() {
   const { user } = useAuth();
   const location = useLocation();
   const myRole: Role = user?.role || "personal";
-  const preselectedStudentId = (location.state as { studentId?: string; studentName?: string } | null)?.studentId;
+
+  const preselectedStudentId =
+    (location.state as { studentId?: string; studentName?: string } | null)?.studentId;
 
   const [students, setStudents] = useState<StudentMini[]>([]);
   const [conversations, setConversations] = useState<ChatConversation[]>([]);
@@ -90,20 +79,22 @@ export default function MessagesPage() {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [sendingWa, setSendingWa] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [toast, setToast] = useState<Toast | null>(null);
+  const [templates, setTemplates] = useState<MessageTemplate[]>([]);
+  const [activeChipCategory, setActiveChipCategory] = useState<string | null>(null);
   const endRef = useRef<HTMLDivElement | null>(null);
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const selectedConv = useMemo(
-    () => conversations.find((conversation) => conversation.id === selectedId) || null,
+    () => conversations.find((c) => c.id === selectedId) ?? null,
     [conversations, selectedId]
   );
 
   const selectedStudent = useMemo(() => {
     if (!selectedConv) return null;
-    return {
-      id: selectedConv.studentId,
-      name: selectedConv.studentName,
-    };
+    return { id: selectedConv.studentId, name: selectedConv.studentName };
   }, [selectedConv]);
 
   const { data: studentSnapshot } = usePersonalStudentSnapshot(selectedStudent?.id ?? null);
@@ -111,289 +102,292 @@ export default function MessagesPage() {
   const filteredInbox = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return conversations;
-
-    return conversations.filter((conversation) => {
-      const label = conversation.studentName.toLowerCase();
-      return label.includes(q);
-    });
+    return conversations.filter((c) => c.studentName.toLowerCase().includes(q));
   }, [conversations, search]);
+
+  const showToast = useCallback((kind: Toast["kind"], text: string) => {
+    setToast({ kind, text });
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    toastTimerRef.current = setTimeout(() => setToast(null), 4000);
+  }, []);
 
   const loadStudents = useCallback(async () => {
     const list = await fetchEligibleStudents();
     setStudents(list);
   }, []);
 
-  const loadConversations = useCallback(async (preferredConversationId?: string | null) => {
+  const loadConversations = useCallback(async (preferredId?: string | null) => {
     const list = await fetchChatConversations();
     setConversations(list);
-    setSelectedId((current) => preferredConversationId ?? current ?? list[0]?.id ?? null);
+    setSelectedId((curr) => preferredId ?? curr ?? list[0]?.id ?? null);
   }, []);
 
   const loadMessages = useCallback(async (conversationId: string) => {
-    const nextMessages = await fetchConversationMessages(conversationId);
-    setMessages(nextMessages);
+    const msgs = await fetchConversationMessages(conversationId);
+    setMessages(msgs);
     await markChatConversationRead(conversationId);
     const refreshed = await fetchChatConversations();
     setConversations(refreshed);
   }, []);
 
-  const openConversationWithStudent = useCallback(async (studentId: string) => {
-    const conversation = await ensureChatConversation({ studentId });
-    await loadConversations(conversation?.id ?? null);
-  }, [loadConversations]);
+  const openConversationWithStudent = useCallback(
+    async (studentId: string) => {
+      const conv = await ensureChatConversation({ studentId });
+      await loadConversations(conv?.id ?? null);
+    },
+    [loadConversations]
+  );
 
+  // Boot
   useEffect(() => {
     if (myRole !== "personal") return;
-
     let cancelled = false;
-
     void (async () => {
       setLoading(true);
       try {
-        await Promise.all([loadStudents(), loadConversations()]);
-        setError(null);
+        const [, , tmpl] = await Promise.all([
+          loadStudents(),
+          loadConversations(),
+          listMessageTemplates().catch(() => [] as MessageTemplate[]),
+        ]);
+        if (!cancelled) {
+          setTemplates(tmpl);
+          setError(null);
+        }
       } catch (err) {
-        if (!cancelled) {
-          setError(err instanceof Error ? err.message : "Nao foi possivel carregar o chat do personal.");
-        }
+        if (!cancelled)
+          setError(
+            err instanceof Error ? err.message : "Não foi possível carregar o chat."
+          );
       } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
+        if (!cancelled) setLoading(false);
       }
     })();
-
     return () => {
       cancelled = true;
     };
   }, [loadConversations, loadStudents, myRole]);
 
+  // Abertura de conversa pré-selecionada via router state
   useEffect(() => {
     if (!preselectedStudentId || myRole !== "personal") return;
     void openConversationWithStudent(preselectedStudentId).catch((err) => {
-      setError(err instanceof Error ? err.message : "Nao foi possivel abrir a conversa.");
+      setError(err instanceof Error ? err.message : "Não foi possível abrir a conversa.");
     });
   }, [myRole, openConversationWithStudent, preselectedStudentId]);
 
+  // Carrega mensagens ao trocar de conversa
   useEffect(() => {
     if (!selectedId || myRole !== "personal") {
       setMessages([]);
       return;
     }
-
     void loadMessages(selectedId).catch((err) => {
-      setError(err instanceof Error ? err.message : "Nao foi possivel carregar as mensagens.");
+      setError(err instanceof Error ? err.message : "Não foi possível carregar as mensagens.");
       setMessages([]);
     });
   }, [loadMessages, myRole, selectedId]);
 
+  // Scroll to bottom
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages.length]);
 
+  // ── Handlers ──
+
+  function applyChip(category: string, studentName: string) {
+    const tmpl = templates.find((t) => t.category === category);
+    const body = (tmpl?.body ?? FALLBACK_TEMPLATES[category] ?? "").replace(
+      /\[nome\]/gi,
+      studentName
+    );
+    if (text.trim() && activeChipCategory !== category) {
+      if (!window.confirm("Substituir o texto atual pelo template?")) return;
+    }
+    setText(body);
+    setActiveChipCategory(category);
+  }
+
   async function handleSendMessage() {
     if (!selectedConv || !text.trim()) return;
-
     setSending(true);
     try {
       await sendChatMessage(selectedConv.id, text.trim());
       setText("");
+      setActiveChipCategory(null);
       await loadMessages(selectedConv.id);
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Nao foi possivel enviar a mensagem.");
+      setError(err instanceof Error ? err.message : "Não foi possível enviar a mensagem.");
     } finally {
       setSending(false);
     }
   }
 
+  async function handleSendWhatsApp() {
+    if (!selectedConv || !text.trim()) return;
+    const phone = selectedConv.studentPhone;
+    const e164 = normalizePhoneToBRE164(phone);
+
+    if (!e164) {
+      showToast(
+        "warn",
+        "Telefone do aluno não cadastrado ou inválido. Edite o perfil do aluno para enviar via WhatsApp."
+      );
+      return;
+    }
+
+    setSendingWa(true);
+    try {
+      const snippet = text.trim().slice(0, 200);
+      openWhatsappCompose(phone, text.trim());
+      showToast("success", "WhatsApp aberto. Revise a mensagem e envie.");
+
+      // Registra na timeline sem bloquear a UX
+      void createRelationshipAction(selectedConv.studentId, {
+        actionType: "message_sent",
+        payloadJson: {
+          channel: "whatsapp",
+          snippet,
+          templateCategory: activeChipCategory ?? undefined,
+        },
+        source: "whatsapp-deep-link",
+      }).catch(() => {
+        // best-effort — falha silenciosa
+      });
+
+      setText("");
+      setActiveChipCategory(null);
+    } finally {
+      setSendingWa(false);
+    }
+  }
+
+  // ── Render ──
+
   if (myRole !== "personal") {
     return (
-      <Card>
-        <div style={{ padding: 16 }}>
-          <div style={{ fontWeight: 700, fontSize: 16 }}>Acesso negado</div>
-          <div style={{ marginTop: 6, color: "#6B7280", fontSize: 13 }}>
-            Esta área é exclusiva para Personal.
-          </div>
-        </div>
-      </Card>
+      <div className="mp-card mp-access-denied">
+        <div className="mp-access-denied-title">Acesso negado</div>
+        <div className="mp-access-denied-sub">Esta área é exclusiva para Personal.</div>
+      </div>
     );
   }
 
+  const canSend = !!selectedConv && !!text.trim() && !sending;
+  const canSendWa = !!selectedConv && !!text.trim() && !sendingWa;
+  const phoneFormatted = formatPhone(selectedConv?.studentPhone);
+  const daysAbsent =
+    studentSnapshot?.today?.latestWorkout
+      ? daysSince(studentSnapshot.today.latestWorkout.completedAt)
+      : null;
+
   return (
-    <div style={{ display: "grid", gap: 16, color: "#1F2937" }}>
-      <Card>
-        <div
-          style={{
-            padding: 18,
-            display: "flex",
-            justifyContent: "space-between",
-            gap: 12,
-            flexWrap: "wrap",
-            background: COLORS.panelDeep,
-            borderRadius: 20,
-          }}
-        >
-          <div style={{ display: "grid", gap: 6 }}>
-            <div style={{ fontWeight: 700, fontSize: 22 }}>Mensagens</div>
-            <div style={{ color: COLORS.muted, fontSize: 13, lineHeight: 1.45 }}>
-              Converse com a carteira ativa e responda primeiro quem já está pedindo atenção.
-            </div>
+    <div className="mp-page">
+      {/* Header */}
+      <div className="mp-card mp-header">
+        <div>
+          <div className="mp-header-title">Mensagens</div>
+          <div className="mp-header-sub">
+            Converse com a carteira ativa e responda quem já está pedindo atenção.
           </div>
-
-          <Pill variant="orange">Inbox do personal</Pill>
         </div>
-      </Card>
+        <span className="mp-pill">Inbox do personal</span>
+      </div>
 
+      {/* Error */}
       {error ? (
-        <Card>
-          <div style={{ padding: 14, color: COLORS.text }}>
-            <div style={{ fontWeight: 700 }}>Falha ao carregar mensagens</div>
-            <div style={{ marginTop: 6, color: COLORS.muted }}>{error}</div>
-          </div>
-        </Card>
+        <div className="mp-card mp-error">
+          <div className="mp-error-title">Falha ao carregar mensagens</div>
+          <div className="mp-error-body">{error}</div>
+        </div>
       ) : null}
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "minmax(280px, 340px) 1fr",
-          gap: 12,
-        }}
-      >
-        <Card>
-          <div style={{ padding: 14, display: "grid", gap: 12 }}>
+      {/* Toast */}
+      {toast ? (
+        <div className={`mp-toast ${toast.kind}`}>{toast.text}</div>
+      ) : null}
+
+      {/* Two-column grid */}
+      <div className="mp-grid">
+        {/* Inbox */}
+        <div className="mp-card">
+          <div className="mp-inbox">
             <input
+              className="mp-search"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Buscar aluno…"
-              style={{
-                width: "100%",
-                padding: "12px 14px",
-                borderRadius: 14,
-                border: "1px solid rgba(255,255,255,.12)",
-                background: "#FAFAFA",
-                color: "#1F2937",
-                outline: "none",
-                fontWeight: 600,
-              }}
             />
 
-            <div style={{ display: "grid", gap: 8 }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: "#6B7280" }}>
-                INICIAR NOVA CONVERSA
-              </div>
-
+            {/* Nova conversa */}
+            <div>
+              <div className="mp-inbox-section-label">Iniciar nova conversa</div>
               {students.length === 0 ? (
-                <div style={{ color: "#6B7280", fontSize: 12 }}>
-                  Sem alunos vinculados ativos. Convide alunos diretos pela página de Alunos.
+                <div className="mp-empty-text">
+                  Sem alunos vinculados ativos. Convide alunos pela página de Alunos.
                 </div>
               ) : (
-                <div
-                  style={{
-                    display: "flex",
-                    gap: 8,
-                    flexWrap: "wrap",
-                    maxHeight: 120,
-                    overflowY: "auto",
-                  }}
-                >
+                <div className="mp-new-students">
                   {[...students]
                     .sort((a, b) => {
-                      if (a.hasMessages === b.hasMessages) return a.name.localeCompare(b.name);
+                      if (a.hasMessages === b.hasMessages)
+                        return a.name.localeCompare(b.name);
                       return a.hasMessages ? 1 : -1;
                     })
-                    .map((student) => (
+                    .map((s) => (
                       <button
-                        key={student.id}
-                        onClick={() => void openConversationWithStudent(student.id)}
-                        style={{
-                          padding: "10px 12px",
-                          borderRadius: 12,
-                          border: `1px solid ${COLORS.border}`,
-                          background: student.hasMessages ? "#F1F5F9" : "#FAFAFA",
-                          color: "#1F2937",
-                          cursor: "pointer",
-                          fontWeight: 600,
-                          fontSize: 13,
-                          opacity: student.hasMessages ? 0.78 : 1,
-                        }}
+                        key={s.id}
+                        className={`mp-new-student-btn${s.hasMessages ? " has-messages" : ""}`}
+                        onClick={() => void openConversationWithStudent(s.id)}
                         title={
-                          student.hasMessages
-                            ? `Abrir chat com ${student.name}`
-                            : `Iniciar conversa com ${student.name}`
+                          s.hasMessages
+                            ? `Retomar chat com ${s.name}`
+                            : `Iniciar conversa com ${s.name}`
                         }
                       >
-                        {student.hasMessages ? "↻" : "+"} {student.name}
+                        {s.hasMessages ? "↻" : "+"} {s.name}
                       </button>
                     ))}
                 </div>
               )}
             </div>
 
-            <div style={{ display: "grid", gap: 8 }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: "#6B7280" }}>
-                CONVERSAS
-              </div>
-
-              <div style={{ display: "grid", gap: 8 }}>
+            {/* Lista de conversas */}
+            <div>
+              <div className="mp-inbox-section-label">Conversas</div>
+              <div className="mp-conv-list">
                 {loading ? (
-                  <div style={{ color: "#6B7280", fontSize: 13 }}>
-                    Carregando conversas...
-                  </div>
+                  <div className="mp-empty-text">Carregando conversas…</div>
                 ) : filteredInbox.length === 0 ? (
-                  <div style={{ color: "#6B7280", fontSize: 13 }}>
+                  <div className="mp-empty-text">
                     Nenhuma conversa ainda. Crie uma acima.
                   </div>
                 ) : (
-                  filteredInbox.map((conversation) => {
-                    const active = conversation.id === selectedId;
-                    const unread = conversation.unreadCount;
-                    const last = conversation.lastMessage;
-
+                  filteredInbox.map((conv) => {
+                    const active = conv.id === selectedId;
+                    const last = conv.lastMessage;
                     return (
                       <button
-                        key={conversation.id}
-                        onClick={() => setSelectedId(conversation.id)}
-                        style={{
-                          width: "100%",
-                          textAlign: "left",
-                          padding: "12px 12px",
-                          borderRadius: 14,
-                          border: active ? `1px solid ${COLORS.borderStrong}` : `1px solid ${COLORS.border}`,
-                          background: active ? COLORS.primarySoft : "#FAFAFA",
-                          color: "#1F2937",
-                          cursor: "pointer",
-                        }}
+                        key={conv.id}
+                        className={`mp-conv-card${active ? " active" : ""}`}
+                        onClick={() => setSelectedId(conv.id)}
                       >
-                        <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center" }}>
-                          <div style={{ fontWeight: 700, fontSize: 14 }}>
-                            {conversation.studentName}
-                          </div>
-
-                          {unread ? (
-                            <span
-                              style={{
-                                borderRadius: 999,
-                                background: COLORS.highlightSoft,
-                                color: "#22C55E",
-                                padding: "4px 8px",
-                                fontSize: 11,
-                                fontWeight: 700,
-                              }}
-                            >
-                              {unread}
-                            </span>
+                        <div className="mp-conv-meta">
+                          <span className="mp-conv-name">{conv.studentName}</span>
+                          {conv.unreadCount > 0 ? (
+                            <span className="mp-conv-unread">{conv.unreadCount}</span>
                           ) : null}
                         </div>
-
-                        <div style={{ marginTop: 6, color: "#6B7280", fontSize: 12, lineHeight: 1.35 }}>
+                        <div className="mp-conv-preview">
                           {last ? (
                             <>
-                              <b style={{ color: "rgba(255,255,255,.85)" }}>
-                                {last.senderRole === "personal" ? "Você: " : ""}
-                              </b>
-                              {last.text.length > 60 ? last.text.slice(0, 60) + "…" : last.text}
+                              {last.senderRole === "personal" ? (
+                                <span className="mp-conv-preview-sender">Você: </span>
+                              ) : null}
+                              {last.text.length > 58
+                                ? last.text.slice(0, 58) + "…"
+                                : last.text}
                             </>
                           ) : (
                             "Conversa vazia"
@@ -406,36 +400,61 @@ export default function MessagesPage() {
               </div>
             </div>
           </div>
-        </Card>
+        </div>
 
-        <Card>
-          <div style={{ display: "grid", gridTemplateRows: "auto 1fr auto", minHeight: 520 }}>
+        {/* Thread */}
+        <div className="mp-card">
+          <div className="mp-thread">
+            {/* Header da conversa */}
             <div>
-              <div
-                style={{
-                  padding: 14,
-                  borderBottom: "1px solid rgba(255,255,255,.10)",
-                  display: "flex",
-                  justifyContent: "space-between",
-                  gap: 12,
-                  alignItems: "center",
-                  flexWrap: "wrap",
-                }}
-              >
-                <div style={{ display: "grid", gap: 4 }}>
-                  <div style={{ fontWeight: 700, fontSize: 15 }}>
+              <div className="mp-thread-header">
+                <div className="mp-thread-header-info">
+                  <div className="mp-thread-header-name">
                     {selectedStudent ? selectedStudent.name : "Selecione uma conversa"}
                   </div>
-                  <div style={{ color: COLORS.mutedSoft, fontSize: 12 }}>
-                    {selectedStudent ? `Aluno ${selectedStudent.id}` : "Inbox → escolha um aluno para abrir"}
+                  <div className="mp-thread-header-sub">
+                    {selectedStudent ? (
+                      <>
+                        {phoneFormatted ? (
+                          <span className="mp-phone-badge">
+                            <svg
+                              width="11"
+                              height="11"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            >
+                              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.62 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.6a16 16 0 0 0 5.5 5.5l.96-.96a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21 15.42"/>
+                            </svg>
+                            {phoneFormatted}
+                          </span>
+                        ) : (
+                          <span style={{ color: "var(--color-text-subtle)", fontSize: 11 }}>
+                            Sem telefone cadastrado
+                          </span>
+                        )}
+                      </>
+                    ) : (
+                      "Inbox → escolha um aluno para abrir"
+                    )}
                   </div>
                 </div>
 
-                {selectedConv ? <Pill variant="orange">Conversa ativa</Pill> : <Pill variant="neutral">Sem conversa</Pill>}
+                {selectedConv ? (
+                  <span className="mp-pill">Conversa ativa</span>
+                ) : (
+                  <span className="mp-pill" style={{ opacity: 0.6 }}>
+                    Sem conversa
+                  </span>
+                )}
               </div>
 
+              {/* Context strip */}
               {studentSnapshot && selectedStudent ? (
-                <div className="pp-metacore-strip" style={{ margin: "0 14px 12px" }}>
+                <div className="mp-context-strip">
                   <span>
                     Aderência <b>{studentSnapshot.adherencePct}%</b>
                   </span>
@@ -448,119 +467,139 @@ export default function MessagesPage() {
                       {studentSnapshot.today.metabolism.trend})
                     </span>
                   ) : null}
-                  {studentSnapshot.today.latestWorkout ? (
-                    <span>
-                      Último treino{" "}
-                      <b>
-                        {new Date(studentSnapshot.today.latestWorkout.completedAt).toLocaleDateString("pt-BR")}
-                      </b>
-                    </span>
+                  {daysAbsent !== null ? (
+                    daysAbsent >= 5 ? (
+                      <span className="absent-warn">Sem treino há {daysAbsent}d</span>
+                    ) : (
+                      <span>
+                        Último treino{" "}
+                        <b>há {daysAbsent === 0 ? "hoje" : `${daysAbsent}d`}</b>
+                      </span>
+                    )
                   ) : (
-                    <span>Sem treino recente registrado</span>
+                    <span>Sem treino recente</span>
                   )}
                 </div>
               ) : null}
             </div>
-            <div
-              style={{
-                padding: 14,
-                overflow: "auto",
-                background: "linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,0))",
-              }}
-            >
+
+            {/* Mensagens */}
+            <div className="mp-messages-area">
               {!selectedConv ? (
-                <div style={{ color: "#6B7280", fontSize: 13, lineHeight: 1.5 }}>
+                <span className="mp-empty-text">
                   Abra uma conversa na coluna da esquerda para começar.
-                </div>
+                </span>
               ) : messages.length === 0 ? (
-                <div style={{ color: "#6B7280", fontSize: 13, lineHeight: 1.5 }}>
+                <span className="mp-empty-text">
                   Ainda não há mensagens. Comece a conversa por aqui.
-                </div>
+                </span>
               ) : (
-                <div style={{ display: "grid", gap: 10 }}>
-                  {messages.map((message) => {
-                    const mine = message.senderRole === "personal";
-                    return (
-                      <div
-                        key={message.id}
-                        style={{
-                          display: "flex",
-                          justifyContent: mine ? "flex-end" : "flex-start",
-                        }}
-                      >
-                        <div
-                          style={{
-                            maxWidth: 520,
-                            padding: "10px 12px",
-                            borderRadius: 14,
-                            border: mine ? `1px solid ${COLORS.borderStrong}` : `1px solid ${COLORS.border}`,
-                            background: mine ? COLORS.primarySoft : "#F9FAFB",
-                            color: "#1F2937",
-                            boxShadow: "0 10px 24px rgba(0,0,0,.25)",
-                          }}
-                        >
-                          <div style={{ fontSize: 13, lineHeight: 1.45, whiteSpace: "pre-wrap" }}>{message.text}</div>
-                          <div style={{ marginTop: 6, fontSize: 11, color: "#9CA3AF" }}>
-                            {new Date(message.createdAt).toLocaleString("pt-BR")}
-                          </div>
+                messages.map((msg) => {
+                  const mine = msg.senderRole === "personal";
+                  return (
+                    <div
+                      key={msg.id}
+                      className={`mp-bubble-row ${mine ? "mine" : "theirs"}`}
+                    >
+                      <div className={`mp-bubble ${mine ? "mine" : "theirs"}`}>
+                        <div className="mp-bubble-text">{msg.text}</div>
+                        <div className="mp-bubble-time">
+                          {new Date(msg.createdAt).toLocaleString("pt-BR")}
                         </div>
                       </div>
-                    );
-                  })}
-                  <div ref={endRef} />
-                </div>
+                    </div>
+                  );
+                })
               )}
+              <div ref={endRef} />
             </div>
 
-            <div style={{ padding: 14, borderTop: "1px solid rgba(255,255,255,.10)" }}>
-              <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+            {/* Compositor */}
+            <div className="mp-composer">
+              {/* Chips de sugestão */}
+              {selectedConv ? (
+                <div className="mp-chips-row">
+                  {CHIP_CATEGORIES.map(({ label, category }) => (
+                    <button
+                      key={category}
+                      className="mp-chip"
+                      disabled={!selectedConv}
+                      onClick={() =>
+                        applyChip(category, selectedConv?.studentName ?? "")
+                      }
+                      title={`Preencher com template "${label}"`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+
+              {/* Textarea + botões */}
+              <div className="mp-composer-row">
                 <textarea
+                  className="mp-textarea"
                   value={text}
-                  onChange={(e) => setText(e.target.value)}
-                  placeholder={selectedConv ? "Digite sua mensagem…" : "Selecione uma conversa primeiro"}
-                  disabled={!selectedConv || sending}
-                  rows={2}
-                  style={{
-                    flex: 1,
-                    resize: "none",
-                    padding: "12px 14px",
-                    borderRadius: 14,
-                    border: `1px solid ${COLORS.border}`,
-                    background: "#FAFAFA",
-                    color: "#1F2937",
-                    outline: "none",
-                    fontWeight: 700,
-                    lineHeight: 1.35,
-                    opacity: !selectedConv || sending ? 0.7 : 1,
+                  onChange={(e) => {
+                    setText(e.target.value);
+                    setActiveChipCategory(null);
                   }}
+                  placeholder={
+                    selectedConv
+                      ? "Digite sua mensagem…"
+                      : "Selecione uma conversa primeiro"
+                  }
+                  disabled={!selectedConv || sending}
+                  rows={3}
                 />
 
-                <button
-                  onClick={() => void handleSendMessage()}
-                  disabled={!selectedConv || !text.trim() || sending}
-                  style={{
-                    padding: "12px 14px",
-                    borderRadius: 12,
-                    border: `1px solid ${COLORS.borderStrong}`,
-                    background: "#22C55E",
-                    color: "#FFFFFF",
-                    cursor: !selectedConv || !text.trim() || sending ? "not-allowed" : "pointer",
-                    fontWeight: 700,
-                    fontSize: 14,
-                    boxShadow: "0 14px 28px rgba(34,197,94,.22)",
-                    opacity: !selectedConv || !text.trim() || sending ? 0.6 : 1,
-                  }}
-                >
-                  {sending ? "Enviando..." : "Enviar"}
-                </button>
+                <div className="mp-actions">
+                  <button
+                    className="mp-btn-send"
+                    onClick={() => void handleSendMessage()}
+                    disabled={!canSend}
+                  >
+                    {sending ? "Enviando…" : "Enviar"}
+                  </button>
+
+                  <button
+                    className="mp-btn-whatsapp"
+                    onClick={() => void handleSendWhatsApp()}
+                    disabled={!canSendWa || !normalizePhoneToBRE164(selectedConv?.studentPhone)}
+                    title={
+                      !normalizePhoneToBRE164(selectedConv?.studentPhone)
+                        ? "Cadastre o telefone do aluno para enviar via WhatsApp"
+                        : "Abrir WhatsApp com a mensagem pré-preenchida"
+                    }
+                  >
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.62 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.6a16 16 0 0 0 5.5 5.5l.96-.96a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21 15.42"/>
+                    </svg>
+                    WhatsApp
+                  </button>
+                </div>
               </div>
 
-              <div style={{ marginTop: 8, fontSize: 12, color: "#9CA3AF" }}>
-                Conversa atual: `{selectedId || "—"}`.
-              </div>
+              {selectedConv ? (
+                <div className="mp-composer-hint">
+                  "Enviar" salva no chat interno.{" "}
+                  {normalizePhoneToBRE164(selectedConv.studentPhone)
+                    ? "\"WhatsApp\" abre o app para você revisar e enviar."
+                    : "Cadastre o telefone do aluno para habilitar o WhatsApp."}
+                </div>
+              ) : null}
             </div>
           </div>
-        </Card>
+        </div>
       </div>
     </div>
   );
