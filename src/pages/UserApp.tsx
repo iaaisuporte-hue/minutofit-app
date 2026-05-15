@@ -146,6 +146,7 @@ export default function UserApp() {
 
             <div className="navStack">
               <MenuLink to={`${USER_BASE}/today`} label="Hoje" iconKey="home" />
+              <MenuLink to={`${USER_BASE}/ficha`} label="Minha ficha" iconKey="clipboard" />
               {canTrainingAi && <MenuLink to={`${USER_BASE}/movement-lab`} label="Lab de Movimento" iconKey="lab" />}
               {canSuggestedTraining && <MenuLink to={`${USER_BASE}/suggested-training`} label="Treino do dia" iconKey="target" />}
               {canWorkouts && <MenuLink to={`${USER_BASE}/treinos`} label="Treinos" iconKey="workouts" />}
@@ -251,7 +252,7 @@ export default function UserApp() {
               <Route
                 path="ficha"
                 element={
-                  <LimitedUserOnly allowed={canWorkouts}>
+                  <LimitedUserOnly allowed={!loading}>
                     <MyWorkoutPlansPage />
                   </LimitedUserOnly>
                 }
