@@ -314,3 +314,34 @@ export async function fetchPersonalStudentActivities(studentId: string, limit = 
 
   return (data?.data || []) as PersonalStudentActivity[];
 }
+
+export type AddStudentDirectResult = {
+  student: { id: number; name: string; email: string };
+  isNew: boolean;
+  matchedBy: "email" | "cpf" | "phone" | null;
+};
+
+export async function addStudentDirect(input: {
+  name: string;
+  email: string;
+  phone?: string;
+  cpf?: string;
+}): Promise<AddStudentDirectResult> {
+  const response = await authFetch(`${API_URL}/personal/students`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+
+  const data = await parseJson(response);
+  if (!response.ok) {
+    const err: Error & { code?: string; data?: unknown } = new Error(
+      data?.error || "Não foi possível cadastrar o aluno."
+    );
+    err.code = data?.code;
+    err.data = data?.data;
+    throw err;
+  }
+
+  return data.data as AddStudentDirectResult;
+}
