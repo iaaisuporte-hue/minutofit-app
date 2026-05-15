@@ -15,7 +15,6 @@ import AdminApp from "./pages/AdminApp";
 import AcademyApp from "./pages/AcademyApp";
 import AcceptInvitationPage from "./pages/AcceptInvitationPage";
 import DirectInviteAcceptPage from "./pages/DirectInviteAcceptPage";
-import ColorModeToggle from "./components/ColorModeToggle";
 import CookieConsentBanner from "./components/CookieConsentBanner";
 import PrivacyPolicyPage from "./pages/PrivacyPolicyPage";
 
@@ -24,7 +23,6 @@ export default function App() {
     <ToastProvider>
     <AuthProvider>
       <FeatureFlagsProvider>
-        <ColorModeToggle />
         <CookieConsentBanner />
         <Routes>
           <Route path="/privacidade" element={<PrivacyPolicyPage />} />
