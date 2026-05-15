@@ -109,6 +109,24 @@ function coerceWeekPreset(raw: string): "semana_util" | "4" | "5" | "6" {
   return "5";
 }
 
+function weekPresetToCount(preset: "semana_util" | "4" | "5" | "6"): number {
+  return preset === "semana_util" ? 5 : Number(preset);
+}
+
+function buildDefaultDayMeta(count: number): DayMeta[] {
+  return Array.from({ length: count }, (_, i) => ({
+    index: i + 1,
+    name: `Treino ${String.fromCharCode(65 + i)}`,
+    focus: null,
+  }));
+}
+
+function buildEmptyDayItems(count: number): Record<number, WorkoutExercise[]> {
+  const out: Record<number, WorkoutExercise[]> = {};
+  for (let i = 0; i < count; i++) out[i] = [];
+  return out;
+}
+
 function protocolToWorkoutItems(p: WorkoutProtocol): WorkoutExercise[] {
   return p.items.map((it) => ({
     exerciseId: it.exerciseId,
@@ -196,8 +214,8 @@ export default function WorkoutBuilderPage() {
 
   // ── Multi-day workout state ────────────────────────────────────────
   // daysItems: dict idx -> exercises for that day
-  const [daysItems, setDaysItems] = useState<Record<number, WorkoutExercise[]>>({ 0: [] });
-  const [daysMeta, setDaysMeta] = useState<DayMeta[]>([{ index: 1, name: "Único", focus: null }]);
+  const [daysItems, setDaysItems] = useState<Record<number, WorkoutExercise[]>>(() => buildEmptyDayItems(weekPresetToCount("5")));
+  const [daysMeta, setDaysMeta] = useState<DayMeta[]>(() => buildDefaultDayMeta(weekPresetToCount("5")));
   const [selectedDayIdx, setSelectedDayIdx] = useState(0);
 
   // ── UI ────────────────────────────────────────────────────────────
@@ -533,6 +551,34 @@ export default function WorkoutBuilderPage() {
     setShowVideoOnly(false);
   }
 
+  // ── Week preset / day count sync ──────────────────────────────────
+  // Mantém weekPreset, daysMeta e daysItems consistentes. Sem isso, o
+  // toggle "4x/5x/6x" só mudava o label e o save caía no branch legacy
+  // single-day, perdendo os dias 2..N.
+  function applyWeekPreset(newPreset: "semana_util" | "4" | "5" | "6") {
+    const n = weekPresetToCount(newPreset);
+    setWeekPreset(newPreset);
+    setDaysMeta((prev) => {
+      const out: DayMeta[] = [];
+      for (let i = 0; i < n; i++) {
+        const existing = prev[i];
+        const isLegacyPlaceholder = !existing || existing.name === "Único";
+        out.push({
+          index: i + 1,
+          name: isLegacyPlaceholder ? `Treino ${String.fromCharCode(65 + i)}` : existing.name,
+          focus: existing?.focus ?? null,
+        });
+      }
+      return out;
+    });
+    setDaysItems((prev) => {
+      const out: Record<number, WorkoutExercise[]> = {};
+      for (let i = 0; i < n; i++) out[i] = prev[i] ?? [];
+      return out;
+    });
+    setSelectedDayIdx((curr) => Math.min(curr, n - 1));
+  }
+
   // ── Save ─────────────────────────────────────────────────────────
   async function saveWorkout() {
     if (!selectedStudentId) return;
@@ -711,7 +757,7 @@ export default function WorkoutBuilderPage() {
           </span>
           <div style={{ display: "flex", gap: 2, border: `1px solid ${WB.border}`, borderRadius: 10, background: "rgba(241,245,249,.92)", padding: 3 }}>
             {(["semana_util", "4", "5", "6"] as const).map((v) => (
-              <button key={v} type="button" style={freqBtn(weekPreset === v)} onClick={() => setWeekPreset(v)}>
+              <button key={v} type="button" style={freqBtn(weekPreset === v)} onClick={() => applyWeekPreset(v)}>
                 {v === "semana_util" ? "Útil" : `${v}x`}
               </button>
             ))}
