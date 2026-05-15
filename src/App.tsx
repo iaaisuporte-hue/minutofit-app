@@ -88,6 +88,7 @@ export default function App() {
 
           <Route path="/invite/:token" element={<AcceptInvitationPage />} />
           <Route path="/convite-personal/:token" element={<DirectInviteAcceptPage />} />
+          <Route path="/convite-nutri/:token" element={<DirectInviteAcceptPage />} />
 
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
