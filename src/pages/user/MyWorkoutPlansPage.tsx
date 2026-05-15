@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { fetchMyWorkoutPlans, type UserWorkoutPlan, type UserWorkoutPlanDay, type UserWorkoutPlanItem } from "../../services/userWorkoutPlansApi";
 import { getExercisesBatch, type Exercise } from "../../services/exercisesApi";
+import { persistGamificationCheckin } from "../../services/gamificationApi";
 import { COLORS } from "../../styles/colors";
 import { EmptyState } from "../../components/EmptyState";
 
@@ -27,6 +28,88 @@ function useThumbTick() {
     return () => clearInterval(id);
   }, []);
   return tick;
+}
+
+type WorkoutDoneButtonProps = {
+  planTitle: string;
+  /** Foco do dia atualmente em foco, opcional (alimenta user_workout_logs.muscle_groups) */
+  focusHint?: string | null;
+};
+
+function WorkoutDoneButton({ planTitle, focusHint }: WorkoutDoneButtonProps) {
+  const [state, setState] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  async function register() {
+    setState("saving");
+    setErrorMsg(null);
+    try {
+      await persistGamificationCheckin({
+        source: "workout",
+        xp: 20,
+        workout: {
+          workoutId: `ficha-${Date.now()}`,
+          title: `Treino concluído • ${planTitle}`,
+          muscleGroups: focusHint ? [focusHint] : [],
+        },
+      });
+      setState("saved");
+    } catch (e) {
+      setState("error");
+      setErrorMsg(e instanceof Error ? e.message : "Não foi possível registrar agora.");
+    }
+  }
+
+  if (state === "saved") {
+    return (
+      <div
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 8,
+          padding: "8px 12px",
+          borderRadius: 10,
+          border: `1px solid ${COLORS.successBorder}`,
+          background: COLORS.successBg,
+          color: COLORS.text,
+          fontSize: 13,
+          fontWeight: 600,
+        }}
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <polyline points="20 6 9 17 4 12" />
+        </svg>
+        Treino registrado hoje
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ display: "grid", gap: 6 }}>
+      <button
+        type="button"
+        onClick={() => void register()}
+        disabled={state === "saving"}
+        style={{
+          padding: "10px 14px",
+          borderRadius: 10,
+          border: "none",
+          background: state === "saving" ? COLORS.panelSoft : "linear-gradient(135deg, #22C55E, #06B6D4)",
+          color: "#FFFFFF",
+          fontWeight: 700,
+          fontSize: 13,
+          cursor: state === "saving" ? "default" : "pointer",
+          width: "fit-content",
+          boxShadow: state === "saving" ? "none" : "0 6px 18px rgba(34,197,94,0.18)",
+        }}
+      >
+        {state === "saving" ? "Registrando..." : "Marcar treino concluído"}
+      </button>
+      {state === "error" && errorMsg ? (
+        <div style={{ color: COLORS.danger, fontSize: 12 }}>{errorMsg}</div>
+      ) : null}
+    </div>
+  );
 }
 
 type ExerciseModalProps = {
@@ -493,10 +576,18 @@ export default function MyWorkoutPlansPage() {
             background: COLORS.primarySoft,
             padding: 14,
             color: COLORS.text,
+            display: "flex",
+            flexWrap: "wrap",
+            gap: 12,
+            alignItems: "center",
+            justifyContent: "space-between",
           }}
         >
-          Ficha ativa: <b>{latestPlan.title}</b> · Atualizada em{" "}
-          <b>{formatDate(latestPlan.updated_at)}</b>
+          <div style={{ minWidth: 0, flex: "1 1 260px" }}>
+            Ficha ativa: <b>{latestPlan.title}</b> · Atualizada em{" "}
+            <b>{formatDate(latestPlan.updated_at)}</b>
+          </div>
+          <WorkoutDoneButton planTitle={latestPlan.title} focusHint={latestPlan.selected_group ?? null} />
         </div>
       ) : null}
 
