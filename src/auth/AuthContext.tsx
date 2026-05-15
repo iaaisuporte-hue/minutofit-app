@@ -95,8 +95,13 @@ function normalizeEmail(email: string) {
 /**
  * Picks the active academy from the list.
  * On a tenant subdomain, finds the academy whose slug matches the hostname.
- * Falls back to single-academy auto-select, or null if ambiguous.
+ * Em login geral (app.minutofit.com.br) com >1 academia: prioriza a
+ * "MinutoFit Direto" (slug `minutofit-direto`) — é a área pessoal do aluno
+ * MaaS. Para entrar como dono/equipe de outra academia, usar o subdomínio
+ * próprio (ex: phgym.minutofit.com.br).
  */
+const DEFAULT_ACADEMY_SLUG = "minutofit-direto";
+
 function resolveActiveAcademyId(academies: AcademyForUser[]): number | null {
   if (academies.length === 0) return null;
   const slug = extractTenantSlug();
@@ -104,7 +109,10 @@ function resolveActiveAcademyId(academies: AcademyForUser[]): number | null {
     const match = academies.find((a) => a.slug === slug);
     if (match) return match.id;
   }
-  return academies.length === 1 ? academies[0].id : null;
+  if (academies.length === 1) return academies[0].id;
+  const direct = academies.find((a) => a.slug === DEFAULT_ACADEMY_SLUG);
+  if (direct) return direct.id;
+  return academies[0].id;
 }
 
 const ACADEMY_PROFILES_SET = new Set([

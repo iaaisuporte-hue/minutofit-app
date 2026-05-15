@@ -3,7 +3,6 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth, type Role, type AcademyForUser } from "../auth/AuthContext";
 import type { AccessProfile } from "../auth/accessControl";
 import MinutoFitLogo from "../components/MinutoFitLogo";
-import AcademySelector from "../components/AcademySelector";
 import { extractTenantSlug, fetchBranding, type AcademyBrandingPublic } from "../services/tenantHost";
 
 const ACADEMY_PROFILES: AccessProfile[] = [
@@ -52,7 +51,6 @@ export default function LoginPage() {
   const [password, setPassword]       = useState("");
   const [error, setError]             = useState<string | null>(null);
   const [isLoading, setIsLoading]     = useState(false);
-  const [pendingRole, setPendingRole] = useState<Role | null>(null);
   const [tenantBranding, setTenantBranding] = useState<AcademyBrandingPublic | null>(null);
 
   // FE-1.7.2: Load academy branding for personalised login page
@@ -64,13 +62,11 @@ export default function LoginPage() {
     }).catch(() => {});
   }, []);
 
-  // Redirect after academy selection (or when already has active context)
+  // Redirect after login — sempre tem activeAcademyId resolvido (default
+  // MinutoFit Direto quando o login geral retorna múltiplas academias).
   useEffect(() => {
     if (isAuthenticated && role) {
-      const needsSelector = (academies?.length ?? 0) > 1 && !activeAcademyId;
-      if (!needsSelector) {
-        nav(nextPathByRole(role, accessProfile, academies, activeAcademyId), { replace: true });
-      }
+      nav(nextPathByRole(role, accessProfile, academies, activeAcademyId), { replace: true });
     }
   }, [isAuthenticated, role, accessProfile, academies, activeAcademyId, nav]);
 
@@ -87,16 +83,6 @@ export default function LoginPage() {
     }
 
     setIsLoading(false);
-    setPendingRole(res.role);
-  }
-
-  // Show academy selector when user logged in but has multiple academies
-  if (pendingRole && (academies?.length ?? 0) > 1 && !activeAcademyId) {
-    return (
-      <main className="auth-page">
-        <AcademySelector onSelected={() => nav(nextPathByRole(pendingRole, accessProfile, academies, activeAcademyId), { replace: true })} />
-      </main>
-    );
   }
 
   const welcomeTitle = tenantBranding?.displayName
