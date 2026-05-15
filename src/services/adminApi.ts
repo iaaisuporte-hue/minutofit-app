@@ -165,6 +165,19 @@ export async function changeUserSubscription(userId: string | number, tierId: nu
   return data?.data as { subscriptionId: number };
 }
 
+export async function setUserPassword(userId: string | number, password: string): Promise<void> {
+  if (!getAccessToken()) throw new Error("Sessao expirada.");
+  const response = await authFetch(`${API_URL}/admin/users/${userId}/set-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ password }),
+  });
+  const data = await parseJson(response);
+  if (!response.ok) {
+    throw new Error(data?.error || "Nao foi possivel definir a senha.");
+  }
+}
+
 export const PRODUCT_KEYS = ['app', 'personal', 'nutri', 'academia', 'metabolismo'] as const;
 export type ProductKey = (typeof PRODUCT_KEYS)[number];
 

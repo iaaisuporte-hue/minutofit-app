@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import {
   fetchAdminUserById,
   changeUserSubscription,
+  setUserPassword,
   fetchUserProducts,
   grantUserProduct,
   revokeUserProduct,
@@ -177,11 +178,250 @@ function ChangePlanModal({
   );
 }
 
+function SetPasswordModal({
+  userId,
+  userName,
+  userEmail,
+  onClose,
+  onSuccess,
+}: {
+  userId: string;
+  userName: string | null;
+  userEmail: string;
+  onClose: () => void;
+  onSuccess: () => void;
+}) {
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const hasLength = password.length >= 8;
+  const hasUpper = /[A-Z]/.test(password);
+  const hasSymbol = /[^A-Za-z0-9]/.test(password);
+  const isValid = hasLength && hasUpper && hasSymbol;
+
+  async function handleConfirm() {
+    if (!isValid || saving) return;
+    setSaving(true);
+    setError(null);
+    try {
+      await setUserPassword(userId, password);
+      setSuccess(true);
+      onSuccess();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Falha ao definir senha.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const displayName = userName ?? userEmail;
+
+  return (
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "rgba(0,0,0,.55)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 1000,
+        padding: 16,
+      }}
+      onClick={(e) => { if (e.target === e.currentTarget && !saving) onClose(); }}
+    >
+      <div
+        style={{
+          border: `1px solid ${COLORS.borderStrong}`,
+          borderRadius: 20,
+          background: COLORS.panelDeep,
+          padding: 22,
+          width: "100%",
+          maxWidth: 420,
+          display: "grid",
+          gap: 14,
+        }}
+      >
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div style={{ fontSize: 20, fontWeight: 700 }}>Definir senha</div>
+          <button
+            type="button"
+            onClick={onClose}
+            style={{ background: "none", border: "none", color: COLORS.muted, cursor: "pointer", fontSize: 20, padding: 4 }}
+          >
+            ×
+          </button>
+        </div>
+
+        {success ? (
+          <>
+            <div
+              style={{
+                borderRadius: 12,
+                border: `1px solid rgba(34,197,94,.4)`,
+                background: "rgba(34,197,94,.08)",
+                padding: 14,
+                fontSize: 14,
+                color: COLORS.text,
+                lineHeight: 1.5,
+              }}
+            >
+              Senha definida para <b>{displayName}</b>. Repasse com segurança ao aluno.
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              style={{
+                padding: "12px 14px",
+                borderRadius: 14,
+                border: `1px solid ${COLORS.border}`,
+                background: COLORS.panelSoft,
+                color: COLORS.text,
+                fontWeight: 700,
+                cursor: "pointer",
+              }}
+            >
+              Fechar
+            </button>
+          </>
+        ) : (
+          <>
+            <div style={{ color: COLORS.muted, fontSize: 13 }}>
+              Usuário: <b style={{ color: COLORS.text }}>{displayName}</b>
+            </div>
+
+            <div style={{ display: "grid", gap: 6 }}>
+              <div style={{ position: "relative" }}>
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Nova senha"
+                  style={{
+                    width: "100%",
+                    padding: "10px 80px 10px 12px",
+                    borderRadius: 10,
+                    border: `1px solid ${COLORS.border}`,
+                    background: COLORS.panelSoft,
+                    color: COLORS.text,
+                    fontSize: 14,
+                    boxSizing: "border-box",
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  style={{
+                    position: "absolute",
+                    right: 8,
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    background: "none",
+                    border: "none",
+                    color: COLORS.muted,
+                    cursor: "pointer",
+                    fontSize: 12,
+                    fontWeight: 600,
+                    padding: "2px 6px",
+                  }}
+                >
+                  {showPassword ? "Ocultar" : "Mostrar"}
+                </button>
+              </div>
+
+              <div style={{ display: "grid", gap: 4, marginTop: 4 }}>
+                {[
+                  { ok: hasLength, label: "Pelo menos 8 caracteres" },
+                  { ok: hasUpper, label: "Uma letra maiuscula (A-Z)" },
+                  { ok: hasSymbol, label: "Um simbolo (ex.: ! @ # %)" },
+                ].map(({ ok, label }) => (
+                  <div key={label} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12 }}>
+                    <span
+                      style={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: "50%",
+                        background: ok ? "#22C55E" : COLORS.border,
+                        flexShrink: 0,
+                        transition: "background .15s",
+                      }}
+                    />
+                    <span style={{ color: ok ? "#22C55E" : COLORS.muted }}>{label}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div
+              style={{
+                borderRadius: 10,
+                border: `1px solid ${COLORS.border}`,
+                background: COLORS.panelSoft,
+                padding: "10px 12px",
+                fontSize: 12,
+                color: COLORS.muted,
+                lineHeight: 1.5,
+              }}
+            >
+              Anote a senha antes de fechar — ela nao e exibida depois.
+            </div>
+
+            {error && (
+              <div style={{ borderRadius: 12, border: `1px solid ${COLORS.redBorder}`, background: COLORS.redSoft, padding: 12, fontSize: 13 }}>
+                {error}
+              </div>
+            )}
+
+            <div style={{ display: "flex", gap: 10 }}>
+              <button
+                type="button"
+                onClick={() => void handleConfirm()}
+                disabled={!isValid || saving}
+                style={{
+                  flex: 1,
+                  padding: "12px 14px",
+                  borderRadius: 14,
+                  border: `1px solid ${COLORS.borderStrong}`,
+                  background: !isValid || saving ? COLORS.panelSoft : "#22C55E",
+                  color: !isValid || saving ? COLORS.muted : "#FFFFFF",
+                  fontWeight: 700,
+                  cursor: !isValid || saving ? "not-allowed" : "pointer",
+                }}
+              >
+                {saving ? "Salvando..." : "Confirmar"}
+              </button>
+              <button
+                type="button"
+                onClick={onClose}
+                style={{
+                  padding: "12px 14px",
+                  borderRadius: 14,
+                  border: `1px solid ${COLORS.border}`,
+                  background: COLORS.panelSoft,
+                  color: COLORS.text,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                }}
+              >
+                Cancelar
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function AdminUserDetailsPage() {
   const { userId } = useParams();
   const [user, setUser] = useState<AdminUserRow | null | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
   const [showChangePlan, setShowChangePlan] = useState(false);
+  const [showSetPassword, setShowSetPassword] = useState(false);
   const [tierName, setTierName] = useState<string | null>(null);
   const [products, setProducts] = useState<UserProductEntry[]>([]);
   const [productsLoading, setProductsLoading] = useState(false);
@@ -292,6 +532,15 @@ export default function AdminUserDetailsPage() {
           }}
         />
       )}
+      {showSetPassword && userId && user && (
+        <SetPasswordModal
+          userId={userId}
+          userName={user.name ?? null}
+          userEmail={user.email}
+          onClose={() => setShowSetPassword(false)}
+          onSuccess={() => setShowSetPassword(false)}
+        />
+      )}
 
       <div style={{ display: "grid", gap: 16, color: COLORS.text }}>
         <div
@@ -356,23 +605,42 @@ export default function AdminUserDetailsPage() {
           >
             <div style={{ color: COLORS.muted, fontSize: 12 }}>Plano ativo</div>
             <div style={{ fontSize: 18, fontWeight: 700 }}>{currentTier ?? "Sem assinatura"}</div>
-            <button
-              type="button"
-              onClick={() => setShowChangePlan(true)}
-              style={{
-                padding: "8px 10px",
-                borderRadius: 10,
-                border: `1px solid ${COLORS.border}`,
-                background: COLORS.panelSoft,
-                color: COLORS.text,
-                fontWeight: 600,
-                fontSize: 12,
-                cursor: "pointer",
-                width: "fit-content",
-              }}
-            >
-              Alterar plano
-            </button>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <button
+                type="button"
+                onClick={() => setShowChangePlan(true)}
+                style={{
+                  padding: "8px 10px",
+                  borderRadius: 10,
+                  border: `1px solid ${COLORS.border}`,
+                  background: COLORS.panelSoft,
+                  color: COLORS.text,
+                  fontWeight: 600,
+                  fontSize: 12,
+                  cursor: "pointer",
+                  width: "fit-content",
+                }}
+              >
+                Alterar plano
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowSetPassword(true)}
+                style={{
+                  padding: "8px 10px",
+                  borderRadius: 10,
+                  border: `1px solid ${COLORS.border}`,
+                  background: COLORS.panelSoft,
+                  color: COLORS.text,
+                  fontWeight: 600,
+                  fontSize: 12,
+                  cursor: "pointer",
+                  width: "fit-content",
+                }}
+              >
+                Definir senha
+              </button>
+            </div>
           </div>
         </div>
 
