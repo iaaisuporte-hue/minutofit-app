@@ -126,7 +126,13 @@ export async function registerWithPassword(payload: RegisterPayload): Promise<Au
 
   const data = await parseJson(response);
   if (!response.ok) {
-    throw new Error(data?.error || "Nao foi possivel criar sua conta.");
+    const err = new Error(data?.error || "Nao foi possivel criar sua conta.") as Error & {
+      status?: number;
+      code?: string;
+    };
+    err.status = response.status;
+    if (typeof data?.code === "string") err.code = data.code;
+    throw err;
   }
 
   return data.data;

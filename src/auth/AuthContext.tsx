@@ -66,7 +66,10 @@ type AuthState = {
 };
 
 type LoginResult = Promise<{ ok: true; role: Role; email: string; id: string } | { ok: false; message: string }>;
-type RegisterResult = Promise<{ ok: true; role: Role; email: string; id: string; requiresProfileCompletion: boolean } | { ok: false; message: string }>;
+type RegisterResult = Promise<
+  | { ok: true; role: Role; email: string; id: string; requiresProfileCompletion: boolean }
+  | { ok: false; message: string; code?: string }
+>;
 type OAuthLoginResult = { ok: true; role: Role; email: string; id: string; requiresProfileCompletion: boolean } | { ok: false; message: string };
 
 type AuthContextType = AuthState & {
@@ -366,10 +369,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             id: data.user.id?.toString(),
             requiresProfileCompletion: !data.user.profileCompleted,
           };
-        } catch (err: any) {
+        } catch (err: unknown) {
+          const e = err as { message?: string; code?: string };
           return {
             ok: false as const,
-            message: err.message || "Nao foi possivel criar sua conta.",
+            message: e.message || "Nao foi possivel criar sua conta.",
+            ...(typeof e.code === "string" ? { code: e.code } : {}),
           };
         }
       },

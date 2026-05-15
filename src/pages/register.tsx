@@ -103,15 +103,16 @@ export default function RegisterPage() {
       captchaToken: captchaToken ?? undefined,
     });
 
-    if (!result.ok) {
-      const msg = String(result.message || "").toLowerCase();
-      // 409 do backend: email já tem conta → orientar a fazer login em vez de
-      // mostrar um erro genérico (UX premium / fluxo de identidade única).
-      if (msg.includes("email") && (msg.includes("ja cadastrado") || msg.includes("já cadastrado"))) {
-        setEmailAlreadyRegistered(true);
-      } else {
-        setError(result.message);
-      }
+      if (!result.ok) {
+        const msg = String(result.message || "").toLowerCase();
+        const emailTaken =
+          result.code === "EMAIL_ALREADY_REGISTERED" ||
+          (msg.includes("email") && (msg.includes("ja cadastrado") || msg.includes("já cadastrado")));
+        if (emailTaken) {
+          setEmailAlreadyRegistered(true);
+        } else {
+          setError(result.message);
+        }
       setIsLoading(false);
       turnstileRef.current?.reset();
       setCaptcha(null);
