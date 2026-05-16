@@ -159,10 +159,8 @@ export default function TodayPage() {
 
   const weekdayLabel = new Intl.DateTimeFormat("pt-BR", { weekday: "long" }).format(new Date());
   const weekdayCapitalized = weekdayLabel.charAt(0).toUpperCase() + weekdayLabel.slice(1);
-  const missionProgress = mission.target > 0 ? Math.min(1, mission.progress / mission.target) : 0;
   // Quando nenhum grupo selecionado, estima com 2 grupos como referência; quando selecionado, usa o valor real
   const defaultImpact = estimateCheckinImpact(Math.max(1, quickGroups.length > 0 ? quickGroups.length : 2), streak);
-  const impactLabel = quickGroups.length > 0 ? `+${defaultImpact}` : `até +${defaultImpact}`;
 
   const derivedEnergy = useMemo(() => deriveEnergyStatus(metabolism), [metabolism]);
 
@@ -279,7 +277,7 @@ export default function TodayPage() {
 
     const impact = estimateCheckinImpact(quickGroups.length, streak);
     setScoreImpactPreview(impact);
-    setCheckinMessage(`Projeção: +${impact} no score com esse treino.`);
+    setCheckinMessage("Pronto para registrar. Seu metabolismo vai responder a esse estímulo.");
 
     try {
       await persistGamificationCheckin({
@@ -291,7 +289,7 @@ export default function TodayPage() {
           muscleGroups: quickGroups,
         },
       });
-      setCheckinMessage("Treino registrado. Score será recalculado.");
+      setCheckinMessage("Registrado. Seu metabolismo já está recalculando.");
       setQuickGroups([]);
       setShowCheckin(false);
       refetchGamification();
@@ -395,35 +393,16 @@ export default function TodayPage() {
               style={{ borderColor: mission.completed ? SURFACE.borderStrong : SURFACE.border, padding: isMobile ? 14 : 18 }}
             >
               <div style={{ display: "grid", gap: 14 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "start", flexWrap: "wrap" }}>
-                  <div style={{ display: "grid", gap: 4 }}>
-                    <SectionEyebrow>Missão de hoje</SectionEyebrow>
-                    <div className="today-card-title" style={{ fontSize: isMobile ? 18 : 22 }}>{mission.title}</div>
-                    <div className="today-card-description" style={{ color: SURFACE.muted }}>{mission.description}</div>
-                  </div>
-                  <div className="today-reward-pill" style={{ borderColor: SURFACE.borderStrong, color: SURFACE.success }}>
-                    +{mission.rewardXp} XP · {impactLabel} score
-                  </div>
+                <div style={{ display: "grid", gap: 4 }}>
+                  <SectionEyebrow>Missão de hoje</SectionEyebrow>
+                  <div className="today-card-title" style={{ fontSize: isMobile ? 18 : 22 }}>{mission.title}</div>
+                  <div className="today-card-description" style={{ color: SURFACE.muted }}>{mission.description}</div>
                 </div>
 
-                <div style={{ display: "grid", gap: 6 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center" }}>
-                    <span style={{ fontSize: 12, color: SURFACE.muted, fontWeight: 600 }}>
-                      {mission.completed ? "Concluída hoje" : "Progresso"}
-                    </span>
-                    <span style={{ fontSize: 12, color: SURFACE.text, fontWeight: 700 }}>
-                      {mission.progress}/{mission.target}
-                    </span>
-                  </div>
-                  <div className="today-progress-track">
-                    <motion.div
-                      initial={shouldReduceMotion ? false : { scaleX: 0 }}
-                      animate={{ scaleX: missionProgress }}
-                      transition={{ duration: 0.65, ease: "easeOut", delay: 0.08 }}
-                      className="today-progress-fill"
-                      style={{ transformOrigin: "left center" }}
-                    />
-                  </div>
+                <div style={{ fontSize: 12, color: SURFACE.muted, fontWeight: 600 }}>
+                  {mission.completed
+                    ? "Concluída hoje"
+                    : `Progresso · ${mission.progress}/${mission.target}`}
                 </div>
 
                 <ActionButton onClick={() => runQuickAction(quickAction)} fullWidth={isMobile}>
