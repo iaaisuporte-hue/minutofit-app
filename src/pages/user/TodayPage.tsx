@@ -326,6 +326,9 @@ export default function TodayPage() {
                 sleptWell: d.sleptWell,
                 inPain: d.inPain,
                 stressed: d.stressed,
+                hydrationOk: d.hydrationOk,
+                nutritionLevel: d.nutritionLevel,
+                mentalLoadLevel: d.mentalLoadLevel,
               });
               refetchGamification();
               refetchMetabolism();

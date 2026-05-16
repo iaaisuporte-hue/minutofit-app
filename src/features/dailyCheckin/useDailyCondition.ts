@@ -1,11 +1,17 @@
 import { useCallback, useState } from 'react';
 
 export type DailyFeeling = 'tired' | 'normal' | 'energized';
+export type NutritionLevel = 'poor' | 'ok' | 'good';
+export type MentalLoadLevel = 'low' | 'medium' | 'high';
 
 export interface DailyConditionDetails {
   sleptWell: boolean;
   inPain: boolean;
   stressed: boolean;
+  /** Onda 4 MaaS — sinais secundários opt-in (undefined = não respondido) */
+  hydrationOk?: boolean;
+  nutritionLevel?: NutritionLevel;
+  mentalLoadLevel?: MentalLoadLevel;
 }
 
 export interface DailyCondition {
@@ -82,7 +88,14 @@ export function getDailyConditionState(condition: DailyCondition | null): DailyC
   const hasPain = details?.inPain ?? false;
   const isStressed = details?.stressed ?? false;
   const sleptPoorly = details ? !details.sleptWell : false;
-  const recoverySignals = [hasPain, isStressed, sleptPoorly].filter(Boolean).length;
+  // Onda 4 MaaS — sinais secundários opt-in. Só contam quando respondidos (undefined ≠ "tudo bem").
+  const dehydrated = details?.hydrationOk === false;
+  const poorNutrition = details?.nutritionLevel === 'poor';
+  const highMentalLoad = details?.mentalLoadLevel === 'high';
+  const recoverySignals = [
+    hasPain, isStressed, sleptPoorly,
+    dehydrated, poorNutrition, highMentalLoad,
+  ].filter(Boolean).length;
 
   if (feeling === 'tired' || (feeling === 'normal' && recoverySignals >= 2)) {
     return { energyLevel: 'low', recommendedTraining: 'treino leve ou descanso ativo', messagingTone: 'recovery' };

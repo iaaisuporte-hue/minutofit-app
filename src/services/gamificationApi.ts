@@ -21,6 +21,10 @@ export async function persistGamificationCheckin(payload: {
     sleptWell?: boolean;
     inPain?: boolean;
     stressed?: boolean;
+    /** Onda 4 MaaS — sinais secundários opt-in */
+    hydrationOk?: boolean;
+    nutritionLevel?: "poor" | "ok" | "good";
+    mentalLoadLevel?: "low" | "medium" | "high";
     notes?: string;
   };
 }) {
@@ -54,6 +58,10 @@ export async function persistWellbeingCheckin(signals: {
   sleptWell: boolean;
   inPain: boolean;
   stressed: boolean;
+  /** Onda 4 MaaS — opt-in (undefined = não respondido, não enviado ao backend) */
+  hydrationOk?: boolean;
+  nutritionLevel?: "poor" | "ok" | "good";
+  mentalLoadLevel?: "low" | "medium" | "high";
   notes?: string;
 }) {
   return persistGamificationCheckin({
@@ -63,6 +71,9 @@ export async function persistWellbeingCheckin(signals: {
       sleptWell: signals.sleptWell,
       inPain: signals.inPain,
       stressed: signals.stressed,
+      hydrationOk: signals.hydrationOk,
+      nutritionLevel: signals.nutritionLevel,
+      mentalLoadLevel: signals.mentalLoadLevel,
       notes: signals.notes,
     },
   });

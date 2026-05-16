@@ -1,6 +1,12 @@
 import { useState } from 'react';
 import { AnimatePresence, motion, type Variants } from 'framer-motion';
-import type { DailyCondition, DailyConditionDetails, DailyFeeling } from './useDailyCondition';
+import type {
+  DailyCondition,
+  DailyConditionDetails,
+  DailyFeeling,
+  MentalLoadLevel,
+  NutritionLevel,
+} from './useDailyCondition';
 
 interface Props {
   condition: DailyCondition | null;
@@ -69,6 +75,78 @@ function ToggleRow({
     </div>
   );
 }
+
+/**
+ * Linha opt-in: nenhuma opção selecionada por padrão. Re-clicar a opção
+ * selecionada deseleciona (volta a undefined). Onda 4 MaaS — sinais
+ * secundários nunca devem ser obrigatórios.
+ */
+function OptionalScaleRow<T extends string>({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: T | undefined;
+  options: ReadonlyArray<{ value: T; label: string }>;
+  onChange: (v: T | undefined) => void;
+}) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        gap: 12,
+      }}
+    >
+      <span style={{ fontSize: 13, color: 'var(--color-text-muted)', fontWeight: 500 }}>{label}</span>
+      <div style={{ display: 'flex', gap: 6 }}>
+        {options.map((opt) => {
+          const selected = value === opt.value;
+          return (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => onChange(selected ? undefined : opt.value)}
+              style={{
+                padding: '4px 12px',
+                borderRadius: 999,
+                fontSize: 12,
+                fontWeight: 700,
+                cursor: 'pointer',
+                border: `1px solid ${selected ? 'var(--color-accent)' : 'var(--color-border)'}`,
+                background: selected ? 'var(--color-accent-soft)' : 'transparent',
+                color: selected ? 'var(--color-accent-hover)' : 'var(--color-text-muted)',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              {opt.label}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+const NUTRITION_OPTIONS: ReadonlyArray<{ value: NutritionLevel; label: string }> = [
+  { value: 'poor', label: 'Ruim' },
+  { value: 'ok',   label: 'OK' },
+  { value: 'good', label: 'Bom' },
+];
+
+const MENTAL_LOAD_OPTIONS: ReadonlyArray<{ value: MentalLoadLevel; label: string }> = [
+  { value: 'low',    label: 'Baixa' },
+  { value: 'medium', label: 'Média' },
+  { value: 'high',   label: 'Alta' },
+];
+
+const HYDRATION_OPTIONS: ReadonlyArray<{ value: 'yes' | 'no'; label: string }> = [
+  { value: 'yes', label: 'Sim' },
+  { value: 'no',  label: 'Não' },
+];
 
 export function DailyCheckin({ condition, setCondition, clearCondition, onConditionSet, onConditionSaved }: Props) {
   const [pendingFeeling, setPendingFeeling] = useState<DailyFeeling | null>(null);
@@ -254,6 +332,32 @@ export function DailyCheckin({ condition, setCondition, clearCondition, onCondit
                 value={details.stressed}
                 onChange={(v) => setDetails((d) => ({ ...d, stressed: v }))}
               />
+
+              <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-text-subtle)', textTransform: 'uppercase', letterSpacing: '0.07em', paddingTop: 6 }}>
+                Sinais extras (se quiser)
+              </span>
+              <OptionalScaleRow
+                label="Bem hidratado?"
+                value={details.hydrationOk === true ? 'yes' : details.hydrationOk === false ? 'no' : undefined}
+                options={HYDRATION_OPTIONS}
+                onChange={(v) => setDetails((d) => ({
+                  ...d,
+                  hydrationOk: v === 'yes' ? true : v === 'no' ? false : undefined,
+                }))}
+              />
+              <OptionalScaleRow<NutritionLevel>
+                label="Alimentação hoje"
+                value={details.nutritionLevel}
+                options={NUTRITION_OPTIONS}
+                onChange={(v) => setDetails((d) => ({ ...d, nutritionLevel: v }))}
+              />
+              <OptionalScaleRow<MentalLoadLevel>
+                label="Carga mental"
+                value={details.mentalLoadLevel}
+                options={MENTAL_LOAD_OPTIONS}
+                onChange={(v) => setDetails((d) => ({ ...d, mentalLoadLevel: v }))}
+              />
+
               <motion.button
                 type="button"
                 onClick={handleConfirm}
