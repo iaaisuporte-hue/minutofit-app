@@ -31,6 +31,7 @@ import {
 } from "../../features/metabolism/metabolismDerivations";
 import { useGamificationSummary } from "../../features/gamification/useGamificationSummary";
 import { ProfessionalVoiceCard, useProfessionalContext } from "../../features/professionalVoice";
+import { WeeklyLoopCard, useHasWeeklyLoopInsights } from "../../features/loopVisibility";
 import { DailyCheckin } from "../../features/dailyCheckin/DailyCheckin";
 import { getDailyConditionState, useDailyCondition } from "../../features/dailyCheckin/useDailyCondition";
 import { buildDailyWorkoutRecommendation, getWorkoutRoute } from "../../features/training/dailyWorkoutAdapter";
@@ -140,6 +141,7 @@ export default function TodayPage() {
   const { data: metabolism, loading: metabolismLoading, error: metabolismError, refetch: refetchMetabolism } = useMetabolism();
   const { data: metabolismHistory, loading: historyLoading } = useMetabolismHistory();
   const { data: professionalContext } = useProfessionalContext();
+  const hasWeeklyLoopInsights = useHasWeeklyLoopInsights();
 
   const onboarding = useMemo(() => (userId ? loadAnswers(userId) : null), [userId]);
   const yesterdayMuscleGroups = getYesterdayMuscleGroups();
@@ -428,6 +430,13 @@ export default function TodayPage() {
           </div>
         </div>
       </motion.div>
+
+      {/* 4.5. Loop visível — como sinais de Tracker + Lab alimentam a recomendação */}
+      {hasWeeklyLoopInsights && (
+        <motion.div variants={sectionRevealVariants}>
+          <WeeklyLoopCard />
+        </motion.div>
+      )}
 
       {/* 5. Treino de hoje — toggle home/gym */}
       <motion.div variants={sectionRevealVariants}>
