@@ -217,7 +217,7 @@ export function MetabolicScoreCard({ data, loading, error, derivedStatus, foreca
           </div>
         )}
 
-        {/* Mensagem contextual */}
+        {/* Mensagem contextual — narrativa da IA quando disponível, fallback heurístico */}
         <div style={{
           padding: '12px 14px',
           borderRadius: 12,
@@ -227,7 +227,17 @@ export function MetabolicScoreCard({ data, loading, error, derivedStatus, foreca
           color: 'var(--color-text)',
           lineHeight: 1.6,
         }}>
-          {stateContext}
+          {data.interpretation?.hint ?? stateContext}
+          {data.interpretation?.action && (
+            <div style={{
+              marginTop: 6,
+              fontSize: 12,
+              fontWeight: 600,
+              color: 'var(--color-text-muted)',
+            }}>
+              → {data.interpretation.action}
+            </div>
+          )}
         </div>
 
         {/* Forecast */}
