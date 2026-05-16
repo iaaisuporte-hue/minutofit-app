@@ -30,6 +30,7 @@ import {
   type QuickActionModel,
 } from "../../features/metabolism/metabolismDerivations";
 import { useGamificationSummary } from "../../features/gamification/useGamificationSummary";
+import { ProfessionalVoiceCard, useProfessionalContext } from "../../features/professionalVoice";
 import { DailyCheckin } from "../../features/dailyCheckin/DailyCheckin";
 import { getDailyConditionState, useDailyCondition } from "../../features/dailyCheckin/useDailyCondition";
 import { buildDailyWorkoutRecommendation, getWorkoutRoute } from "../../features/training/dailyWorkoutAdapter";
@@ -138,6 +139,7 @@ export default function TodayPage() {
   const { data: gamification, loading: gamificationLoading, refetch: refetchGamification } = useGamificationSummary();
   const { data: metabolism, loading: metabolismLoading, error: metabolismError, refetch: refetchMetabolism } = useMetabolism();
   const { data: metabolismHistory, loading: historyLoading } = useMetabolismHistory();
+  const { data: professionalContext } = useProfessionalContext();
 
   const onboarding = useMemo(() => (userId ? loadAnswers(userId) : null), [userId]);
   const yesterdayMuscleGroups = getYesterdayMuscleGroups();
@@ -344,6 +346,16 @@ export default function TodayPage() {
           forecast={forecast}
         />
       </motion.div>
+
+      {/* 2.5. Voz do profissional (renderiza só quando há personal/nutri ativo) */}
+      {professionalContext && (professionalContext.personal || professionalContext.nutri) && (
+        <motion.div variants={sectionRevealVariants}>
+          <ProfessionalVoiceCard
+            personal={professionalContext.personal}
+            nutri={professionalContext.nutri}
+          />
+        </motion.div>
+      )}
 
       {/* 3. Histórico metabólico */}
       <motion.div variants={sectionRevealVariants}>
