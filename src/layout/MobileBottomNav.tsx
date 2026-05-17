@@ -50,6 +50,14 @@ const MessagesIcon = () => (
   </svg>
 );
 
+const LogoutIcon = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+    <polyline points="16 17 21 12 16 7" />
+    <line x1="21" y1="12" x2="9" y2="12" />
+  </svg>
+);
+
 interface Props {
   baseUrl: string;
   showMessages?: boolean;
@@ -59,6 +67,12 @@ interface Props {
   /** Mostra "Minha ficha" — destino primário do aluno do personal autônomo */
   showFicha?: boolean;
   showProfile?: boolean;
+  /**
+   * Quando fornecido, renderiza um botão "Sair" no rodapé do nav (último slot).
+   * Necessário no mobile portrait, onde a sidebar — que tradicionalmente
+   * abriga o logout — fica escondida.
+   */
+  onLogout?: () => void;
 }
 
 export default function MobileBottomNav({
@@ -69,9 +83,12 @@ export default function MobileBottomNav({
   showTracker = true,
   showFicha = false,
   showProfile = false,
+  onLogout,
 }: Props) {
-  // Limite prático de 5 slots no bottom nav. Prioridade:
-  // Hoje · Ficha · Tracker · Mensagens · Perfil (com Lab/Treinos como alternativas).
+  // Prioridade dos slots de navegação. Quando onLogout existe, reservamos
+  // um slot para o botão "Sair" — sobram 5 para nav (mesmo limite de antes
+  // do recurso, mantém legibilidade dos labels).
+  const navSlots = onLogout ? 5 : 5;
   const items: NavItem[] = [
     { to: `${baseUrl}/today`, label: "Hoje", icon: <HomeIcon /> },
     ...(showFicha ? [{ to: `${baseUrl}/ficha`, label: "Ficha", icon: <FichaIcon /> }] : []),
@@ -80,7 +97,7 @@ export default function MobileBottomNav({
     ...(showTracker ? [{ to: `${baseUrl}/activities`, label: "Tracker", icon: <TrackerIcon /> }] : []),
     ...(showMessages ? [{ to: `${baseUrl}/messages`, label: "Chat", icon: <MessagesIcon /> }] : []),
     ...(showProfile ? [{ to: `${baseUrl}/profile`, label: "Perfil", icon: <ProfileIcon /> }] : []),
-  ].slice(0, 5);
+  ].slice(0, navSlots);
 
   return (
     <nav className="mobileBottomNav" aria-label="Navegação principal">
@@ -96,6 +113,17 @@ export default function MobileBottomNav({
           <span className="mobileBottomNav__label">{item.label}</span>
         </NavLink>
       ))}
+      {onLogout && (
+        <button
+          type="button"
+          onClick={onLogout}
+          className="mobileBottomNav__item mobileBottomNav__item--logout"
+          aria-label="Sair da conta"
+        >
+          <LogoutIcon />
+          <span className="mobileBottomNav__label">Sair</span>
+        </button>
+      )}
     </nav>
   );
 }

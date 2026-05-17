@@ -137,6 +137,7 @@ export default function UserApp() {
             showLab={canTrainingAi}
             showTracker={showTracker}
             showProfile={canProfile}
+            onLogout={handleLogout}
           />
         }
         sidebar={

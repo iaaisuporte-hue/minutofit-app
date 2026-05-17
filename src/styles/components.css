@@ -734,6 +734,22 @@ html[data-color-mode="daltonic"] .navLinkActive {
     color: var(--color-primary);
   }
 
+  /* Botão "Sair" no bottom nav (renderizado como <button>, não NavLink).
+     Reset de estilos default de button + tom destrutivo sutil sem competir
+     com itens de navegação. */
+  .mobileBottomNav__item--logout {
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+    font: inherit;
+    color: var(--color-text-subtle);
+  }
+
+  .mobileBottomNav__item--logout:hover,
+  .mobileBottomNav__item--logout:active {
+    color: var(--color-danger);
+  }
+
   .mobileBottomNav__label {
     font-size: 10px;
     font-weight: 600;
