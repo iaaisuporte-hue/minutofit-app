@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom';
+import { useFeatureFlags } from '../../auth/FeatureFlagsContext';
 import type { ProfessionalSummary } from './useProfessionalContext';
 
 interface Props {
@@ -17,6 +18,11 @@ function formatRelativeDate(iso: string): string {
 
 export function ProfessionalVoiceCard({ personal, nutri }: Props) {
   const navigate = useNavigate();
+  const { hasFeature } = useFeatureFlags();
+  // Aluno sem feature 'messages' não pode acessar /app/user/messages (rota redireciona
+  // pra default). Esconde o CTA — o card segue informacional, mantendo a presença do
+  // profissional visível (Skill aluno_signal_loop_review).
+  const canOpenChat = hasFeature('messages');
   if (!personal && !nutri) return null;
 
   // Prioriza o profissional com observação recente; senão mostra o personal primeiro
@@ -118,23 +124,25 @@ export function ProfessionalVoiceCard({ personal, nutri }: Props) {
         </p>
       )}
 
-      <button
-        type="button"
-        onClick={() => navigate('/app/user/messages')}
-        style={{
-          alignSelf: 'flex-start',
-          padding: '8px 16px',
-          borderRadius: 10,
-          fontSize: 13,
-          fontWeight: 700,
-          color: 'var(--color-text)',
-          background: 'rgba(255,255,255,0.62)',
-          border: '1px solid var(--color-border)',
-          cursor: 'pointer',
-        }}
-      >
-        Abrir conversa →
-      </button>
+      {canOpenChat && (
+        <button
+          type="button"
+          onClick={() => navigate('/app/user/messages')}
+          style={{
+            alignSelf: 'flex-start',
+            padding: '8px 16px',
+            borderRadius: 10,
+            fontSize: 13,
+            fontWeight: 700,
+            color: 'var(--color-text)',
+            background: 'rgba(255,255,255,0.62)',
+            border: '1px solid var(--color-border)',
+            cursor: 'pointer',
+          }}
+        >
+          Abrir conversa →
+        </button>
+      )}
     </div>
   );
 }
