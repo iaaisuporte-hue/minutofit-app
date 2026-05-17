@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState, useCallback } from "react";
 import { fetchMyWorkoutPlans, type UserWorkoutPlan, type UserWorkoutPlanDay, type UserWorkoutPlanItem } from "../../services/userWorkoutPlansApi";
 import { getExercisesBatch, type Exercise } from "../../services/exercisesApi";
 import { persistGamificationCheckin } from "../../services/gamificationApi";
+import { addWorkoutHistoryEntry, type MuscleGroup } from "./workoutHistory";
+import { registerDailyCheckin } from "./gamification";
 import { COLORS } from "../../styles/colors";
 import { EmptyState } from "../../components/EmptyState";
 
@@ -44,15 +46,16 @@ function WorkoutDoneButton({ planTitle, focusHint }: WorkoutDoneButtonProps) {
     setState("saving");
     setErrorMsg(null);
     try {
+      const workoutId = `ficha-${Date.now()}`;
+      const title = `Treino concluído • ${planTitle}`;
+      const muscleGroups = focusHint ? [focusHint as MuscleGroup] : [];
       await persistGamificationCheckin({
         source: "workout",
         xp: 20,
-        workout: {
-          workoutId: `ficha-${Date.now()}`,
-          title: `Treino concluído • ${planTitle}`,
-          muscleGroups: focusHint ? [focusHint] : [],
-        },
+        workout: { workoutId, title, muscleGroups },
       });
+      addWorkoutHistoryEntry({ workoutId, title, muscleGroups, date: new Date().toISOString() });
+      registerDailyCheckin("workout", 20);
       setState("saved");
     } catch (e) {
       setState("error");

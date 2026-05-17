@@ -47,7 +47,9 @@ export default function RecepcaoNovoAlunoPage() {
   const [result, setResult] = useState<{ tempPassword?: string; inviteUrl?: string } | null>(null);
 
   useEffect(() => {
-    fetchPlans().then(setPlans).catch(() => {});
+    fetchPlans().then(setPlans).catch((err: unknown) => {
+      console.warn('[recepcao] fetchPlans failed', err);
+    });
   }, []);
 
   function setField<K extends keyof FormState>(key: K, value: FormState[K]) {

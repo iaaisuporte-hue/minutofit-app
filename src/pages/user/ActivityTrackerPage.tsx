@@ -4,6 +4,7 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { registerDailyCheckin } from "./gamification";
 import { persistGamificationCheckin } from "../../services/gamificationApi";
+import { addWorkoutHistoryEntry } from "./workoutHistory";
 import { authFetch } from "../../services/apiClient";
 import { API_URL } from "../../services/apiBase";
 import "./activityTracker.css";
@@ -566,6 +567,12 @@ export default function ActivityTrackerPage() {
     } catch (error) {
       console.error("Failed to persist activity gamification:", error);
     }
+    addWorkoutHistoryEntry({
+      workoutId: `activity-${endActivity.id}`,
+      title: `${ACTIVITY_META[endActivity.type].label} • GPS`,
+      muscleGroups: ["cardio"],
+      date: endActivity.endTime?.toISOString() ?? new Date().toISOString(),
+    });
 
     // Persist session to backend (fire-and-forget; localStorage remains source of truth)
     try {

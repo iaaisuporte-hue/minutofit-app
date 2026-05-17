@@ -416,7 +416,9 @@ export default function RecepcaoHubPage() {
 
   useEffect(() => {
     if (!notesOpen || !selected) return;
-    void postReceptionStudentNotesAudit(selected.userId).catch(() => {});
+    void postReceptionStudentNotesAudit(selected.userId).catch((err: unknown) => {
+      console.warn('[recepcao] audit notes_viewed failed', err);
+    });
   }, [notesOpen, selected]);
 
   useEffect(() => {
