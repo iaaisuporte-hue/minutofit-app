@@ -32,6 +32,7 @@ import {
 import { useGamificationSummary } from "../../features/gamification/useGamificationSummary";
 import { ProfessionalVoiceCard, useProfessionalContext } from "../../features/professionalVoice";
 import { WeeklyLoopCard, useHasWeeklyLoopInsights } from "../../features/loopVisibility";
+import { IncomingMessageBanner, useLatestUnreadFromProfessional } from "../../features/incomingMessage";
 import { DailyCheckin } from "../../features/dailyCheckin/DailyCheckin";
 import { getDailyConditionState, useDailyCondition } from "../../features/dailyCheckin/useDailyCondition";
 import { buildDailyWorkoutRecommendation, getWorkoutRoute } from "../../features/training/dailyWorkoutAdapter";
@@ -132,7 +133,8 @@ function ActionButton({
 export default function TodayPage() {
   const navigate = useNavigate();
   const { id, user } = useAuth();
-  const { planName } = useFeatureFlags();
+  const { planName, hasFeature } = useFeatureFlags();
+  const canMessages = hasFeature("messages");
   const isMobile = useIsMobile(720);
   const userId = (id ?? "").trim().toLowerCase();
   const isFreePlan = (planName || "").toLowerCase() === "free";
@@ -142,6 +144,8 @@ export default function TodayPage() {
   const { data: metabolismHistory, loading: historyLoading } = useMetabolismHistory();
   const { data: professionalContext } = useProfessionalContext();
   const hasWeeklyLoopInsights = useHasWeeklyLoopInsights();
+  const { conversation: incomingMessage, dismissLocally: dismissIncomingMessage } =
+    useLatestUnreadFromProfessional({ enabled: canMessages });
 
   const onboarding = useMemo(() => (userId ? loadAnswers(userId) : null), [userId]);
   const yesterdayMuscleGroups = getYesterdayMuscleGroups();
@@ -315,6 +319,14 @@ export default function TodayPage() {
       initial={shouldReduceMotion ? false : "hidden"}
       animate="show"
     >
+      {/* 0. Banner de mensagem nova (apenas quando há mensagem não lida do profissional) */}
+      {incomingMessage && (
+        <IncomingMessageBanner
+          conversation={incomingMessage}
+          onDismiss={dismissIncomingMessage}
+        />
+      )}
+
       {/* 1. Check-in de estado */}
       <motion.div variants={sectionRevealVariants}>
         <DailyCheckin
