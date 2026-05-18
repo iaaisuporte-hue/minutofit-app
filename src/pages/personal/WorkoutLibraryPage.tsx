@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { EmptyState } from "../../components/EmptyState";
 import { fetchPersonalDashboard } from "../../services/personalDashboardApi";
 import type { PersonalDashboardStudent } from "../../services/personalDashboardApi";
@@ -11,6 +11,9 @@ import {
   type WorkoutProtocol,
 } from "../../services/workoutProtocolsApi";
 import { FeedbackBanner, WbButton, WbCard } from "./workoutBuilder/WorkoutBuilderUi";
+import { ProtocolUsageBadge } from "./workoutLibrary/ProtocolUsageBadge";
+import { ProtocolUsageDrawer } from "./workoutLibrary/ProtocolUsageDrawer";
+import "./workoutLibrary/workoutLibrary.css";
 import { WB } from "./workoutBuilder/workoutBuilderTheme";
 import "./personalPremium.css";
 
@@ -24,6 +27,7 @@ function scopeLabel(s: ProtocolScope) {
 
 export default function WorkoutLibraryPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [students, setStudents] = useState<PersonalDashboardStudent[]>([]);
   const [studentsLoading, setStudentsLoading] = useState(true);
   const [selectedStudentId, setSelectedStudentId] = useState("");
@@ -34,6 +38,7 @@ export default function WorkoutLibraryPage() {
   const [query, setQuery] = useState("");
   const [scope, setScope] = useState<ProtocolScope | "all">("all");
   const [feedback, setFeedback] = useState<{ kind: "success" | "error"; message: string } | null>(null);
+  const [activeProtocol, setActiveProtocol] = useState<WorkoutProtocol | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -44,9 +49,6 @@ export default function WorkoutLibraryPage() {
         if (cancelled) return;
         const list = dash?.students ?? [];
         setStudents(list);
-        if (list.length && !selectedStudentId) {
-          setSelectedStudentId(list[0].id);
-        }
       } catch {
         if (!cancelled) setStudents([]);
       } finally {
@@ -79,6 +81,16 @@ export default function WorkoutLibraryPage() {
   useEffect(() => {
     void loadProtocols();
   }, [loadProtocols]);
+
+
+  useEffect(() => {
+    const raw = searchParams.get("protocol");
+    if (!raw || protocolsLoading || activeProtocol) return;
+    const protocolId = Number(raw);
+    if (!Number.isFinite(protocolId)) return;
+    const match = protocols.find((protocol) => protocol.id === protocolId);
+    if (match) setActiveProtocol(match);
+  }, [searchParams, protocols, protocolsLoading, activeProtocol]);
 
   async function toggleFavorite(p: WorkoutProtocol, next: boolean) {
     try {
@@ -122,6 +134,10 @@ export default function WorkoutLibraryPage() {
     navigate(path);
   }
 
+  function refreshAfterUsageChange() {
+    void loadProtocols();
+  }
+
   const inputStyle: React.CSSProperties = {
     minHeight: 38,
     padding: "9px 11px",
@@ -161,7 +177,8 @@ export default function WorkoutLibraryPage() {
                 value={selectedStudentId}
                 onChange={(e) => setSelectedStudentId(e.target.value)}
               >
-                {!students.length ? <option value="">Nenhum aluno</option> : null}
+                <option value="">Sem aluno selecionado</option>
+                {!students.length ? <option value="" disabled>Nenhum aluno vinculado</option> : null}
                 {students.map((s) => (
                   <option key={s.id} value={s.id}>
                     {s.name}
@@ -213,7 +230,13 @@ export default function WorkoutLibraryPage() {
             <div style={{ display: "grid", gap: 12 }}>
               {sortedProtocols.map((p) => (
                 <WbCard key={p.id}>
-                  <div style={{ padding: 14, display: "grid", gap: 10 }}>
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setActiveProtocol(p)}
+                    onKeyDown={(e) => { if (e.key === "Enter") setActiveProtocol(p); }}
+                    style={{ padding: 14, display: "grid", gap: 10, cursor: "pointer" }}
+                  >
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "baseline", justifyContent: "space-between" }}>
                       <div style={{ fontWeight: 700, fontSize: 16, color: WB.text }}>{p.title}</div>
                       <span style={{ fontSize: 12, color: WB.muted }}>
@@ -224,6 +247,12 @@ export default function WorkoutLibraryPage() {
                       <p style={{ margin: 0, fontSize: 14, color: WB.muted, lineHeight: 1.45 }}>{p.description}</p>
                     ) : null}
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+                      <ProtocolUsageBadge count={p.usageCount} />
+                      <span style={{ fontSize: 12, color: WB.muted }}>
+                        Atualizado {new Date(p.updatedAt).toLocaleDateString("pt-BR")}
+                      </span>
+                    </div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }} onClick={(e) => e.stopPropagation()}>
                       <WbButton variant="primary" type="button" onClick={() => openInBuilder(p.id)}>
                         Abrir no builder
                       </WbButton>
@@ -245,9 +274,6 @@ export default function WorkoutLibraryPage() {
                           Excluir
                         </WbButton>
                       ) : null}
-                      <span style={{ fontSize: 12, color: WB.muted }}>
-                        Atualizado {new Date(p.updatedAt).toLocaleDateString("pt-BR")}
-                      </span>
                     </div>
                   </div>
                 </WbCard>
@@ -256,6 +282,12 @@ export default function WorkoutLibraryPage() {
           )}
         </div>
       </section>
+      <ProtocolUsageDrawer
+        protocol={activeProtocol}
+        open={Boolean(activeProtocol)}
+        onClose={() => setActiveProtocol(null)}
+        onChanged={refreshAfterUsageChange}
+      />
     </div>
   );
 }

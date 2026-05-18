@@ -27,6 +27,7 @@ export type PersonalWorkoutPlanRow = {
   title: string;
   week_preset: string;
   selected_group: string | null;
+  source_protocol_id: number | null;
   /** @deprecated kept for legacy reads; use `days` instead */
   payload_json: WorkoutPlanItem[];
   days: WorkoutPlanDay[];
@@ -48,12 +49,14 @@ export type CreateWorkoutPlanBody =
       title: string;
       weekPreset: string;
       days: Array<{ name: string; focus?: string | null; items: WorkoutPlanItem[] }>;
+      sourceProtocolId?: number | null;
     }
   | {
       title: string;
       weekPreset: string;
       selectedGroup: string | null;
       items: WorkoutPlanItem[];
+      sourceProtocolId?: number | null;
     };
 
 export async function createPersonalWorkoutPlan(

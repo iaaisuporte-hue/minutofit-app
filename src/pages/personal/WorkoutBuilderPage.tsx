@@ -8,6 +8,7 @@ import {
   createWorkoutProtocol,
   fetchProtocolSuggestions,
   fetchWorkoutProtocolById,
+  fetchWorkoutProtocols,
   type ProtocolSuggestion,
   type WorkoutProtocol,
 } from "../../services/workoutProtocolsApi";
@@ -127,20 +128,6 @@ function buildEmptyDayItems(count: number): Record<number, WorkoutExercise[]> {
   return out;
 }
 
-function protocolToWorkoutItems(p: WorkoutProtocol): WorkoutExercise[] {
-  return p.items.map((it) => ({
-    exerciseId: it.exerciseId,
-    name: it.name,
-    sets: it.sets,
-    reps: it.reps,
-    rest: it.rest,
-    rpe: it.rpe,
-    cadence: it.cadence,
-    restPause: it.restPause,
-    notes: it.notes,
-  }));
-}
-
 function mapDashboardToStudents(rows: PersonalDashboardStudent[]): Student[] {
   return rows.map((s) => ({ id: s.id, name: s.name, plan: s.plan, gender: null }));
 }
@@ -200,6 +187,9 @@ export default function WorkoutBuilderPage() {
   // ── Protocols ─────────────────────────────────────────────────────
   const [protocolSuggestions, setProtocolSuggestions] = useState<ProtocolSuggestion[]>([]);
   const [suggestionsLoading, setSuggestionsLoading] = useState(false);
+  const [protocolOptions, setProtocolOptions] = useState<WorkoutProtocol[]>([]);
+  const [protocolOptionsLoading, setProtocolOptionsLoading] = useState(false);
+  const [sourceProtocolId, setSourceProtocolId] = useState<number | null>(null);
 
   // ── Plan meta ─────────────────────────────────────────────────────
   const [workoutName, setWorkoutName] = useState("Treino A");
@@ -221,7 +211,6 @@ export default function WorkoutBuilderPage() {
   // ── UI ────────────────────────────────────────────────────────────
   const [feedback, setFeedback] = useState<{ kind: "success" | "error"; message: string } | null>(null);
   const [saving, setSaving] = useState(false);
-  const [savingTemplate, setSavingTemplate] = useState(false);
   const [viewingExerciseId, setViewingExerciseId] = useState<string | null>(null);
 
   // ── AI ────────────────────────────────────────────────────────────
@@ -308,6 +297,23 @@ export default function WorkoutBuilderPage() {
     })();
     return () => { cancelled = true; };
   }, [selectedStudentId]);
+
+
+  useEffect(() => {
+    let cancelled = false;
+    setProtocolOptionsLoading(true);
+    void (async () => {
+      try {
+        const rows = await fetchWorkoutProtocols({ scope: 'personal', limit: 80 });
+        if (!cancelled) setProtocolOptions(rows);
+      } catch {
+        if (!cancelled) setProtocolOptions([]);
+      } finally {
+        if (!cancelled) setProtocolOptionsLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   const refreshRecentPlans = useCallback(async (sid: string) => {
     try {
@@ -437,11 +443,32 @@ export default function WorkoutBuilderPage() {
   const hydrateFromProtocol = useCallback((p: WorkoutProtocol) => {
     setWorkoutName(p.title);
     setWeekPreset(coerceWeekPreset(p.weekPreset));
+    setSourceProtocolId(p.id);
     const sg = p.selectedGroup;
     if (sg && KNOWN_GROUPS.includes(sg as MuscleGroup)) setSelectedGroup(sg as MuscleGroup);
-    const resolved = protocolToWorkoutItems(p);
-    setDaysItems({ 0: resolved });
-    setDaysMeta([{ index: 1, name: "Único", focus: sg ?? null }]);
+
+    const protocolDays = Array.isArray(p.days) && p.days.length > 0
+      ? p.days
+      : [{ index: 1, name: "Único", focus: sg ?? null, items: p.items }];
+
+    const nextItems: Record<number, WorkoutExercise[]> = {};
+    const nextMeta: DayMeta[] = protocolDays.map((day, idx) => {
+      nextItems[idx] = day.items.map((it) => ({
+        exerciseId: it.exerciseId,
+        name: it.name,
+        sets: it.sets,
+        reps: it.reps,
+        rest: it.rest,
+        rpe: it.rpe,
+        cadence: it.cadence,
+        restPause: it.restPause,
+        notes: it.notes,
+      }));
+      return { index: idx + 1, name: day.name || `Treino ${String.fromCharCode(65 + idx)}`, focus: day.focus ?? null };
+    });
+
+    setDaysItems(nextItems);
+    setDaysMeta(nextMeta);
     setSelectedDayIdx(0);
     setWeeklyPlan(null);
   }, []);
@@ -463,6 +490,16 @@ export default function WorkoutBuilderPage() {
     },
     [hydrateFromProtocol]
   );
+
+  async function handleSourceProtocolChange(raw: string) {
+    if (!raw) {
+      setSourceProtocolId(null);
+      return;
+    }
+    const protocolId = Number(raw);
+    if (!Number.isFinite(protocolId)) return;
+    await loadProtocolIntoBuilder(protocolId, "Protocolo da biblioteca aplicado.");
+  }
 
   useEffect(() => {
     const raw = searchParams.get("protocol");
@@ -580,65 +617,59 @@ export default function WorkoutBuilderPage() {
   }
 
   // ── Save ─────────────────────────────────────────────────────────
-  async function saveWorkout() {
-    if (!selectedStudentId) return;
+  async function saveUnified() {
     const totalExercises = Object.values(daysItems).reduce((s, arr) => s + arr.length, 0);
     if (totalExercises === 0) return;
 
     setSaving(true);
     setFeedback(null);
     try {
-      if (isMultiDay) {
-        // Multi-day: send days[]
-        const days = daysMeta.map((m, i) => ({
-          name: m.name,
-          focus: m.focus,
-          items: daysItems[i] ?? [],
-        }));
-        await createPersonalWorkoutPlan(selectedStudentId, {
+      const days = daysMeta.map((m, i) => ({
+        name: m.name,
+        focus: m.focus,
+        items: daysItems[i] ?? [],
+      }));
+
+      if (selectedStudentId) {
+        if (isMultiDay) {
+          await createPersonalWorkoutPlan(selectedStudentId, {
+            title: workoutName,
+            weekPreset,
+            days,
+            sourceProtocolId,
+          });
+        } else {
+          await createPersonalWorkoutPlan(selectedStudentId, {
+            title: workoutName,
+            weekPreset,
+            selectedGroup,
+            items: daysItems[0] ?? [],
+            sourceProtocolId,
+          });
+        }
+        setFeedback({
+          kind: "success",
+          message: `Ficha "${workoutName}" salva para ${selectedStudent?.name ?? "o aluno"} e ligada à biblioteca.`,
+        });
+        await refreshRecentPlans(selectedStudentId);
+      } else {
+        await createWorkoutProtocol({
           title: workoutName,
           weekPreset,
+          selectedGroup: isMultiDay ? null : selectedGroup,
+          items: daysItems[0] ?? [],
           days,
         });
-      } else {
-        // Single day: legacy format
-        await createPersonalWorkoutPlan(selectedStudentId, {
-          title: workoutName,
-          weekPreset,
-          selectedGroup,
-          items: daysItems[0] ?? [],
-        });
+        setSourceProtocolId(null);
+        setFeedback({ kind: "success", message: `Protocolo "${workoutName}" salvo na sua biblioteca.` });
       }
-      setFeedback({
-        kind: "success",
-        message: `Ficha "${workoutName}" salva para ${selectedStudent?.name ?? "o aluno"}.`,
-      });
-      await refreshRecentPlans(selectedStudentId);
     } catch (e) {
       setFeedback({
         kind: "error",
-        message: e instanceof Error ? e.message : "Não foi possível salvar a ficha.",
+        message: e instanceof Error ? e.message : "Não foi possível salvar.",
       });
     } finally {
       setSaving(false);
-    }
-  }
-
-  // ── Save as template (single day only) ───────────────────────────
-  async function saveAsTemplate() {
-    if (items.length === 0) return;
-    setSavingTemplate(true);
-    setFeedback(null);
-    try {
-      await createWorkoutProtocol({ title: workoutName, weekPreset, selectedGroup, items });
-      setFeedback({ kind: "success", message: `Template "${workoutName}" salvo na sua biblioteca.` });
-    } catch (e) {
-      setFeedback({
-        kind: "error",
-        message: e instanceof Error ? e.message : "Não foi possível salvar o template.",
-      });
-    } finally {
-      setSavingTemplate(false);
     }
   }
 
@@ -702,8 +733,7 @@ export default function WorkoutBuilderPage() {
     lineHeight: 0,
   });
 
-  const canSave = Boolean(selectedStudent) &&
-    Object.values(daysItems).some((arr) => arr.length > 0);
+  const canSave = Object.values(daysItems).some((arr) => arr.length > 0);
 
   return (
     <div className="pp-page" style={{ maxWidth: 1200 }}>
@@ -764,37 +794,36 @@ export default function WorkoutBuilderPage() {
           </div>
         </div>
 
+        {/* Protocol source */}
+        <div style={{ display: "grid", gap: 4, minWidth: 190 }}>
+          <span style={{ fontSize: 11, fontWeight: 600, color: WB.muted, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+            Partir de protocolo
+          </span>
+          <select
+            value={sourceProtocolId ?? ""}
+            onChange={(e) => void handleSourceProtocolChange(e.target.value)}
+            disabled={protocolOptionsLoading}
+            style={{ ...inputS, minWidth: 190, cursor: "pointer" }}
+          >
+            <option value="">Ficha nova</option>
+            {protocolOptions.map((p) => (
+              <option key={p.id} value={p.id}>{p.title}</option>
+            ))}
+          </select>
+        </div>
+
         {/* Actions */}
         <div style={{ display: "flex", gap: 8, alignItems: "flex-end", marginLeft: "auto" }}>
           <WbButton variant="ghost" onClick={() => navigate("/app/personal/library")}>
             Biblioteca
           </WbButton>
-          {items.length > 0 && !isMultiDay ? (
-            <WbButton
-              variant="ghost"
-              disabled={savingTemplate}
-              title="Salvar como template reutilizável na sua biblioteca"
-              onClick={() => void saveAsTemplate()}
-            >
-              {savingTemplate ? "Salvando…" : "Salvar template"}
-            </WbButton>
-          ) : null}
-          {isMultiDay && items.length > 0 ? (
-            <WbButton
-              variant="ghost"
-              disabled
-              title="Templates suportam um dia por vez"
-            >
-              Salvar template
-            </WbButton>
-          ) : null}
           <WbButton
             variant="primary"
             disabled={!canSave || saving}
-            title={!selectedStudent ? "Selecione um aluno" : !canSave ? "Adicione exercícios" : ""}
-            onClick={() => void saveWorkout()}
+            title={!canSave ? "Adicione exercícios" : ""}
+            onClick={() => void saveUnified()}
           >
-            {saving ? "Salvando…" : "Salvar ficha"}
+            {saving ? "Salvando…" : selectedStudent ? "Salvar e atribuir" : "Salvar na biblioteca"}
           </WbButton>
         </div>
       </div>
@@ -1308,9 +1337,9 @@ export default function WorkoutBuilderPage() {
               <WbButton
                 variant="primary"
                 disabled={!canSave || saving}
-                onClick={() => void saveWorkout()}
+                onClick={() => void saveUnified()}
               >
-                {saving ? "Salvando…" : "Salvar ficha"}
+                {saving ? "Salvando…" : selectedStudent ? "Salvar e atribuir" : "Salvar na biblioteca"}
               </WbButton>
             </div>
           </WbCard>

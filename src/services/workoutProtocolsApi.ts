@@ -1,6 +1,6 @@
 import { API_URL, parseJson } from "./apiBase";
 import { authFetch } from "./apiClient";
-import type { WorkoutPlanItem } from "./personalWorkoutApi";
+import type { WorkoutPlanDay, WorkoutPlanItem } from "./personalWorkoutApi";
 
 export type ProtocolScope = "personal" | "academy" | "platform";
 
@@ -15,9 +15,26 @@ export type WorkoutProtocol = {
   weekPreset: string;
   selectedGroup: string | null;
   items: WorkoutPlanItem[];
+  days: WorkoutPlanDay[];
+  usageCount: number;
   createdAt: string;
   updatedAt: string;
   isFavorite?: boolean;
+};
+
+
+export type ProtocolUsage = {
+  id: number;
+  studentId: number;
+  studentName: string;
+  studentEmail: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ProtocolUsagesResponse = {
+  count: number;
+  students: ProtocolUsage[];
 };
 
 export type ProtocolSuggestion = {
@@ -96,6 +113,7 @@ export async function createWorkoutProtocol(input: {
   weekPreset: string;
   selectedGroup: string | null;
   items: WorkoutPlanItem[];
+  days?: Array<{ name?: string; focus?: string | null; items?: WorkoutPlanItem[] }>;
 }) {
   const response = await authFetch(`${API_URL}/personal/protocols`, {
     method: "POST",
@@ -105,4 +123,18 @@ export async function createWorkoutProtocol(input: {
   const data = await parseJson(response);
   if (!response.ok) throw new Error(data?.error || "Nao foi possivel salvar o template.");
   return data?.data as WorkoutProtocol;
+}
+
+
+export async function fetchProtocolUsages(protocolId: number) {
+  const response = await authFetch(`${API_URL}/personal/protocols/${protocolId}/usages`);
+  const data = await parseJson(response);
+  if (!response.ok) throw new Error(data?.error || "Nao foi possivel carregar os alunos usando este protocolo.");
+  return data?.data as ProtocolUsagesResponse;
+}
+
+export async function removeProtocolUsage(protocolId: number, planId: number): Promise<void> {
+  const response = await authFetch(`${API_URL}/personal/protocols/${protocolId}/usages/${planId}`, { method: "DELETE" });
+  const data = await parseJson(response);
+  if (!response.ok) throw new Error(data?.error || "Nao foi possivel remover a ficha do aluno.");
 }
