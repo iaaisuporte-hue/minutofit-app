@@ -1,6 +1,6 @@
 import React, { useMemo } from "react";
-import { Link } from "react-router-dom";
-import { motion, useScroll, useTransform } from "framer-motion";
+import { Link, useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
 import InteractiveSurfaceCard from "../../components/InteractiveSurfaceCard";
 import { useIsMobile } from "../../hooks/useIsMobile";
 import { useAuth } from "../../auth/AuthContext";
@@ -8,6 +8,8 @@ import { useFeatureFlags } from "../../auth/FeatureFlagsContext";
 import { mapCanonicalPlanToLabel, normalizeToCanonicalPlanName } from "../../utils/planNormalization";
 import { useMetabolism } from "../../features/metabolism/useMetabolism";
 import { useGamificationSummary } from "../../features/gamification/useGamificationSummary";
+import { useProfessionalContext } from "../../features/professionalVoice";
+import { deriveEnergyStatus } from "../../features/metabolism/metabolismDerivations";
 import {
   itemRevealVariants,
   pageStaggerVariants,
@@ -36,10 +38,10 @@ function Card({
 }) {
   const baseStyle: React.CSSProperties = {
     border: `1px solid ${COLORS.border}`,
-    borderRadius: 20,
+    borderRadius: "var(--radius-card)",
     background: COLORS.panel,
-    boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.05)",
-    padding: 18,
+    boxShadow: "var(--shadow-md)",
+    padding: "var(--space-5)",
     ...style,
   };
 
@@ -72,20 +74,17 @@ function SectionTitle({
             width: "fit-content",
             alignItems: "center",
             gap: 8,
-            borderRadius: 999,
-            background: COLORS.highlightSoft,
-            color: "#22C55E",
-            padding: "8px 12px",
-            fontSize: 11,
-            fontWeight: 600,
-            letterSpacing: 1.2,
+            color: COLORS.mutedSoft,
+            fontSize: "var(--text-xs)",
+            fontWeight: "var(--font-bold)",
+            letterSpacing: "0.07em",
             textTransform: "uppercase",
           }}
         >
           {eyebrow}
         </div>
       ) : null}
-      <div style={{ fontSize: 30, fontWeight: 700, color: COLORS.text }}>{title}</div>
+      <div style={{ fontSize: "var(--text-3xl)", fontWeight: "var(--font-bold)", color: COLORS.text }}>{title}</div>
       {subtitle ? <div style={{ color: COLORS.muted, lineHeight: 1.6 }}>{subtitle}</div> : null}
     </div>
   );
@@ -99,23 +98,23 @@ function DataRow({ label, value }: { label: string; value: string }) {
         justifyContent: "space-between",
         gap: 12,
         padding: "12px 14px",
-        borderRadius: 16,
+        borderRadius: "var(--radius-card)",
         border: `1px solid ${COLORS.border}`,
         background: COLORS.panelSoft,
         alignItems: "center",
       }}
     >
-      <div style={{ color: COLORS.mutedSoft, fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1.1 }}>
+      <div style={{ color: COLORS.mutedSoft, fontSize: "var(--text-xs)", fontWeight: "var(--font-semibold)", textTransform: "uppercase", letterSpacing: "0.07em" }}>
         {label}
       </div>
-      <div style={{ color: COLORS.text, fontSize: 14, fontWeight: 600, textAlign: "right" }}>{value}</div>
+      <div style={{ color: COLORS.text, fontSize: "var(--text-base)", fontWeight: "var(--font-semibold)", textAlign: "right" }}>{value}</div>
     </div>
   );
 }
 
 function maskCpf(cpf?: string) {
   const digits = (cpf || "").replace(/\D/g, "");
-  if (digits.length !== 11) return cpf || "Nao informado";
+  if (digits.length !== 11) return cpf || "Não informado";
   return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9)}`;
 }
 
@@ -127,7 +126,65 @@ function maskPhone(phone?: string) {
   if (digits.length === 10) {
     return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
   }
-  return phone || "Nao informado";
+  return phone || "Não informado";
+}
+
+function getInitial(name: string) {
+  return name.trim()[0]?.toUpperCase() ?? "A";
+}
+
+function formatCurrentDate() {
+  return new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "short" }).format(new Date());
+}
+
+function ProfileSignal({ label, value }: { label: string; value: string }) {
+  return (
+    <div
+      style={{
+        display: "grid",
+        gap: "var(--space-1)",
+        minWidth: 150,
+        flex: "1 1 150px",
+        padding: "var(--space-3)",
+        borderRadius: "var(--radius-lg)",
+        border: `1px solid ${COLORS.border}`,
+        background: COLORS.panel,
+      }}
+    >
+      <span style={{ color: COLORS.mutedSoft, fontSize: "var(--text-xs)", fontWeight: "var(--font-bold)", letterSpacing: "0.07em", textTransform: "uppercase" }}>
+        {label}
+      </span>
+      <span style={{ color: COLORS.text, fontSize: "var(--text-base)", fontWeight: "var(--font-semibold)", lineHeight: 1.35 }}>
+        {value}
+      </span>
+    </div>
+  );
+}
+
+function MetabolicMetric({ label, value, tone }: { label: string; value: string | number; tone?: "up" | "down" }) {
+  return (
+    <div
+      style={{
+        padding: "var(--space-4)",
+        borderRadius: "var(--radius-card)",
+        border: `1px solid ${COLORS.border}`,
+        background: COLORS.panelSoft,
+        display: "grid",
+        gap: "var(--space-2)",
+      }}
+    >
+      <div style={{ color: COLORS.muted, fontSize: "var(--text-xs)", fontWeight: "var(--font-bold)", textTransform: "uppercase", letterSpacing: "0.07em" }}>{label}</div>
+      <div
+        style={{
+          fontSize: typeof value === "number" ? "var(--text-3xl)" : "var(--text-lg)",
+          fontWeight: "var(--font-bold)",
+          color: tone === "up" ? "var(--color-success-text)" : tone === "down" ? "var(--color-danger)" : COLORS.text,
+        }}
+      >
+        {value}
+      </div>
+    </div>
+  );
 }
 
 function drawEvolutionShareCard(opts: {
@@ -248,29 +305,28 @@ function drawEvolutionShareCard(opts: {
   });
 }
 
-export default function UserProfilePage({ onLogout: _onLogout }: Props) { // eslint-disable-line @typescript-eslint/no-unused-vars
+export default function UserProfilePage({ onLogout }: Props) {
+  const navigate = useNavigate();
   const { user, email, profileCompleted, branding, academies } = useAuth();
   const { data: metabolismData } = useMetabolism();
   const { data: gamification } = useGamificationSummary();
+  const { data: professionalContext, loading: professionalLoading } = useProfessionalContext();
   const { planName } = useFeatureFlags();
   const isMobile = useIsMobile(720);
-  const { shouldReduceMotion, shouldUseParallax, shouldUseTilt } = useTodayMotionSafe({ isMobile });
-  const { scrollY } = useScroll();
-  const heroMeshY = useTransform(scrollY, [0, 500], [0, shouldUseParallax ? 55 : 0]);
-  const heroContentY = useTransform(scrollY, [0, 500], [0, shouldUseParallax ? 20 : 0]);
+  const { shouldReduceMotion, shouldUseTilt } = useTodayMotionSafe({ isMobile });
 
   const accountSummary = useMemo(
     () => ({
       name: user?.name || "Aluno",
-      accountEmail: user?.email || email || "Nao informado",
+      accountEmail: user?.email || email || "Não informado",
       cpf: maskCpf(user?.cpf),
       phone: maskPhone(user?.phone),
       plan: mapCanonicalPlanToLabel(normalizeToCanonicalPlanName(planName || user?.subscriptionTier)),
       profileStatus: profileCompleted ? "Completo" : "Pendente",
-      fitnessGoal: user?.fitnessGoal || "Nao definido",
-      experienceLevel: user?.experienceLevel || "Nao definido",
-      height: user?.heightCm ? `${user.heightCm} cm` : "Nao informado",
-      weight: user?.weightKg ? `${user.weightKg} kg` : "Nao informado",
+      fitnessGoal: user?.fitnessGoal || "Não definido",
+      experienceLevel: user?.experienceLevel || "Não definido",
+      height: user?.heightCm ? `${user.heightCm} cm` : "Não informado",
+      weight: user?.weightKg ? `${user.weightKg} kg` : "Não informado",
       dietaryRestrictions: user?.dietaryRestrictions || "Nenhuma informada",
     }),
     [
@@ -290,9 +346,22 @@ export default function UserProfilePage({ onLogout: _onLogout }: Props) { // esl
     ]
   );
 
+  const academyName = branding?.displayName ?? academies?.[0]?.displayName ?? "MetaCore";
+  const professionalNames = [
+    professionalContext?.personal ? `${professionalContext.personal.name.split(" ")[0]} · Personal` : null,
+    professionalContext?.nutri ? `${professionalContext.nutri.name.split(" ")[0]} · Nutri` : null,
+  ].filter(Boolean);
+  const professionalSignal = professionalLoading
+    ? "Sincronizando acompanhamento"
+    : professionalNames.length > 0
+      ? professionalNames.join(" + ")
+      : "Acompanhamento a vincular";
+  const derivedEnergy = useMemo(() => deriveEnergyStatus(metabolismData), [metabolismData]);
+  const metabolicUpdatedLabel = useMemo(() => formatCurrentDate(), []);
+
   return (
     <motion.div
-      style={{ display: "grid", gap: 18 }}
+      style={{ display: "grid", gap: "var(--space-4)" }}
       variants={pageStaggerVariants}
       initial={shouldReduceMotion ? false : "hidden"}
       animate="show"
@@ -304,57 +373,50 @@ export default function UserProfilePage({ onLogout: _onLogout }: Props) { // esl
           style={{
             background: COLORS.panelDeep,
             borderColor: COLORS.borderStrong,
-            position: "relative",
             overflow: "hidden",
           }}
         >
-          <motion.div
-            aria-hidden
-            style={{
-              position: "absolute",
-              inset: -20,
-              y: heroMeshY,
-              background:
-                "radial-gradient(circle at 18% 24%, rgba(34,197,94,.12), transparent 45%), radial-gradient(circle at 84% 20%, rgba(34,197,94,.12), transparent 42%)",
-              pointerEvents: "none",
-            }}
-          />
-          <motion.div style={{ display: "grid", gap: 18, y: heroContentY }}>
-            <motion.div variants={itemRevealVariants} style={{ display: "grid", gap: 18 }}>
+          <motion.div style={{ display: "grid", gap: "var(--space-5)" }}>
+            <motion.div
+              variants={itemRevealVariants}
+              style={{
+                display: "flex",
+                alignItems: isMobile ? "flex-start" : "center",
+                gap: "var(--space-4)",
+                flexDirection: isMobile ? "column" : "row",
+              }}
+            >
+              <div
+                aria-hidden
+                style={{
+                  width: 64,
+                  height: 64,
+                  borderRadius: "50%",
+                  border: `1px solid ${COLORS.border}`,
+                  background: COLORS.panel,
+                  color: COLORS.muted,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: "var(--text-3xl)",
+                  fontWeight: "var(--font-bold)",
+                  flex: "0 0 auto",
+                }}
+              >
+                {getInitial(accountSummary.name)}
+              </div>
               <SectionTitle
                 eyebrow="Minha conta"
                 title={accountSummary.name}
-                subtitle="Aqui ficam seus dados principais de conta, assinatura e perfil fitness. A ideia é concentrar o que realmente define sua experiência no app."
+                subtitle="Como o MetaCore te conhece hoje: seus dados, sinais de consistência e acompanhamento reunidos em uma leitura simples."
               />
+            </motion.div>
 
-              <motion.div variants={itemRevealVariants} style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                <div
-                  style={{
-                    borderRadius: 999,
-                    border: `1px solid ${COLORS.border}`,
-                    background: COLORS.panelSoft,
-                    padding: "10px 12px",
-                    color: COLORS.text,
-                    fontSize: 12,
-                    fontWeight: 600,
-                  }}
-                >
-                  Plano {accountSummary.plan}
-                </div>
-                <div
-                  style={{
-                    borderRadius: 999,
-                    border: `1px solid ${profileCompleted ? COLORS.borderStrong : COLORS.border}`,
-                    background: profileCompleted ? COLORS.primarySoft : COLORS.panelSoft,
-                    padding: "10px 12px",
-                    color: COLORS.text,
-                    fontSize: 12,
-                    fontWeight: 600,
-                  }}
-                >
-                  Perfil {accountSummary.profileStatus}
-                </div>
-              </motion.div>
+            <motion.div variants={itemRevealVariants} style={{ display: "flex", gap: "var(--space-3)", flexWrap: "wrap" }}>
+              <ProfileSignal label="Plano" value={accountSummary.plan} />
+              <ProfileSignal label="Consistência" value={`${gamification?.streak ?? 0} dias`} />
+              <ProfileSignal label="Profissional" value={professionalSignal} />
+              <ProfileSignal label="Academia" value={academyName} />
             </motion.div>
           </motion.div>
         </Card>
@@ -362,13 +424,18 @@ export default function UserProfilePage({ onLogout: _onLogout }: Props) { // esl
 
       <motion.div
         variants={sectionRevealVariants}
-        style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))", gap: 16 }}
+        style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))", gap: "var(--space-4)" }}
       >
         <motion.div variants={itemRevealVariants} whileInView="show" initial={shouldReduceMotion ? false : "hidden"} viewport={{ once: true, amount: 0.15 }}>
           <Card interactive enableTilt={shouldUseTilt} style={{ background: COLORS.panelDeep, borderColor: COLORS.borderStrong }}>
-            <div style={{ display: "grid", gap: 14 }}>
-              <div style={{ fontSize: 20, fontWeight: 700, color: COLORS.text }}>Dados da conta</div>
-              <div style={{ display: "grid", gap: 10 }}>
+            <div style={{ display: "grid", gap: "var(--space-4)" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "var(--space-3)", flexWrap: "wrap" }}>
+                <div style={{ fontSize: "var(--text-xl)", fontWeight: "var(--font-bold)", color: COLORS.text }}>Dados da conta</div>
+                <button type="button" className="btn btn-ghost" onClick={() => navigate("/app/user/settings")}>
+                  Editar dados pessoais
+                </button>
+              </div>
+              <div style={{ display: "grid", gap: "var(--space-3)" }}>
                 <DataRow label="Nome" value={accountSummary.name} />
                 <DataRow label="E-mail" value={accountSummary.accountEmail} />
                 <DataRow label="CPF" value={accountSummary.cpf} />
@@ -380,11 +447,11 @@ export default function UserProfilePage({ onLogout: _onLogout }: Props) { // esl
 
         <motion.div variants={itemRevealVariants} whileInView="show" initial={shouldReduceMotion ? false : "hidden"} viewport={{ once: true, amount: 0.15 }}>
           <Card interactive enableTilt={shouldUseTilt} style={{ background: COLORS.panelDeep, borderColor: COLORS.borderStrong }}>
-            <div style={{ display: "grid", gap: 14 }}>
-              <div style={{ fontSize: 20, fontWeight: 700, color: COLORS.text }}>Assinatura e status</div>
-              <div style={{ display: "grid", gap: 10 }}>
+            <div style={{ display: "grid", gap: "var(--space-4)" }}>
+              <div style={{ fontSize: "var(--text-xl)", fontWeight: "var(--font-bold)", color: COLORS.text }}>Assinatura e status</div>
+              <div style={{ display: "grid", gap: "var(--space-3)" }}>
                 <DataRow label="Plano atual" value={accountSummary.plan} />
-                <DataRow label="Perfil concluido" value={accountSummary.profileStatus} />
+                <DataRow label="Perfil concluído" value={accountSummary.profileStatus} />
               </div>
             </div>
           </Card>
@@ -398,14 +465,14 @@ export default function UserProfilePage({ onLogout: _onLogout }: Props) { // esl
           style={isMobile ? undefined : { gridColumn: "1 / -1" }}
         >
           <Card interactive enableTilt={shouldUseTilt} style={{ background: COLORS.panelDeep, borderColor: COLORS.borderStrong }}>
-            <div style={{ display: "grid", gap: 14 }}>
-              <div style={{ fontSize: 20, fontWeight: 700, color: COLORS.text }}>Perfil fitness</div>
-              <div style={{ display: "grid", gap: 10, gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))" }}>
+            <div style={{ display: "grid", gap: "var(--space-4)" }}>
+              <div style={{ fontSize: "var(--text-xl)", fontWeight: "var(--font-bold)", color: COLORS.text }}>Perfil fitness</div>
+              <div style={{ display: "grid", gap: "var(--space-3)", gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))" }}>
                 <DataRow label="Objetivo" value={accountSummary.fitnessGoal} />
-                <DataRow label="Nivel" value={accountSummary.experienceLevel} />
+                <DataRow label="Nível" value={accountSummary.experienceLevel} />
                 <DataRow label="Altura" value={accountSummary.height} />
                 <DataRow label="Peso" value={accountSummary.weight} />
-                <DataRow label="Restricoes alimentares" value={accountSummary.dietaryRestrictions} />
+                <DataRow label="Restrições alimentares" value={accountSummary.dietaryRestrictions} />
               </div>
             </div>
           </Card>
@@ -415,12 +482,18 @@ export default function UserProfilePage({ onLogout: _onLogout }: Props) { // esl
       {metabolismData && (
         <motion.div variants={sectionRevealVariants}>
           <Card interactive enableTilt={shouldUseTilt} style={{ background: COLORS.panelDeep, borderColor: COLORS.borderStrong }}>
-            <div style={{ display: "grid", gap: 14 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
-                <div style={{ fontSize: 20, fontWeight: 700, color: COLORS.text }}>Estado metabólico</div>
-                <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+            <div style={{ display: "grid", gap: "var(--space-4)" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "var(--space-3)" }}>
+                <div style={{ display: "grid", gap: "var(--space-1)", maxWidth: 520 }}>
+                  <div style={{ fontSize: "var(--text-xl)", fontWeight: "var(--font-bold)", color: COLORS.text }}>Estado metabólico</div>
+                  <div style={{ color: COLORS.muted, fontSize: "var(--text-base)", lineHeight: 1.55 }}>
+                    Sua leitura metabólica atual, recalculada com os sinais disponíveis. Atualizado em {metabolicUpdatedLabel}.
+                  </div>
+                </div>
+                <div style={{ display: "flex", gap: "var(--space-3)", flexWrap: "wrap", alignItems: "center" }}>
                   <button
                     type="button"
+                    className="btn btn-ghost"
                     onClick={() => {
                       const t30 = metabolismData.trend30d;
                       const trend30Label =
@@ -438,85 +511,36 @@ export default function UserProfilePage({ onLogout: _onLogout }: Props) { // esl
                         /* ignore */
                       });
                     }}
-                    style={{
-                      border: `1px solid ${COLORS.borderStrong}`,
-                      background: COLORS.panelSoft,
-                      color: COLORS.text,
-                      fontWeight: 600,
-                      fontSize: 13,
-                      padding: "8px 14px",
-                      borderRadius: 999,
-                      cursor: "pointer",
-                    }}
                   >
-                    Baixar card para compartilhar
+                    Compartilhar evolução de 30 dias
                   </button>
                   <Link
                     to="/app/user/today"
-                    style={{ color: "#22C55E", fontWeight: 600, textDecoration: "none", fontSize: 13 }}
+                    style={{ color: COLORS.primary, fontWeight: "var(--font-semibold)", textDecoration: "none", fontSize: "var(--text-sm)" }}
                   >
                     Ver evolução →
                   </Link>
                 </div>
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 10 }}>
-                <div
-                  style={{
-                    padding: "14px",
-                    borderRadius: 16,
-                    border: `1px solid ${COLORS.border}`,
-                    background: COLORS.panelSoft,
-                    display: "grid",
-                    gap: 6,
-                  }}
-                >
-                  <div style={{ color: COLORS.muted, fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1 }}>Score</div>
-                  <div style={{ fontSize: 28, fontWeight: 700 }}>{Math.round(metabolismData.score)}</div>
-                </div>
-                <div
-                  style={{
-                    padding: "14px",
-                    borderRadius: 16,
-                    border: `1px solid ${COLORS.border}`,
-                    background: COLORS.panelSoft,
-                    display: "grid",
-                    gap: 6,
-                  }}
-                >
-                  <div style={{ color: COLORS.muted, fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1 }}>Nível</div>
-                  <div style={{ fontSize: 16, fontWeight: 700, textTransform: "capitalize" }}>{metabolismData.status}</div>
-                </div>
-                <div
-                  style={{
-                    padding: "14px",
-                    borderRadius: 16,
-                    border: `1px solid ${COLORS.border}`,
-                    background: COLORS.panelSoft,
-                    display: "grid",
-                    gap: 6,
-                  }}
-                >
-                  <div style={{ color: COLORS.muted, fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1 }}>Tendência</div>
-                  <div
-                    style={{
-                      fontSize: 16,
-                      fontWeight: 700,
-                      color:
-                        metabolismData.trend === "up"
-                          ? "#22C55E"
-                          : metabolismData.trend === "down"
-                            ? "#EF4444"
-                            : COLORS.text,
-                    }}
-                  >
-                    {metabolismData.trend === "up" ? "↑ Subindo" : metabolismData.trend === "down" ? "↓ Caindo" : "→ Estável"}
-                  </div>
-                </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "var(--space-3)" }}>
+                <MetabolicMetric label="Score" value={Math.round(metabolismData.score)} />
+                <MetabolicMetric label="Energia" value={derivedEnergy?.energyLabel ?? "Em formação"} />
+                <MetabolicMetric
+                  label="Tendência"
+                  value={metabolismData.trend === "up" ? "↑ Subindo" : metabolismData.trend === "down" ? "↓ Caindo" : "→ Estável"}
+                  tone={metabolismData.trend === "up" ? "up" : metabolismData.trend === "down" ? "down" : undefined}
+                />
               </div>
             </div>
           </Card>
         </motion.div>
       )}
+
+      <motion.div variants={sectionRevealVariants} style={{ display: "flex", justifyContent: "flex-end" }}>
+        <button type="button" className="btn btn-ghost" onClick={onLogout}>
+          Sair da conta
+        </button>
+      </motion.div>
     </motion.div>
   );
 }
