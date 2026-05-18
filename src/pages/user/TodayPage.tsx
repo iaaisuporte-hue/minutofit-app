@@ -13,7 +13,7 @@ import {
 
   useTodayMotionSafe,
 } from "./todayPageMotion";
-import { getYesterdayMuscleGroups, readWorkoutHistory, type MuscleGroup } from "./workoutHistory";
+import { addWorkoutHistoryEntry, getYesterdayMuscleGroups, readWorkoutHistory, type MuscleGroup } from "./workoutHistory";
 import {
   MetabolicChart,
   MetabolicScoreCard,
@@ -217,7 +217,7 @@ export default function TodayPage() {
   const gymWorkout = adaptiveWorkout.recommendations.find((r) => r.type === "gym") ?? adaptiveWorkout.recommendations[1] ?? adaptiveWorkout.recommendations[0];
   const currentWorkout = workoutMode === "home" ? homeWorkout : gymWorkout;
 
-  const histSummary = useMemo(() => summarizeWorkoutHistory(readWorkoutHistory()), []);
+  const histSummary = summarizeWorkoutHistory(readWorkoutHistory());
 
   async function openSupportVideo(activity: string, _workoutTitle?: string) {
     try {
@@ -263,12 +263,22 @@ export default function TodayPage() {
     setCheckinMessage("Pronto para registrar. Seu metabolismo vai responder a esse estímulo.");
 
     try {
+      const workoutId = `quick-checkin-${Date.now()}`;
+      const title = `Check-in • ${quickGroups.map((g) => GROUP_LABEL[g]).join(", ")}`;
+
+      addWorkoutHistoryEntry({
+        workoutId,
+        title,
+        muscleGroups: quickGroups,
+        date: new Date().toISOString(),
+      });
+
       await persistGamificationCheckin({
         source: "workout",
         xp: 20,
         workout: {
-          workoutId: `quick-checkin-${Date.now()}`,
-          title: `Check-in • ${quickGroups.map((g) => GROUP_LABEL[g]).join(", ")}`,
+          workoutId,
+          title,
           muscleGroups: quickGroups,
         },
       });
