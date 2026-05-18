@@ -94,6 +94,8 @@ export default function ProfileCompletionPage() {
         throw new Error(data?.error || "Failed to complete profile");
       }
 
+      await auth.getUser();
+
       // Redirect to appropriate dashboard based on role
       nav(nextPathByRole(auth.role as Role), { replace: true });
     } catch (err: any) {

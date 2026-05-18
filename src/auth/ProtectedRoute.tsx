@@ -1,5 +1,5 @@
 import React from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "./AuthContext";
 import type { Role } from "./AuthContext"; // ✅ type-only import
 
@@ -11,11 +11,12 @@ export default function ProtectedRoute({
   children: React.ReactNode;
 }) {
   const { isAuthenticated, role, profileCompleted } = useAuth();
+  const location = useLocation();
 
   if (!isAuthenticated) return <Navigate to="/" replace />;
 
   // Check if profile completion is required
-  if (profileCompleted === false) {
+  if (profileCompleted === false && location.pathname !== "/profile-completion") {
     return <Navigate to="/profile-completion" replace />;
   }
 
