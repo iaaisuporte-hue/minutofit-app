@@ -31,6 +31,14 @@ import { ProfessionalVoiceCard, useProfessionalContext } from "../../features/pr
 import { WeeklyLoopCard, useHasWeeklyLoopInsights } from "../../features/loopVisibility";
 import { IncomingMessageBanner, useLatestUnreadFromProfessional } from "../../features/incomingMessage";
 import { DailyCheckin } from "../../features/dailyCheckin/DailyCheckin";
+import {
+  computeNudgeState,
+  MetabolicCheckinCard,
+  MetabolicCheckinModal,
+  MetabolicTrendStrip,
+  useMetabolicCheckins,
+  type MetabolicCheckinInput,
+} from "../../features/metabolicCheckin";
 import { getDailyConditionState, useDailyCondition } from "../../features/dailyCheckin/useDailyCondition";
 import { deriveConditionSignals } from "../../features/dailyCheckin/deriveConditionSignals";
 import { buildDailyWorkoutRecommendation, getWorkoutRoute, summarizeWorkoutHistory } from "../../features/training/dailyWorkoutAdapter";
@@ -139,6 +147,11 @@ export default function TodayPage() {
   const { data: metabolism, loading: metabolismLoading, error: metabolismError, refetch: refetchMetabolism } = useMetabolism();
   const { data: metabolismHistory, loading: historyLoading } = useMetabolismHistory();
   const { data: professionalContext } = useProfessionalContext();
+  const {
+    records: metabolicCheckins,
+    loading: metabolicCheckinsLoading,
+    saveCheckin: saveMetabolicCheckin,
+  } = useMetabolicCheckins();
   const { condition: dailyCondition, setCondition: setDailyCondition, clearCondition: clearDailyCondition } = useDailyCondition();
   const hasWeeklyLoopInsights = useHasWeeklyLoopInsights(dailyCondition);
   const { conversation: incomingMessage, dismissLocally: dismissIncomingMessage } =
@@ -155,6 +168,7 @@ export default function TodayPage() {
   const [scoreImpactPreview, setScoreImpactPreview] = useState<number | null>(null);
   const [workoutMode, setWorkoutMode] = useState<"home" | "gym">("home");
   const [showCheckin, setShowCheckin] = useState(false);
+  const [showMetabolicCheckin, setShowMetabolicCheckin] = useState(false);
 
   const conditionState = getDailyConditionState(dailyCondition);
 
@@ -216,6 +230,7 @@ export default function TodayPage() {
   const homeWorkout = adaptiveWorkout.recommendations.find((r) => r.type === "home") ?? adaptiveWorkout.recommendations[0];
   const gymWorkout = adaptiveWorkout.recommendations.find((r) => r.type === "gym") ?? adaptiveWorkout.recommendations[1] ?? adaptiveWorkout.recommendations[0];
   const currentWorkout = workoutMode === "home" ? homeWorkout : gymWorkout;
+  const metabolicNudge = useMemo(() => computeNudgeState(metabolicCheckins), [metabolicCheckins]);
 
   const histSummary = summarizeWorkoutHistory(readWorkoutHistory());
 
@@ -243,6 +258,12 @@ export default function TodayPage() {
   function toggleQuickGroup(group: MuscleGroup) {
     if (yesterdayMuscleGroups.includes(group) && !ALWAYS_AVAILABLE.includes(group)) return;
     setQuickGroups((prev) => (prev.includes(group) ? prev.filter((g) => g !== group) : [...prev, group]));
+  }
+
+
+  async function handleMetabolicCheckinSave(input: MetabolicCheckinInput) {
+    await saveMetabolicCheckin(input);
+    refetchMetabolism();
   }
 
   async function handleQuickCheckin() {
@@ -349,6 +370,20 @@ export default function TodayPage() {
           conditionContext={conditionSignals.length > 0 ? { signals: conditionSignals } : null}
         />
       </motion.div>
+
+      <motion.div variants={sectionRevealVariants}>
+        <MetabolicTrendStrip records={metabolicCheckins} loading={metabolicCheckinsLoading} />
+      </motion.div>
+
+      {metabolicNudge.shouldShow && (
+        <motion.div variants={sectionRevealVariants}>
+          <MetabolicCheckinCard
+            nudge={metabolicNudge}
+            loading={metabolicCheckinsLoading}
+            onOpen={() => setShowMetabolicCheckin(true)}
+          />
+        </motion.div>
+      )}
 
       {/* 2.5. Voz do profissional (renderiza só quando há personal/nutri ativo) */}
       {professionalContext && (professionalContext.personal || professionalContext.nutri) && (
@@ -602,6 +637,11 @@ export default function TodayPage() {
           Carregando dados…
         </motion.div>
       )}
+      <MetabolicCheckinModal
+        open={showMetabolicCheckin}
+        onClose={() => setShowMetabolicCheckin(false)}
+        onSave={handleMetabolicCheckinSave}
+      />
     </motion.div>
   );
 }

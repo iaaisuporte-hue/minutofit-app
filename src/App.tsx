@@ -49,6 +49,15 @@ export default function App() {
           />
 
           <Route
+            path="/app/saude"
+            element={
+              <ProtectedRoute allow={["user"]}>
+                <Navigate to="/app/user/estado-metabolico" replace />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
             path="/app/personal/*"
             element={
               <ProtectedRoute allow={["personal"]}>

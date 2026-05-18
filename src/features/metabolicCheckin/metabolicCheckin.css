@@ -1,0 +1,137 @@
+.metabolic-checkin-card,
+.metabolic-trend-strip,
+.metabolic-history-page,
+.metabolic-modal-panel {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-md);
+}
+
+.metabolic-checkin-card,
+.metabolic-trend-strip,
+.metabolic-history-page {
+  padding: var(--space-5);
+}
+
+.metabolic-section-title {
+  font-size: var(--text-xl);
+  font-weight: var(--font-bold);
+  color: var(--color-text);
+  margin: 0;
+}
+
+.metabolic-section-copy {
+  color: var(--color-text-muted);
+  font-size: var(--text-base);
+  line-height: 1.55;
+  margin: 0;
+}
+
+.metabolic-eyebrow {
+  color: var(--color-text-subtle);
+  font-size: var(--text-xs);
+  font-weight: var(--font-bold);
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.metabolic-trend-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--space-3);
+}
+
+.metabolic-trend-item,
+.metabolic-history-item {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-raised);
+  padding: var(--space-3);
+}
+
+.metabolic-trend-value {
+  font-size: var(--text-2xl);
+  font-weight: var(--font-bold);
+  color: var(--color-text);
+}
+
+.metabolic-trend-value.positive { color: var(--color-success-text); }
+.metabolic-trend-value.attention { color: var(--color-warn-text); }
+
+.metabolic-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  background: rgba(15, 23, 42, 0.38);
+  display: grid;
+  place-items: center;
+  padding: var(--space-4);
+}
+
+.metabolic-modal-panel {
+  width: min(680px, 100%);
+  max-height: min(86vh, 760px);
+  overflow: auto;
+  padding: var(--space-5);
+  display: grid;
+  gap: var(--space-4);
+}
+
+.metabolic-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--space-3);
+}
+
+.metabolic-field {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.metabolic-field span {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+}
+
+.metabolic-field input,
+.metabolic-field textarea {
+  width: 100%;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text);
+  padding: 10px 12px;
+  font: inherit;
+}
+
+.metabolic-field textarea { min-height: 74px; resize: vertical; }
+
+.metabolic-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.metabolic-history-list {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.metabolic-history-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.metabolic-history-chip {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-primary-soft);
+  color: var(--color-text);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  padding: 4px 10px;
+}

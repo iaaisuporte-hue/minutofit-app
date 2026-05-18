@@ -39,6 +39,7 @@ export default function ProfileCompletionPage() {
     experienceLevel: "",
     heightCm: "",
     weightKg: "",
+    waistCm: "",
     dietaryRestrictions: "",
   });
 
@@ -79,6 +80,7 @@ export default function ProfileCompletionPage() {
           experienceLevel: formData.experienceLevel,
           heightCm: parseFloat(formData.heightCm),
           weightKg: parseFloat(formData.weightKg),
+          waistCm: formData.waistCm ? parseFloat(formData.waistCm) : null,
           dietaryRestrictions: formData.dietaryRestrictions || null,
         }),
       });
@@ -282,6 +284,34 @@ export default function ProfileCompletionPage() {
                   opacity: isLoading ? 0.7 : 1,
                 }}
               />
+            </label>
+
+            <label style={{ display: "grid", gap: 6 }}>
+              <span style={{ color: neon.muted, fontSize: 13, fontWeight: 600 }}>
+                Circunferência da cintura (cm)
+              </span>
+              <input
+                type="number"
+                value={formData.waistCm}
+                onChange={(e) => setFormData({ ...formData, waistCm: e.target.value })}
+                placeholder="92"
+                min="40"
+                max="250"
+                step="0.1"
+                disabled={isLoading}
+                style={{
+                  background: "#101010",
+                  color: neon.text,
+                  border: `1px solid ${neon.border}`,
+                  borderRadius: 12,
+                  padding: "12px 12px",
+                  outline: "none",
+                  opacity: isLoading ? 0.7 : 1,
+                }}
+              />
+              <span style={{ color: neon.muted, fontSize: 12, lineHeight: 1.45 }}>
+                Ajuda a entender seu estado metabólico — pode pular.
+              </span>
             </label>
           </div>
 

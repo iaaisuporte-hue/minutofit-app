@@ -16,6 +16,7 @@ import ActivityTrackerPage from "./user/ActivityTrackerPage";
 import TodayPage from "./user/TodayPage";
 import UserMessagesPage from "./user/UserMessagesPage";
 import UserProfilePage from "./user/UserProfilePage";
+import MetabolicStatePage from "./user/MetabolicStatePage";
 import MovementLabPage from "./user/MovementLabPage";
 import MyWorkoutPlansPage from "./user/MyWorkoutPlansPage";
 
@@ -149,6 +150,7 @@ export default function UserApp() {
 
             <div className="navStack">
               <MenuLink to={`${USER_BASE}/today`} label="Hoje" iconKey="home" />
+              <MenuLink to={`${USER_BASE}/estado-metabolico`} label="Estado metabólico" iconKey="tracker" />
               <MenuLink to={`${USER_BASE}/ficha`} label="Minha ficha" iconKey="clipboard" />
               {canTrainingAi && <MenuLink to={`${USER_BASE}/movement-lab`} label="Lab de Movimento" iconKey="lab" />}
               {canSuggestedTraining && <MenuLink to={`${USER_BASE}/suggested-training`} label="Treino do dia" iconKey="target" />}
@@ -192,6 +194,7 @@ export default function UserApp() {
 
               {/* ✅ ROTAS */}
               <Route path="today" element={<TodayPage />} />
+              <Route path="estado-metabolico" element={<MetabolicStatePage />} />
               <Route
                 path="activities"
                 element={
