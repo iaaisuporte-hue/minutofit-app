@@ -5,12 +5,13 @@ import type {
   MetabolicHistoryPoint,
   MetabolicTrend,
 } from "./metabolism.types";
+import type { DailyCondition } from "../dailyCheckin/useDailyCondition";
 
 type EnergyBand = "low" | "moderate" | "high";
 type MetabolicStateLabel = "Dormindo" | "Aquecendo" | "Ativo" | "Pico";
 type InsightTone = "positive" | "neutral" | "alert";
 type QuickActionKind = "suggested_training" | "recovery" | "checkin" | "home_workout";
-type HistoryMarkerKind = "workout" | "drop";
+type HistoryMarkerKind = "workout" | "drop" | "condition";
 
 export interface DerivedEnergyStatus {
   band: EnergyBand;
@@ -137,7 +138,7 @@ export function deriveMetabolicForecast(
 
 export function deriveHistoryMarkers(
   history: MetabolicHistory,
-  options: { todayCheckedIn: boolean }
+  options: { todayCheckedIn: boolean; condition?: DailyCondition | null }
 ): HistoryMarker[] {
   if (history.length < 2) return [];
 
@@ -171,6 +172,14 @@ export function deriveHistoryMarkers(
         kind: "workout",
         label: "Treino registrado",
       });
+    }
+  }
+
+  // Wellbeing check-in marker — só aparece quando não há workout marker na mesma data
+  if (options.condition && history.length > 0) {
+    const condDate = options.condition.date;
+    if (!markers.some((m) => m.date === condDate)) {
+      markers.push({ date: condDate, kind: "condition", label: "Check-in" });
     }
   }
 

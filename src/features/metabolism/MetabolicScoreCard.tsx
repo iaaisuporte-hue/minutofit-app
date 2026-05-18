@@ -9,6 +9,7 @@ interface Props {
   error: string | null;
   derivedStatus: DerivedEnergyStatus | null;
   forecast: MetabolicForecast | null;
+  conditionContext?: { signals: string[] } | null;
 }
 
 const STATUS_LABEL: Record<string, string> = {
@@ -82,7 +83,7 @@ function FactorChip({ factor }: { factor: MetabolicFactor }) {
   );
 }
 
-export function MetabolicScoreCard({ data, loading, error, derivedStatus, forecast }: Props) {
+export function MetabolicScoreCard({ data, loading, error, derivedStatus, forecast, conditionContext }: Props) {
   const isMobile = useIsMobile(720);
   const [animatedScore, setAnimatedScore] = useState(0);
   const animatedScoreRef = useRef(0);
@@ -213,6 +214,18 @@ export function MetabolicScoreCard({ data, loading, error, derivedStatus, foreca
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
               {topFactors.map((f) => <FactorChip key={f.id} factor={f} />)}
+            </div>
+          </div>
+        )}
+
+        {/* Cross-ref: sinais do check-in que ajustaram a leitura */}
+        {conditionContext && conditionContext.signals.length > 0 && (
+          <div style={{ display: 'grid', gap: 4 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+              Ajustado pelo seu check-in
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>
+              {conditionContext.signals.join(' · ')}
             </div>
           </div>
         )}

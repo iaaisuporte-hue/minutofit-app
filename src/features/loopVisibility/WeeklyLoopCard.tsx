@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import type { DailyCondition } from '../dailyCheckin/useDailyCondition';
 import { buildWeeklyLoopInsights } from './weeklyLoopInsights';
 
 /**
@@ -14,8 +15,8 @@ import { buildWeeklyLoopInsights } from './weeklyLoopInsights';
  * placeholder vazio). Use `useHasWeeklyLoopInsights` para evitar wrappers
  * vazios no caller.
  */
-export function WeeklyLoopCard() {
-  const insights = useMemo(() => buildWeeklyLoopInsights(), []);
+export function WeeklyLoopCard({ condition }: { condition?: DailyCondition | null }) {
+  const insights = useMemo(() => buildWeeklyLoopInsights(condition), [condition]);
   if (insights.length === 0) return null;
   return (
     <div

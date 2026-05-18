@@ -5,6 +5,7 @@ import type { ProfessionalSummary } from './useProfessionalContext';
 interface Props {
   personal: ProfessionalSummary | null;
   nutri: ProfessionalSummary | null;
+  criticalSignals?: string[];
 }
 
 function formatRelativeDate(iso: string): string {
@@ -16,7 +17,7 @@ function formatRelativeDate(iso: string): string {
   return `há ${diffDays} dias`;
 }
 
-export function ProfessionalVoiceCard({ personal, nutri }: Props) {
+export function ProfessionalVoiceCard({ personal, nutri, criticalSignals = [] }: Props) {
   const navigate = useNavigate();
   const { hasFeature } = useFeatureFlags();
   // Aluno sem feature 'messages' não pode acessar /app/user/messages (rota redireciona
@@ -142,6 +143,12 @@ export function ProfessionalVoiceCard({ personal, nutri }: Props) {
         >
           Abrir conversa →
         </button>
+      )}
+
+      {criticalSignals.length > 0 && (
+        <div style={{ fontSize: 12, color: 'var(--color-text-muted)', lineHeight: 1.5 }}>
+          {firstName} verá esses sinais no próximo acompanhamento: {criticalSignals.join(", ")}.
+        </div>
       )}
     </div>
   );

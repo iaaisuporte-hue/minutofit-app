@@ -29,6 +29,8 @@ export function buildTodayNarrative({ workout, condition, streak }: NarrativeInp
   const inPain = details?.inPain;
   const stressed = details?.stressed;
   const feeling = condition?.feeling;
+  const nutritionLevel = details?.nutritionLevel;
+  const mentalLoadLevel = details?.mentalLoadLevel;
 
   const absenceSuffix = `${daysWithoutTraining} ${daysWithoutTraining === 1 ? "dia" : "dias"}`;
 
@@ -53,10 +55,21 @@ export function buildTodayNarrative({ workout, condition, streak }: NarrativeInp
   } else if (intensity === "moderate" && feeling === "tired") {
     reason = "Sinais leves de fadiga. Mantemos volume médio com foco em recuperação.";
     signals = ["Fadiga leve"];
+  } else if (nutritionLevel === "poor" && intensity === "light") {
+    reason = "Alimentação fraca hoje. Volume reduzido para preservar recuperação.";
+    signals = [];
+  } else if (mentalLoadLevel === "high" && intensity !== "intense") {
+    reason = "Carga mental alta. Treino moderado mantido com foco em decompressão.";
+    signals = [];
   } else {
     reason = "Treino adaptado ao seu estado atual.";
     signals = [];
   }
+
+  // Sinais opt-in — chip visível apenas quando desfavorável
+  if (details?.hydrationOk === false) signals.push("Pouca hidratação");
+  if (details?.nutritionLevel === "poor") signals.push("Alimentação fraca");
+  if (details?.mentalLoadLevel === "high") signals.push("Carga mental alta");
 
   let rhythm: string | null = null;
   if (workoutsThisWeek === 0 && streak === 0) {

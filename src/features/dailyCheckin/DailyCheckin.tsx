@@ -7,6 +7,7 @@ import type {
   MentalLoadLevel,
   NutritionLevel,
 } from './useDailyCondition';
+import { buildCheckinFeedback } from './buildCheckinFeedback';
 
 interface Props {
   condition: DailyCondition | null;
@@ -177,9 +178,10 @@ export function DailyCheckin({ condition, setCondition, clearCondition, onCondit
     setDetails({ sleptWell: true, inPain: false, stressed: false });
   }
 
-  // Completed state — compact badge row
+  // Completed state — compact badge row + interpretive feedback
   if (condition) {
     const meta = FEELING_META[condition.feeling];
+    const feedback = buildCheckinFeedback(condition);
     return (
       <div
         style={{
@@ -187,51 +189,53 @@ export function DailyCheckin({ condition, setCondition, clearCondition, onCondit
           border: '1px solid var(--color-border)',
           borderRadius: 20,
           padding: '14px 18px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 12,
-          flexWrap: 'wrap',
+          display: 'grid',
+          gap: 8,
           boxShadow: 'var(--shadow-sm)',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-text-subtle)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
-            Como você está
-          </span>
-          <span
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-text-subtle)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+              Como você está
+            </span>
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 5,
+                padding: '4px 12px',
+                borderRadius: 999,
+                fontSize: 12,
+                fontWeight: 700,
+                background: meta.bg,
+                border: `1px solid ${meta.border}`,
+                color: meta.color,
+              }}
+            >
+              {meta.emoji} {meta.label}
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={handleChange}
             style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 5,
-              padding: '4px 12px',
-              borderRadius: 999,
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
               fontSize: 12,
-              fontWeight: 700,
-              background: meta.bg,
-              border: `1px solid ${meta.border}`,
-              color: meta.color,
+              fontWeight: 600,
+              color: 'var(--color-text-muted)',
+              padding: '4px 8px',
+              borderRadius: 8,
             }}
           >
-            {meta.emoji} {meta.label}
-          </span>
+            Alterar
+          </button>
         </div>
-        <button
-          type="button"
-          onClick={handleChange}
-          style={{
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            fontSize: 12,
-            fontWeight: 600,
-            color: 'var(--color-text-muted)',
-            padding: '4px 8px',
-            borderRadius: 8,
-          }}
-        >
-          Alterar
-        </button>
+        <div style={{ fontSize: 13, color: 'var(--color-text-muted)', lineHeight: 1.5 }}>
+          {feedback}
+        </div>
       </div>
     );
   }
@@ -257,7 +261,7 @@ export function DailyCheckin({ condition, setCondition, clearCondition, onCondit
           Como está seu corpo hoje?
         </span>
         <span style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>
-          Toque para adaptar sua missão
+          Esses sinais alimentam toda a sua leitura de hoje
         </span>
       </div>
 

@@ -73,8 +73,8 @@ function MarkerDot(props: {
   const { cx, cy, payload } = props;
   if (!payload?.markerKind || payload.isForecast || cx == null || cy == null) return null;
 
-  const fill = payload.markerKind === 'workout' ? '#22C55E' : '#F97316';
-  const label = payload.markerKind === 'workout' ? 'W' : '!';
+  const fill = payload.markerKind === 'workout' ? '#22C55E' : payload.markerKind === 'condition' ? '#06B6D4' : '#F97316';
+  const label = payload.markerKind === 'workout' ? 'W' : payload.markerKind === 'condition' ? 'C' : '!';
 
   return (
     <g>
@@ -205,22 +205,22 @@ export function MetabolicChart({ data, loading, forecast, markers }: Props) {
 
       {!loading && markers.length > 0 ? (
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
-          {markers.slice(-3).map((marker) => (
-            <span
-              key={`${marker.date}-${marker.kind}`}
-              style={{
-                padding: '4px 10px',
-                borderRadius: 999,
-                border: `1px solid ${marker.kind === 'workout' ? 'rgba(34,197,94,0.25)' : 'rgba(249,115,22,0.25)'}`,
-                background: marker.kind === 'workout' ? 'rgba(34,197,94,0.07)' : 'rgba(249,115,22,0.08)',
-                color: marker.kind === 'workout' ? '#15803d' : '#c2410c',
-                fontSize: 11,
-                fontWeight: 700,
-              }}
-            >
-              {marker.kind === 'workout' ? 'Treino registrado' : 'Queda por inatividade'} · {formatDate(marker.date)}
-            </span>
-          ))}
+          {markers.slice(-3).map((marker) => {
+            const isWorkout = marker.kind === 'workout';
+            const isCondition = marker.kind === 'condition';
+            const border = isWorkout ? 'rgba(34,197,94,0.25)' : isCondition ? 'rgba(6,182,212,0.25)' : 'rgba(249,115,22,0.25)';
+            const bg = isWorkout ? 'rgba(34,197,94,0.07)' : isCondition ? 'rgba(6,182,212,0.07)' : 'rgba(249,115,22,0.08)';
+            const color = isWorkout ? '#15803d' : isCondition ? '#0891b2' : '#c2410c';
+            const markerLabel = isWorkout ? 'Treino registrado' : isCondition ? 'Check-in registrado' : 'Queda por inatividade';
+            return (
+              <span
+                key={`${marker.date}-${marker.kind}`}
+                style={{ padding: '4px 10px', borderRadius: 999, border: `1px solid ${border}`, background: bg, color, fontSize: 11, fontWeight: 700 }}
+              >
+                {markerLabel} · {formatDate(marker.date)}
+              </span>
+            );
+          })}
         </div>
       ) : null}
     </div>

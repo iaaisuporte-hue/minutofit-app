@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import type { DailyCondition } from '../dailyCheckin/useDailyCondition';
 
 /**
  * Helpers da Onda 5 MaaS — Loop Visível.
@@ -65,10 +66,44 @@ function readMovementLast7d(): {
   }
 }
 
-export function buildWeeklyLoopInsights(): LoopInsight[] {
+export function buildWeeklyLoopInsights(condition?: DailyCondition | null): LoopInsight[] {
   const activity = readActivitiesLast7d();
   const movement = readMovementLast7d();
   const insights: LoopInsight[] = [];
+
+  // 0) Check-in de hoje — prioridade sobre Tracker e Lab
+  if (condition) {
+    const details = condition.details;
+    const hasAttentionSignal = Boolean(
+      details?.inPain ||
+      details?.stressed ||
+      (details && !details.sleptWell) ||
+      details?.hydrationOk === false ||
+      details?.nutritionLevel === "poor" ||
+      details?.mentalLoadLevel === "high"
+    );
+    const isPositive = condition.feeling === "energized" && !hasAttentionSignal;
+
+    if (hasAttentionSignal) {
+      const negativeSignals: string[] = [];
+      if (details?.inPain) negativeSignals.push("dor");
+      if (details && !details.sleptWell) negativeSignals.push("sono curto");
+      if (details?.stressed) negativeSignals.push("estresse");
+      if (details?.hydrationOk === false) negativeSignals.push("pouca hidratação");
+      if (details?.nutritionLevel === "poor") negativeSignals.push("alimentação fraca");
+      if (details?.mentalLoadLevel === "high") negativeSignals.push("carga mental alta");
+      const signalList = negativeSignals.slice(0, 3).join(", ");
+      insights.push({
+        icon: "◐",
+        text: `Check-in de hoje (${signalList}) já entrou na sua leitura semanal — recomendação ajustada para recuperação.`,
+      });
+    } else if (isPositive) {
+      insights.push({
+        icon: "✓",
+        text: "Check-in positivo hoje — semana segue em ritmo saudável.",
+      });
+    }
+  }
 
   // 1) Atividade — intensidade da semana
   if (activity.totalMinutes > 0) {
@@ -123,6 +158,6 @@ export function buildWeeklyLoopInsights(): LoopInsight[] {
  * Hook utilitário: permite ao caller evitar wrappers vazios (motion.div
  * em grid com gap) quando não há insights a mostrar.
  */
-export function useHasWeeklyLoopInsights(): boolean {
-  return useMemo(() => buildWeeklyLoopInsights().length > 0, []);
+export function useHasWeeklyLoopInsights(condition?: DailyCondition | null): boolean {
+  return useMemo(() => buildWeeklyLoopInsights(condition).length > 0, [condition]);
 }

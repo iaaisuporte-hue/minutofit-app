@@ -32,6 +32,7 @@ import { WeeklyLoopCard, useHasWeeklyLoopInsights } from "../../features/loopVis
 import { IncomingMessageBanner, useLatestUnreadFromProfessional } from "../../features/incomingMessage";
 import { DailyCheckin } from "../../features/dailyCheckin/DailyCheckin";
 import { getDailyConditionState, useDailyCondition } from "../../features/dailyCheckin/useDailyCondition";
+import { deriveConditionSignals } from "../../features/dailyCheckin/deriveConditionSignals";
 import { buildDailyWorkoutRecommendation, getWorkoutRoute, summarizeWorkoutHistory } from "../../features/training/dailyWorkoutAdapter";
 import type { WorkoutGoal } from "../../features/training/generateDailyWorkout";
 import { searchExercises } from "../../services/exercisesApi";
@@ -138,7 +139,8 @@ export default function TodayPage() {
   const { data: metabolism, loading: metabolismLoading, error: metabolismError, refetch: refetchMetabolism } = useMetabolism();
   const { data: metabolismHistory, loading: historyLoading } = useMetabolismHistory();
   const { data: professionalContext } = useProfessionalContext();
-  const hasWeeklyLoopInsights = useHasWeeklyLoopInsights();
+  const { condition: dailyCondition, setCondition: setDailyCondition, clearCondition: clearDailyCondition } = useDailyCondition();
+  const hasWeeklyLoopInsights = useHasWeeklyLoopInsights(dailyCondition);
   const { conversation: incomingMessage, dismissLocally: dismissIncomingMessage } =
     useLatestUnreadFromProfessional({ enabled: canMessages });
 
@@ -154,7 +156,6 @@ export default function TodayPage() {
   const [workoutMode, setWorkoutMode] = useState<"home" | "gym">("home");
   const [showCheckin, setShowCheckin] = useState(false);
 
-  const { condition: dailyCondition, setCondition: setDailyCondition, clearCondition: clearDailyCondition } = useDailyCondition();
   const conditionState = getDailyConditionState(dailyCondition);
 
   const { shouldReduceMotion } = useTodayMotionSafe({ isMobile });
@@ -195,9 +196,19 @@ export default function TodayPage() {
     [defaultImpact, metabolism, streak, todayCheckedIn]
   );
   const markers = useMemo(
-    () => deriveHistoryMarkers(metabolismHistory, { todayCheckedIn }),
-    [metabolismHistory, todayCheckedIn]
+    () => deriveHistoryMarkers(metabolismHistory, { todayCheckedIn, condition: dailyCondition }),
+    [metabolismHistory, todayCheckedIn, dailyCondition]
   );
+  const conditionSignals = useMemo(() => deriveConditionSignals(dailyCondition), [dailyCondition]);
+  const criticalSignals = useMemo(() => {
+    if (!dailyCondition?.details) return [];
+    const d = dailyCondition.details;
+    const labels: string[] = [];
+    if (d.inPain) labels.push("dor");
+    if (!d.sleptWell) labels.push("sono curto");
+    if (d.stressed) labels.push("estresse");
+    return labels;
+  }, [dailyCondition]);
   const adaptiveWorkout = useMemo(
     () => buildDailyWorkoutRecommendation({ condition: dailyCondition, user, onboarding }),
     [dailyCondition, onboarding, user]
@@ -325,6 +336,7 @@ export default function TodayPage() {
           error={metabolismError}
           derivedStatus={adjustedEnergy}
           forecast={forecast}
+          conditionContext={conditionSignals.length > 0 ? { signals: conditionSignals } : null}
         />
       </motion.div>
 
@@ -334,6 +346,7 @@ export default function TodayPage() {
           <ProfessionalVoiceCard
             personal={professionalContext.personal}
             nutri={professionalContext.nutri}
+            criticalSignals={criticalSignals}
           />
         </motion.div>
       )}
@@ -346,7 +359,7 @@ export default function TodayPage() {
       {/* 4. Loop visível — como sinais de Tracker + Lab alimentam a recomendação */}
       {hasWeeklyLoopInsights && (
         <motion.div variants={sectionRevealVariants}>
-          <WeeklyLoopCard />
+          <WeeklyLoopCard condition={dailyCondition} />
         </motion.div>
       )}
 
