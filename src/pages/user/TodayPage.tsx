@@ -5,16 +5,15 @@ import { useAuth } from "../../auth/AuthContext";
 import { useFeatureFlags } from "../../auth/FeatureFlagsContext";
 import { useIsMobile } from "../../hooks/useIsMobile";
 import { persistGamificationCheckin, persistWellbeingCheckin } from "../../services/gamificationApi";
-import { getDailyMission } from "./gamification";
+import { WorkoutContextBand } from "./components/WorkoutContextBand";
 import { loadAnswers } from "./onboarding/onboardingStorage";
 import {
   pageStaggerVariants,
   sectionRevealVariants,
-  subtleHoverScale,
-  subtleTapScale,
+
   useTodayMotionSafe,
 } from "./todayPageMotion";
-import { getYesterdayMuscleGroups, type MuscleGroup } from "./workoutHistory";
+import { getYesterdayMuscleGroups, readWorkoutHistory, type MuscleGroup } from "./workoutHistory";
 import {
   MetabolicChart,
   MetabolicScoreCard,
@@ -26,8 +25,6 @@ import {
   deriveEnergyStatus,
   deriveHistoryMarkers,
   deriveMetabolicForecast,
-  deriveQuickAction,
-  type QuickActionModel,
 } from "../../features/metabolism/metabolismDerivations";
 import { useGamificationSummary } from "../../features/gamification/useGamificationSummary";
 import { ProfessionalVoiceCard, useProfessionalContext } from "../../features/professionalVoice";
@@ -35,7 +32,7 @@ import { WeeklyLoopCard, useHasWeeklyLoopInsights } from "../../features/loopVis
 import { IncomingMessageBanner, useLatestUnreadFromProfessional } from "../../features/incomingMessage";
 import { DailyCheckin } from "../../features/dailyCheckin/DailyCheckin";
 import { getDailyConditionState, useDailyCondition } from "../../features/dailyCheckin/useDailyCondition";
-import { buildDailyWorkoutRecommendation, getWorkoutRoute } from "../../features/training/dailyWorkoutAdapter";
+import { buildDailyWorkoutRecommendation, getWorkoutRoute, summarizeWorkoutHistory } from "../../features/training/dailyWorkoutAdapter";
 import type { WorkoutGoal } from "../../features/training/generateDailyWorkout";
 import { searchExercises } from "../../services/exercisesApi";
 import "./todayPage.css";
@@ -133,12 +130,10 @@ function ActionButton({
 export default function TodayPage() {
   const navigate = useNavigate();
   const { id, user } = useAuth();
-  const { planName, hasFeature } = useFeatureFlags();
+  const { hasFeature } = useFeatureFlags();
   const canMessages = hasFeature("messages");
   const isMobile = useIsMobile(720);
   const userId = (id ?? "").trim().toLowerCase();
-  const isFreePlan = (planName || "").toLowerCase() === "free";
-
   const { data: gamification, loading: gamificationLoading, refetch: refetchGamification } = useGamificationSummary();
   const { data: metabolism, loading: metabolismLoading, error: metabolismError, refetch: refetchMetabolism } = useMetabolism();
   const { data: metabolismHistory, loading: historyLoading } = useMetabolismHistory();
@@ -149,7 +144,6 @@ export default function TodayPage() {
 
   const onboarding = useMemo(() => (userId ? loadAnswers(userId) : null), [userId]);
   const yesterdayMuscleGroups = getYesterdayMuscleGroups();
-  const mission = getDailyMission();
 
   const streak = gamification?.streak ?? 0;
   const todayCheckedIn = gamification?.todayCheckedIn ?? false;
@@ -165,8 +159,6 @@ export default function TodayPage() {
 
   const { shouldReduceMotion } = useTodayMotionSafe({ isMobile });
 
-  const weekdayLabel = new Intl.DateTimeFormat("pt-BR", { weekday: "long" }).format(new Date());
-  const weekdayCapitalized = weekdayLabel.charAt(0).toUpperCase() + weekdayLabel.slice(1);
   // Quando nenhum grupo selecionado, estima com 2 grupos como referência; quando selecionado, usa o valor real
   const defaultImpact = estimateCheckinImpact(Math.max(1, quickGroups.length > 0 ? quickGroups.length : 2), streak);
 
@@ -206,11 +198,6 @@ export default function TodayPage() {
     () => deriveHistoryMarkers(metabolismHistory, { todayCheckedIn }),
     [metabolismHistory, todayCheckedIn]
   );
-  const quickAction = useMemo<QuickActionModel>(
-    () => deriveQuickAction({ data: metabolism, missionId: mission.id, todayCheckedIn, isFreePlan }),
-    [isFreePlan, metabolism, mission.id, todayCheckedIn]
-  );
-
   const adaptiveWorkout = useMemo(
     () => buildDailyWorkoutRecommendation({ condition: dailyCondition, user, onboarding }),
     [dailyCondition, onboarding, user]
@@ -219,30 +206,7 @@ export default function TodayPage() {
   const gymWorkout = adaptiveWorkout.recommendations.find((r) => r.type === "gym") ?? adaptiveWorkout.recommendations[1] ?? adaptiveWorkout.recommendations[0];
   const currentWorkout = workoutMode === "home" ? homeWorkout : gymWorkout;
 
-  const primaryMissionLabel = todayCheckedIn
-    ? quickAction.label
-    : quickAction.kind === "suggested_training"
-      ? "Treino recomendado"
-      : quickAction.label;
-
-  const tonedMissionLabel = dailyCondition
-    ? conditionState.messagingTone === "recovery"
-      ? "Modo recuperação · " + primaryMissionLabel
-      : conditionState.messagingTone === "push"
-        ? "↑ " + primaryMissionLabel
-        : primaryMissionLabel
-    : primaryMissionLabel;
-  const missionCtaLabel = quickAction.kind === "suggested_training" ? "Abrir plano completo →" : tonedMissionLabel;
-
-  function runQuickAction(action: QuickActionModel) {
-    if (action.kind === "checkin") {
-      setShowCheckin(true);
-      return;
-    }
-    if (action.route) {
-      navigate(action.route);
-    }
-  }
+  const histSummary = useMemo(() => summarizeWorkoutHistory(readWorkoutHistory()), []);
 
   async function openSupportVideo(activity: string, _workoutTitle?: string) {
     try {
@@ -379,71 +343,7 @@ export default function TodayPage() {
         <MetabolicChart data={metabolismHistory} loading={historyLoading} forecast={forecast} markers={markers} />
       </motion.div>
 
-      {/* 4. Consistência + missão */}
-      <motion.div variants={sectionRevealVariants}>
-        <div
-          className="today-hero"
-          style={{ borderColor: SURFACE.border, padding: isMobile ? 18 : 24, boxShadow: SURFACE.shadow }}
-        >
-          <div aria-hidden className="today-hero-glow" style={{ background: SURFACE.heroGlow }} />
-
-          <div className="today-hero-content">
-            <div className="today-badge-row">
-              <span className="badge badge-accent">{weekdayCapitalized}</span>
-              {todayCheckedIn && <span className="badge badge-success">Dia garantido</span>}
-            </div>
-
-            <div style={{ display: "grid", gap: 12 }}>
-              <div style={{ display: "grid", gap: 4 }}>
-                <SectionEyebrow>Consistência do dia</SectionEyebrow>
-                <div className="today-card-title" style={{ fontSize: isMobile ? 22 : 28 }}>
-                  Seu ritmo hoje
-                </div>
-              </div>
-              {streak > 0 && (
-                <div
-                  className="today-reward-pill"
-                  style={{
-                    width: "fit-content",
-                    borderColor: streak >= 3 ? "rgba(245,158,11,0.2)" : SURFACE.border,
-                    color: streak >= 3 ? SURFACE.warning : SURFACE.text,
-                  }}
-                >
-                  {streak} {streak === 1 ? "dia seguido" : "dias seguidos"}
-                </div>
-              )}
-            </div>
-
-            {/* Missão do dia */}
-            <motion.div
-              whileHover={subtleHoverScale}
-              whileTap={subtleTapScale}
-              className="today-card today-mission-card"
-              style={{ borderColor: mission.completed ? SURFACE.borderStrong : SURFACE.border, padding: isMobile ? 14 : 18 }}
-            >
-              <div style={{ display: "grid", gap: 14 }}>
-                <div style={{ display: "grid", gap: 4 }}>
-                  <SectionEyebrow>Missão de hoje</SectionEyebrow>
-                  <div className="today-card-title" style={{ fontSize: isMobile ? 18 : 22 }}>{mission.title}</div>
-                  <div className="today-card-description" style={{ color: SURFACE.muted }}>{mission.description}</div>
-                </div>
-
-                <div style={{ fontSize: 12, color: SURFACE.muted, fontWeight: 600 }}>
-                  {mission.completed
-                    ? "Concluída hoje"
-                    : `Progresso · ${mission.progress}/${mission.target}`}
-                </div>
-
-                <ActionButton onClick={() => runQuickAction(quickAction)} fullWidth={isMobile}>
-                  {missionCtaLabel}
-                </ActionButton>
-              </div>
-            </motion.div>
-          </div>
-        </div>
-      </motion.div>
-
-      {/* 4.5. Loop visível — como sinais de Tracker + Lab alimentam a recomendação */}
+      {/* 4. Loop visível — como sinais de Tracker + Lab alimentam a recomendação */}
       {hasWeeklyLoopInsights && (
         <motion.div variants={sectionRevealVariants}>
           <WeeklyLoopCard />
@@ -457,6 +357,18 @@ export default function TodayPage() {
           style={{ borderColor: SURFACE.border, boxShadow: SURFACE.shadow, padding: isMobile ? 18 : 22 }}
         >
           <div style={{ display: "grid", gap: 18 }}>
+
+            <WorkoutContextBand
+              workout={{
+                isReactivation: currentWorkout?.goal === "reactivate metabolism",
+                intensity: adaptiveWorkout.intensity,
+                daysWithoutTraining: histSummary.daysWithoutTraining,
+                workoutsThisWeek: histSummary.workoutsThisWeek,
+              }}
+              condition={dailyCondition}
+              metabolism={metabolism}
+              streak={streak}
+            />
 
             {/* Header + toggle */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
