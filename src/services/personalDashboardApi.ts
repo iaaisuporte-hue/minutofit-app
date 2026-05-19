@@ -323,6 +323,17 @@ export type AddStudentDirectResult = {
   mustChangePassword?: boolean;
 };
 
+export async function removeStudentFromPortfolio(studentId: string): Promise<void> {
+  const response = await authFetch(`${API_URL}/personal/students/${studentId}`, {
+    method: "DELETE",
+  });
+
+  const data = await parseJson(response);
+  if (!response.ok) {
+    throw new Error(data?.error || "Não foi possível remover o aluno da carteira.");
+  }
+}
+
 export async function addStudentDirect(input: {
   name: string;
   email: string;

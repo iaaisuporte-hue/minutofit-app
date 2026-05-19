@@ -5,6 +5,7 @@ import { SkeletonStudentList } from "../../components/feedback/Skeleton";
 import {
   addStudentDirect,
   fetchPersonalDashboard,
+  removeStudentFromPortfolio,
   type PersonalDashboardStudent,
 } from "../../services/personalDashboardApi";
 import {
@@ -81,6 +82,26 @@ export default function StudentsListPage() {
   const [loadingStudents, setLoadingStudents] = useState(true);
   const [studentsError, setStudentsError] = useState<string | null>(null);
   const [selectedStudent, setSelectedStudent] = useState<{ id: string; name: string } | null>(null);
+
+  // ── Remove student ─────────────────────────────────────────────────
+  const [removeTarget, setRemoveTarget] = useState<{ id: string; name: string } | null>(null);
+  const [removeLoading, setRemoveLoading] = useState(false);
+  const [removeError, setRemoveError] = useState<string | null>(null);
+
+  async function handleRemoveStudent() {
+    if (!removeTarget) return;
+    setRemoveLoading(true);
+    setRemoveError(null);
+    try {
+      await removeStudentFromPortfolio(removeTarget.id);
+      setStudents((prev) => prev.filter((s) => s.id !== removeTarget.id));
+      setRemoveTarget(null);
+    } catch (e: unknown) {
+      setRemoveError(e instanceof Error ? e.message : "Não foi possível remover o aluno.");
+    } finally {
+      setRemoveLoading(false);
+    }
+  }
 
   // ── Direct registration ────────────────────────────────────────────
   const [showRegisterModal, setShowRegisterModal] = useState(false);
@@ -482,6 +503,14 @@ export default function StudentsListPage() {
                 </button>
                 <ActionLink to={routes.studentWorkouts(s.id)} label="Ver ficha(s)" />
                 <ActionLink to={routes.workoutBuilder(s.id)} label="Criar treino" />
+                <button
+                  type="button"
+                  onClick={() => { setRemoveError(null); setRemoveTarget({ id: s.id, name: s.name }); }}
+                  className="pp-btn pp-btn--quiet pp-btn--sm"
+                  style={{ color: COLORS.danger }}
+                >
+                  Retirar
+                </button>
               </div>
             </div>
           );
@@ -612,6 +641,73 @@ export default function StudentsListPage() {
           studentName={selectedStudent.name}
           onClose={() => setSelectedStudent(null)}
         />
+      ) : null}
+
+      {/* Remove student confirmation modal */}
+      {removeTarget ? (
+        <div
+          style={{
+            position: "fixed", inset: 0, zIndex: 1000,
+            background: "rgba(15,23,42,0.45)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            padding: 16,
+          }}
+          onClick={(e) => { if (e.target === e.currentTarget && !removeLoading) setRemoveTarget(null); }}
+        >
+          <div
+            style={{
+              background: "#FFFFFF",
+              borderRadius: 16,
+              padding: 28,
+              maxWidth: 440,
+              width: "100%",
+              display: "grid",
+              gap: 16,
+              boxShadow: "0 20px 60px rgba(0,0,0,.18)",
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div style={{ fontWeight: 700, fontSize: 18, color: COLORS.text }}>Retirar da carteira</div>
+              <button
+                type="button"
+                disabled={removeLoading}
+                onClick={() => setRemoveTarget(null)}
+                style={{ background: "none", border: "none", cursor: "pointer", fontSize: 20, color: COLORS.muted, lineHeight: 1 }}
+              >×</button>
+            </div>
+
+            <div style={{ fontSize: 14, color: COLORS.muted, lineHeight: 1.6 }}>
+              <b style={{ color: COLORS.text }}>{removeTarget.name}</b> será removido da sua carteira.
+              O cadastro do aluno na plataforma não é afetado.
+            </div>
+
+            {removeError ? (
+              <div style={{ color: COLORS.danger, fontSize: 13, background: COLORS.dangerBg, border: `1px solid ${COLORS.dangerBorder}`, borderRadius: 8, padding: "8px 12px" }}>
+                {removeError}
+              </div>
+            ) : null}
+
+            <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+              <button
+                type="button"
+                className="pp-btn pp-btn--quiet pp-btn--sm"
+                disabled={removeLoading}
+                onClick={() => setRemoveTarget(null)}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                className="pp-btn pp-btn--sm"
+                disabled={removeLoading}
+                onClick={() => void handleRemoveStudent()}
+                style={{ background: COLORS.danger, color: "#FFFFFF", border: "none" }}
+              >
+                {removeLoading ? "Removendo…" : "Confirmar remoção"}
+              </button>
+            </div>
+          </div>
+        </div>
       ) : null}
 
       {/* Register modal */}
