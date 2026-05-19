@@ -92,7 +92,7 @@ export default function StudentProfilePage() {
                     <div className="small">Frequência {plan.week_preset} · Atualizado em {formatDate(plan.updated_at)}</div>
                   </div>
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                    <button type="button" className="pp-btn pp-btn--sm" onClick={() => navigate(`/app/personal/students/${studentId}/workouts/builder${plan.source_protocol_id ? `?protocol=${plan.source_protocol_id}` : ""}`)}>
+                    <button type="button" className="pp-btn pp-btn--sm" onClick={() => navigate(`/app/personal/students/${studentId}/workouts/builder?planId=${plan.id}${plan.source_protocol_id ? `&protocol=${plan.source_protocol_id}` : ""}`)}>
                       Editar no builder
                     </button>
                     {plan.source_protocol_id ? (

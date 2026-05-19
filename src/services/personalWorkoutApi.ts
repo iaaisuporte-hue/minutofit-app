@@ -76,3 +76,29 @@ export async function createPersonalWorkoutPlan(
   }
   return data?.data as PersonalWorkoutPlanRow;
 }
+
+export type UpdateWorkoutPlanBody = {
+  title: string;
+  weekPreset: string;
+  days: Array<{ name: string; focus?: string | null; items: WorkoutPlanItem[] }>;
+};
+
+export async function updatePersonalWorkoutPlan(
+  studentId: string,
+  planId: number,
+  body: UpdateWorkoutPlanBody
+) {
+  const response = await authFetch(
+    `${API_URL}/personal/students/${studentId}/workout-plans/${planId}`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    }
+  );
+  const data = await parseJson(response);
+  if (!response.ok) {
+    throw new Error(data?.error || "Nao foi possivel atualizar a ficha.");
+  }
+  return data?.data as PersonalWorkoutPlanRow;
+}

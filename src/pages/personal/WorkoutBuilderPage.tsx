@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { fetchPersonalDashboard } from "../../services/personalDashboardApi";
 import type { PersonalDashboardStudent } from "../../services/personalDashboardApi";
-import { createPersonalWorkoutPlan, fetchPersonalWorkoutPlans } from "../../services/personalWorkoutApi";
+import { createPersonalWorkoutPlan, updatePersonalWorkoutPlan, fetchPersonalWorkoutPlans } from "../../services/personalWorkoutApi";
 import { searchExercises, exerciseSummaryToCatalogEntry } from "../../services/exercisesApi";
 import {
   createWorkoutProtocol,
@@ -214,6 +214,8 @@ export default function WorkoutBuilderPage() {
   const [weekPreset, setWeekPreset] = useState<"semana_util" | "4" | "5" | "6">("5");
   const [selectedGroup, setSelectedGroup] = useState<MuscleGroup>("Perna");
   const [recentPlansCount, setRecentPlansCount] = useState<number | null>(null);
+  // When set: builder is in "edit" mode — save calls PATCH instead of POST
+  const [editingPlanId, setEditingPlanId] = useState<number | null>(null);
 
   // ── Library filters ───────────────────────────────────────────────
   const [exerciseQuery, setExerciseQuery] = useState("");
@@ -296,6 +298,58 @@ export default function WorkoutBuilderPage() {
     })();
     return () => { cancelled = true; };
   }, []);
+
+  // Load existing plan when ?planId=... is in the URL (edit mode)
+  useEffect(() => {
+    const planIdParam = searchParams.get("planId");
+    if (!planIdParam || !selectedStudentId) return;
+    const planId = Number(planIdParam);
+    if (!Number.isFinite(planId)) return;
+
+    let cancelled = false;
+    void (async () => {
+      try {
+        const plans = await fetchPersonalWorkoutPlans(selectedStudentId, 100);
+        if (cancelled) return;
+        const plan = plans.find((p) => p.id === planId);
+        if (!plan) return;
+
+        setEditingPlanId(planId);
+        setWorkoutName(plan.title);
+        setWeekPreset(coerceWeekPreset(plan.week_preset));
+        if (plan.source_protocol_id) setSourceProtocolId(plan.source_protocol_id);
+
+        const planDays = Array.isArray(plan.days) && plan.days.length > 0
+          ? plan.days
+          : [{ index: 1, name: "Único", focus: plan.selected_group ?? null, items: plan.payload_json }];
+
+        const nextItems: Record<number, WorkoutExercise[]> = {};
+        const nextMeta: DayMeta[] = planDays.map((day, idx) => {
+          nextItems[idx] = day.items.map((it) => ({
+            exerciseId: it.exerciseId,
+            name: it.name,
+            sets: it.sets,
+            reps: it.reps,
+            rest: it.rest,
+            rpe: it.rpe,
+            cadence: it.cadence,
+            restPause: it.restPause,
+            technique: it.technique,
+            notes: it.notes,
+          }));
+          return { index: idx + 1, name: day.name || `Treino ${String.fromCharCode(65 + idx)}`, focus: day.focus ?? null };
+        });
+
+        setDaysItems(nextItems);
+        setDaysMeta(nextMeta);
+        setSelectedDayIdx(0);
+      } catch {
+        // silent — builder opens empty if plan can't be fetched
+      }
+    })();
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedStudentId]);
 
   useEffect(() => {
     if (!selectedStudentId) {
@@ -775,12 +829,27 @@ export default function WorkoutBuilderPage() {
       }));
 
       if (selectedStudentId) {
-        if (isMultiDay) {
+        if (editingPlanId) {
+          // Edit mode — update existing plan
+          await updatePersonalWorkoutPlan(selectedStudentId, editingPlanId, {
+            title: workoutName,
+            weekPreset,
+            days,
+          });
+          setFeedback({
+            kind: "success",
+            message: `Ficha "${workoutName}" atualizada para ${selectedStudent?.name ?? "o aluno"}.`,
+          });
+        } else if (isMultiDay) {
           await createPersonalWorkoutPlan(selectedStudentId, {
             title: workoutName,
             weekPreset,
             days,
             sourceProtocolId,
+          });
+          setFeedback({
+            kind: "success",
+            message: `Ficha "${workoutName}" salva para ${selectedStudent?.name ?? "o aluno"} e ligada à biblioteca.`,
           });
         } else {
           await createPersonalWorkoutPlan(selectedStudentId, {
@@ -790,11 +859,11 @@ export default function WorkoutBuilderPage() {
             items: daysItems[0] ?? [],
             sourceProtocolId,
           });
+          setFeedback({
+            kind: "success",
+            message: `Ficha "${workoutName}" salva para ${selectedStudent?.name ?? "o aluno"} e ligada à biblioteca.`,
+          });
         }
-        setFeedback({
-          kind: "success",
-          message: `Ficha "${workoutName}" salva para ${selectedStudent?.name ?? "o aluno"} e ligada à biblioteca.`,
-        });
         await refreshRecentPlans(selectedStudentId);
       } else {
         await createWorkoutProtocol({
@@ -967,7 +1036,7 @@ export default function WorkoutBuilderPage() {
             title={!canSave ? "Adicione exercícios" : ""}
             onClick={() => void saveUnified()}
           >
-            {saving ? "Salvando…" : selectedStudent ? "Salvar e atribuir" : "Salvar na biblioteca"}
+            {saving ? "Salvando…" : editingPlanId ? "Salvar alterações" : selectedStudent ? "Salvar e atribuir" : "Salvar na biblioteca"}
           </WbButton>
         </div>
       </div>
@@ -1483,7 +1552,7 @@ export default function WorkoutBuilderPage() {
                 disabled={!canSave || saving}
                 onClick={() => void saveUnified()}
               >
-                {saving ? "Salvando…" : selectedStudent ? "Salvar e atribuir" : "Salvar na biblioteca"}
+                {saving ? "Salvando…" : editingPlanId ? "Salvar alterações" : selectedStudent ? "Salvar e atribuir" : "Salvar na biblioteca"}
               </WbButton>
             </div>
           </WbCard>
