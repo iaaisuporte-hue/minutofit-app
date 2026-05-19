@@ -31,6 +31,10 @@ export function FeatureFlagsProvider({ children }: { children: React.ReactNode }
       const canonical = mapCanonicalPlanToLabel(normalizeToCanonicalPlanName(data.plan?.name || null));
       setPlanName(canonical);
       setFeatures(data.features || {});
+    } catch (err) {
+      console.warn("[FeatureFlags] refresh failed, falling back to empty features:", err);
+      setPlanName(null);
+      setFeatures({});
     } finally {
       setLoading(false);
     }
