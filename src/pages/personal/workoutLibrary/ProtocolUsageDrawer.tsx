@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import type { WorkoutProtocol } from "../../../services/workoutProtocolsApi";
 import { WbButton } from "../workoutBuilder/WorkoutBuilderUi";
 import { useProtocolUsages } from "./useProtocolUsages";
@@ -16,6 +17,17 @@ function formatDate(value: string) {
 
 export function ProtocolUsageDrawer({ protocol, open, onClose, onChanged }: Props) {
   const { students, loading, error, remove } = useProtocolUsages(protocol?.id ?? null, open);
+
+  // Escape fecha (padrão de acessibilidade ARIA dialog).
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
+
   if (!open || !protocol) return null;
 
   async function handleRemove(planId: number, studentName: string) {
@@ -24,9 +36,16 @@ export function ProtocolUsageDrawer({ protocol, open, onClose, onChanged }: Prop
     onChanged?.();
   }
 
+  // Fecha apenas se o click foi no overlay (não em filhos). Usa onClick (não
+  // onMouseDown) para evitar que arrasto/scroll-by-drag dispare close, e para
+  // garantir que o botão Fechar interno sempre receba seu próprio onClick antes.
+  const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (e.target === e.currentTarget) onClose();
+  };
+
   return (
-    <div className="protocolDrawerOverlay" role="presentation" onMouseDown={onClose}>
-      <aside className="protocolDrawer" role="dialog" aria-modal="true" aria-label="Alunos usando protocolo" onMouseDown={(e) => e.stopPropagation()}>
+    <div className="protocolDrawerOverlay" role="presentation" onClick={handleBackdropClick}>
+      <aside className="protocolDrawer" role="dialog" aria-modal="true" aria-label="Alunos usando protocolo">
         <div className="protocolDrawer__header">
           <div>
             <div className="pp-kicker">Uso do protocolo</div>

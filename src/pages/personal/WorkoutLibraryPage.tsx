@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { EmptyState } from "../../components/EmptyState";
 import { fetchPersonalDashboard } from "../../services/personalDashboardApi";
@@ -39,6 +39,9 @@ export default function WorkoutLibraryPage() {
   const [scope, setScope] = useState<ProtocolScope | "all">("all");
   const [feedback, setFeedback] = useState<{ kind: "success" | "error"; message: string } | null>(null);
   const [activeProtocol, setActiveProtocol] = useState<WorkoutProtocol | null>(null);
+  // Ref de "fechamento em andamento": impede o useEffect de sync URL→state de
+  // reabrir o drawer no mesmo ciclo do close, mesmo se houver render intermediário.
+  const closingRef = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -84,6 +87,13 @@ export default function WorkoutLibraryPage() {
 
 
   useEffect(() => {
+    // Trava: se acabamos de fechar via botão/backdrop, ignorar 1 ciclo de sync
+    // para evitar reabertura imediata enquanto state e URL ainda estão se
+    // estabilizando após onClose.
+    if (closingRef.current) {
+      closingRef.current = false;
+      return;
+    }
     const raw = searchParams.get("protocol");
     if (!raw || protocolsLoading || activeProtocol) return;
     const protocolId = Number(raw);
@@ -286,14 +296,17 @@ export default function WorkoutLibraryPage() {
         protocol={activeProtocol}
         open={Boolean(activeProtocol)}
         onClose={() => {
-          setActiveProtocol(null);
-          // Limpar o ?protocol= da URL — caso contrário o useEffect que
-          // sincroniza state com a query reabre o drawer imediatamente.
+          // 1) Marca fechamento em curso (impede sync URL→state de reabrir).
+          closingRef.current = true;
+          // 2) Limpa o ?protocol= da URL ANTES do state — assim, mesmo em
+          //    render intermediário, o sync já lê URL sem o parâmetro.
           if (searchParams.has("protocol")) {
             const next = new URLSearchParams(searchParams);
             next.delete("protocol");
             setSearchParams(next, { replace: true });
           }
+          // 3) Fecha o drawer.
+          setActiveProtocol(null);
         }}
         onChanged={refreshAfterUsageChange}
       />
