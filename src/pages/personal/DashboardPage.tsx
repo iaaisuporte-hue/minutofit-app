@@ -281,8 +281,9 @@ export default function DashboardPage() {
 
   return (
     <div className="pp-page">
-      <div className="pp-hero">
-        <div style={{ display: "grid", gap: 8, flex: "1 1 280px" }}>
+      {/* Hero compacto: identidade + título + ações */}
+      <div className="pp-hero" style={{ alignItems: "flex-start" }}>
+        <div style={{ display: "grid", gap: 8, flex: "1 1 320px", minWidth: 0 }}>
           <div className="pp-kicker">Personal · Hoje</div>
           <h1 className="pp-title">
             {loading
@@ -297,26 +298,56 @@ export default function DashboardPage() {
               <span>Atualizado {formatShortTime(response.generatedAt)}</span>
             </div>
           ) : null}
-          {dist && students.length > 0 ? (
-            <div className="pp-meta" style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
-              <span>
-                <b>{dist.high}</b> com metabolismo alto
-              </span>
-              <span>
-                <b>{dist.moderate}</b> em ritmo moderado
-              </span>
-              <span>
-                <b>{dist.low}</b> baixo / precisa recuperar
-              </span>
-              {dist.unknown > 0 ? (
-                <span style={{ color: COLORS.mutedSoft }}>
-                  {dist.unknown} sem snapshot ainda
-                </span>
-              ) : null}
-            </div>
-          ) : null}
+        </div>
 
-          {students.length > 0 ? (
+        <div
+          className="pp-actions"
+          style={{
+            alignSelf: "flex-start",
+            display: "grid",
+            gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+            gap: 8,
+            minWidth: 280,
+          }}
+        >
+          <button type="button" className="btn btn-primary" onClick={() => navigate(routes.messages())}>
+            Abrir mensagens
+          </button>
+          <button type="button" className="btn btn-ghost" onClick={() => navigate(routes.students())}>
+            Ver alunos
+          </button>
+          <button type="button" className="btn btn-ghost" onClick={() => navigate(routes.students() + "?action=invite")}>
+            Convidar por link
+          </button>
+          <button type="button" className="btn btn-primary" onClick={() => navigate(routes.students() + "?action=register")}>
+            Cadastrar aluno
+          </button>
+          <button
+            type="button"
+            className="btn btn-ghost"
+            onClick={() => navigate(routes.review())}
+            style={{ gridColumn: "1 / -1" }}
+          >
+            Revisões
+          </button>
+        </div>
+      </div>
+
+      {/* Estado da carteira: distribuição + filtros + KPI strip — fora do hero, em camadas claras */}
+      {students.length > 0 ? (
+        <div className="pp-panel" style={{ marginTop: 12 }}>
+          <div className="pp-panel__body" style={{ display: "grid", gap: 14, padding: 14 }}>
+            {dist ? (
+              <div className="pp-meta" style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+                <span><b>{dist.high}</b> com metabolismo alto</span>
+                <span><b>{dist.moderate}</b> em ritmo moderado</span>
+                <span><b>{dist.low}</b> baixo / precisa recuperar</span>
+                {dist.unknown > 0 ? (
+                  <span style={{ color: COLORS.mutedSoft }}>{dist.unknown} sem snapshot ainda</span>
+                ) : null}
+              </div>
+            ) : null}
+
             <div className="pp-pulse-meta" role="toolbar" aria-label="Filtrar prioridades">
               <button
                 type="button"
@@ -351,52 +382,24 @@ export default function DashboardPage() {
                 Risco ({aggregates.fading + aggregates.atRisk})
               </button>
             </div>
-          ) : null}
 
-          {students.length > 0 ? (
             <PersonalQuickSearch students={students} onSelect={(id, name) => openStudent(id, name)} />
-          ) : null}
 
-          {students.length > 0 && summary ? (
-            <div className="pp-metacore-strip">
-              <span>
-                Aderência média <b>{avgAdherence}%</b>
-              </span>
-              <span>
-                Streak médio <b>{avgStreak}d</b>
-              </span>
-              <span>
-                Alunos <b>{students.length}</b>
-              </span>
-              {alerts[0] ? (
-                <span>
-                  Sinal: <b>{alerts[0].title}</b>
-                </span>
-              ) : (
-                <span>Sem alertas automáticos agora</span>
-              )}
-            </div>
-          ) : null}
+            {summary ? (
+              <div className="pp-metacore-strip">
+                <span>Aderência média <b>{avgAdherence}%</b></span>
+                <span>Streak médio <b>{avgStreak}d</b></span>
+                <span>Alunos <b>{students.length}</b></span>
+                {alerts[0] ? (
+                  <span>Sinal: <b>{alerts[0].title}</b></span>
+                ) : (
+                  <span>Sem alertas automáticos agora</span>
+                )}
+              </div>
+            ) : null}
+          </div>
         </div>
-
-        <div className="pp-actions">
-          <button type="button" className="btn btn-primary" onClick={() => navigate(routes.messages())}>
-            Abrir mensagens
-          </button>
-          <button type="button" className="btn btn-ghost" onClick={() => navigate(routes.students())}>
-            Ver alunos
-          </button>
-          <button type="button" className="btn btn-ghost" onClick={() => navigate(routes.students() + "?action=invite")}>
-            Convidar por link
-          </button>
-          <button type="button" className="btn btn-primary" onClick={() => navigate(routes.students() + "?action=register")}>
-            Cadastrar aluno
-          </button>
-          <button type="button" className="btn btn-sm btn-ghost" onClick={() => navigate(routes.review())}>
-            Revisões
-          </button>
-        </div>
-      </div>
+      ) : null}
 
       {/* Tab strip: Carteira | Financeiro */}
       <div className="pp-dash-tabs">

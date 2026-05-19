@@ -346,21 +346,25 @@ export default function StudentsListPage() {
           </div>
         </div>
 
-        <div className="pp-actions">
-          <input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Buscar aluno..."
-            className="pp-input"
-            style={{ minWidth: 220 }}
-          />
+        <div className="pp-actions" style={{ alignItems: "flex-end", gap: 12 }}>
+          <label style={{ display: "grid", gap: 6 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: COLORS.muted }}>Buscar aluno</span>
+            <input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Nome ou e-mail…"
+              className="pp-input"
+              style={{ minWidth: 220, height: 38 }}
+            />
+          </label>
 
-          <div style={{ display: "grid", gap: 6 }}>
+          <label style={{ display: "grid", gap: 6 }}>
             <span style={{ fontSize: 12, fontWeight: 600, color: COLORS.muted }}>Filtrar por plano</span>
             <select
               value={filter}
               onChange={(e) => setFilter(e.target.value as "all" | Plan)}
               className="pp-select"
+              style={{ height: 38 }}
             >
               <option value="all">Todos</option>
               <option value="basic">Básico</option>
@@ -368,19 +372,21 @@ export default function StudentsListPage() {
               <option value="gold">Gold</option>
               <option value="black">Black</option>
             </select>
-          </div>
+          </label>
 
-          <div style={{ display: "flex", gap: 8, alignSelf: "flex-end" }}>
+          <div style={{ display: "flex", gap: 8 }}>
             <button
               type="button"
-              className="pp-btn pp-btn--quiet pp-btn--sm"
+              className="pp-btn pp-btn--ghost"
+              style={{ height: 38 }}
               onClick={openInviteModal}
             >
               + Convidar por link
             </button>
             <button
               type="button"
-              className="pp-btn pp-btn--primary pp-btn--sm"
+              className="pp-btn pp-btn--primary"
+              style={{ height: 38 }}
               onClick={openRegisterModal}
             >
               + Cadastrar aluno
