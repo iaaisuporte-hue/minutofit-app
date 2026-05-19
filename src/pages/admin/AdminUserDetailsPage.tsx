@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   fetchAdminUserById,
   changeUserSubscription,
@@ -7,6 +7,7 @@ import {
   fetchUserProducts,
   grantUserProduct,
   revokeUserProduct,
+  deleteAdminUser,
   PRODUCT_KEYS,
   PRODUCT_LABELS,
   type AdminUserRow,
@@ -416,12 +417,167 @@ function SetPasswordModal({
   );
 }
 
+function DeleteUserModal({
+  userId,
+  userName,
+  userEmail,
+  onClose,
+  onDeleted,
+}: {
+  userId: string;
+  userName: string | null;
+  userEmail: string;
+  onClose: () => void;
+  onDeleted: () => void;
+}) {
+  const [confirmText, setConfirmText] = useState("");
+  const [deleting, setDeleting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const displayName = userName ?? userEmail;
+  const isConfirmed = confirmText === "EXCLUIR";
+
+  async function handleDelete() {
+    if (!isConfirmed || deleting) return;
+    setDeleting(true);
+    setError(null);
+    try {
+      await deleteAdminUser(userId);
+      onDeleted();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Falha ao excluir usuário.");
+      setDeleting(false);
+    }
+  }
+
+  return (
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "rgba(0,0,0,.65)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 1000,
+        padding: 16,
+      }}
+      onClick={(e) => { if (e.target === e.currentTarget && !deleting) onClose(); }}
+    >
+      <div
+        style={{
+          border: `1px solid ${COLORS.redBorder}`,
+          borderRadius: 20,
+          background: COLORS.panelDeep,
+          padding: 22,
+          width: "100%",
+          maxWidth: 440,
+          display: "grid",
+          gap: 14,
+        }}
+      >
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div style={{ fontSize: 20, fontWeight: 700, color: "#EF4444" }}>Excluir usuário</div>
+          <button
+            type="button"
+            onClick={onClose}
+            style={{ background: "none", border: "none", color: COLORS.muted, cursor: "pointer", fontSize: 20, padding: 4 }}
+          >
+            ×
+          </button>
+        </div>
+
+        <div
+          style={{
+            borderRadius: 12,
+            border: `1px solid ${COLORS.redBorder}`,
+            background: COLORS.redSoft,
+            padding: "12px 14px",
+            fontSize: 13,
+            lineHeight: 1.6,
+          }}
+        >
+          Você está prestes a excluir <b>{displayName}</b> ({userEmail}). Esta ação é permanente.
+          <br />
+          Histórico relacional e dados comportamentais serão removidos. Fichas e registros de treino são preservados.
+        </div>
+
+        <div style={{ display: "grid", gap: 6 }}>
+          <label style={{ fontSize: 13, color: COLORS.muted }}>
+            Digite <b style={{ color: COLORS.text, letterSpacing: 1 }}>EXCLUIR</b> para confirmar:
+          </label>
+          <input
+            type="text"
+            value={confirmText}
+            onChange={(e) => setConfirmText(e.target.value)}
+            placeholder="EXCLUIR"
+            disabled={deleting}
+            style={{
+              padding: "10px 12px",
+              borderRadius: 10,
+              border: `1px solid ${isConfirmed ? COLORS.redBorder : COLORS.border}`,
+              background: COLORS.panelSoft,
+              color: COLORS.text,
+              fontSize: 14,
+              letterSpacing: 1,
+            }}
+          />
+        </div>
+
+        {error && (
+          <div style={{ borderRadius: 10, border: `1px solid ${COLORS.redBorder}`, background: COLORS.redSoft, padding: 10, fontSize: 13 }}>
+            {error}
+          </div>
+        )}
+
+        <div style={{ display: "flex", gap: 10 }}>
+          <button
+            type="button"
+            onClick={() => void handleDelete()}
+            disabled={!isConfirmed || deleting}
+            style={{
+              flex: 1,
+              padding: "12px 14px",
+              borderRadius: 14,
+              border: `1px solid ${COLORS.redBorder}`,
+              background: !isConfirmed || deleting ? COLORS.panelSoft : COLORS.redSoft,
+              color: !isConfirmed || deleting ? COLORS.muted : "#EF4444",
+              fontWeight: 700,
+              cursor: !isConfirmed || deleting ? "not-allowed" : "pointer",
+            }}
+          >
+            {deleting ? "Excluindo..." : "Excluir definitivamente"}
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={deleting}
+            style={{
+              padding: "12px 14px",
+              borderRadius: 14,
+              border: `1px solid ${COLORS.border}`,
+              background: COLORS.panelSoft,
+              color: COLORS.text,
+              fontWeight: 700,
+              cursor: deleting ? "not-allowed" : "pointer",
+            }}
+          >
+            Cancelar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function AdminUserDetailsPage() {
   const { userId } = useParams();
+  const navigate = useNavigate();
   const [user, setUser] = useState<AdminUserRow | null | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
   const [showChangePlan, setShowChangePlan] = useState(false);
   const [showSetPassword, setShowSetPassword] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [tierName, setTierName] = useState<string | null>(null);
   const [products, setProducts] = useState<UserProductEntry[]>([]);
   const [productsLoading, setProductsLoading] = useState(false);
@@ -539,6 +695,15 @@ export default function AdminUserDetailsPage() {
           userEmail={user.email}
           onClose={() => setShowSetPassword(false)}
           onSuccess={() => setShowSetPassword(false)}
+        />
+      )}
+      {showDeleteConfirm && userId && user && (
+        <DeleteUserModal
+          userId={userId}
+          userName={user.name ?? null}
+          userEmail={user.email}
+          onClose={() => setShowDeleteConfirm(false)}
+          onDeleted={() => navigate("/app/admin/users")}
         />
       )}
 
@@ -733,6 +898,40 @@ export default function AdminUserDetailsPage() {
           <div style={{ color: COLORS.muted, fontSize: 12 }}>
             Clique para ativar ou desativar. Alterações têm efeito no próximo login do usuário.
           </div>
+        </div>
+
+        {/* Zona de risco */}
+        <div
+          style={{
+            border: `1px solid ${COLORS.redBorder}`,
+            borderRadius: 20,
+            background: COLORS.panelDeep,
+            padding: 18,
+            display: "grid",
+            gap: 10,
+          }}
+        >
+          <div style={{ fontSize: 16, fontWeight: 700, color: "#EF4444" }}>Zona de risco</div>
+          <div style={{ color: COLORS.muted, fontSize: 13, lineHeight: 1.5 }}>
+            Excluir remove permanentemente dados relacionais e comportamentais do usuário. Fichas de treino e revisões são preservadas.
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowDeleteConfirm(true)}
+            style={{
+              padding: "10px 16px",
+              borderRadius: 12,
+              border: `1px solid ${COLORS.redBorder}`,
+              background: COLORS.redSoft,
+              color: "#EF4444",
+              fontWeight: 700,
+              fontSize: 13,
+              cursor: "pointer",
+              width: "fit-content",
+            }}
+          >
+            Excluir usuário
+          </button>
         </div>
       </div>
     </>

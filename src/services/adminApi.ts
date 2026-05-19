@@ -288,3 +288,14 @@ export async function updateAdminPlatformProtocol(
   return data?.data as WorkoutProtocol;
 }
 
+export async function deleteAdminUser(userId: string) {
+  const response = await authFetch(`${API_URL}/admin/users/${userId}`, {
+    method: "DELETE",
+  });
+  const data = await parseJson(response);
+  if (!response.ok) {
+    throw new Error(data?.error || "Não foi possível excluir o usuário.");
+  }
+}
+
+
