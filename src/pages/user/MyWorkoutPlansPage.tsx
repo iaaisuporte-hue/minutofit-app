@@ -6,6 +6,7 @@ import { addWorkoutHistoryEntry, type MuscleGroup } from "./workoutHistory";
 import { registerDailyCheckin } from "./gamification";
 import { COLORS } from "../../styles/colors";
 import { EmptyState } from "../../components/EmptyState";
+import { TechniqueCard } from "../../features/training/techniques/TechniqueCard";
 
 function formatDate(value: string) {
   try {
@@ -248,6 +249,17 @@ function PlanDayExerciseList({ day, planId }: PlanDayExerciseListProps) {
         ) : null}
         {(day.items ?? []).map((item: UserWorkoutPlanItem, idx) => {
           const ex = item.exerciseId ? exercises[item.exerciseId] : null;
+          let biSetPartnerName: string | null = null;
+          if (item.technique?.type === "bi_set" && item.technique.biSetGroupId) {
+            const groupId = item.technique.biSetGroupId;
+            const partner = (day.items ?? []).find(
+              (other) =>
+                other.exerciseId !== item.exerciseId &&
+                other.technique?.type === "bi_set" &&
+                other.technique?.biSetGroupId === groupId
+            );
+            biSetPartnerName = partner?.name ?? null;
+          }
           const primaryMedia = ex?.media?.find((m) => m.isPrimary) ?? ex?.media?.[0];
           const gifMedia = ex?.media?.find((m) => m.mediaType === "gif" || m.mediaType === "image") ?? primaryMedia;
           const hasGif = gifMedia && (gifMedia.mediaType === "gif" || gifMedia.mediaType === "image");
@@ -347,8 +359,11 @@ function PlanDayExerciseList({ day, planId }: PlanDayExerciseListProps) {
                   {item.sets} séries × {item.reps} reps · Descanso: {item.rest}
                   {item.rpe ? ` · RPE ${item.rpe}` : ""}
                   {item.cadence ? ` · Cadência: ${item.cadence}` : ""}
-                  {item.restPause ? " · Rest-pause" : ""}
+                  {!item.technique && item.restPause ? " · Rest-pause" : ""}
                 </div>
+                {item.technique && item.technique.type !== "none" ? (
+                  <TechniqueCard technique={item.technique} pairedWithName={biSetPartnerName} />
+                ) : null}
                 {ex ? (
                   <div style={{ fontSize: 11, color: COLORS.muted }}>
                     {ex.targetMuscle}

@@ -1,12 +1,15 @@
 import { API_URL, parseJson } from "./apiBase";
 import { authFetch } from "./apiClient";
+import type { TechniqueConfig } from "../features/training/techniques/technique.types";
 
 export type AiGeneratedExercise = {
+  exercise_id?: string;
   name: string;
   sets: string;
   reps: string;
   rest: string;
   note?: string | null;
+  technique?: TechniqueConfig | null;
 };
 
 export type AiGeneratedDay = {

@@ -1,5 +1,6 @@
 import { API_URL, parseJson } from "./apiBase";
 import { authFetch } from "./apiClient";
+import type { TechniqueConfig } from "../features/training/techniques/technique.types";
 
 export type WorkoutPlanItem = {
   exerciseId: string;
@@ -10,6 +11,7 @@ export type WorkoutPlanItem = {
   rpe?: string;
   cadence?: string;
   restPause?: boolean;
+  technique?: TechniqueConfig;
   notes?: string;
 };
 

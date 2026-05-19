@@ -24,6 +24,9 @@ import {
 import { WB } from "./workoutBuilder/workoutBuilderTheme";
 import { ExerciseDetailModal } from "./workoutBuilder/ExerciseDetailModal";
 import { QuickStartCard } from "./workoutBuilder/QuickStartCard";
+import { TechniqueSelector, type BiSetPairCandidate } from "../../features/training/techniques/TechniqueSelector";
+import { useTechniqueReadiness } from "../../features/training/techniques/useTechniqueReadiness";
+import type { TechniqueConfig } from "../../features/training/techniques/technique.types";
 import "./personalPremium.css";
 
 const BUILDER_BASE = "/app/personal/students";
@@ -70,8 +73,21 @@ type WorkoutExercise = {
   rpe?: string;
   cadence?: string;
   restPause?: boolean;
+  technique?: TechniqueConfig;
   notes?: string;
 };
+
+function randomUuidV4(): string {
+  // Browser-safe: crypto.randomUUID is widely supported; fallback for older targets
+  const g = globalThis as { crypto?: { randomUUID?: () => string; getRandomValues?: (out: Uint8Array) => void } };
+  if (g.crypto?.randomUUID) return g.crypto.randomUUID();
+  const bytes = new Uint8Array(16);
+  g.crypto?.getRandomValues?.(bytes);
+  bytes[6] = (bytes[6] & 0x0f) | 0x40;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
 
 type DayMeta = {
   index: number;
@@ -178,6 +194,8 @@ export default function WorkoutBuilderPage() {
   const [selectedStudentId, setSelectedStudentId] = useState<string>(
     studentIdParam ?? prefilledStudentId ?? ""
   );
+  // Dashboard signals (riskScore, sleptWell, metabolismDelta7d) by student id — used by useTechniqueReadiness
+  const [studentSignals, setStudentSignals] = useState<Record<string, PersonalDashboardStudent>>({});
 
   // ── Catalog ───────────────────────────────────────────────────────
   const [allExercises, setAllExercises] = useState<Exercise[]>([]);
@@ -236,6 +254,7 @@ export default function WorkoutBuilderPage() {
         }
         const list = mapDashboardToStudents(dash.students);
         setStudents(list);
+        setStudentSignals(Object.fromEntries(dash.students.map((s) => [s.id, s])));
         if (studentIdParam && list.some((s) => s.id === studentIdParam)) {
           setSelectedStudentId(studentIdParam);
         } else if (prefilledStudentId && list.some((s) => s.id === prefilledStudentId)) {
@@ -378,6 +397,7 @@ export default function WorkoutBuilderPage() {
           sets: g.sets,
           reps: g.reps,
           rest: g.rest,
+          technique: g.technique ?? undefined,
           notes: g.note ?? undefined,
         });
       } else {
@@ -462,6 +482,7 @@ export default function WorkoutBuilderPage() {
         rpe: it.rpe,
         cadence: it.cadence,
         restPause: it.restPause,
+        technique: it.technique,
         notes: it.notes,
       }));
       return { index: idx + 1, name: day.name || `Treino ${String.fromCharCode(65 + idx)}`, focus: day.focus ?? null };
@@ -522,6 +543,56 @@ export default function WorkoutBuilderPage() {
     [students, selectedStudentId]
   );
 
+  // MaaS readiness signal for the currently-selected student
+  const techniqueReadiness = useTechniqueReadiness(
+    selectedStudentId
+      ? (() => {
+          const row = studentSignals[selectedStudentId];
+          if (!row) return null;
+          return {
+            riskScore: row.riskScore,
+            sleptWell: row.latestSleptWell ?? null,
+            inPain: null,
+            metabolismDelta7d: row.metabolismDelta7d,
+            studentFirstName: row.name?.split(" ")[0] ?? null,
+          };
+        })()
+      : null
+  );
+
+  // Bi-set pair candidates for the current day (used by TechniqueSelector)
+  const biSetCandidatesForDay = useMemo<BiSetPairCandidate[]>(() => {
+    const day = daysItems[selectedDayIdx] ?? [];
+    return day.map((it) => {
+      const groupId = it.technique?.type === "bi_set" ? it.technique.biSetGroupId : undefined;
+      let partnerExerciseId: string | null = null;
+      if (groupId) {
+        const partner = day.find(
+          (other) =>
+            other.exerciseId !== it.exerciseId &&
+            other.technique?.type === "bi_set" &&
+            other.technique?.biSetGroupId === groupId
+        );
+        partnerExerciseId = partner?.exerciseId ?? null;
+      }
+      return { exerciseId: it.exerciseId, name: it.name, partnerExerciseId };
+    });
+  }, [daysItems, selectedDayIdx]);
+
+  function pairedPartnerFor(exerciseId: string): BiSetPairCandidate | null {
+    const day = daysItems[selectedDayIdx] ?? [];
+    const me = day.find((it) => it.exerciseId === exerciseId);
+    const groupId = me?.technique?.type === "bi_set" ? me.technique.biSetGroupId : null;
+    if (!groupId) return null;
+    const partner = day.find(
+      (other) =>
+        other.exerciseId !== exerciseId &&
+        other.technique?.type === "bi_set" &&
+        other.technique?.biSetGroupId === groupId
+    );
+    return partner ? { exerciseId: partner.exerciseId, name: partner.name } : null;
+  }
+
   const libraryList = useMemo(() => {
     const q = exerciseQuery.trim().toLowerCase();
     let base: Exercise[];
@@ -575,6 +646,79 @@ export default function WorkoutBuilderPage() {
         i.exerciseId === exerciseId ? { ...i, ...patch } : i
       ),
     }));
+  }
+
+  /**
+   * Sets technique on an exercise. Handles the bi-set group housekeeping:
+   * leaving a bi-set clears the partner's pairing too; switching to a different
+   * technique leaves the partner unpaired.
+   */
+  function setItemTechnique(exerciseId: string, next: TechniqueConfig | undefined) {
+    setDaysItems((prev) => {
+      const day = [...(prev[selectedDayIdx] ?? [])];
+      const idx = day.findIndex((i) => i.exerciseId === exerciseId);
+      if (idx < 0) return prev;
+      const previous = day[idx].technique;
+
+      // If leaving a bi-set group, clear partner technique too
+      if (previous?.type === "bi_set" && previous.biSetGroupId) {
+        const groupId = previous.biSetGroupId;
+        if (next?.type !== "bi_set" || next.biSetGroupId !== groupId) {
+          for (let j = 0; j < day.length; j++) {
+            if (j !== idx && day[j].technique?.type === "bi_set" && day[j].technique?.biSetGroupId === groupId) {
+              day[j] = { ...day[j], technique: undefined };
+            }
+          }
+        }
+      }
+      day[idx] = { ...day[idx], technique: next };
+      return { ...prev, [selectedDayIdx]: day };
+    });
+  }
+
+  /** Pairs two exercises in a bi-set (creates a new groupId if needed). */
+  function pairBiSet(exerciseIdA: string, exerciseIdB: string | null) {
+    setDaysItems((prev) => {
+      const day = [...(prev[selectedDayIdx] ?? [])];
+      const a = day.findIndex((i) => i.exerciseId === exerciseIdA);
+      if (a < 0) return prev;
+
+      const aPrev = day[a].technique;
+      const existingGroupId = aPrev?.type === "bi_set" ? aPrev.biSetGroupId : undefined;
+
+      // Unpair: clear A and any current partner sharing existingGroupId
+      if (!exerciseIdB) {
+        if (existingGroupId) {
+          for (let j = 0; j < day.length; j++) {
+            if (day[j].technique?.type === "bi_set" && day[j].technique?.biSetGroupId === existingGroupId) {
+              day[j] = { ...day[j], technique: undefined };
+            }
+          }
+        } else {
+          day[a] = { ...day[a], technique: undefined };
+        }
+        return { ...prev, [selectedDayIdx]: day };
+      }
+
+      const b = day.findIndex((i) => i.exerciseId === exerciseIdB);
+      if (b < 0) return prev;
+
+      // Clear B's previous bi-set partner (if any) before re-pairing
+      const bPrev = day[b].technique;
+      if (bPrev?.type === "bi_set" && bPrev.biSetGroupId && bPrev.biSetGroupId !== existingGroupId) {
+        const stale = bPrev.biSetGroupId;
+        for (let j = 0; j < day.length; j++) {
+          if (j !== b && day[j].technique?.type === "bi_set" && day[j].technique?.biSetGroupId === stale) {
+            day[j] = { ...day[j], technique: undefined };
+          }
+        }
+      }
+
+      const groupId = existingGroupId ?? randomUuidV4();
+      day[a] = { ...day[a], technique: { type: "bi_set", biSetGroupId: groupId } };
+      day[b] = { ...day[b], technique: { type: "bi_set", biSetGroupId: groupId } };
+      return { ...prev, [selectedDayIdx]: day };
+    });
   }
 
   function onStudentSelect(id: string) {
@@ -1219,7 +1363,7 @@ export default function WorkoutBuilderPage() {
                             padding: "2px 0",
                           }}
                         >
-                          Técnico {it.rpe || it.cadence || it.restPause || it.notes ? "•" : ""}
+                          Técnico {it.rpe || it.cadence || it.restPause || it.technique?.type || it.notes ? "•" : ""}
                         </summary>
                         <div
                           style={{
@@ -1281,24 +1425,24 @@ export default function WorkoutBuilderPage() {
                               autoComplete="off"
                             />
                           </label>
-                          <label
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 5,
-                              fontSize: 11,
-                              fontWeight: 600,
-                              color: WB.text,
-                              cursor: "pointer",
+                        </div>
+                        <div style={{ marginTop: 10 }}>
+                          <TechniqueSelector
+                            value={it.technique}
+                            onChange={(next) => {
+                              if (next?.type === "bi_set") {
+                                // Initialize as solo bi-set (no partner yet) — pairing UI sets group
+                                setItemTechnique(it.exerciseId, { type: "bi_set" });
+                              } else {
+                                setItemTechnique(it.exerciseId, next);
+                              }
                             }}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={Boolean(it.restPause)}
-                              onChange={(e) => updateItem(it.exerciseId, { restPause: e.target.checked })}
-                            />
-                            Rest-pause
-                          </label>
+                            readiness={techniqueReadiness}
+                            exerciseId={it.exerciseId}
+                            pairCandidates={biSetCandidatesForDay}
+                            pairedWith={pairedPartnerFor(it.exerciseId)}
+                            onPairWith={(partner) => pairBiSet(it.exerciseId, partner ? partner.exerciseId : null)}
+                          />
                         </div>
                         <label
                           style={{

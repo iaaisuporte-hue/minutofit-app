@@ -1,0 +1,230 @@
+/* Technique selector + card — scoped styles for advanced training methods */
+
+.tech-selector {
+  border: 1px solid var(--color-accent-border, rgba(6, 182, 212, 0.28));
+  border-radius: 12px;
+  padding: 12px;
+  background: var(--color-surface, rgba(15, 23, 42, 0.04));
+  display: grid;
+  gap: 12px;
+}
+
+.tech-selector__title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-muted, #64748b);
+}
+
+.tech-selector__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+@media (max-width: 540px) {
+  .tech-selector__grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.tech-selector__option {
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--color-border, rgba(148, 163, 184, 0.25));
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 120ms ease, background 120ms ease, transform 120ms ease;
+  color: inherit;
+  font: inherit;
+}
+
+.tech-selector__option:hover {
+  border-color: var(--color-accent-border, rgba(6, 182, 212, 0.45));
+}
+
+.tech-selector__option[aria-pressed="true"] {
+  background: var(--color-accent-soft, rgba(6, 182, 212, 0.10));
+  border-color: var(--color-accent, #06b6d4);
+}
+
+.tech-selector__option-label {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.tech-selector__option-tagline {
+  font-size: 11px;
+  color: var(--color-text-muted, #64748b);
+  line-height: 1.4;
+}
+
+.tech-selector__params {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 8px;
+}
+
+.tech-selector__param {
+  display: grid;
+  gap: 2px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--color-text-muted, #64748b);
+}
+
+.tech-selector__param-input {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--color-surface-strong, rgba(15, 23, 42, 0.05));
+  border: 1px solid var(--color-border, rgba(148, 163, 184, 0.25));
+  border-radius: 8px;
+  padding: 4px 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text, inherit);
+}
+
+.tech-selector__param-input input {
+  border: 0;
+  background: transparent;
+  outline: none;
+  width: 100%;
+  font: inherit;
+  color: inherit;
+}
+
+.tech-selector__pair {
+  display: grid;
+  gap: 6px;
+  padding: 10px;
+  border: 1px dashed var(--color-accent-border, rgba(6, 182, 212, 0.35));
+  border-radius: 10px;
+}
+
+.tech-selector__pair-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted, #64748b);
+}
+
+.tech-selector__pair-option {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--color-border, rgba(148, 163, 184, 0.25));
+  cursor: pointer;
+  background: transparent;
+  font-size: 12px;
+  color: inherit;
+  font-family: inherit;
+}
+
+.tech-selector__pair-option[aria-pressed="true"] {
+  border-color: var(--color-accent, #06b6d4);
+  background: var(--color-accent-soft, rgba(6, 182, 212, 0.10));
+}
+
+.tech-selector__pair-option[disabled] {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.tech-readiness {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.tech-readiness--yellow {
+  background: rgba(245, 158, 11, 0.10);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  color: #92400e;
+}
+
+.tech-readiness--red {
+  background: rgba(239, 68, 68, 0.10);
+  border: 1px solid rgba(239, 68, 68, 0.40);
+  color: #991b1b;
+}
+
+.tech-readiness__icon {
+  flex: 0 0 16px;
+  margin-top: 2px;
+}
+
+/* TechniqueCard — student viewer */
+
+.tech-card {
+  display: grid;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--color-accent-soft, rgba(6, 182, 212, 0.10));
+  border: 1px solid var(--color-accent-border, rgba(6, 182, 212, 0.28));
+}
+
+.tech-card__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.tech-card__title {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--color-accent-deep, #164e63);
+}
+
+.tech-card__scope {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-muted, #64748b);
+}
+
+.tech-card__tagline {
+  font-size: 12px;
+  color: var(--color-text-muted, #64748b);
+  line-height: 1.45;
+}
+
+.tech-card__steps {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 4px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-text, inherit);
+}
+
+.tech-card__steps li {
+  padding-left: 4px;
+}
+
+.tech-card__params {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-accent-deep, #164e63);
+}
