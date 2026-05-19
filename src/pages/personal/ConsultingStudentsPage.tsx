@@ -7,6 +7,8 @@ import {
 } from "../../services/personalDashboardApi";
 import { COLORS } from "../../styles/colors";
 import StudentProfileModal from "./StudentProfileModal";
+import { SkeletonStudentList } from "../../components/feedback/Skeleton";
+import { EmptyState } from "../../components/EmptyState";
 import "./personalPremium.css";
 
 type ConsultingStudent = PersonalConsultingStudent;
@@ -239,7 +241,9 @@ export default function ConsultingStudentsPage() {
 
       {loading ? (
         <Card>
-          <div style={{ padding: 18, color: COLORS.muted }}>Carregando carteira de consultoria...</div>
+          <div style={{ padding: 14 }}>
+            <SkeletonStudentList rows={4} label="Carregando carteira de consultoria" />
+          </div>
         </Card>
       ) : error ? (
         <Card>
@@ -259,11 +263,17 @@ export default function ConsultingStudentsPage() {
         </Card>
       ) : filtered.length === 0 ? (
         <Card>
-          <div style={{ padding: 18, display: "grid", gap: 6 }}>
-            <div style={{ fontWeight: 600 }}>Nenhum aluno encontrado neste recorte.</div>
-            <div style={{ color: COLORS.muted, fontSize: 14 }}>
-              {onlyUrgent ? "Sua carteira está estável neste momento." : "Ainda não há alunos disponíveis para consultoria."}
-            </div>
+          <div style={{ padding: 18 }}>
+            <EmptyState
+              eyebrow={onlyUrgent ? "Carteira estável" : "Sem sinais"}
+              variant={onlyUrgent ? "ok" : "info"}
+              title={onlyUrgent ? "Ninguém precisa de ajuste agora" : "Carteira de consultoria vazia"}
+              description={
+                onlyUrgent
+                  ? "Nenhum aluno na zona de atenção neste momento — bom sinal de adesão e ritmo no ciclo."
+                  : "Quando você atribuir uma ficha de consultoria a um aluno, ela aparece aqui com os indicadores do ciclo."
+              }
+            />
           </div>
         </Card>
       ) : (

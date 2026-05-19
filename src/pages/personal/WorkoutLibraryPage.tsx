@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { EmptyState } from "../../components/EmptyState";
+import { SkeletonStudentList } from "../../components/feedback/Skeleton";
 import { fetchPersonalDashboard } from "../../services/personalDashboardApi";
 import type { PersonalDashboardStudent } from "../../services/personalDashboardApi";
 import {
@@ -228,7 +229,7 @@ export default function WorkoutLibraryPage() {
           ) : null}
 
           {protocolsLoading ? (
-            <div style={{ color: WB.muted, fontSize: 14 }}>Carregando protocolos…</div>
+            <SkeletonStudentList rows={3} label="Carregando protocolos" />
           ) : sortedProtocols.length === 0 ? (
             <EmptyState
               variant="info"

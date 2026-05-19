@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { COLORS } from "../../styles/colors";
+import { Skeleton } from "../../components/feedback/Skeleton";
 import {
   fetchPersonalStudentActivities,
   fetchPersonalStudentSnapshot,
@@ -411,7 +412,12 @@ export default function StudentProfileModal({
 
         {loading ? (
           <Surface>
-            <div style={{ color: COLORS.muted, fontSize: 14 }}>Carregando visão do aluno...</div>
+            <div style={{ display: "grid", gap: 10 }}>
+              <Skeleton variant="text-lg" width="60%" />
+              <Skeleton variant="text" width="90%" />
+              <Skeleton variant="text" width="75%" />
+              <Skeleton variant="text-sm" width="40%" />
+            </div>
           </Surface>
         ) : null}
 

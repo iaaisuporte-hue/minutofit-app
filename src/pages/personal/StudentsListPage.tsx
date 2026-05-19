@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { EmptyState } from "../../components/EmptyState";
+import { SkeletonStudentList } from "../../components/feedback/Skeleton";
 import {
   addStudentDirect,
   fetchPersonalDashboard,
@@ -528,11 +529,14 @@ export default function StudentsListPage() {
           {showInvites ? (
             <div style={{ marginTop: 14, display: "grid", gap: 8 }}>
               {invitesLoading ? (
-                <div style={{ color: COLORS.muted, fontSize: 13 }}>Carregando…</div>
+                <SkeletonStudentList rows={2} label="Carregando convites" />
               ) : invites.length === 0 ? (
-                <div style={{ color: COLORS.muted, fontSize: 13 }}>
-                  Nenhum convite enviado ainda. Use o botão "+ Convidar aluno direto" para gerar um link.
-                </div>
+                <EmptyState
+                  eyebrow="Convites diretos"
+                  variant="info"
+                  title="Nenhum link gerado ainda"
+                  description="Use o botão acima para gerar um convite direto — alunos sem academia entram diretamente na sua carteira via link."
+                />
               ) : (
                 invites.map((inv) => (
                   <div

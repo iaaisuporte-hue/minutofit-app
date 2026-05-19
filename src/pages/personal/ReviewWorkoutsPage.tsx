@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { EmptyState } from "../../components/EmptyState";
+import { SkeletonStudentList } from "../../components/feedback/Skeleton";
 import { COLORS } from "../../styles/colors";
 import {
   fetchPersonalStudentSnapshot,
@@ -480,9 +481,7 @@ export default function ReviewWorkoutsPage() {
         </div>
       </Card>
 
-      {loading ? (
-        <div style={{ color: COLORS.muted, fontSize: 13 }}>Carregando fila de revisões…</div>
-      ) : null}
+      {loading ? <SkeletonStudentList rows={3} label="Carregando fila de revisões" /> : null}
       {loadError ? (
         <div
           role="alert"

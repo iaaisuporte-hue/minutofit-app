@@ -12,6 +12,7 @@ import {
   Phone,
 } from "lucide-react";
 import { listRelationshipTimeline, type TimelineItem } from "../../services/personalRetentionApi";
+import { SkeletonStudentList } from "../../components/feedback/Skeleton";
 
 type Props = {
   studentId: string;
@@ -80,11 +81,7 @@ export function RelationshipTimeline({ studentId }: Props) {
   }, [studentId]);
 
   if (loading) {
-    return (
-      <div style={{ padding: "24px 0", textAlign: "center", color: "var(--color-text-tertiary)", fontSize: 13 }}>
-        Carregando histórico...
-      </div>
-    );
+    return <SkeletonStudentList rows={3} label="Carregando histórico" />;
   }
 
   if (items.length === 0) {

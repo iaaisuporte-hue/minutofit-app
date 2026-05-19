@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "../../auth/AuthContext";
 import { COLORS } from "../../styles/colors";
+import { SkeletonStudentList } from "../../components/feedback/Skeleton";
+import { EmptyState } from "../../components/EmptyState";
 import {
   createStudentNote,
   deleteStudentNote,
@@ -352,11 +354,16 @@ export default function StudentTechnicalNotes({ studentId, highlights, onSaved }
       ) : null}
 
       {loading ? (
-        <div style={{ color: COLORS.muted, fontSize: 13 }}>Carregando histórico…</div>
+        <SkeletonStudentList rows={3} label="Carregando histórico de notas" />
       ) : (
         <div style={{ display: "grid", gap: 10 }}>
           {notes.length === 0 ? (
-            <div style={{ color: COLORS.muted, fontSize: 13 }}>Nenhuma nota neste filtro ainda.</div>
+            <EmptyState
+              eyebrow="Histórico em formação"
+              variant="info"
+              title="Sem notas neste filtro"
+              description="Registre observações de técnica, dor, ROM ou carga — elas formam o histórico clínico do aluno ao longo dos ciclos."
+            />
           ) : null}
           {notes.map((n) => (
             <div key={n.id} className="pp-surface" style={{ fontSize: 13 }}>

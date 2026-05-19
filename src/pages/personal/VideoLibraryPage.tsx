@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { EmptyState } from "../../components/EmptyState";
+import { SkeletonStudentList } from "../../components/feedback/Skeleton";
 import { fetchVideosSearch, type VideoSearchRow } from "../../services/videosSearchApi";
 import "./personalPremium.css";
 
@@ -45,9 +46,7 @@ export default function VideoLibraryPage() {
             onChange={(e) => setQ(e.target.value)}
             aria-label="Buscar vídeos"
           />
-          {loading ? (
-            <div style={{ color: "var(--color-text-tertiary)", fontSize: 14 }}>Carregando…</div>
-          ) : null}
+          {loading ? <SkeletonStudentList rows={3} label="Carregando vídeos" /> : null}
           {error ? (
             <EmptyState variant="warning" title="Não foi possível carregar" description={error} />
           ) : null}

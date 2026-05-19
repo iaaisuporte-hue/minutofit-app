@@ -18,6 +18,8 @@ import {
   type MessageTemplate,
 } from "../../services/personalRetentionApi";
 import { usePersonalStudentSnapshot } from "./hooks/usePersonalStudentSnapshot";
+import { SkeletonStudentList } from "../../components/feedback/Skeleton";
+import { EmptyState } from "../../components/EmptyState";
 import { normalizePhoneToBRE164, openWhatsappCompose } from "./lib/whatsappLink";
 import "./messagesPersonal.css";
 
@@ -358,10 +360,15 @@ export default function MessagesPage() {
               <div className="mp-inbox-section-label">Conversas</div>
               <div className="mp-conv-list">
                 {loading ? (
-                  <div className="mp-empty-text">Carregando conversas…</div>
+                  <SkeletonStudentList rows={3} label="Carregando conversas" />
                 ) : filteredInbox.length === 0 ? (
-                  <div className="mp-empty-text">
-                    Nenhuma conversa ainda. Crie uma acima.
+                  <div style={{ padding: "12px 8px" }}>
+                    <EmptyState
+                      eyebrow="Inbox vazia"
+                      variant="info"
+                      title="Nenhuma conversa ativa"
+                      description="Selecione um aluno acima para iniciar — o contexto metabólico e a aderência aparecem no painel à direita."
+                    />
                   </div>
                 ) : (
                   filteredInbox.map((conv) => {

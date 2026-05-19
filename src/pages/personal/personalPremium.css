@@ -165,6 +165,80 @@
   border-color: var(--color-border);
 }
 
+/* ─────────────────────────────────────────────────────────────
+   Skeletons — substitui spinners de texto ("Carregando...")
+   por placeholders visuais com shimmer suave (premium feel).
+   ───────────────────────────────────────────────────────────── */
+@keyframes pp-shimmer {
+  0% { background-position: -200px 0; }
+  100% { background-position: calc(200px + 100%) 0; }
+}
+
+.pp-skeleton {
+  display: block;
+  background: linear-gradient(
+    90deg,
+    var(--color-surface-raised) 0%,
+    var(--color-surface-subtle, rgba(0, 0, 0, 0.04)) 50%,
+    var(--color-surface-raised) 100%
+  );
+  background-size: 200px 100%;
+  background-repeat: no-repeat;
+  border-radius: 6px;
+  animation: pp-shimmer 1.4s linear infinite;
+}
+
+.pp-skeleton--text {
+  height: 12px;
+  width: 100%;
+  border-radius: 4px;
+}
+.pp-skeleton--text-sm { height: 10px; }
+.pp-skeleton--text-lg { height: 16px; }
+
+.pp-skeleton--chip {
+  display: inline-block;
+  height: 24px;
+  width: 90px;
+  border-radius: 999px;
+}
+
+.pp-skeleton--circle {
+  border-radius: 50%;
+}
+
+.pp-skeleton-card {
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  border-radius: 14px;
+  padding: 14px;
+  display: grid;
+  gap: 10px;
+}
+
+.pp-skeleton-row {
+  display: grid;
+  grid-template-columns: 36px 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--color-border);
+}
+.pp-skeleton-row:last-child {
+  border-bottom: 0;
+}
+.pp-skeleton-row__content {
+  display: grid;
+  gap: 6px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pp-skeleton {
+    animation: none;
+    background: var(--color-surface-raised);
+  }
+}
+
 .pp-icon-btn {
   width: 36px;
   height: 36px;

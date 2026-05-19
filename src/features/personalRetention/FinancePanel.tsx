@@ -7,6 +7,7 @@ import {
   type BillingPlan,
 } from "../../services/personalBillingApi";
 import { BillingPlansModal } from "./BillingPlansModal";
+import { SkeletonStudentList } from "../../components/feedback/Skeleton";
 
 function formatBrl(cents: number): string {
   return (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -60,11 +61,7 @@ export function FinancePanel() {
 
   useEffect(() => { void load(); }, [load]);
 
-  if (loading) return (
-    <div style={{ padding: "32px 0", textAlign: "center", color: "var(--color-text-tertiary)", fontSize: 13 }}>
-      Carregando...
-    </div>
-  );
+  if (loading) return <SkeletonStudentList rows={3} label="Carregando assinaturas" />;
 
   if (error) return (
     <div style={{ padding: "24px 0", color: "var(--color-danger)", fontSize: 13 }}>{error}</div>

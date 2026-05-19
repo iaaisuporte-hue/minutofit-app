@@ -13,6 +13,7 @@ import { useAdaptivePolling } from "../../hooks/useAdaptivePolling";
 import { useAuth } from "../../auth/AuthContext";
 import IntelligentAlerts from "./IntelligentAlerts";
 import { EmptyState } from "../../components/EmptyState";
+import { SkeletonStudentList } from "../../components/feedback/Skeleton";
 import StudentProfileModal from "./StudentProfileModal";
 import PersonalQuickSearch from "./PersonalQuickSearch";
 import {
@@ -403,10 +404,8 @@ export default function DashboardPage() {
         <>
 
       {loading ? (
-        <Card title="Carregando dashboard" subtitle="Organizando prioridades e sinais da carteira.">
-          <div style={{ color: COLORS.muted, fontSize: 14 }}>
-            Em instantes a área mostra quem precisa de atenção primeiro.
-          </div>
+        <Card title="Lendo sinais da carteira" subtitle="Organizando prioridades e contextos do dia.">
+          <SkeletonStudentList rows={4} label="Carregando alunos em atenção" />
         </Card>
       ) : null}
 
