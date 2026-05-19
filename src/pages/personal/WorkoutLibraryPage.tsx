@@ -27,7 +27,7 @@ function scopeLabel(s: ProtocolScope) {
 
 export default function WorkoutLibraryPage() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [students, setStudents] = useState<PersonalDashboardStudent[]>([]);
   const [studentsLoading, setStudentsLoading] = useState(true);
   const [selectedStudentId, setSelectedStudentId] = useState("");
@@ -285,7 +285,16 @@ export default function WorkoutLibraryPage() {
       <ProtocolUsageDrawer
         protocol={activeProtocol}
         open={Boolean(activeProtocol)}
-        onClose={() => setActiveProtocol(null)}
+        onClose={() => {
+          setActiveProtocol(null);
+          // Limpar o ?protocol= da URL — caso contrário o useEffect que
+          // sincroniza state com a query reabre o drawer imediatamente.
+          if (searchParams.has("protocol")) {
+            const next = new URLSearchParams(searchParams);
+            next.delete("protocol");
+            setSearchParams(next, { replace: true });
+          }
+        }}
         onChanged={refreshAfterUsageChange}
       />
     </div>
