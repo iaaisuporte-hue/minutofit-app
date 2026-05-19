@@ -45,6 +45,7 @@ export interface AuthUser {
   parqFormVersion?: string;
   parqAnyYes?: boolean;
   studentComplianceComplete?: boolean;
+  mustChangePassword?: boolean;
 }
 
 export type { AcademyForUser, AcademyBranding };

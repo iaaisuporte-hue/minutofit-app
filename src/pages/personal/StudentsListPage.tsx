@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { EmptyState } from "../../components/EmptyState";
 import {
   addStudentDirect,
@@ -29,6 +29,7 @@ const PLAN_LABEL: Record<Plan, string> = {
 const PERSONAL_BASE = "/app/personal" as const;
 const routes = {
   workoutBuilder: (studentId: string) => `${PERSONAL_BASE}/students/${studentId}/workouts/builder`,
+  studentWorkouts: (studentId: string) => `${PERSONAL_BASE}/students/${studentId}?tab=workouts`,
 } as const;
 
 function pillStyle(opts: { bg: string; border: string; color?: string }): React.CSSProperties {
@@ -99,6 +100,7 @@ function ActionLink({ to, label }: { to: string; label: string }) {
 }
 
 export default function StudentsListPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [students, setStudents] = useState<Student[]>([]);
   const [loadingStudents, setLoadingStudents] = useState(true);
   const [studentsError, setStudentsError] = useState<string | null>(null);
@@ -112,7 +114,7 @@ export default function StudentsListPage() {
   const [regCpf, setRegCpf] = useState("");
   const [regLoading, setRegLoading] = useState(false);
   const [regError, setRegError] = useState<string | null>(null);
-  const [regSuccess, setRegSuccess] = useState<{ name: string; isNew: boolean; matchedBy: string | null } | null>(null);
+  const [regSuccess, setRegSuccess] = useState<{ name: string; isNew: boolean; matchedBy: string | null; tempPassword?: string } | null>(null);
 
   function openRegisterModal() {
     setRegName(""); setRegEmail(""); setRegPhone(""); setRegCpf("");
@@ -129,7 +131,7 @@ export default function StudentsListPage() {
         phone: regPhone.trim() || undefined,
         cpf: regCpf.trim() || undefined,
       });
-      setRegSuccess({ name: result.student.name, isNew: result.isNew, matchedBy: result.matchedBy });
+      setRegSuccess({ name: result.student.name, isNew: result.isNew, matchedBy: result.matchedBy, tempPassword: result.tempPassword });
       // Refresh student list
       const dash = await fetchPersonalDashboard();
       if (dash) setStudents(dash.students);
@@ -205,6 +207,18 @@ export default function StudentsListPage() {
       navigator.clipboard.writeText(createdInviteUrl).catch(() => {});
     }
   }
+
+  useEffect(() => {
+    const action = searchParams.get("action");
+    if (action === "register") {
+      openRegisterModal();
+      setSearchParams({}, { replace: true });
+    }
+    if (action === "invite") {
+      openInviteModal();
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   useEffect(() => {
     let cancelled = false;
@@ -484,6 +498,7 @@ export default function StudentsListPage() {
                 >
                   Ver aluno
                 </button>
+                <ActionLink to={routes.studentWorkouts(s.id)} label="Ver ficha(s)" />
                 <ActionLink to={routes.workoutBuilder(s.id)} label="Criar treino" />
               </div>
             </div>
@@ -666,6 +681,14 @@ export default function StudentsListPage() {
                       </>
                   }
                 </div>
+                {regSuccess.tempPassword ? (
+                  <div className="pp-temp-password" role="status">
+                    <span>Senha temporária</span>
+                    <strong>{regSuccess.tempPassword}</strong>
+                    <small>O aluno deverá trocar esta senha no primeiro login.</small>
+                  </div>
+                ) : null}
+
                 <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
                   <button
                     type="button"

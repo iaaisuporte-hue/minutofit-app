@@ -42,6 +42,7 @@ const routes = {
   messages: () => `${PERSONAL_BASE}/messages`,
   review: () => `${PERSONAL_BASE}/review`,
   workoutBuilder: (studentId: string) => `${PERSONAL_BASE}/students/${studentId}/workouts/builder`,
+  studentWorkouts: (studentId: string) => `${PERSONAL_BASE}/students/${studentId}?tab=workouts`,
 } as const;
 
 function fmtDate(iso?: string | null) {
@@ -385,6 +386,12 @@ export default function DashboardPage() {
           <button type="button" className="btn btn-ghost" onClick={() => navigate(routes.students())}>
             Ver alunos
           </button>
+          <button type="button" className="btn btn-ghost" onClick={() => navigate(routes.students() + "?action=invite")}>
+            Convidar por link
+          </button>
+          <button type="button" className="btn btn-primary" onClick={() => navigate(routes.students() + "?action=register")}>
+            Cadastrar aluno
+          </button>
           <button type="button" className="btn btn-sm btn-ghost" onClick={() => navigate(routes.review())}>
             Revisões
           </button>
@@ -462,6 +469,43 @@ export default function DashboardPage() {
 
       {!loading && !error && students.length > 0 ? (
         <>
+          <Card
+            title="Alunos e fichas"
+            subtitle="Acesso rápido para abrir perfil, revisar fichas e ajustar treino."
+            right={<Badge tone="soft">{students.length} alunos</Badge>}
+          >
+            <div style={{ display: "grid" }}>
+              {students.slice(0, 6).map((student) => (
+                <div key={student.id} className="pp-student-row">
+                  <div className="pp-student-main">
+                    <div className="pp-inline">
+                      <button type="button" className="pp-name" onClick={() => openStudent(student.id, student.name)}>
+                        {student.name}
+                      </button>
+                      <Badge tone={student.engagementStatus === "at_risk" || student.engagementStatus === "fading" ? "danger" : student.engagementStatus === "attention" ? "warn" : "success"}>
+                        {statusLabel(student.engagementStatus)}
+                      </Badge>
+                    </div>
+                    <div className="pp-meta">
+                      Último treino <b>{fmtDate(student.lastWorkoutISO)}</b> · Aderência <b>{student.adherencePct}%</b> · Plano {PLAN_LABEL[student.plan]}
+                    </div>
+                  </div>
+                  <div className="pp-actions">
+                    <button type="button" className="btn btn-sm btn-ghost" onClick={() => openStudent(student.id, student.name)}>
+                      Ver aluno
+                    </button>
+                    <button type="button" className="btn btn-sm btn-ghost" onClick={() => navigate(routes.studentWorkouts(student.id))}>
+                      Ver ficha(s)
+                    </button>
+                    <button type="button" className="btn btn-sm btn-primary" onClick={() => navigate(routes.workoutBuilder(student.id))}>
+                      Criar treino
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+
           <Card
             title="Precisam de você agora"
             subtitle="Leitura rápida do que cada aluno está sinalizando."

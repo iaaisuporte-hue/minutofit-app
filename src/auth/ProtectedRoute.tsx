@@ -10,13 +10,17 @@ export default function ProtectedRoute({
   allow: Role[];
   children: React.ReactNode;
 }) {
-  const { isAuthenticated, role, profileCompleted } = useAuth();
+  const { isAuthenticated, role, profileCompleted, user } = useAuth();
   const location = useLocation();
 
   if (!isAuthenticated) return <Navigate to="/" replace />;
 
+  if (user?.mustChangePassword && location.pathname !== "/force-password-change") {
+    return <Navigate to="/force-password-change" replace />;
+  }
+
   // Check if profile completion is required
-  if (profileCompleted === false && location.pathname !== "/profile-completion") {
+  if (profileCompleted === false && location.pathname !== "/profile-completion" && location.pathname !== "/force-password-change") {
     return <Navigate to="/profile-completion" replace />;
   }
 

@@ -35,6 +35,7 @@ export interface AuthApiUser {
   parqFormVersion?: string;
   parqAnyYes?: boolean;
   studentComplianceComplete?: boolean;
+  mustChangePassword?: boolean;
 }
 
 export interface RegisterPayload {
@@ -77,6 +78,21 @@ export async function submitStudentCompliance(payload: {
   const data = await parseJson(response);
   if (!response.ok) {
     throw new Error(data?.error || "Nao foi possivel salvar o compliance.");
+  }
+
+  return data.data.user as AuthApiUser;
+}
+
+export async function changePassword(payload: { currentPassword: string; newPassword: string }): Promise<AuthApiUser> {
+  const response = await authFetch(`${API_URL}/auth/change-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  const data = await parseJson(response);
+  if (!response.ok) {
+    throw new Error(data?.error || "Nao foi possivel alterar a senha.");
   }
 
   return data.data.user as AuthApiUser;

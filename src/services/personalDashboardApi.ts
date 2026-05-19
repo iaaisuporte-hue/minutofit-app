@@ -319,6 +319,8 @@ export type AddStudentDirectResult = {
   student: { id: number; name: string; email: string };
   isNew: boolean;
   matchedBy: "email" | "cpf" | "phone" | null;
+  tempPassword?: string;
+  mustChangePassword?: boolean;
 };
 
 export async function addStudentDirect(input: {

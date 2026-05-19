@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { fetchPersonalWorkoutPlans, type PersonalWorkoutPlanRow } from "../../services/personalWorkoutApi";
 import StudentProfileModal from "./StudentProfileModal";
 import "./personalPremium.css";
@@ -13,7 +13,8 @@ function formatDate(value: string) {
 export default function StudentProfilePage() {
   const { studentId } = useParams();
   const navigate = useNavigate();
-  const [tab, setTab] = useState<TabKey>("overview");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [tab, setTab] = useState<TabKey>(searchParams.get("tab") === "workouts" ? "workouts" : "overview");
   const [plans, setPlans] = useState<PersonalWorkoutPlanRow[]>([]);
   const [plansLoading, setPlansLoading] = useState(false);
   const [plansError, setPlansError] = useState<string | null>(null);
@@ -51,10 +52,10 @@ export default function StudentProfilePage() {
       </div>
 
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
-        <button type="button" className={`btn btn-sm ${tab === "overview" ? "btn-primary" : "btn-ghost"}`} onClick={() => setTab("overview")}>
+        <button type="button" className={`btn btn-sm ${tab === "overview" ? "btn-primary" : "btn-ghost"}`} onClick={() => { setTab("overview"); setSearchParams({}); }}>
           Acompanhamento
         </button>
-        <button type="button" className={`btn btn-sm ${tab === "workouts" ? "btn-primary" : "btn-ghost"}`} onClick={() => setTab("workouts")}>
+        <button type="button" className={`btn btn-sm ${tab === "workouts" ? "btn-primary" : "btn-ghost"}`} onClick={() => { setTab("workouts"); setSearchParams({ tab: "workouts" }); }}>
           Fichas
         </button>
       </div>
