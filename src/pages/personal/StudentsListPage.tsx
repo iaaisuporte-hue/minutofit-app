@@ -32,49 +32,24 @@ const routes = {
   studentWorkouts: (studentId: string) => `${PERSONAL_BASE}/students/${studentId}?tab=workouts`,
 } as const;
 
-function pillStyle(opts: { bg: string; border: string; color?: string }): React.CSSProperties {
-  return {
-    padding: "6px 10px",
-    borderRadius: 999,
-    fontSize: 12,
-    fontWeight: 650,
-    border: `1px solid ${opts.border}`,
-    background: opts.bg,
-    color: opts.color ?? COLORS.text,
-    display: "inline-flex",
-    gap: 8,
-    alignItems: "center",
-    letterSpacing: 0.2,
-    lineHeight: "12px",
-    whiteSpace: "nowrap",
-  };
-}
+const PLAN_PILL_CLASS: Record<Plan, string> = {
+  basic: "pp-pill pp-pill--plan-basic",
+  silver: "pp-pill pp-pill--plan-silver",
+  gold: "pp-pill pp-pill--plan-gold",
+  black: "pp-pill pp-pill--plan-black",
+};
 
-function planPillStyle(plan: Plan): React.CSSProperties {
-  const map: Record<Plan, { bg: string; border: string }> = {
-    basic: { bg: "#F9FAFB", border: "#E5E7EB" },
-    silver: { bg: "rgba(120,160,255,.12)", border: "rgba(120,160,255,.35)" },
-    gold: { bg: "rgba(255,200,0,.12)", border: "rgba(255,200,0,.35)" },
-    black: { bg: COLORS.orangeSoft, border: COLORS.orangeBorder },
-  };
-  return pillStyle({ bg: map[plan].bg, border: map[plan].border });
-}
+const STATUS_PILL: Record<Student["engagementStatus"], { className: string; label: string }> = {
+  evolving: { className: "pp-pill pp-pill--evolving", label: "Evoluindo" },
+  on_track: { className: "pp-pill pp-pill--on-track", label: "No ritmo" },
+  attention: { className: "pp-pill pp-pill--attention", label: "Atenção" },
+  fading: { className: "pp-pill pp-pill--fading", label: "Sumindo" },
+  at_risk: { className: "pp-pill pp-pill--risk", label: "Em risco" },
+};
 
 function statusPill(status: Student["engagementStatus"]) {
-  const tone =
-    status === "evolving"
-      ? { bg: COLORS.successBg, border: COLORS.successBorder, label: "Evoluindo" }
-      : status === "on_track"
-        ? { bg: COLORS.primarySoft, border: COLORS.borderStrong, label: "No ritmo" }
-        : status === "attention"
-          ? { bg: COLORS.warnBg, border: COLORS.warnBorder, label: "Atenção" }
-          : status === "fading"
-            ? { bg: COLORS.warnBg, border: COLORS.warnBorder, label: "Sumindo" }
-            : { bg: COLORS.dangerBg, border: COLORS.dangerBorder, label: "Em risco" };
-
-  return (
-    <span style={pillStyle({ bg: tone.bg, border: tone.border })}>{tone.label}</span>
-  );
+  const tone = STATUS_PILL[status] ?? STATUS_PILL.at_risk;
+  return <span className={tone.className}>{tone.label}</span>;
 }
 
 function fmtDate(iso: string | null) {
@@ -485,7 +460,7 @@ export default function StudentsListPage() {
                   <button type="button" className="pp-name" onClick={() => setSelectedStudent({ id: s.id, name: s.name })}>
                     {s.name}
                   </button>
-                  <span style={planPillStyle(s.plan)}>Plano: {PLAN_LABEL[s.plan]}</span>
+                  <span className={PLAN_PILL_CLASS[s.plan]}>Plano: {PLAN_LABEL[s.plan]}</span>
                   {statusPill(s.engagementStatus)}
                 </div>
 

@@ -161,14 +161,14 @@ export function BillingPlansModal({ onClose }: Props) {
             </div>
             {error && <p style={{ color: "var(--color-danger)", fontSize: 12, margin: 0 }}>{error}</p>}
             <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-              <button className="btn btn-ghost" onClick={() => setAdding(false)} disabled={saving}>Cancelar</button>
-              <button className="btn btn-primary" onClick={handleCreate} disabled={saving}>
+              <button className="pp-btn pp-btn--ghost" onClick={() => setAdding(false)} disabled={saving}>Cancelar</button>
+              <button className="pp-btn pp-btn--primary" onClick={handleCreate} disabled={saving}>
                 {saving ? "Salvando..." : "Criar plano"}
               </button>
             </div>
           </div>
         ) : (
-          <button className="btn btn-ghost" onClick={() => setAdding(true)}>
+          <button className="pp-btn pp-btn--ghost" onClick={() => setAdding(true)}>
             <Plus size={14} /> Novo plano
           </button>
         )}

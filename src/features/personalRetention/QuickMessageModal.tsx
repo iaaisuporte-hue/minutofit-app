@@ -113,7 +113,7 @@ export function QuickMessageModal({ studentId, studentName, onClose, onSent }: P
 
         <div className="pp-quick-msg-actions">
           <button
-            className="btn btn-ghost"
+            className="pp-btn pp-btn--ghost"
             onClick={handleRegisterOnly}
             disabled={sending || !body.trim()}
             title="Registrar sem enviar pelo chat"
@@ -122,7 +122,7 @@ export function QuickMessageModal({ studentId, studentName, onClose, onSent }: P
             Registrar
           </button>
           <button
-            className="btn btn-primary"
+            className="pp-btn pp-btn--primary"
             onClick={handleSend}
             disabled={sending || !body.trim()}
           >

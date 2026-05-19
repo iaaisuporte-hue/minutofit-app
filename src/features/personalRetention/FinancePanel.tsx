@@ -86,7 +86,7 @@ export function FinancePanel() {
             </button>
           ))}
         </div>
-        <button className="btn btn-ghost" onClick={() => setShowPlansModal(true)}>
+        <button className="pp-btn pp-btn--ghost" onClick={() => setShowPlansModal(true)}>
           <Settings size={14} /> Planos
         </button>
       </div>

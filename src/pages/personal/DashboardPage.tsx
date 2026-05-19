@@ -91,26 +91,6 @@ function Card({
   );
 }
 
-function ActionButton({
-  children,
-  primary = false,
-  onClick,
-}: {
-  children: React.ReactNode;
-  primary?: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`pp-btn ${primary ? "pp-btn--primary" : "pp-btn--ghost"}`}
-    >
-      {children}
-    </button>
-  );
-}
-
 function statusLabel(status: PersonalDashboardEngagementStatus) {
   if (status === "evolving") return "Evoluindo";
   if (status === "on_track") return "No ritmo";
@@ -310,21 +290,21 @@ export default function DashboardPage() {
             minWidth: 280,
           }}
         >
-          <button type="button" className="btn btn-primary" onClick={() => navigate(routes.messages())}>
+          <button type="button" className="pp-btn pp-btn--primary" onClick={() => navigate(routes.messages())}>
             Abrir mensagens
           </button>
-          <button type="button" className="btn btn-ghost" onClick={() => navigate(routes.students())}>
+          <button type="button" className="pp-btn pp-btn--ghost" onClick={() => navigate(routes.students())}>
             Ver alunos
           </button>
-          <button type="button" className="btn btn-ghost" onClick={() => navigate(routes.students() + "?action=invite")}>
+          <button type="button" className="pp-btn pp-btn--ghost" onClick={() => navigate(routes.students() + "?action=invite")}>
             Convidar por link
           </button>
-          <button type="button" className="btn btn-primary" onClick={() => navigate(routes.students() + "?action=register")}>
+          <button type="button" className="pp-btn pp-btn--primary" onClick={() => navigate(routes.students() + "?action=register")}>
             Cadastrar aluno
           </button>
           <button
             type="button"
-            className="btn btn-ghost"
+            className="pp-btn pp-btn--ghost"
             onClick={() => navigate(routes.review())}
             style={{ gridColumn: "1 / -1" }}
           >
@@ -434,7 +414,13 @@ export default function DashboardPage() {
         <Card title="Não foi possível carregar o dashboard" right={<Badge tone="danger">Falha</Badge>}>
           <div style={{ display: "grid", gap: 12 }}>
             <div style={{ color: COLORS.muted, fontSize: 14 }}>{error}</div>
-            <ActionButton onClick={() => void loadDashboard()}>Tentar novamente</ActionButton>
+            <button
+              type="button"
+              onClick={() => void loadDashboard()}
+              className="pp-btn pp-btn--ghost"
+            >
+              Tentar novamente
+            </button>
           </div>
         </Card>
       ) : null}
@@ -494,13 +480,13 @@ export default function DashboardPage() {
                     </div>
                   </div>
                   <div className="pp-actions">
-                    <button type="button" className="btn btn-sm btn-ghost" onClick={() => openStudent(student.id, student.name)}>
+                    <button type="button" className="pp-btn pp-btn--ghost pp-btn--sm" onClick={() => openStudent(student.id, student.name)}>
                       Ver aluno
                     </button>
-                    <button type="button" className="btn btn-sm btn-ghost" onClick={() => navigate(routes.studentWorkouts(student.id))}>
+                    <button type="button" className="pp-btn pp-btn--ghost pp-btn--sm" onClick={() => navigate(routes.studentWorkouts(student.id))}>
                       Ver ficha(s)
                     </button>
-                    <button type="button" className="btn btn-sm btn-primary" onClick={() => navigate(routes.workoutBuilder(student.id))}>
+                    <button type="button" className="pp-btn pp-btn--primary pp-btn--sm" onClick={() => navigate(routes.workoutBuilder(student.id))}>
                       Criar treino
                     </button>
                   </div>
@@ -556,14 +542,14 @@ export default function DashboardPage() {
                     <div className="pp-actions">
                       <button
                         type="button"
-                        className="btn btn-sm btn-ghost"
+                        className="pp-btn pp-btn--ghost pp-btn--sm"
                         onClick={() => openStudent(item.studentId, item.studentName)}
                       >
                         Ver aluno
                       </button>
                       <button
                         type="button"
-                        className="btn btn-sm btn-primary"
+                        className="pp-btn pp-btn--primary pp-btn--sm"
                         onClick={() => navigate(routes.workoutBuilder(item.studentId))}
                       >
                         Ajustar treino

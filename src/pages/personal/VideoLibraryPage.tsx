@@ -69,7 +69,7 @@ export default function VideoLibraryPage() {
                     </div>
                   ) : null}
                   {v.url ? (
-                    <a className="btn btn-sm btn-ghost" href={v.url} target="_blank" rel="noreferrer">
+                    <a className="pp-btn pp-btn--ghost pp-btn--sm" href={v.url} target="_blank" rel="noreferrer">
                       Abrir vídeo
                     </a>
                   ) : null}

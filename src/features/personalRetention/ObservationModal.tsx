@@ -62,8 +62,8 @@ export function ObservationModal({
         {error && <p style={{ color: "var(--color-danger)", fontSize: 12, margin: 0 }}>{error}</p>}
 
         <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-          <button className="btn btn-ghost" onClick={onClose} disabled={saving}>Cancelar</button>
-          <button className="btn btn-primary" onClick={handleSave} disabled={saving || !note.trim()}>
+          <button className="pp-btn pp-btn--ghost" onClick={onClose} disabled={saving}>Cancelar</button>
+          <button className="pp-btn pp-btn--primary" onClick={handleSave} disabled={saving || !note.trim()}>
             {saving ? "Salvando..." : "Salvar"}
           </button>
         </div>

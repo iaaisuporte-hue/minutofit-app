@@ -7,6 +7,7 @@ import {
 } from "../../services/personalDashboardApi";
 import { COLORS } from "../../styles/colors";
 import StudentProfileModal from "./StudentProfileModal";
+import "./personalPremium.css";
 
 type ConsultingStudent = PersonalConsultingStudent;
 
@@ -30,23 +31,14 @@ function daysUntil(isoDate: string) {
   return Math.floor(diffMs / (1000 * 60 * 60 * 24));
 }
 
-function pillStyle(opts: { bg: string; border: string }): React.CSSProperties {
-  return {
-    padding: "6px 10px",
-    borderRadius: 999,
-    fontSize: 12,
-    fontWeight: 600,
-    lineHeight: 1,
-    color: COLORS.text,
-    border: `1px solid ${opts.border}`,
-    background: opts.bg,
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 8,
-    whiteSpace: "nowrap",
-    width: "fit-content",
-  };
-}
+const PILL_VARIANT_CLASS = {
+  neutral: "pp-pill pp-pill--neutral",
+  success: "pp-pill pp-pill--success",
+  warn: "pp-pill pp-pill--warn",
+  danger: "pp-pill pp-pill--danger",
+  green: "pp-pill pp-pill--evolving",
+  blue: "pp-pill pp-pill--info",
+} as const;
 
 function Pill({
   children,
@@ -54,38 +46,18 @@ function Pill({
   title,
 }: {
   children: React.ReactNode;
-  variant?: "neutral" | "success" | "warn" | "danger" | "green" | "blue";
+  variant?: keyof typeof PILL_VARIANT_CLASS;
   title?: string;
 }) {
-  const map = {
-    neutral: { bg: "#F9FAFB", border: "#F3F4F6" },
-    success: { bg: COLORS.successBg, border: COLORS.successBorder },
-    warn: { bg: COLORS.warnBg, border: COLORS.warnBorder },
-    danger: { bg: COLORS.dangerBg, border: COLORS.dangerBorder },
-    green: { bg: COLORS.greenSoft, border: COLORS.greenBorder },
-    blue: { bg: COLORS.blueBg, border: COLORS.blueBorder },
-  } as const;
-
   return (
-    <span title={title} style={pillStyle(map[variant])}>
+    <span title={title} className={PILL_VARIANT_CLASS[variant]}>
       {children}
     </span>
   );
 }
 
 function Card({ children }: { children: React.ReactNode }) {
-  return (
-    <div
-      style={{
-        border: `1px solid ${COLORS.border}`,
-        borderRadius: 20,
-        background: COLORS.card,
-        boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.05)",
-      }}
-    >
-      {children}
-    </div>
-  );
+  return <div className="pp-surface--card">{children}</div>;
 }
 
 function ActionLink({
@@ -99,36 +71,8 @@ function ActionLink({
   state?: unknown;
   kind?: "ghost" | "primary";
 }) {
-  const base: React.CSSProperties = {
-    padding: "12px 14px",
-    borderRadius: 12,
-    textDecoration: "none",
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontWeight: 700,
-    fontSize: 14,
-    lineHeight: 1,
-    cursor: "pointer",
-    width: "fit-content",
-  };
-
-  const variants: Record<typeof kind, React.CSSProperties> = {
-    ghost: {
-      border: `1px solid ${COLORS.border}`,
-      background: "#FAFAFA",
-      color: COLORS.text,
-    },
-    primary: {
-      border: `1px solid ${COLORS.greenBorder}`,
-      background: COLORS.green,
-      color: "#0F0F0F",
-      boxShadow: "0 10px 24px rgba(0,0,0,.35)",
-    },
-  };
-
   return (
-    <Link to={to} state={state} style={{ ...base, ...variants[kind] }}>
+    <Link to={to} state={state} className={`pp-btn pp-btn--${kind}`}>
       {label}
     </Link>
   );
@@ -251,16 +195,7 @@ export default function ConsultingStudentsPage() {
             <button
               type="button"
               onClick={() => setOnlyUrgent((value) => !value)}
-              style={{
-                padding: "12px 14px",
-                borderRadius: 12,
-                border: `1px solid ${COLORS.border}`,
-                background: onlyUrgent ? COLORS.warnBg : "#FAFAFA",
-                color: COLORS.text,
-                cursor: "pointer",
-                fontWeight: 700,
-                fontSize: 14,
-              }}
+              className={`pp-btn ${onlyUrgent ? "pp-btn--warn" : "pp-btn--ghost"}`}
               title="Mostrar somente alunos com ação imediata"
             >
               {onlyUrgent ? "Mostrando atenção" : "Filtrar atenção"}
@@ -315,16 +250,7 @@ export default function ConsultingStudentsPage() {
               <button
                 type="button"
                 onClick={() => window.location.reload()}
-                style={{
-                  padding: "12px 14px",
-                  borderRadius: 12,
-                  border: `1px solid ${COLORS.greenBorder}`,
-                  background: COLORS.green,
-                  color: "#0F0F0F",
-                  cursor: "pointer",
-                  fontWeight: 700,
-                  fontSize: 14,
-                }}
+                className="pp-btn pp-btn--primary"
               >
                 Tentar novamente
               </button>
@@ -350,21 +276,7 @@ export default function ConsultingStudentsPage() {
                 : 0;
 
             return (
-              <div
-                key={student.id}
-                style={{
-                  border: `1px solid ${COLORS.border}`,
-                  borderRadius: 16,
-                  background: COLORS.card,
-                  boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.05)",
-                }}
-                onMouseEnter={(event) => {
-                  (event.currentTarget as HTMLDivElement).style.borderColor = COLORS.borderStrong;
-                }}
-                onMouseLeave={(event) => {
-                  (event.currentTarget as HTMLDivElement).style.borderColor = COLORS.border;
-                }}
-              >
+              <div key={student.id} className="pp-student-card">
                 <div
                   style={{
                     padding: 14,
@@ -401,26 +313,13 @@ export default function ConsultingStudentsPage() {
                     </div>
 
                     <div
-                      style={{
-                        color: COLORS.muted2,
-                        fontSize: 12,
-                        lineHeight: 1.45,
-                        borderRadius: 14,
-                        border: `1px solid ${
-                          actionMeta.variant === "danger"
-                            ? COLORS.dangerBorder
-                            : actionMeta.variant === "warn"
-                              ? COLORS.warnBorder
-                              : COLORS.border
-                        }`,
-                        background:
-                          actionMeta.variant === "danger"
-                            ? COLORS.dangerBg
-                            : actionMeta.variant === "warn"
-                              ? COLORS.warnBg
-                              : "#FAFAFA",
-                        padding: "10px 12px",
-                      }}
+                      className={`pp-callout${
+                        actionMeta.variant === "danger"
+                          ? " pp-callout--danger"
+                          : actionMeta.variant === "warn"
+                            ? " pp-callout--warn"
+                            : ""
+                      }`}
                     >
                       <b style={{ color: COLORS.text }}>{actionMeta.headline}:</b> {actionMeta.helper.replace("Próxima ação: ", "")}
                     </div>
@@ -437,16 +336,7 @@ export default function ConsultingStudentsPage() {
                     <button
                       type="button"
                       onClick={() => setSelectedStudent({ id: student.id, name: student.name })}
-                      style={{
-                        padding: "12px 14px",
-                        borderRadius: 12,
-                        border: `1px solid ${COLORS.border}`,
-                        background: "#FAFAFA",
-                        color: COLORS.text,
-                        cursor: "pointer",
-                        fontWeight: 700,
-                        fontSize: 14,
-                      }}
+                      className="pp-btn pp-btn--ghost"
                     >
                       Ver perfil
                     </button>

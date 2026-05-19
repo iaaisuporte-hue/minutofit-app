@@ -45,17 +45,17 @@ export default function StudentProfilePage() {
   return (
     <div className="pp-page">
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
-        <button type="button" className="btn btn-sm btn-ghost" onClick={() => navigate("/app/personal/students")}>
+        <button type="button" className="pp-btn pp-btn--ghost pp-btn--sm" onClick={() => navigate("/app/personal/students")}>
           Voltar
         </button>
         <span className="pp-kicker">Perfil do aluno</span>
       </div>
 
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
-        <button type="button" className={`btn btn-sm ${tab === "overview" ? "btn-primary" : "btn-ghost"}`} onClick={() => { setTab("overview"); setSearchParams({}); }}>
+        <button type="button" className={`pp-btn pp-btn--sm ${tab === "overview" ? "pp-btn--primary" : "pp-btn--ghost"}`} onClick={() => { setTab("overview"); setSearchParams({}); }}>
           Acompanhamento
         </button>
-        <button type="button" className={`btn btn-sm ${tab === "workouts" ? "btn-primary" : "btn-ghost"}`} onClick={() => { setTab("workouts"); setSearchParams({ tab: "workouts" }); }}>
+        <button type="button" className={`pp-btn pp-btn--sm ${tab === "workouts" ? "pp-btn--primary" : "pp-btn--ghost"}`} onClick={() => { setTab("workouts"); setSearchParams({ tab: "workouts" }); }}>
           Fichas
         </button>
       </div>
@@ -74,7 +74,7 @@ export default function StudentProfilePage() {
               <div className="pp-panel__title">Fichas atribuídas</div>
               <div className="pp-panel__subtitle">Veja o que o aluno enxerga e acompanhe a origem de cada ficha.</div>
             </div>
-            <button type="button" className="btn btn-primary" onClick={() => navigate(`/app/personal/students/${studentId}/workouts/builder`)}>
+            <button type="button" className="pp-btn pp-btn--primary" onClick={() => navigate(`/app/personal/students/${studentId}/workouts/builder`)}>
               Atribuir nova ficha
             </button>
           </div>
@@ -92,11 +92,11 @@ export default function StudentProfilePage() {
                     <div className="small">Frequência {plan.week_preset} · Atualizado em {formatDate(plan.updated_at)}</div>
                   </div>
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                    <button type="button" className="btn btn-sm" onClick={() => navigate(`/app/personal/students/${studentId}/workouts/builder${plan.source_protocol_id ? `?protocol=${plan.source_protocol_id}` : ""}`)}>
+                    <button type="button" className="pp-btn pp-btn--sm" onClick={() => navigate(`/app/personal/students/${studentId}/workouts/builder${plan.source_protocol_id ? `?protocol=${plan.source_protocol_id}` : ""}`)}>
                       Editar no builder
                     </button>
                     {plan.source_protocol_id ? (
-                      <button type="button" className="btn btn-sm btn-ghost" onClick={() => navigate(`/app/personal/library?protocol=${plan.source_protocol_id}`)}>
+                      <button type="button" className="pp-btn pp-btn--ghost pp-btn--sm" onClick={() => navigate(`/app/personal/library?protocol=${plan.source_protocol_id}`)}>
                         Ver protocolo de origem
                       </button>
                     ) : null}

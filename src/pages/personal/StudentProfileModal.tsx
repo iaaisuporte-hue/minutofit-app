@@ -362,7 +362,7 @@ export default function StudentProfileModal({
                 <div style={{ marginTop: 6 }}>
                   <Link
                     to={`/app/personal/students/${studentId}`}
-                    className="btn btn-sm btn-ghost"
+                    className="pp-btn pp-btn--ghost pp-btn--sm"
                     style={{ paddingLeft: 0 }}
                   >
                     Ver perfil completo
@@ -370,13 +370,13 @@ export default function StudentProfileModal({
                 </div>
               ) : (
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
-                  <Link to={`/app/personal/students/${studentId}/workouts/builder`} className="btn btn-sm btn-primary">
+                  <Link to={`/app/personal/students/${studentId}/workouts/builder`} className="pp-btn pp-btn--primary pp-btn--sm">
                     Ajustar plano
                   </Link>
                   <Link
                     to="/app/personal/messages"
                     state={{ studentId }}
-                    className="btn btn-sm btn-ghost"
+                    className="pp-btn pp-btn--ghost pp-btn--sm"
                   >
                     Mensagens
                   </Link>
