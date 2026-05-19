@@ -90,7 +90,10 @@ export default function ProfileCompletionPage() {
         throw new Error(data?.error || "Não foi possível salvar seu perfil.");
       }
 
-      nav(nextPathByRole(auth.role as Role), { replace: true });
+      // Refresh auth state so profileCompleted flips to true; otherwise
+      // ProtectedRoute bounces the user right back to /profile-completion.
+      const refreshed = await auth.getUser();
+      nav(nextPathByRole((refreshed?.role ?? auth.role) as Role), { replace: true });
     } catch (err: any) {
       setError(err.message || "Algo deu errado. Tente novamente.");
     } finally {
