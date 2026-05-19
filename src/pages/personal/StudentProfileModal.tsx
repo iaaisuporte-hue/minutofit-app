@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { COLORS } from "../../styles/colors";
 import { Skeleton } from "../../components/feedback/Skeleton";
+import { DrawerShell } from "../../components/overlay/DrawerShell";
 import {
   fetchPersonalStudentActivities,
   fetchPersonalStudentSnapshot,
@@ -326,11 +327,8 @@ export default function StudentProfileModal({
 
   const wellbeingSeries = data?.history.wellbeingHistory14d ?? [];
 
-  const aside = (
-    <aside
-      onClick={(event) => event.stopPropagation()}
-      className={`pp-drawer${variant === "inline" ? " pp-drawer--inline" : ""}`}
-    >
+  const drawerInner = (
+    <>
         <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start", flexWrap: "wrap" }}>
           <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
             <div className="pp-avatar">{initialFromName(data?.name || studentName)}</div>
@@ -840,16 +838,22 @@ export default function StudentProfileModal({
             <RelationshipTimeline studentId={studentId} />
           </div>
         ) : null}
-    </aside>
+    </>
   );
 
   if (variant === "inline") {
-    return <div className="pp-inline-profile">{aside}</div>;
+    return (
+      <div className="pp-inline-profile">
+        <aside className="pp-drawer pp-drawer--inline" role="region" aria-label={`Perfil de ${data?.name || studentName}`}>
+          {drawerInner}
+        </aside>
+      </div>
+    );
   }
 
   return (
-    <div className="pp-drawer-backdrop" onClick={onClose}>
-      {aside}
-    </div>
+    <DrawerShell open onClose={onClose} ariaLabel={`Perfil de ${data?.name || studentName}`}>
+      {drawerInner}
+    </DrawerShell>
   );
 }

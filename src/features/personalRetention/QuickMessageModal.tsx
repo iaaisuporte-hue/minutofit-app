@@ -27,6 +27,15 @@ export function QuickMessageModal({ studentId, studentName, onClose, onSent }: P
       .catch(() => setTemplates([]));
   }, []);
 
+  // Escape fecha (ARIA dialog padrão).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
   function selectTemplate(t: MessageTemplate) {
     setSelectedTemplate(t);
     setBody(t.body.replace(/\[nome\]/gi, studentName));
