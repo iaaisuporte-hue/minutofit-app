@@ -4,7 +4,6 @@ import {
   fetchPersonalDashboard,
   type PersonalDashboardAlert,
   type PersonalDashboardEngagementStatus,
-  type PersonalDashboardPlan,
   type PersonalDashboardResponse,
   type PersonalDashboardStudent,
 } from "../../services/personalDashboardApi";
@@ -22,21 +21,12 @@ import {
   type StudentNarrative,
   type StudentNarrativeTone,
 } from "./lib/studentNarrative";
-import { AtRiskCard } from "../../features/personalRetention/AtRiskCard";
 import { InsightsStrip } from "../../features/personalRetention/InsightsStrip";
 import { FinancePanel } from "../../features/personalRetention/FinancePanel";
 import { QuickMessageModal } from "../../features/personalRetention/QuickMessageModal";
-import { useAtRiskStudents } from "../../features/personalRetention/useAtRiskStudents";
-import { createRelationshipAction } from "../../services/personalRetentionApi";
 import "./personalPremium.css";
 
 const PERSONAL_BASE = "/app/personal" as const;
-const PLAN_LABEL: Record<PersonalDashboardPlan, string> = {
-  basic: "Básico",
-  silver: "Silver",
-  gold: "Gold",
-  black: "Black",
-};
 
 const routes = {
   students: () => `${PERSONAL_BASE}/students`,
@@ -186,7 +176,6 @@ export default function DashboardPage() {
   const students = response?.students ?? [];
   const summary = response?.summary;
   const alerts: PersonalDashboardAlert[] = summary?.intelligentAlerts ?? [];
-  const atRiskStudents = useAtRiskStudents(response);
   const insights = summary?.insights ?? [];
 
   const headline = useMemo(() => {
@@ -441,73 +430,67 @@ export default function DashboardPage() {
         />
       ) : null}
 
-      {!loading && !error && atRiskStudents.length > 0 ? (
-        <AtRiskCard
-          students={atRiskStudents}
-          onMessage={(s) => setQuickMsgStudent(s)}
-          onFollowUp={(s) => {
-            void createRelationshipAction(s.id, {
-              actionType: "follow_up_marked",
-              dueAt: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
-            });
-          }}
-          onOpenProfile={(s) => openStudent(s.id, s.name)}
-        />
-      ) : null}
-
       {!loading && !error && students.length > 0 ? (
         <>
+          {/*
+            Painel "Hoje" — substitui 5 cards anteriores (AtRiskCard,
+            "Alunos e fichas" top 6, "Precisam de você agora",
+            "Alertas inteligentes" como card separado) por 1 caminho claro
+            priorizado por risco. Ver plans/plano_review_personal_2026-05-19_1.md
+            (Top 10 #1) e PR-C do plano UI/UX 6→8.
+          */}
           <Card
-            title="Alunos e fichas"
-            subtitle="Acesso rápido para abrir perfil, revisar fichas e ajustar treino."
-            right={<Badge tone="soft">{students.length} alunos</Badge>}
+            title="Hoje"
+            subtitle={
+              filteredAttention.length === 0
+                ? "Carteira estável — nenhum aluno pedindo atenção neste filtro."
+                : `${filteredAttention.length} ${filteredAttention.length === 1 ? "aluno" : "alunos"} ${filteredAttention.length === 1 ? "pede" : "pedem"} atenção.`
+            }
+            right={
+              <button
+                type="button"
+                className="pp-btn pp-btn--ghost pp-btn--sm"
+                onClick={() => navigate(routes.students())}
+              >
+                Ver todos os {students.length}
+              </button>
+            }
           >
-            <div style={{ display: "grid" }}>
-              {students.slice(0, 6).map((student) => (
-                <div key={student.id} className="pp-student-row">
-                  <div className="pp-student-main">
-                    <div className="pp-inline">
-                      <button type="button" className="pp-name" onClick={() => openStudent(student.id, student.name)}>
-                        {student.name}
-                      </button>
-                      <Badge tone={student.engagementStatus === "at_risk" || student.engagementStatus === "fading" ? "danger" : student.engagementStatus === "attention" ? "warn" : "success"}>
-                        {statusLabel(student.engagementStatus)}
-                      </Badge>
-                    </div>
-                    <div className="pp-meta">
-                      Último treino <b>{fmtDate(student.lastWorkoutISO)}</b> · Aderência <b>{student.adherencePct}%</b> · Plano {PLAN_LABEL[student.plan]}
-                    </div>
-                  </div>
-                  <div className="pp-actions">
-                    <button type="button" className="pp-btn pp-btn--ghost pp-btn--sm" onClick={() => openStudent(student.id, student.name)}>
-                      Ver aluno
-                    </button>
-                    <button type="button" className="pp-btn pp-btn--ghost pp-btn--sm" onClick={() => navigate(routes.studentWorkouts(student.id))}>
-                      Ver ficha(s)
-                    </button>
-                    <button type="button" className="pp-btn pp-btn--primary pp-btn--sm" onClick={() => navigate(routes.workoutBuilder(student.id))}>
-                      Criar treino
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </Card>
+            {alerts.length > 0 ? (
+              <div style={{ marginBottom: 12 }}>
+                <IntelligentAlerts
+                  alerts={alerts}
+                  onOpenStudent={(id) => openStudent(id)}
+                  onOpenStudents={() => navigate(routes.students())}
+                />
+              </div>
+            ) : null}
 
-          <Card
-            title="Precisam de você agora"
-            subtitle="Leitura rápida do que cada aluno está sinalizando."
-            right={<Badge tone="soft">{filteredAttention.length} alunos</Badge>}
-          >
             <div style={{ display: "grid" }}>
               {filteredAttention.length === 0 ? (
-                <div style={{ color: COLORS.muted, fontSize: 14, padding: "8px 0" }}>
-                  Nenhum aluno neste filtro — ajuste o chip acima ou abra a lista completa.
+                <div style={{ padding: "8px 0" }}>
+                  <EmptyState
+                    eyebrow="Sem sinais agora"
+                    variant="ok"
+                    title="Ninguém em risco neste momento"
+                    description="Os alunos aparecem aqui quando há queda de aderência, sono ruim, score em queda ou ausência prolongada."
+                  />
                 </div>
               ) : null}
+
               {filteredAttention.map((item) => {
                 const student = students.find((s) => s.id === item.studentId);
                 if (!student) return null;
+                const isRisk = item.tone === "risk";
+                const primaryAction = isRisk
+                  ? {
+                      label: "Mensagem rápida",
+                      onClick: () => setQuickMsgStudent(student),
+                    }
+                  : {
+                      label: "Ajustar treino",
+                      onClick: () => navigate(routes.workoutBuilder(item.studentId)),
+                    };
                 return (
                   <div key={item.studentId} className="pp-student-row">
                     <div className="pp-student-main">
@@ -535,7 +518,6 @@ export default function DashboardPage() {
                         <span>
                           Último treino <b>{fmtDate(student.lastWorkoutISO)}</b>
                         </span>
-                        <span>Plano: {PLAN_LABEL[student.plan]}</span>
                       </div>
                     </div>
                     <div className="pp-actions">
@@ -549,9 +531,9 @@ export default function DashboardPage() {
                       <button
                         type="button"
                         className="pp-btn pp-btn--primary pp-btn--sm"
-                        onClick={() => navigate(routes.workoutBuilder(item.studentId))}
+                        onClick={primaryAction.onClick}
                       >
-                        Ajustar treino
+                        {primaryAction.label}
                       </button>
                     </div>
                   </div>
@@ -560,25 +542,9 @@ export default function DashboardPage() {
             </div>
           </Card>
 
-          {alerts.length > 0 ? (
-            <Card
-              title="Alertas inteligentes"
-              subtitle="Sinais automáticos de retenção, recuperação e risco."
-              right={<Badge tone="neutral">{alerts.length} alerta(s)</Badge>}
-            >
-              <IntelligentAlerts
-                alerts={alerts}
-                onOpenStudent={(id) => openStudent(id)}
-                onOpenStudents={() => navigate(routes.students())}
-              />
-            </Card>
-          ) : null}
-
-          <Card title="Resumo da carteira" subtitle="Números rápidos sem abrir planilha.">
+          {/* Resumo da carteira — 3 chips essenciais (era 6). */}
+          <Card title="Carteira" subtitle="Composição do dia.">
             <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center" }}>
-              <Badge tone="neutral">{aggregates.total7d} treinos / 7d</Badge>
-              <Badge tone="neutral">{aggregates.avg7d}/aluno · semana</Badge>
-              <Badge tone="soft">{students.length} alunos</Badge>
               <Badge tone="success">Evoluindo: {aggregates.evolving}</Badge>
               <Badge tone="warn">Atenção: {aggregates.attention}</Badge>
               <Badge tone="danger">Risco: {aggregates.fading + aggregates.atRisk}</Badge>
