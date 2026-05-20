@@ -74,117 +74,34 @@ function formatDateTimeBR(iso: string) {
 }
 
 /** ✅ UI: Card base (mesmo padrão das telas Treinaí) */
-function Card({ children, pad = 16 }: { children: React.ReactNode; pad?: number }) {
-  return (
-    <div
-      style={{
-        border: `1px solid ${COLORS.border}`,
-        borderRadius: 20,
-        background: COLORS.panel,
-        boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.05)",
-        overflow: "hidden",
-      }}
-    >
-      <div style={{ padding: pad }}>{children}</div>
-    </div>
-  );
-}
+/**
+ * Card / Pill / Button locais foram removidos em favor das classes
+ * `.pp-surface--card`, `.pp-pill--*`, `.pp-btn--*` do design system
+ * (introduzidas em PR-A; ver plans/plano_arquitetura_personal_2026-05-20_1.md).
+ *
+ * Helpers de mapeamento ficam mínimos para preservar o JSX existente.
+ */
+const PILL_VARIANT_CLASS: Record<"neutral" | "orange" | "success" | "warn" | "danger", string> = {
+  neutral: "pp-pill pp-pill--neutral pp-pill--upper",
+  orange: "pp-pill pp-pill--brand pp-pill--upper",
+  success: "pp-pill pp-pill--success pp-pill--upper",
+  warn: "pp-pill pp-pill--warn pp-pill--upper",
+  danger: "pp-pill pp-pill--danger pp-pill--upper",
+};
 
-/** ✅ UI: Pill/Badge */
 function Pill({
   children,
   variant = "neutral",
   title,
 }: {
   children: React.ReactNode;
-  variant?: "neutral" | "orange" | "success" | "warn" | "danger";
+  variant?: keyof typeof PILL_VARIANT_CLASS;
   title?: string;
 }) {
-  const map = {
-    neutral: { bd: COLORS.border, bg: "#F9FAFB" },
-    orange: { bd: COLORS.primaryBorder, bg: COLORS.primarySoft },
-    success: { bd: COLORS.successBorder, bg: COLORS.successBg },
-    warn: { bd: COLORS.warnBorder, bg: COLORS.warnBg },
-    danger: { bd: COLORS.dangerBorder, bg: COLORS.dangerBg },
-  } as const;
-
   return (
-    <span
-      title={title}
-      style={{
-        padding: "6px 10px", // ✅ (UI) “tamanho do chip”
-        borderRadius: 999,
-        border: `1px solid ${map[variant].bd}`,
-        background: map[variant].bg,
-        color: COLORS.text,
-        fontWeight: 600,
-        fontSize: 11,
-        lineHeight: 1,
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 8,
-        width: "fit-content",
-        whiteSpace: "nowrap",
-        textTransform: "uppercase",
-        letterSpacing: 0.3,
-      }}
-    >
+    <span title={title} className={PILL_VARIANT_CLASS[variant]}>
       {children}
     </span>
-  );
-}
-
-/** ✅ UI: Button base */
-function Button({
-  children,
-  onClick,
-  variant = "primary",
-  disabled,
-  title,
-}: {
-  children: React.ReactNode;
-  onClick?: () => void;
-  variant?: "primary" | "ghost" | "danger";
-  disabled?: boolean;
-  title?: string;
-}) {
-  const stylesByVariant: Record<typeof variant, React.CSSProperties> = {
-    primary: {
-      background: "#22C55E",
-      border: `1px solid ${COLORS.primaryBorder}`,
-      color: "#1F2937",
-      boxShadow: "0 14px 28px rgba(34,197,94,.22)",
-    },
-    ghost: {
-      background: "transparent",
-      border: `1px solid ${COLORS.border}`,
-      color: COLORS.text,
-    },
-    danger: {
-      background: COLORS.dangerBg,
-      border: `1px solid ${COLORS.dangerBorder}`,
-      color: COLORS.text,
-    },
-  };
-
-  return (
-    <button
-      type="button"
-      title={title}
-      onClick={onClick}
-      disabled={disabled}
-      style={{
-        padding: "12px 14px",
-        borderRadius: 12,
-        cursor: disabled ? "not-allowed" : "pointer",
-        fontWeight: 700,
-        fontSize: 14,
-        opacity: disabled ? 0.6 : 1,
-        ...stylesByVariant[variant],
-      }}
-    >
-      {children}
-    </button>
   );
 }
 
@@ -458,7 +375,7 @@ export default function ReviewWorkoutsPage() {
   return (
     <div style={{ display: "grid", gap: 16, color: COLORS.text }}>
       {/* ✅ Header */}
-      <Card>
+      <section className="pp-surface--card" style={{ padding: 16 }}>
         <div
           style={{
             display: "flex",
@@ -479,7 +396,7 @@ export default function ReviewWorkoutsPage() {
 
           <Pill variant="orange" title="Padrão Treinaí">Fila de revisão</Pill>
         </div>
-      </Card>
+      </section>
 
       {loading ? <SkeletonStudentList rows={3} label="Carregando fila de revisões" /> : null}
       {loadError ? (
@@ -522,7 +439,7 @@ export default function ReviewWorkoutsPage() {
         }}
       >
         {summaryCards.map((card) => (
-          <Card key={card.label}>
+          <section key={card.label} className="pp-surface--card" style={{ padding: 16 }}>
             <div style={{ display: "grid", gap: 8 }}>
               <div style={{ color: COLORS.mutedSoft, fontWeight: 600, fontSize: 12, textTransform: "uppercase", letterSpacing: 0.8 }}>
                 {card.label}
@@ -530,12 +447,12 @@ export default function ReviewWorkoutsPage() {
               <div style={{ fontSize: 28, fontWeight: 700 }}>{card.value}</div>
               <div style={{ color: COLORS.muted, fontSize: 12 }}>{card.helper}</div>
             </div>
-          </Card>
+          </section>
         ))}
       </div>
 
       {/* ✅ Toolbar: busca + filtros */}
-      <Card>
+      <section className="pp-surface--card" style={{ padding: 16 }}>
         <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
           <input
             value={query}
@@ -613,18 +530,18 @@ export default function ReviewWorkoutsPage() {
             <option value="recent">Ordenar: Mais recente</option>
           </select>
         </div>
-      </Card>
+      </section>
 
       {/* ✅ Fila */}
       <div style={{ display: "grid", gap: 10 }}>
         {filtered.length === 0 ? (
-          <Card>
+          <section className="pp-surface--card" style={{ padding: 16 }}>
             <EmptyState
               variant="ok"
               title="Fila de revisão limpa"
               description="Nenhuma ficha aguarda avaliação com os filtros atuais. Os indicadores de risco e prioridade aparecem quando novos planos forem criados ou reabertos."
             />
-          </Card>
+          </section>
         ) : (
           filtered.map((item) => {
             const urgent = isUrgent(item);
@@ -699,18 +616,18 @@ export default function ReviewWorkoutsPage() {
 
                 {/* ✅ Right actions */}
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                  <Button variant="ghost" onClick={() => open(item)}>
+                  <button type="button" className="pp-btn pp-btn--ghost" onClick={() => open(item)}>
                     Revisar
-                  </Button>
+                  </button>
 
                   {item.status === "pending" ? (
-                    <Button variant="primary" onClick={() => approve(item.id)}>
+                    <button type="button" className="pp-btn pp-btn--primary" onClick={() => approve(item.id)}>
                       Aprovar rápido
-                    </Button>
+                    </button>
                   ) : (
-                    <Button variant="ghost" onClick={() => open(item)}>
+                    <button type="button" className="pp-btn pp-btn--ghost" onClick={() => open(item)}>
                       Abrir detalhes
-                    </Button>
+                    </button>
                   )}
                 </div>
               </div>
@@ -819,7 +736,7 @@ export default function ReviewWorkoutsPage() {
 
             {/* Body modal */}
             <div style={{ padding: 16, display: "grid", gap: 14 }}>
-              <Card>
+              <section className="pp-surface--card" style={{ padding: 16 }}>
                 <div style={{ display: "grid", gap: 8 }}>
                   <div style={{ fontWeight: 700, color: COLORS.text }}>{selected.title}</div>
                   <div style={{ color: COLORS.muted, fontSize: 13, lineHeight: 1.35 }}>
@@ -828,7 +745,7 @@ export default function ReviewWorkoutsPage() {
                     <b style={{ color: COLORS.text }}>{selected.priority}</b>
                   </div>
                 </div>
-              </Card>
+              </section>
 
               {/* ✅ Notes */}
               <div style={{ display: "grid", gap: 8 }}>
@@ -854,15 +771,16 @@ export default function ReviewWorkoutsPage() {
                   }}
                 />
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                  <Button
-                    variant="ghost"
+                  <button
+                    type="button"
+                    className="pp-btn pp-btn--ghost"
                     onClick={() => {
                       saveNotesOnly(selected.id);
                     }}
                     title="Salva apenas as observações internas"
                   >
                     Salvar observações
-                  </Button>
+                  </button>
                 </div>
               </div>
 
@@ -909,37 +827,40 @@ export default function ReviewWorkoutsPage() {
               }}
             >
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                <Button variant="ghost" onClick={close}>
+                <button type="button" className="pp-btn pp-btn--ghost" onClick={close}>
                   Fechar
-                </Button>
+                </button>
 
-                <Button
-                  variant="danger"
+                <button
+                  type="button"
+                  className="pp-btn pp-btn--danger"
                   onClick={() => archive(selected.id)}
                   title="Arquiva (some da fila principal, mas fica salvo)"
                 >
                   Arquivar
-                </Button>
+                </button>
               </div>
 
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                <Button
-                  variant="ghost"
+                <button
+                  type="button"
+                  className="pp-btn pp-btn--ghost"
                   onClick={() => requestChanges(selected.id)}
                   title="Devolve para o aluno com feedback"
                   disabled={selected.status === "archived"}
                 >
                   Pedir ajustes
-                </Button>
+                </button>
 
-                <Button
-                  variant="primary"
+                <button
+                  type="button"
+                  className="pp-btn pp-btn--primary"
                   onClick={() => approve(selected.id)}
                   title="Aprova o treino"
                   disabled={selected.status === "archived"}
                 >
                   Aprovar
-                </Button>
+                </button>
               </div>
             </div>
           </div>

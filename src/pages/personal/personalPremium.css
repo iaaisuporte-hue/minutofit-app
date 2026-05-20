@@ -390,6 +390,19 @@
   border-color: var(--color-info-border, rgba(6, 182, 212, 0.35));
 }
 
+/* Brand pill — usa primary-soft (verde MetaCore) para destaque institucional */
+.pp-pill--brand {
+  background: var(--color-primary-soft);
+  border-color: var(--color-border-primary);
+}
+
+/* Modificador opcional: texto em UPPERCASE com letter-spacing extra */
+.pp-pill--upper {
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  font-size: 11px;
+}
+
 /* Surface card (variante com cantos arredondados maiores) */
 .pp-surface--card {
   border-radius: 20px;
