@@ -3,7 +3,6 @@ import { useLocation, useNavigate, useParams, useSearchParams } from "react-rout
 import { fetchPersonalDashboard } from "../../services/personalDashboardApi";
 import type { PersonalDashboardStudent } from "../../services/personalDashboardApi";
 import { createPersonalWorkoutPlan, updatePersonalWorkoutPlan, fetchPersonalWorkoutPlans } from "../../services/personalWorkoutApi";
-import { searchExercises, exerciseSummaryToCatalogEntry } from "../../services/exercisesApi";
 import {
   createWorkoutProtocol,
   fetchProtocolSuggestions,
@@ -12,7 +11,6 @@ import {
   type ProtocolSuggestion,
   type WorkoutProtocol,
 } from "../../services/workoutProtocolsApi";
-import { generateWorkoutWithAi, type AiGeneratedExercise, type AiGeneratedWeeklyPlan } from "../../services/aiWorkoutApi";
 import {
   FeedbackBanner,
   IconArrowDown,
@@ -27,6 +25,21 @@ import { QuickStartCard } from "./workoutBuilder/QuickStartCard";
 import { TechniqueSelector, type BiSetPairCandidate } from "../../features/training/techniques/TechniqueSelector";
 import { useTechniqueReadiness } from "../../features/training/techniques/useTechniqueReadiness";
 import type { TechniqueConfig } from "../../features/training/techniques/technique.types";
+import {
+  buildDefaultDayMeta,
+  buildEmptyDayItems,
+  CATALOG_GROUPS,
+  coerceWeekPreset,
+  KNOWN_GROUPS,
+  weekPresetToCount,
+  type DayMeta,
+  type Exercise,
+  type MuscleGroup,
+  type WeekPreset,
+  type WorkoutExercise,
+} from "./workoutBuilder/builderTypes";
+import { runAiWorkoutGeneration, type AiGeneratedWeeklyPlan } from "./workoutBuilder/builderAi";
+import { useBuilderCatalog } from "./workoutBuilder/useBuilderCatalog";
 import "./personalPremium.css";
 
 const BUILDER_BASE = "/app/personal/students";
@@ -41,42 +54,6 @@ type Student = {
   gender: Gender | null;
 };
 
-type MuscleGroup =
-  | "Perna"
-  | "Peito"
-  | "Costas"
-  | "Ombro"
-  | "Bíceps"
-  | "Tríceps"
-  | "Abdômen"
-  | "Glúteo"
-  | "Cardio"
-  | "Outros";
-
-type Exercise = {
-  id: string;
-  name: string;
-  group: MuscleGroup;
-  videoUrl?: string;
-  source: "seed" | "video" | "metacore";
-  bodyPart?: string;
-  equipment?: string;
-  primaryMediaUrl?: string | null;
-};
-
-type WorkoutExercise = {
-  exerciseId: string;
-  name: string;
-  sets: string;
-  reps: string;
-  rest: string;
-  rpe?: string;
-  cadence?: string;
-  restPause?: boolean;
-  technique?: TechniqueConfig;
-  notes?: string;
-};
-
 function randomUuidV4(): string {
   // Browser-safe: crypto.randomUUID is widely supported; fallback for older targets
   const g = globalThis as { crypto?: { randomUUID?: () => string; getRandomValues?: (out: Uint8Array) => void } };
@@ -89,60 +66,8 @@ function randomUuidV4(): string {
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
 }
 
-type DayMeta = {
-  index: number;
-  name: string;
-  focus: string | null;
-};
-
 const RPE_REGEX = /^([0-9]|10)(-([0-9]|10))?$/;
 const CADENCE_REGEX = /^\d-\d-\d-\d$/;
-
-const KNOWN_GROUPS: MuscleGroup[] = [
-  "Perna", "Peito", "Costas", "Ombro", "Bíceps", "Tríceps", "Abdômen", "Glúteo", "Cardio", "Outros",
-];
-
-const CATALOG_GROUPS: MuscleGroup[] = [
-  "Perna", "Peito", "Costas", "Ombro", "Bíceps", "Tríceps", "Abdômen", "Glúteo", "Cardio",
-];
-
-function catalogEntryToExercise(e: ReturnType<typeof exerciseSummaryToCatalogEntry>): Exercise {
-  const group = (KNOWN_GROUPS.includes(e.group as MuscleGroup) ? e.group : "Outros") as MuscleGroup;
-  return {
-    id: e.id,
-    name: e.name,
-    group,
-    videoUrl: e.videoUrl ?? undefined,
-    source: "metacore",
-    bodyPart: e.bodyPart,
-    equipment: e.equipment,
-    primaryMediaUrl: e.primaryMediaUrl,
-  };
-}
-
-function coerceWeekPreset(raw: string): "semana_util" | "4" | "5" | "6" {
-  const w = String(raw || "5");
-  if (w === "semana_util" || w === "4" || w === "5" || w === "6") return w;
-  return "5";
-}
-
-function weekPresetToCount(preset: "semana_util" | "4" | "5" | "6"): number {
-  return preset === "semana_util" ? 5 : Number(preset);
-}
-
-function buildDefaultDayMeta(count: number): DayMeta[] {
-  return Array.from({ length: count }, (_, i) => ({
-    index: i + 1,
-    name: `Treino ${String.fromCharCode(65 + i)}`,
-    focus: null,
-  }));
-}
-
-function buildEmptyDayItems(count: number): Record<number, WorkoutExercise[]> {
-  const out: Record<number, WorkoutExercise[]> = {};
-  for (let i = 0; i < count; i++) out[i] = [];
-  return out;
-}
 
 function mapDashboardToStudents(rows: PersonalDashboardStudent[]): Student[] {
   return rows.map((s) => ({ id: s.id, name: s.name, plan: s.plan, gender: null }));
@@ -198,9 +123,7 @@ export default function WorkoutBuilderPage() {
   const [studentSignals, setStudentSignals] = useState<Record<string, PersonalDashboardStudent>>({});
 
   // ── Catalog ───────────────────────────────────────────────────────
-  const [allExercises, setAllExercises] = useState<Exercise[]>([]);
-  const [catalogLoading, setCatalogLoading] = useState(false);
-  const [catalogError, setCatalogError] = useState<string | null>(null);
+  const { allExercises, catalogLoading, catalogError, setCatalogError } = useBuilderCatalog();
 
   // ── Protocols ─────────────────────────────────────────────────────
   const [protocolSuggestions, setProtocolSuggestions] = useState<ProtocolSuggestion[]>([]);
@@ -211,7 +134,7 @@ export default function WorkoutBuilderPage() {
 
   // ── Plan meta ─────────────────────────────────────────────────────
   const [workoutName, setWorkoutName] = useState("Treino A");
-  const [weekPreset, setWeekPreset] = useState<"semana_util" | "4" | "5" | "6">("5");
+  const [weekPreset, setWeekPreset] = useState<WeekPreset>("5");
   const [selectedGroup, setSelectedGroup] = useState<MuscleGroup>("Perna");
   const [recentPlansCount, setRecentPlansCount] = useState<number | null>(null);
   // When set: builder is in "edit" mode — save calls PATCH instead of POST
@@ -276,27 +199,6 @@ export default function WorkoutBuilderPage() {
     })();
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-    setCatalogLoading(true);
-    setCatalogError(null);
-    void (async () => {
-      try {
-        const rows = await searchExercises({ limit: 200 });
-        if (cancelled) return;
-        setAllExercises(rows.map(exerciseSummaryToCatalogEntry).map(catalogEntryToExercise));
-      } catch (e) {
-        if (!cancelled) {
-          setAllExercises([]);
-          setCatalogError(e instanceof Error ? e.message : "Catálogo indisponível.");
-        }
-      } finally {
-        if (!cancelled) setCatalogLoading(false);
-      }
-    })();
-    return () => { cancelled = true; };
   }, []);
 
   // Load existing plan when ?planId=... is in the URL (edit mode)
@@ -401,106 +303,31 @@ export default function WorkoutBuilderPage() {
     if (selectedStudentId) void refreshRecentPlans(selectedStudentId);
   }, [selectedStudentId, refreshRecentPlans]);
 
-  // ── Resolve AI exercises ──────────────────────────────────────────
-  async function resolveAiExercises(
-    generated: AiGeneratedExercise[]
-  ): Promise<{ resolved: WorkoutExercise[]; unresolved: string[] }> {
-    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-    type Pending = { g: AiGeneratedExercise; match: Exercise | null };
-
-    const pass1: Pending[] = generated.map((g) => {
-      const byId = (g as { exercise_id?: string }).exercise_id;
-      if (byId && UUID_RE.test(byId)) {
-        const m = allExercises.find((c) => c.id === byId);
-        if (m) return { g, match: m };
-      }
-      const nameLower = g.name.toLowerCase();
-      const m =
-        allExercises.find((c) => c.name.toLowerCase() === nameLower) ??
-        allExercises.find((c) => c.name.toLowerCase().includes(nameLower.split(" ")[0]));
-      return { g, match: m ?? null };
-    });
-
-    const needsApi = pass1.filter((p) => !p.match);
-    if (needsApi.length > 0) {
-      const apiResults = await Promise.all(
-        needsApi.slice(0, 10).map(async (p) => {
-          try {
-            const rows = await searchExercises({ q: p.g.name, limit: 1 });
-            return { g: p.g, match: rows[0] ? ({ id: rows[0].id, name: rows[0].name } as Exercise) : null };
-          } catch {
-            return { g: p.g, match: null };
-          }
-        })
-      );
-      for (const r of apiResults) {
-        const entry = pass1.find((p) => p.g === r.g);
-        if (entry) entry.match = r.match;
-      }
-    }
-
-    const resolved: WorkoutExercise[] = [];
-    const unresolved: string[] = [];
-
-    for (const { g, match } of pass1) {
-      if (match) {
-        resolved.push({
-          exerciseId: match.id,
-          name: match.name,
-          sets: g.sets,
-          reps: g.reps,
-          rest: g.rest,
-          technique: g.technique ?? undefined,
-          notes: g.note ?? undefined,
-        });
-      } else {
-        unresolved.push(g.name);
-      }
-    }
-
-    return { resolved, unresolved };
-  }
-
-  // ── AI generation — resolve all days at once ──────────────────────
+  // ── AI generation ────────────────────────────────────────────────
   async function generateWithAi(prompt: string) {
     if (!prompt.trim() || aiLoading) return;
     setAiLoading(true);
     setFeedback(null);
     try {
-      const catalogNames = allExercises.map((e) => e.name);
-      const result = await generateWorkoutWithAi(prompt.trim(), catalogNames);
-      if (result.weekPreset) setWeekPreset(coerceWeekPreset(result.weekPreset));
-      setWeeklyPlan(result);
-
-      // Resolve ALL days at once
-      const allUnresolved: string[] = [];
-      const newDaysItems: Record<number, WorkoutExercise[]> = {};
-      const newDaysMeta: DayMeta[] = [];
-
-      for (let i = 0; i < result.days.length; i++) {
-        const day = result.days[i];
-        const { resolved, unresolved } = await resolveAiExercises(day.exercises);
-        newDaysItems[i] = resolved;
-        newDaysMeta.push({ index: i + 1, name: day.name, focus: day.focus });
-        allUnresolved.push(...unresolved);
-      }
-
+      const { plan, weekPreset: wp, daysItems: newDaysItems, daysMeta: newDaysMeta, unresolved } =
+        await runAiWorkoutGeneration(prompt.trim(), allExercises);
+      setWeekPreset(wp);
+      setWeeklyPlan(plan);
       setDaysItems(newDaysItems);
       setDaysMeta(newDaysMeta);
       setSelectedDayIdx(0);
-      setWorkoutName(result.title);
+      setWorkoutName(plan.title);
 
       const totalEx = Object.values(newDaysItems).reduce((s, arr) => s + arr.length, 0);
-      if (allUnresolved.length > 0) {
+      if (unresolved.length > 0) {
         setFeedback({
           kind: "error",
-          message: `${allUnresolved.length} exercício(s) não encontrado(s): ${allUnresolved.slice(0, 3).map((n) => `"${n}"`).join(", ")}${allUnresolved.length > 3 ? "…" : ""} — adicione manualmente.`,
+          message: `${unresolved.length} exercício(s) não encontrado(s): ${unresolved.slice(0, 3).map((n) => `"${n}"`).join(", ")}${unresolved.length > 3 ? "…" : ""} — adicione manualmente.`,
         });
       } else {
         setFeedback({
           kind: "success",
-          message: `Plano ${result.split ?? ""} gerado: ${result.days.length} dias, ${totalEx} exercícios. Selecione o dia e revise.`,
+          message: `Plano ${plan.split ?? ""} gerado: ${plan.days.length} dias, ${totalEx} exercícios. Selecione o dia e revise.`,
         });
       }
     } catch (e) {
