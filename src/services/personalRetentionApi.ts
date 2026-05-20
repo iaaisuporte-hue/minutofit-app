@@ -74,6 +74,7 @@ export async function createRelationshipAction(
     payloadJson?: Record<string, unknown>;
     source?: string;
     dueAt?: string | null;
+    linkedSignalId?: string | null;
   }
 ): Promise<RelationshipAction> {
   const res = await authFetch(`${API_URL}/personal/students/${studentId}/actions`, {

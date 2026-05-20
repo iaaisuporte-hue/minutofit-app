@@ -68,6 +68,21 @@ function getTitle(item: TimelineItem): string {
   return item.title;
 }
 
+const SIGNAL_LABEL: Record<string, string> = {
+  at_risk:   "aluno em risco",
+  fading:    "aluno sumindo",
+  attention: "aluno em atenção",
+  on_track:  "aluno no ritmo",
+  evolving:  "aluno evoluindo",
+};
+
+function signalContextLabel(item: TimelineItem): string | null {
+  if (item.kind !== "action") return null;
+  const sig = item.meta.linkedSignalId as string | undefined | null;
+  if (!sig) return null;
+  return SIGNAL_LABEL[sig] ?? null;
+}
+
 export function RelationshipTimeline({ studentId }: Props) {
   const [items, setItems] = useState<TimelineItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -101,6 +116,9 @@ export function RelationshipTimeline({ studentId }: Props) {
             <p className="pp-timeline-title">{getTitle(item)}</p>
             {item.summary && (
               <p className="pp-timeline-summary">{item.summary}</p>
+            )}
+            {signalContextLabel(item) && (
+              <p className="pp-timeline-signal">Sinal: {signalContextLabel(item)}</p>
             )}
           </div>
           <span className="pp-timeline-date">{formatDate(item.occurredAt)}</span>

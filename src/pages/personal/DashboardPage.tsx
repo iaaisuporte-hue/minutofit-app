@@ -568,6 +568,7 @@ export default function DashboardPage() {
         <QuickMessageModal
           studentId={quickMsgStudent.id}
           studentName={quickMsgStudent.name}
+          engagementStatus={quickMsgStudent.engagementStatus}
           onClose={() => setQuickMsgStudent(null)}
         />
       ) : null}
