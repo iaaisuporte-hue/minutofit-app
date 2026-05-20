@@ -2,11 +2,9 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { fetchPersonalDashboard } from "../../services/personalDashboardApi";
 import type { PersonalDashboardStudent } from "../../services/personalDashboardApi";
-import { createPersonalWorkoutPlan, updatePersonalWorkoutPlan, fetchPersonalWorkoutPlans } from "../../services/personalWorkoutApi";
+import { fetchPersonalWorkoutPlans } from "../../services/personalWorkoutApi";
 import {
-  createWorkoutProtocol,
   fetchProtocolSuggestions,
-  fetchWorkoutProtocolById,
   fetchWorkoutProtocols,
   type ProtocolSuggestion,
   type WorkoutProtocol,
@@ -24,13 +22,11 @@ import { ExerciseDetailModal } from "./workoutBuilder/ExerciseDetailModal";
 import { QuickStartCard } from "./workoutBuilder/QuickStartCard";
 import { TechniqueSelector, type BiSetPairCandidate } from "../../features/training/techniques/TechniqueSelector";
 import { useTechniqueReadiness } from "../../features/training/techniques/useTechniqueReadiness";
-import type { TechniqueConfig } from "../../features/training/techniques/technique.types";
 import {
   buildDefaultDayMeta,
   buildEmptyDayItems,
   CATALOG_GROUPS,
   coerceWeekPreset,
-  KNOWN_GROUPS,
   weekPresetToCount,
   type DayMeta,
   type Exercise,
@@ -38,7 +34,12 @@ import {
   type WeekPreset,
   type WorkoutExercise,
 } from "./workoutBuilder/builderTypes";
-import { runAiWorkoutGeneration, type AiGeneratedWeeklyPlan } from "./workoutBuilder/builderAi";
+import { type AiGeneratedWeeklyPlan } from "./workoutBuilder/builderAi";
+import { useWorkoutBuilderAiGeneration } from "./workoutBuilder/useWorkoutBuilderAiGeneration";
+import { useWorkoutBuilderProtocolLoading } from "./workoutBuilder/useWorkoutBuilderProtocolLoading";
+import { useWorkoutBuilderExerciseOps } from "./workoutBuilder/useWorkoutBuilderExerciseOps";
+import { useWorkoutBuilderSave } from "./workoutBuilder/useWorkoutBuilderSave";
+import { useWorkoutBuilderWeekPreset } from "./workoutBuilder/useWorkoutBuilderWeekPreset";
 import { useBuilderCatalog } from "./workoutBuilder/useBuilderCatalog";
 import "./personalPremium.css";
 
@@ -54,17 +55,6 @@ type Student = {
   gender: Gender | null;
 };
 
-function randomUuidV4(): string {
-  // Browser-safe: crypto.randomUUID is widely supported; fallback for older targets
-  const g = globalThis as { crypto?: { randomUUID?: () => string; getRandomValues?: (out: Uint8Array) => void } };
-  if (g.crypto?.randomUUID) return g.crypto.randomUUID();
-  const bytes = new Uint8Array(16);
-  g.crypto?.getRandomValues?.(bytes);
-  bytes[6] = (bytes[6] & 0x0f) | 0x40;
-  bytes[8] = (bytes[8] & 0x3f) | 0x80;
-  const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
-  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
-}
 
 const RPE_REGEX = /^([0-9]|10)(-([0-9]|10))?$/;
 const CADENCE_REGEX = /^\d-\d-\d-\d$/;
@@ -153,11 +143,9 @@ export default function WorkoutBuilderPage() {
 
   // ── UI ────────────────────────────────────────────────────────────
   const [feedback, setFeedback] = useState<{ kind: "success" | "error"; message: string } | null>(null);
-  const [saving, setSaving] = useState(false);
   const [viewingExerciseId, setViewingExerciseId] = useState<string | null>(null);
 
   // ── AI ────────────────────────────────────────────────────────────
-  const [aiLoading, setAiLoading] = useState(false);
   const [weeklyPlan, setWeeklyPlan] = useState<AiGeneratedWeeklyPlan | null>(null);
 
   // Active items for current day
@@ -304,104 +292,29 @@ export default function WorkoutBuilderPage() {
   }, [selectedStudentId, refreshRecentPlans]);
 
   // ── AI generation ────────────────────────────────────────────────
-  async function generateWithAi(prompt: string) {
-    if (!prompt.trim() || aiLoading) return;
-    setAiLoading(true);
-    setFeedback(null);
-    try {
-      const { plan, weekPreset: wp, daysItems: newDaysItems, daysMeta: newDaysMeta, unresolved } =
-        await runAiWorkoutGeneration(prompt.trim(), allExercises);
-      setWeekPreset(wp);
-      setWeeklyPlan(plan);
-      setDaysItems(newDaysItems);
-      setDaysMeta(newDaysMeta);
-      setSelectedDayIdx(0);
-      setWorkoutName(plan.title);
-
-      const totalEx = Object.values(newDaysItems).reduce((s, arr) => s + arr.length, 0);
-      if (unresolved.length > 0) {
-        setFeedback({
-          kind: "error",
-          message: `${unresolved.length} exercício(s) não encontrado(s): ${unresolved.slice(0, 3).map((n) => `"${n}"`).join(", ")}${unresolved.length > 3 ? "…" : ""} — adicione manualmente.`,
-        });
-      } else {
-        setFeedback({
-          kind: "success",
-          message: `Plano ${plan.split ?? ""} gerado: ${plan.days.length} dias, ${totalEx} exercícios. Selecione o dia e revise.`,
-        });
-      }
-    } catch (e) {
-      setFeedback({
-        kind: "error",
-        message: e instanceof Error ? e.message : "Não foi possível gerar a ficha.",
-      });
-    } finally {
-      setAiLoading(false);
-    }
-  }
+  const { aiLoading, generateWithAi } = useWorkoutBuilderAiGeneration({
+    allExercises,
+    setFeedback,
+    setWeekPreset,
+    setWeeklyPlan,
+    setDaysItems,
+    setDaysMeta,
+    setSelectedDayIdx,
+    setWorkoutName,
+  });
 
   // ── Protocol loading ──────────────────────────────────────────────
-  const hydrateFromProtocol = useCallback((p: WorkoutProtocol) => {
-    setWorkoutName(p.title);
-    setWeekPreset(coerceWeekPreset(p.weekPreset));
-    setSourceProtocolId(p.id);
-    const sg = p.selectedGroup;
-    if (sg && KNOWN_GROUPS.includes(sg as MuscleGroup)) setSelectedGroup(sg as MuscleGroup);
-
-    const protocolDays = Array.isArray(p.days) && p.days.length > 0
-      ? p.days
-      : [{ index: 1, name: "Único", focus: sg ?? null, items: p.items }];
-
-    const nextItems: Record<number, WorkoutExercise[]> = {};
-    const nextMeta: DayMeta[] = protocolDays.map((day, idx) => {
-      nextItems[idx] = day.items.map((it) => ({
-        exerciseId: it.exerciseId,
-        name: it.name,
-        sets: it.sets,
-        reps: it.reps,
-        rest: it.rest,
-        rpe: it.rpe,
-        cadence: it.cadence,
-        restPause: it.restPause,
-        technique: it.technique,
-        notes: it.notes,
-      }));
-      return { index: idx + 1, name: day.name || `Treino ${String.fromCharCode(65 + idx)}`, focus: day.focus ?? null };
-    });
-
-    setDaysItems(nextItems);
-    setDaysMeta(nextMeta);
-    setSelectedDayIdx(0);
-    setWeeklyPlan(null);
-  }, []);
-
-  const loadProtocolIntoBuilder = useCallback(
-    async (protocolId: number, msg?: string): Promise<boolean> => {
-      try {
-        const p = await fetchWorkoutProtocolById(protocolId);
-        hydrateFromProtocol(p);
-        setFeedback({ kind: "success", message: msg ?? `Protocolo "${p.title}" carregado.` });
-        return true;
-      } catch (e) {
-        setFeedback({
-          kind: "error",
-          message: e instanceof Error ? e.message : "Não foi possível carregar o protocolo.",
-        });
-        return false;
-      }
-    },
-    [hydrateFromProtocol]
-  );
-
-  async function handleSourceProtocolChange(raw: string) {
-    if (!raw) {
-      setSourceProtocolId(null);
-      return;
-    }
-    const protocolId = Number(raw);
-    if (!Number.isFinite(protocolId)) return;
-    await loadProtocolIntoBuilder(protocolId, "Protocolo da biblioteca aplicado.");
-  }
+  const { loadProtocolIntoBuilder, handleSourceProtocolChange } = useWorkoutBuilderProtocolLoading({
+    setWorkoutName,
+    setWeekPreset,
+    setSourceProtocolId,
+    setSelectedGroup,
+    setDaysItems,
+    setDaysMeta,
+    setSelectedDayIdx,
+    setWeeklyPlan,
+    setFeedback,
+  });
 
   useEffect(() => {
     const raw = searchParams.get("protocol");
@@ -491,116 +404,14 @@ export default function WorkoutBuilderPage() {
   }, [allExercises, exerciseQuery, showVideoOnly, libGroupFilter]);
 
   // ── Exercise ops (always on active day) ──────────────────────────
-  function addExercise(ex: Exercise) {
-    setDaysItems((prev) => ({
-      ...prev,
-      [selectedDayIdx]: [
-        ...(prev[selectedDayIdx] ?? []),
-        { exerciseId: ex.id, name: ex.name, sets: "4", reps: "10-12", rest: "60s" },
-      ],
-    }));
-  }
-
-  function removeExercise(exerciseId: string) {
-    setDaysItems((prev) => ({
-      ...prev,
-      [selectedDayIdx]: (prev[selectedDayIdx] ?? []).filter((i) => i.exerciseId !== exerciseId),
-    }));
-  }
-
-  function moveExercise(exerciseId: string, dir: -1 | 1) {
-    setDaysItems((prev) => {
-      const dayItems = [...(prev[selectedDayIdx] ?? [])];
-      const idx = dayItems.findIndex((i) => i.exerciseId === exerciseId);
-      if (idx < 0) return prev;
-      const next = idx + dir;
-      if (next < 0 || next >= dayItems.length) return prev;
-      [dayItems[idx], dayItems[next]] = [dayItems[next], dayItems[idx]];
-      return { ...prev, [selectedDayIdx]: dayItems };
-    });
-  }
-
-  function updateItem(exerciseId: string, patch: Partial<WorkoutExercise>) {
-    setDaysItems((prev) => ({
-      ...prev,
-      [selectedDayIdx]: (prev[selectedDayIdx] ?? []).map((i) =>
-        i.exerciseId === exerciseId ? { ...i, ...patch } : i
-      ),
-    }));
-  }
-
-  /**
-   * Sets technique on an exercise. Handles the bi-set group housekeeping:
-   * leaving a bi-set clears the partner's pairing too; switching to a different
-   * technique leaves the partner unpaired.
-   */
-  function setItemTechnique(exerciseId: string, next: TechniqueConfig | undefined) {
-    setDaysItems((prev) => {
-      const day = [...(prev[selectedDayIdx] ?? [])];
-      const idx = day.findIndex((i) => i.exerciseId === exerciseId);
-      if (idx < 0) return prev;
-      const previous = day[idx].technique;
-
-      // If leaving a bi-set group, clear partner technique too
-      if (previous?.type === "bi_set" && previous.biSetGroupId) {
-        const groupId = previous.biSetGroupId;
-        if (next?.type !== "bi_set" || next.biSetGroupId !== groupId) {
-          for (let j = 0; j < day.length; j++) {
-            if (j !== idx && day[j].technique?.type === "bi_set" && day[j].technique?.biSetGroupId === groupId) {
-              day[j] = { ...day[j], technique: undefined };
-            }
-          }
-        }
-      }
-      day[idx] = { ...day[idx], technique: next };
-      return { ...prev, [selectedDayIdx]: day };
-    });
-  }
-
-  /** Pairs two exercises in a bi-set (creates a new groupId if needed). */
-  function pairBiSet(exerciseIdA: string, exerciseIdB: string | null) {
-    setDaysItems((prev) => {
-      const day = [...(prev[selectedDayIdx] ?? [])];
-      const a = day.findIndex((i) => i.exerciseId === exerciseIdA);
-      if (a < 0) return prev;
-
-      const aPrev = day[a].technique;
-      const existingGroupId = aPrev?.type === "bi_set" ? aPrev.biSetGroupId : undefined;
-
-      // Unpair: clear A and any current partner sharing existingGroupId
-      if (!exerciseIdB) {
-        if (existingGroupId) {
-          for (let j = 0; j < day.length; j++) {
-            if (day[j].technique?.type === "bi_set" && day[j].technique?.biSetGroupId === existingGroupId) {
-              day[j] = { ...day[j], technique: undefined };
-            }
-          }
-        } else {
-          day[a] = { ...day[a], technique: undefined };
-        }
-        return { ...prev, [selectedDayIdx]: day };
-      }
-
-      const b = day.findIndex((i) => i.exerciseId === exerciseIdB);
-      if (b < 0) return prev;
-
-      // Clear B's previous bi-set partner (if any) before re-pairing
-      const bPrev = day[b].technique;
-      if (bPrev?.type === "bi_set" && bPrev.biSetGroupId && bPrev.biSetGroupId !== existingGroupId) {
-        const stale = bPrev.biSetGroupId;
-        for (let j = 0; j < day.length; j++) {
-          if (j !== b && day[j].technique?.type === "bi_set" && day[j].technique?.biSetGroupId === stale) {
-            day[j] = { ...day[j], technique: undefined };
-          }
-        }
-      }
-
-      const groupId = existingGroupId ?? randomUuidV4();
-      day[a] = { ...day[a], technique: { type: "bi_set", biSetGroupId: groupId } };
-      day[b] = { ...day[b], technique: { type: "bi_set", biSetGroupId: groupId } };
-      return { ...prev, [selectedDayIdx]: day };
-    });
-  }
+  const {
+    addExercise,
+    removeExercise,
+    moveExercise,
+    updateItem,
+    setItemTechnique,
+    pairBiSet,
+  } = useWorkoutBuilderExerciseOps({ selectedDayIdx, setDaysItems });
 
   function onStudentSelect(id: string) {
     setSelectedStudentId(id);
@@ -614,104 +425,29 @@ export default function WorkoutBuilderPage() {
   }
 
   // ── Week preset / day count sync ──────────────────────────────────
-  // Mantém weekPreset, daysMeta e daysItems consistentes. Sem isso, o
-  // toggle "4x/5x/6x" só mudava o label e o save caía no branch legacy
-  // single-day, perdendo os dias 2..N.
-  function applyWeekPreset(newPreset: "semana_util" | "4" | "5" | "6") {
-    const n = weekPresetToCount(newPreset);
-    setWeekPreset(newPreset);
-    setDaysMeta((prev) => {
-      const out: DayMeta[] = [];
-      for (let i = 0; i < n; i++) {
-        const existing = prev[i];
-        const isLegacyPlaceholder = !existing || existing.name === "Único";
-        out.push({
-          index: i + 1,
-          name: isLegacyPlaceholder ? `Treino ${String.fromCharCode(65 + i)}` : existing.name,
-          focus: existing?.focus ?? null,
-        });
-      }
-      return out;
-    });
-    setDaysItems((prev) => {
-      const out: Record<number, WorkoutExercise[]> = {};
-      for (let i = 0; i < n; i++) out[i] = prev[i] ?? [];
-      return out;
-    });
-    setSelectedDayIdx((curr) => Math.min(curr, n - 1));
-  }
+  const { applyWeekPreset } = useWorkoutBuilderWeekPreset({
+    setWeekPreset,
+    setDaysMeta,
+    setDaysItems,
+    setSelectedDayIdx,
+  });
 
   // ── Save ─────────────────────────────────────────────────────────
-  async function saveUnified() {
-    const totalExercises = Object.values(daysItems).reduce((s, arr) => s + arr.length, 0);
-    if (totalExercises === 0) return;
-
-    setSaving(true);
-    setFeedback(null);
-    try {
-      const days = daysMeta.map((m, i) => ({
-        name: m.name,
-        focus: m.focus,
-        items: daysItems[i] ?? [],
-      }));
-
-      if (selectedStudentId) {
-        if (editingPlanId) {
-          // Edit mode — update existing plan
-          await updatePersonalWorkoutPlan(selectedStudentId, editingPlanId, {
-            title: workoutName,
-            weekPreset,
-            days,
-          });
-          setFeedback({
-            kind: "success",
-            message: `Ficha "${workoutName}" atualizada para ${selectedStudent?.name ?? "o aluno"}.`,
-          });
-        } else if (isMultiDay) {
-          await createPersonalWorkoutPlan(selectedStudentId, {
-            title: workoutName,
-            weekPreset,
-            days,
-            sourceProtocolId,
-          });
-          setFeedback({
-            kind: "success",
-            message: `Ficha "${workoutName}" salva para ${selectedStudent?.name ?? "o aluno"} e ligada à biblioteca.`,
-          });
-        } else {
-          await createPersonalWorkoutPlan(selectedStudentId, {
-            title: workoutName,
-            weekPreset,
-            selectedGroup,
-            items: daysItems[0] ?? [],
-            sourceProtocolId,
-          });
-          setFeedback({
-            kind: "success",
-            message: `Ficha "${workoutName}" salva para ${selectedStudent?.name ?? "o aluno"} e ligada à biblioteca.`,
-          });
-        }
-        await refreshRecentPlans(selectedStudentId);
-      } else {
-        await createWorkoutProtocol({
-          title: workoutName,
-          weekPreset,
-          selectedGroup: isMultiDay ? null : selectedGroup,
-          items: daysItems[0] ?? [],
-          days,
-        });
-        setSourceProtocolId(null);
-        setFeedback({ kind: "success", message: `Protocolo "${workoutName}" salvo na sua biblioteca.` });
-      }
-    } catch (e) {
-      setFeedback({
-        kind: "error",
-        message: e instanceof Error ? e.message : "Não foi possível salvar.",
-      });
-    } finally {
-      setSaving(false);
-    }
-  }
+  const { saving, saveUnified } = useWorkoutBuilderSave({
+    daysItems,
+    daysMeta,
+    workoutName,
+    weekPreset,
+    selectedGroup,
+    sourceProtocolId,
+    selectedStudentId,
+    selectedStudentName: selectedStudent?.name,
+    editingPlanId,
+    isMultiDay,
+    setFeedback,
+    setSourceProtocolId,
+    onSaved: refreshRecentPlans,
+  });
 
   // ── Shared styles ─────────────────────────────────────────────────
   const inputS: React.CSSProperties = {
