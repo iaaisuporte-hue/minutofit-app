@@ -2,60 +2,41 @@ import { API_URL, parseJson } from "./apiBase";
 import { authFetch } from "./apiClient";
 import { getAccessToken } from "./authTokens";
 
-export type PersonalDashboardPlan = "basic" | "silver" | "gold" | "black";
-export type PersonalDashboardRisk = "ok" | "alerta" | "critico";
-export type PersonalDashboardGoal = "emagrecimento" | "hipertrofia" | "condicionamento";
-export type PersonalDashboardEngagementStatus = "evolving" | "on_track" | "attention" | "fading" | "at_risk";
+// Tipos canônicos vêm de src/shared/types/personal-dashboard.ts
+// (espelha minutofit-backend/src/shared/types/personal-dashboard.ts).
+// Source-of-truth: /shared/contract-personal-dashboard.md no monorepo parent.
+import type {
+  PersonalDashboardPlan,
+  PersonalDashboardRisk,
+  PersonalDashboardGoal,
+  PersonalDashboardEngagementStatus,
+  PersonalDashboardAlertType,
+  PersonalMetabolicBand,
+  PersonalMetabolicTrend,
+  PersonalDashboardStudent,
+  PersonalDashboardAlert,
+} from "../shared/types/personal-dashboard";
+
+export type {
+  PersonalDashboardPlan,
+  PersonalDashboardRisk,
+  PersonalDashboardGoal,
+  PersonalDashboardEngagementStatus,
+  PersonalDashboardAlertType,
+  PersonalMetabolicBand,
+  PersonalMetabolicTrend,
+  PersonalDashboardStudent,
+  PersonalDashboardAlert,
+};
+
+// Tipos locais ao consumidor (não fazem parte do contrato da API,
+// servem para conveniência de UI e estão fora do shared canônico).
 export type PersonalConsultingStatus = "urgent" | "warning" | "on_track";
 export type PersonalConsultingNextAction =
   | "refresh_today"
   | "prepare_update"
   | "review_adherence"
   | "keep_progression";
-export type PersonalDashboardAlertType =
-  | "attention_load"
-  | "cluster_low_sleep"
-  | "full_adherence"
-  | "silent_disappear"
-  | "overtraining"
-  | "metabolic_decline"
-  | "recovery_gap";
-export type PersonalMetabolicBand = "low" | "moderate" | "high" | "unknown";
-export type PersonalMetabolicTrend = "up" | "down" | "stable" | "unknown";
-
-export type PersonalDashboardStudent = {
-  id: string;
-  name: string;
-  plan: PersonalDashboardPlan;
-  workouts7d: number;
-  workouts30d: number;
-  streakDays: number;
-  lastWorkoutISO: string | null;
-  adherencePct: number;
-  adherenceScore: number;
-  engagementScore: number;
-  riskScore: number;
-  risk: PersonalDashboardRisk;
-  goal: PersonalDashboardGoal;
-  notes?: string | null;
-  engagementStatus: PersonalDashboardEngagementStatus;
-  lastCheckinISO: string | null;
-  checkins7d: number;
-  metabolismScore: number | null;
-  metabolismBand: PersonalMetabolicBand;
-  metabolismTrend: PersonalMetabolicTrend;
-  metabolismDelta7d: number | null;
-  latestSleptWell?: boolean | null;
-  lastTechnicalNoteAt?: string | null;
-};
-
-export type PersonalDashboardAlert = {
-  type: PersonalDashboardAlertType;
-  title: string;
-  description: string;
-  studentId: string | null;
-  studentName: string | null;
-};
 
 export type RetentionInsight = {
   kind: "adherence_correlation" | "individual_drop" | "portfolio_signal";
