@@ -5,6 +5,7 @@ export type ScenarioKey =
   | "autonomo"
   | "personal_com_ficha"
   | "personal_sem_ficha"
+  | "personal_com_academy"
   | "so_academia"
   | "app_completo";
 
@@ -70,6 +71,11 @@ export const TODAY_SCENARIOS: Record<ScenarioKey, TodayScenarioFixture> = {
     professionalContext: { personal: personalAna, nutri: null },
     activePlan: null,
     products: ["app", "personal"],
+  },
+  personal_com_academy: {
+    professionalContext: { personal: personalAnaWithNote, nutri: null },
+    activePlan: samplePlan,
+    products: ["app", "personal", "academia"],
   },
   so_academia: {
     professionalContext: { personal: null, nutri: null },

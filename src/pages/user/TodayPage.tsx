@@ -175,7 +175,11 @@ export default function TodayPage() {
   const [quickGroups, setQuickGroups] = useState<MuscleGroup[]>([]);
   const [checkinMessage, setCheckinMessage] = useState<string | null>(null);
   const [scoreImpactPreview, setScoreImpactPreview] = useState<number | null>(null);
-  const [workoutMode, setWorkoutMode] = useState<"home" | "gym">("home");
+  const [workoutMode, setWorkoutMode] = useState<"home" | "gym">(() => {
+    if (!userId) return "home";
+    const saved = loadAnswers(userId);
+    return saved?.trainingPlace === "gym" || saved?.trainingPlace === "both" ? "gym" : "home";
+  });
   const [showCheckin, setShowCheckin] = useState(false);
   const [showMetabolicCheckin, setShowMetabolicCheckin] = useState(false);
 
@@ -238,7 +242,8 @@ export default function TodayPage() {
   );
   const homeWorkout = adaptiveWorkout.recommendations.find((r) => r.type === "home") ?? adaptiveWorkout.recommendations[0];
   const gymWorkout = adaptiveWorkout.recommendations.find((r) => r.type === "gym") ?? adaptiveWorkout.recommendations[1] ?? adaptiveWorkout.recommendations[0];
-  const currentWorkout = workoutMode === "home" ? homeWorkout : gymWorkout;
+  const effectiveWorkoutMode = todayState.hasActiveAcademy ? workoutMode : "home";
+  const currentWorkout = effectiveWorkoutMode === "home" ? homeWorkout : gymWorkout;
   const metabolicNudge = useMemo(() => computeNudgeState(metabolicCheckins), [metabolicCheckins]);
 
   const histSummary = summarizeWorkoutHistory(readWorkoutHistory());
@@ -465,37 +470,47 @@ export default function TodayPage() {
                 </div>
               </div>
 
-              <div style={{
-                display: "flex",
-                background: SURFACE.page,
-                borderRadius: 10,
-                padding: 3,
-                gap: 2,
-                border: `1px solid ${SURFACE.border}`,
-                flexShrink: 0,
-              }}>
-                {(["home", "gym"] as const).map((mode) => (
-                  <button
-                    key={mode}
-                    type="button"
-                    onClick={() => setWorkoutMode(mode)}
-                    style={{
-                      padding: "6px 14px",
-                      borderRadius: 8,
-                      fontSize: 12,
-                      fontWeight: 700,
-                      cursor: "pointer",
-                      border: "none",
-                      background: workoutMode === mode ? SURFACE.card : "transparent",
-                      color: workoutMode === mode ? SURFACE.text : SURFACE.muted,
-                      boxShadow: workoutMode === mode ? "0 1px 4px rgba(15,23,42,0.08)" : "none",
-                      transition: "all 0.15s ease",
-                    }}
-                  >
-                    {mode === "home" ? "Em casa" : "Academia"}
-                  </button>
-                ))}
-              </div>
+              {todayState.hasActiveAcademy ? (
+                <div style={{
+                  display: "flex",
+                  background: SURFACE.page,
+                  borderRadius: 10,
+                  padding: 3,
+                  gap: 2,
+                  border: `1px solid ${SURFACE.border}`,
+                  flexShrink: 0,
+                }}>
+                  {(["home", "gym"] as const).map((mode) => (
+                    <button
+                      key={mode}
+                      type="button"
+                      onClick={() => setWorkoutMode(mode)}
+                      style={{
+                        padding: "6px 14px",
+                        borderRadius: 8,
+                        fontSize: 12,
+                        fontWeight: 700,
+                        cursor: "pointer",
+                        border: "none",
+                        background: workoutMode === mode ? SURFACE.card : "transparent",
+                        color: workoutMode === mode ? SURFACE.text : SURFACE.muted,
+                        boxShadow: workoutMode === mode ? "0 1px 4px rgba(15,23,42,0.08)" : "none",
+                        transition: "all 0.15s ease",
+                      }}
+                    >
+                      {mode === "home" ? "Em casa" : "Academia"}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <span style={{
+                  fontSize: 12, fontWeight: 600, color: SURFACE.muted,
+                  padding: "6px 12px", background: SURFACE.page,
+                  borderRadius: 8, border: `1px solid ${SURFACE.border}`,
+                }}>
+                  Em casa
+                </span>
+              )}
             </div>
 
             {/* Detalhes do treino */}
