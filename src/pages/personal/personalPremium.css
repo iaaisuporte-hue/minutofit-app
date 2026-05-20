@@ -1372,6 +1372,13 @@
   margin-top: 2px;
 }
 
+.pp-timeline-signal {
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+  margin: 3px 0 0;
+  font-style: italic;
+}
+
 /* ── Quick Actions Menu ────────────────────────────────── */
 
 .pp-quick-actions-popover {

@@ -2,19 +2,23 @@ import { useState, useEffect } from "react";
 import { X, Send, BookMarked } from "lucide-react";
 import {
   listMessageTemplates,
+  createRelationshipAction,
   type MessageTemplate,
 } from "../../services/personalRetentionApi";
 import { ensureChatConversation, sendChatMessage } from "../../services/messagesApi";
-import { createRelationshipAction } from "../../services/personalRetentionApi";
+import { DrawerShell } from "../../components/overlay/DrawerShell";
+import { useSuggestedTemplates } from "./useSuggestedTemplates";
+import type { PersonalDashboardEngagementStatus } from "../../services/personalDashboardApi";
 
 type Props = {
   studentId: string;
   studentName: string;
+  engagementStatus?: PersonalDashboardEngagementStatus | null;
   onClose: () => void;
   onSent?: () => void;
 };
 
-export function QuickMessageModal({ studentId, studentName, onClose, onSent }: Props) {
+export function QuickMessageModal({ studentId, studentName, engagementStatus, onClose, onSent }: Props) {
   const [templates, setTemplates] = useState<MessageTemplate[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<MessageTemplate | null>(null);
   const [body, setBody] = useState("");
@@ -27,14 +31,7 @@ export function QuickMessageModal({ studentId, studentName, onClose, onSent }: P
       .catch(() => setTemplates([]));
   }, []);
 
-  // Escape fecha (ARIA dialog padrão).
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  const { suggested, rest } = useSuggestedTemplates(templates, engagementStatus);
 
   function selectTemplate(t: MessageTemplate) {
     setSelectedTemplate(t);
@@ -50,6 +47,12 @@ export function QuickMessageModal({ studentId, studentName, onClose, onSent }: P
       const conv = await ensureChatConversation({ studentId });
       if (!conv) throw new Error("Não foi possível abrir a conversa");
       await sendChatMessage(conv.id, text);
+      // Register action to close the signal loop (non-blocking if it fails)
+      createRelationshipAction(studentId, {
+        actionType: "message_sent",
+        payloadJson: { note: text, templateCategory: selectedTemplate?.category },
+        linkedSignalId: engagementStatus ?? null,
+      }).catch(() => undefined);
       onSent?.();
       onClose();
     } catch (e: any) {
@@ -67,6 +70,7 @@ export function QuickMessageModal({ studentId, studentName, onClose, onSent }: P
       await createRelationshipAction(studentId, {
         actionType: "quick_nudge",
         payloadJson: { note: text, templateCategory: selectedTemplate?.category },
+        linkedSignalId: engagementStatus ?? null,
       });
       onSent?.();
       onClose();
@@ -77,69 +81,83 @@ export function QuickMessageModal({ studentId, studentName, onClose, onSent }: P
   }
 
   return (
-    <div className="pp-quick-msg-backdrop" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="pp-quick-msg-modal">
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <h3 className="pp-quick-msg-title">Mensagem para {studentName}</h3>
-          <button
-            onClick={onClose}
-            style={{ background: "none", border: "none", cursor: "pointer", padding: 4 }}
-          >
-            <X size={18} />
-          </button>
-        </div>
-
-        {templates.length > 0 && (
-          <div>
-            <p style={{ fontSize: 11, color: "var(--color-text-tertiary)", margin: "0 0 6px" }}>
-              Modelos de mensagem
-            </p>
-            <div className="pp-template-chips">
-              {templates.slice(0, 6).map((t) => (
-                <button
-                  key={t.id}
-                  className={`pp-template-chip${selectedTemplate?.id === t.id ? " active" : ""}`}
-                  onClick={() => selectTemplate(t)}
-                >
-                  {t.title}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <textarea
-          className="pp-quick-msg-textarea"
-          placeholder="Escreva sua mensagem..."
-          value={body}
-          onChange={(e) => setBody(e.target.value)}
-          autoFocus
-        />
-
-        {error && (
-          <p style={{ color: "var(--color-danger)", fontSize: 12, margin: 0 }}>{error}</p>
-        )}
-
-        <div className="pp-quick-msg-actions">
-          <button
-            className="pp-btn pp-btn--ghost"
-            onClick={handleRegisterOnly}
-            disabled={sending || !body.trim()}
-            title="Registrar sem enviar pelo chat"
-          >
-            <BookMarked size={14} />
-            Registrar
-          </button>
-          <button
-            className="pp-btn pp-btn--primary"
-            onClick={handleSend}
-            disabled={sending || !body.trim()}
-          >
-            <Send size={14} />
-            {sending ? "Enviando..." : "Enviar"}
-          </button>
-        </div>
+    <DrawerShell open onClose={onClose} ariaLabel={`Mensagem para ${studentName}`}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <h3 className="pp-quick-msg-title">Mensagem para {studentName}</h3>
+        <button onClick={onClose} className="pp-btn pp-btn--icon pp-btn--ghost">
+          <X size={18} />
+        </button>
       </div>
-    </div>
+
+      {suggested.length > 0 && (
+        <div>
+          <p style={{ fontSize: 11, color: "var(--color-text-tertiary)", margin: "0 0 6px" }}>
+            Sugestão para este aluno
+          </p>
+          <div className="pp-template-chips">
+            {suggested.map((t) => (
+              <button
+                key={t.id}
+                className={`pp-template-chip${selectedTemplate?.id === t.id ? " active" : ""}`}
+                onClick={() => selectTemplate(t)}
+              >
+                {t.title}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {rest.length > 0 && (
+        <div>
+          <p style={{ fontSize: 11, color: "var(--color-text-tertiary)", margin: "0 0 6px" }}>
+            {suggested.length > 0 ? "Outros modelos" : "Modelos de mensagem"}
+          </p>
+          <div className="pp-template-chips">
+            {rest.map((t) => (
+              <button
+                key={t.id}
+                className={`pp-template-chip${selectedTemplate?.id === t.id ? " active" : ""}`}
+                onClick={() => selectTemplate(t)}
+              >
+                {t.title}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <textarea
+        className="pp-quick-msg-textarea"
+        placeholder="Escreva sua mensagem..."
+        value={body}
+        onChange={(e) => setBody(e.target.value)}
+        autoFocus
+      />
+
+      {error && (
+        <p style={{ color: "var(--color-danger)", fontSize: 12, margin: 0 }}>{error}</p>
+      )}
+
+      <div className="pp-quick-msg-actions">
+        <button
+          className="pp-btn pp-btn--ghost"
+          onClick={handleRegisterOnly}
+          disabled={sending || !body.trim()}
+          title="Registrar sem enviar pelo chat"
+        >
+          <BookMarked size={14} />
+          Registrar
+        </button>
+        <button
+          className="pp-btn pp-btn--primary"
+          onClick={handleSend}
+          disabled={sending || !body.trim()}
+        >
+          <Send size={14} />
+          {sending ? "Enviando..." : "Enviar"}
+        </button>
+      </div>
+    </DrawerShell>
   );
 }
