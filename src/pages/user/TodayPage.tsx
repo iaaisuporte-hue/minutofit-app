@@ -27,7 +27,7 @@ import {
   deriveMetabolicForecast,
 } from "../../features/metabolism/metabolismDerivations";
 import { useGamificationSummary } from "../../features/gamification/useGamificationSummary";
-import { ProfessionalVoiceCard, useProfessionalContext } from "../../features/professionalVoice";
+import { ProfessionalVoiceCard } from "../../features/professionalVoice";
 import { WeeklyLoopCard, useHasWeeklyLoopInsights } from "../../features/loopVisibility";
 import { IncomingMessageBanner, useLatestUnreadFromProfessional } from "../../features/incomingMessage";
 import { DailyCheckin } from "../../features/dailyCheckin/DailyCheckin";
@@ -44,6 +44,9 @@ import { deriveConditionSignals } from "../../features/dailyCheckin/deriveCondit
 import { buildDailyWorkoutRecommendation, getWorkoutRoute, summarizeWorkoutHistory } from "../../features/training/dailyWorkoutAdapter";
 import type { WorkoutGoal } from "../../features/training/generateDailyWorkout";
 import { searchExercises } from "../../services/exercisesApi";
+import { useTodayUserState } from "./hooks/useTodayUserState";
+import { PersonalWorkoutCard } from "./components/PersonalWorkoutCard";
+import { PersonalEmptyState } from "./components/PersonalEmptyState";
 import "./todayPage.css";
 
 const GROUP_LABEL: Record<MuscleGroup, string> = {
@@ -146,7 +149,13 @@ export default function TodayPage() {
   const { data: gamification, loading: gamificationLoading, refetch: refetchGamification } = useGamificationSummary();
   const { data: metabolism, loading: metabolismLoading, error: metabolismError, refetch: refetchMetabolism } = useMetabolism();
   const { data: metabolismHistory, loading: historyLoading } = useMetabolismHistory();
-  const { data: professionalContext } = useProfessionalContext();
+  const todayState = useTodayUserState();
+  const showPersonalWorkout = todayState.hasActivePersonal && todayState.hasActiveWorkoutPlan;
+  const showPersonalEmpty = todayState.hasActivePersonal && !todayState.hasActiveWorkoutPlan;
+  const showSuggestedWorkout =
+    todayState.hasAppAccess && !todayState.hasActiveWorkoutPlan && todayState.trainingMode === "self_guided";
+  const showProfessionalVoice =
+    (todayState.hasActivePersonal || todayState.hasActiveNutri) && todayState.hasProfessionalObservation;
   const {
     records: metabolicCheckins,
     loading: metabolicCheckinsLoading,
@@ -385,12 +394,12 @@ export default function TodayPage() {
         </motion.div>
       )}
 
-      {/* 2.5. Voz do profissional (renderiza só quando há personal/nutri ativo) */}
-      {professionalContext && (professionalContext.personal || professionalContext.nutri) && (
+      {/* 2.5. Voz do profissional — só com observação real (sem placeholder genérico). */}
+      {showProfessionalVoice && (
         <motion.div variants={sectionRevealVariants}>
           <ProfessionalVoiceCard
-            personal={professionalContext.personal}
-            nutri={professionalContext.nutri}
+            personal={todayState.personal}
+            nutri={todayState.nutri}
             criticalSignals={criticalSignals}
           />
         </motion.div>
@@ -408,7 +417,26 @@ export default function TodayPage() {
         </motion.div>
       )}
 
-      {/* 5. Treino de hoje — toggle home/gym */}
+      {/* 5a. Treino do personal — quando há ficha ativa prescrita */}
+      {showPersonalWorkout && todayState.personal && todayState.activePlan && (
+        <motion.div variants={sectionRevealVariants}>
+          <PersonalWorkoutCard
+            personal={todayState.personal}
+            plan={todayState.activePlan}
+            isMobile={isMobile}
+          />
+        </motion.div>
+      )}
+
+      {/* 5b. Personal vinculado, ainda sem ficha — estado vazio elegante */}
+      {showPersonalEmpty && todayState.personal && (
+        <motion.div variants={sectionRevealVariants}>
+          <PersonalEmptyState personal={todayState.personal} isMobile={isMobile} />
+        </motion.div>
+      )}
+
+      {/* 5c. Treino sugerido pela IA — self-guided sem ficha do personal */}
+      {showSuggestedWorkout && (
       <motion.div variants={sectionRevealVariants}>
         <div
           className="today-card"
@@ -631,6 +659,7 @@ export default function TodayPage() {
           </div>
         </div>
       </motion.div>
+      )}
 
       {gamificationLoading && (
         <motion.div variants={sectionRevealVariants} className="today-loading-note" style={{ color: SURFACE.mutedSoft }}>
