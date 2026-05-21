@@ -12,11 +12,20 @@ import type { MetabolicHistory } from './metabolism.types';
 import type { HistoryMarker, MetabolicForecast } from './metabolismDerivations';
 import { buildForecastHistory, getStateLabelForScore } from './metabolismDerivations';
 
+const WINDOW_OPTIONS: { label: string; days: number }[] = [
+  { label: '7d', days: 7 },
+  { label: '14d', days: 14 },
+  { label: '30d', days: 30 },
+  { label: '90d', days: 90 },
+];
+
 interface Props {
   data: MetabolicHistory;
   loading: boolean;
   forecast: MetabolicForecast | null;
   markers: HistoryMarker[];
+  days?: number;
+  onDaysChange?: (days: number) => void;
 }
 
 function formatDate(iso: string): string {
@@ -86,7 +95,7 @@ function MarkerDot(props: {
   );
 }
 
-export function MetabolicChart({ data, loading, forecast, markers }: Props) {
+export function MetabolicChart({ data, loading, forecast, markers, days = 14, onDaysChange }: Props) {
   if (!loading && data.length === 0) return null;
 
   const markerMap = new Map(markers.map((marker) => [marker.date, marker]));
@@ -109,17 +118,35 @@ export function MetabolicChart({ data, loading, forecast, markers }: Props) {
         padding: '20px 20px 12px',
       }}
     >
-      <div
-        style={{
-          fontSize: 13,
-          fontWeight: 700,
-          color: 'var(--color-text-muted)',
-          textTransform: 'uppercase',
-          letterSpacing: '0.07em',
-          marginBottom: 16,
-        }}
-      >
-        Histórico (14 dias)
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+          Histórico metabólico
+        </div>
+        {onDaysChange && (
+          <div style={{ display: 'flex', background: 'var(--color-bg-main)', borderRadius: 8, padding: 2, gap: 1, border: '1px solid var(--color-border)' }}>
+            {WINDOW_OPTIONS.map((opt) => (
+              <button
+                key={opt.days}
+                type="button"
+                onClick={() => onDaysChange(opt.days)}
+                style={{
+                  padding: '4px 10px',
+                  borderRadius: 6,
+                  fontSize: 11,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  border: 'none',
+                  background: days === opt.days ? 'var(--color-surface)' : 'transparent',
+                  color: days === opt.days ? 'var(--color-text)' : 'var(--color-text-muted)',
+                  boxShadow: days === opt.days ? '0 1px 3px rgba(15,23,42,0.08)' : 'none',
+                  transition: 'all 0.12s ease',
+                }}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {loading ? (

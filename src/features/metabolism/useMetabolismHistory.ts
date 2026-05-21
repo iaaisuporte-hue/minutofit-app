@@ -18,7 +18,7 @@ interface UseMetabolismHistoryResult {
   loading: boolean;
 }
 
-export function useMetabolismHistory(): UseMetabolismHistoryResult {
+export function useMetabolismHistory(days = 14): UseMetabolismHistoryResult {
   const [data, setData] = useState<MetabolicHistory>([]);
   const [loading, setLoading] = useState(true);
 
@@ -26,7 +26,7 @@ export function useMetabolismHistory(): UseMetabolismHistoryResult {
     setLoading(true);
 
     try {
-      const response = await authFetch(`${API_URL}/me/metabolism/history`, { signal });
+      const response = await authFetch(`${API_URL}/me/metabolism/history?days=${days}`, { signal });
 
       if (signal.aborted) return;
 
@@ -47,7 +47,7 @@ export function useMetabolismHistory(): UseMetabolismHistoryResult {
         setLoading(false);
       }
     }
-  }, []);
+  }, [days]);
 
   useEffect(() => {
     const controller = new AbortController();

@@ -13,7 +13,7 @@ import {
 
   useTodayMotionSafe,
 } from "./todayPageMotion";
-import { addWorkoutHistoryEntry, getYesterdayMuscleGroups, readWorkoutHistory, type MuscleGroup } from "./workoutHistory";
+import { addWorkoutHistoryEntry, getYesterdayMuscleGroups, type MuscleGroup } from "./workoutHistory";
 import {
   MetabolicChart,
   MetabolicScoreCard,
@@ -41,6 +41,7 @@ import { getDailyConditionState, useDailyCondition } from "../../features/dailyC
 import { deriveConditionSignals } from "../../features/dailyCheckin/deriveConditionSignals";
 import { buildDailyWorkoutRecommendation, getWorkoutRoute, summarizeWorkoutHistory } from "../../features/training/dailyWorkoutAdapter";
 import type { WorkoutGoal } from "../../features/training/generateDailyWorkout";
+import { useWorkoutHistory } from "../../features/training/useWorkoutHistory";
 import { searchExercises } from "../../services/exercisesApi";
 import { useTodayUserState } from "./hooks/useTodayUserState";
 import { PersonalWorkoutCard } from "./components/PersonalWorkoutCard";
@@ -146,7 +147,9 @@ export default function TodayPage() {
   const userId = (id ?? "").trim().toLowerCase();
   const { data: gamification, loading: gamificationLoading, refetch: refetchGamification } = useGamificationSummary();
   const { data: metabolism, loading: metabolismLoading, error: metabolismError, refetch: refetchMetabolism } = useMetabolism();
-  const { data: metabolismHistory, loading: historyLoading } = useMetabolismHistory();
+  const [historyDays, setHistoryDays] = useState<number>(14);
+  const { data: metabolismHistory, loading: historyLoading } = useMetabolismHistory(historyDays);
+  const { data: workoutHistoryData } = useWorkoutHistory(30);
   const todayState = useTodayUserState();
   const showPersonalWorkout = todayState.hasActivePersonal && todayState.hasActiveWorkoutPlan;
   const showPersonalEmpty = todayState.hasActivePersonal && !todayState.hasActiveWorkoutPlan;
@@ -245,7 +248,7 @@ export default function TodayPage() {
   const currentWorkout = effectiveWorkoutMode === "home" ? homeWorkout : gymWorkout;
   const metabolicNudge = useMemo(() => computeNudgeState(metabolicCheckins), [metabolicCheckins]);
 
-  const histSummary = summarizeWorkoutHistory(readWorkoutHistory());
+  const histSummary = summarizeWorkoutHistory(workoutHistoryData);
 
   async function openSupportVideo(activity: string, _workoutTitle?: string) {
     try {
@@ -399,7 +402,14 @@ export default function TodayPage() {
 
       {/* 3. Histórico metabólico + loop de sinais semanais (agrupados visualmente) */}
       <motion.div variants={sectionRevealVariants} style={{ display: 'grid', gap: 12 }}>
-        <MetabolicChart data={metabolismHistory} loading={historyLoading} forecast={forecast} markers={markers} />
+        <MetabolicChart
+          data={metabolismHistory}
+          loading={historyLoading}
+          forecast={forecast}
+          markers={markers}
+          days={historyDays}
+          onDaysChange={setHistoryDays}
+        />
         {hasWeeklyLoopInsights && <WeeklyLoopCard condition={dailyCondition} />}
       </motion.div>
 
