@@ -118,7 +118,7 @@ export default function PersonalApp() {
 
   return (
     <AppShell
-      bottomNav={<PersonalMobileBottomNav />}
+      bottomNav={<PersonalMobileBottomNav onLogout={handleLogout} />}
       sidebar={
         <>
           {/* Cabeçalho da sidebar: logo + ícone de mensagens */}

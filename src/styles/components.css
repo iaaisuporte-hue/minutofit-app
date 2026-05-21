@@ -755,7 +755,16 @@ html[data-color-mode="daltonic"] .navLinkActive {
     font-weight: 600;
     letter-spacing: 0.02em;
     line-height: 1;
+    max-width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
+
+  .mobileBottomNav__item {
+    min-width: 0;
+  }
+
 
   .appShell--withBottomNav .sidebar {
     display: none;

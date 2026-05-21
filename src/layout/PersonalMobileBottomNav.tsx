@@ -47,7 +47,24 @@ const MessagesIcon = () => (
   </svg>
 );
 
-export default function PersonalMobileBottomNav() {
+const LogoutIcon = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+    <polyline points="16 17 21 12 16 7" />
+    <line x1="21" y1="12" x2="9" y2="12" />
+  </svg>
+);
+
+interface Props {
+  /**
+   * Quando fornecido, renderiza um botão "Sair" no rodapé do nav (último slot).
+   * Necessário no mobile portrait, onde a sidebar — que tradicionalmente
+   * abriga o logout — fica escondida.
+   */
+  onLogout?: () => void;
+}
+
+export default function PersonalMobileBottomNav({ onLogout }: Props) {
   const items: NavItem[] = [
     { to: "/app/personal/dashboard", label: "Hoje", icon: <HojeIcon /> },
     { to: "/app/personal/students", label: "Alunos", icon: <StudentsIcon /> },
@@ -68,6 +85,17 @@ export default function PersonalMobileBottomNav() {
           <span className="mobileBottomNav__label">{item.label}</span>
         </NavLink>
       ))}
+      {onLogout && (
+        <button
+          type="button"
+          onClick={onLogout}
+          className="mobileBottomNav__item mobileBottomNav__item--logout"
+          aria-label="Sair da conta"
+        >
+          <LogoutIcon />
+          <span className="mobileBottomNav__label">Sair</span>
+        </button>
+      )}
     </nav>
   );
 }
