@@ -2,6 +2,9 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import type { MetabolicData, MetabolicFactor, MetabolicTrend } from './metabolism.types';
 import type { DerivedEnergyStatus, MetabolicForecast } from './metabolismDerivations';
+import { computeMetabolicTrends } from '../metabolicCheckin/computeMetabolicTrends';
+import type { MetabolicCheckinRecord, MetabolicNudgeState } from '../metabolicCheckin/types';
+import '../metabolicCheckin/metabolicCheckin.css';
 
 interface Props {
   data: MetabolicData | null;
@@ -10,6 +13,8 @@ interface Props {
   derivedStatus: DerivedEnergyStatus | null;
   forecast: MetabolicForecast | null;
   conditionContext?: { signals: string[] } | null;
+  trendStrip?: { records: MetabolicCheckinRecord[]; loading?: boolean };
+  nudge?: { state: MetabolicNudgeState; onOpen: () => void };
 }
 
 const STATUS_LABEL: Record<string, string> = {
@@ -83,7 +88,7 @@ function FactorChip({ factor }: { factor: MetabolicFactor }) {
   );
 }
 
-export function MetabolicScoreCard({ data, loading, error, derivedStatus, forecast, conditionContext }: Props) {
+export function MetabolicScoreCard({ data, loading, error, derivedStatus, forecast, conditionContext, trendStrip, nudge }: Props) {
   const isMobile = useIsMobile(720);
   const [animatedScore, setAnimatedScore] = useState(0);
   const animatedScoreRef = useRef(0);
@@ -308,6 +313,44 @@ export function MetabolicScoreCard({ data, loading, error, derivedStatus, foreca
                 </span>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Evolução corporal (medidas — TrendStrip compacta) */}
+        {trendStrip && (() => {
+          if (trendStrip.loading) return null;
+          const bodyTrends = computeMetabolicTrends(trendStrip.records);
+          if (bodyTrends.length === 0) return null;
+          return (
+            <div style={{ display: 'grid', gap: 8, paddingTop: 4, borderTop: '1px solid var(--color-border)' }}>
+              <div className="metabolic-eyebrow">Evolução corporal</div>
+              <div className="metabolic-trend-grid">
+                {bodyTrends.map((t) => (
+                  <div className="metabolic-trend-item" key={t.key}>
+                    <div className="metabolic-eyebrow">{t.label}</div>
+                    <div className={`metabolic-trend-value ${t.tone}`}>{t.value}</div>
+                    <p className="metabolic-section-copy" style={{ fontSize: 'var(--text-sm)' }}>em {t.sinceLabel}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* Nudge: atualizar leitura (substitui MetabolicCheckinCard standalone) */}
+        {nudge?.state.shouldShow && (
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+            flexWrap: 'wrap', paddingTop: 4, borderTop: '1px solid var(--color-border)',
+          }}>
+            <div style={{ display: 'grid', gap: 2 }}>
+              <div className="metabolic-eyebrow">Atualização leve</div>
+              <div style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>{nudge.state.title}</div>
+            </div>
+            <button type="button" className="btn btn-accent" onClick={nudge.onOpen}
+              style={{ fontSize: 12, padding: '5px 14px', flexShrink: 0 }}>
+              Atualizar leitura
+            </button>
           </div>
         )}
       </div>

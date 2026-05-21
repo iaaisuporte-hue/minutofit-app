@@ -33,9 +33,7 @@ import { IncomingMessageBanner, useLatestUnreadFromProfessional } from "../../fe
 import { DailyCheckin } from "../../features/dailyCheckin/DailyCheckin";
 import {
   computeNudgeState,
-  MetabolicCheckinCard,
   MetabolicCheckinModal,
-  MetabolicTrendStrip,
   useMetabolicCheckins,
   type MetabolicCheckinInput,
 } from "../../features/metabolicCheckin";
@@ -373,7 +371,7 @@ export default function TodayPage() {
         />
       </motion.div>
 
-      {/* 2. Âncora metabólica */}
+      {/* 2. Âncora metabólica — absorve TrendStrip (evolução corporal) e nudge de atualização */}
       <motion.div variants={sectionRevealVariants}>
         <MetabolicScoreCard
           data={metabolism}
@@ -382,22 +380,10 @@ export default function TodayPage() {
           derivedStatus={adjustedEnergy}
           forecast={forecast}
           conditionContext={conditionSignals.length > 0 ? { signals: conditionSignals } : null}
+          trendStrip={{ records: metabolicCheckins, loading: metabolicCheckinsLoading }}
+          nudge={{ state: metabolicNudge, onOpen: () => setShowMetabolicCheckin(true) }}
         />
       </motion.div>
-
-      <motion.div variants={sectionRevealVariants}>
-        <MetabolicTrendStrip records={metabolicCheckins} loading={metabolicCheckinsLoading} />
-      </motion.div>
-
-      {metabolicNudge.shouldShow && (
-        <motion.div variants={sectionRevealVariants}>
-          <MetabolicCheckinCard
-            nudge={metabolicNudge}
-            loading={metabolicCheckinsLoading}
-            onOpen={() => setShowMetabolicCheckin(true)}
-          />
-        </motion.div>
-      )}
 
       {/* 2.5. Voz do profissional — só com observação real (sem placeholder genérico). */}
       {showProfessionalVoice && (
@@ -410,17 +396,11 @@ export default function TodayPage() {
         </motion.div>
       )}
 
-      {/* 3. Histórico metabólico */}
-      <motion.div variants={sectionRevealVariants}>
+      {/* 3. Histórico metabólico + loop de sinais semanais (agrupados visualmente) */}
+      <motion.div variants={sectionRevealVariants} style={{ display: 'grid', gap: 12 }}>
         <MetabolicChart data={metabolismHistory} loading={historyLoading} forecast={forecast} markers={markers} />
+        {hasWeeklyLoopInsights && <WeeklyLoopCard condition={dailyCondition} />}
       </motion.div>
-
-      {/* 4. Loop visível — como sinais de Tracker + Lab alimentam a recomendação */}
-      {hasWeeklyLoopInsights && (
-        <motion.div variants={sectionRevealVariants}>
-          <WeeklyLoopCard condition={dailyCondition} />
-        </motion.div>
-      )}
 
       {/* 5a. Treino do personal — quando há ficha ativa prescrita */}
       {showPersonalWorkout && todayState.personal && todayState.activePlan && (
