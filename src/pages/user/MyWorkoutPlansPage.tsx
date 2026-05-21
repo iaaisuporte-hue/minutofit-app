@@ -479,20 +479,9 @@ export default function MyWorkoutPlansPage() {
 
   return (
     <div style={{ display: "grid", gap: 16 }}>
-      <div
-        style={{
-          border: `1px solid ${COLORS.borderStrong}`,
-          borderRadius: 18,
-          background: COLORS.panel,
-          padding: 18,
-          display: "grid",
-          gap: 8,
-        }}
-      >
-        <div style={{ fontSize: 24, fontWeight: 700, color: COLORS.text }}>Minha ficha de treino</div>
-        <div style={{ color: COLORS.muted, lineHeight: 1.5 }}>
-          Fichas enviadas pelo seu personal. A primeira da lista é a mais recente.
-        </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, paddingBottom: 2 }}>
+        <div style={{ fontSize: 17, fontWeight: 700, color: COLORS.text }}>Minha ficha</div>
+        <div style={{ color: COLORS.mutedSoft, fontSize: 12 }}>— fichas do seu personal</div>
       </div>
 
       {loading ? <div style={{ color: COLORS.muted }}>Carregando fichas...</div> : null}
@@ -509,39 +498,38 @@ export default function MyWorkoutPlansPage() {
       {latestPlan ? (
         <div
           style={{
-            border: `1px solid ${COLORS.borderStrong}`,
-            borderRadius: 14,
+            border: `1px solid ${COLORS.primaryBorder}`,
+            borderRadius: 10,
             background: COLORS.primarySoft,
-            padding: 14,
+            padding: "8px 12px",
             color: COLORS.text,
             display: "flex",
-            flexWrap: "wrap",
-            gap: 12,
             alignItems: "center",
-            justifyContent: "space-between",
+            gap: 10,
+            flexWrap: "wrap",
           }}
         >
-          <div style={{ minWidth: 0, flex: "1 1 260px" }}>
-            Ficha ativa: <b>{latestPlan.title}</b> · Atualizada em{" "}
-            <b>{formatDate(latestPlan.updated_at)}</b>
+          <div style={{ minWidth: 0, flex: "1 1 0", fontSize: 12, color: COLORS.muted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            <span style={{ fontWeight: 600, color: COLORS.text }}>{latestPlan.title}</span>
           </div>
           <Link
             to="/app/user/today"
             style={{
               display: "inline-flex",
               alignItems: "center",
-              gap: 6,
-              padding: "8px 14px",
-              borderRadius: 10,
+              gap: 4,
+              padding: "5px 10px",
+              borderRadius: 8,
               background: "var(--gradient-primary)",
               color: "var(--color-white)",
-              fontWeight: 700,
-              fontSize: 13,
+              fontWeight: 600,
+              fontSize: 12,
               textDecoration: "none",
               flexShrink: 0,
+              whiteSpace: "nowrap",
             }}
           >
-            Registrar treino no painel do dia →
+            Registrar no painel do dia →
           </Link>
         </div>
       ) : null}
