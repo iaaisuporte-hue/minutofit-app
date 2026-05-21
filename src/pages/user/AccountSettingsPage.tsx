@@ -6,7 +6,7 @@ import InteractiveSurfaceCard from "../../components/InteractiveSurfaceCard";
 import { useIsMobile } from "../../hooks/useIsMobile";
 import { formatCpf, formatPhone } from "../../utils/validators";
 import StudentCompliancePanel from "./studentCompliance/StudentCompliancePanel";
-import { useNeonTheme, type NeonTheme } from "../../theme/minutofitNeonTheme";
+import { COLORS } from "../../styles/colors";
 import { useToast } from "../../components/Toast";
 import { API_URL } from "../../services/apiBase";
 import { authFetch } from "../../services/apiClient";
@@ -25,38 +25,36 @@ function Card({
   subtitle,
   children,
   accent,
-  neon,
 }: {
   title: string;
   subtitle?: string;
   children: React.ReactNode;
   accent?: boolean;
-  neon: NeonTheme;
 }) {
   return (
     <div
       style={{
-        border: accent ? `1px solid ${neon.accentBorder}` : `1px solid ${neon.border}`,
-        borderRadius: 16,
+        border: `1px solid ${accent ? COLORS.primaryBorder : COLORS.border}`,
+        borderRadius: "var(--radius-card)",
         background: accent
-          ? `linear-gradient(180deg, ${neon.accentSoft}, rgba(255,255,255,0) 55%), ${neon.panel}`
-          : neon.panel,
-        boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.05)",
+          ? `linear-gradient(180deg, ${COLORS.primarySoft} 0%, transparent 55%), ${COLORS.panel}`
+          : COLORS.panel,
+        boxShadow: "var(--shadow-sm)",
         overflow: "hidden",
-        color: neon.text,
+        color: COLORS.text,
       }}
     >
       <div
         style={{
           padding: 16,
-          borderBottom: `1px solid ${neon.border2}`,
+          borderBottom: `1px solid var(--color-border-subtle, ${COLORS.border})`,
           display: "grid",
           gap: 4,
         }}
       >
         <div style={{ fontWeight: 700, letterSpacing: 0.2 }}>{title}</div>
         {subtitle ? (
-          <div style={{ color: neon.muted2, fontSize: 12, lineHeight: 1.35 }}>{subtitle}</div>
+          <div style={{ color: COLORS.mutedSoft, fontSize: 12, lineHeight: 1.35 }}>{subtitle}</div>
         ) : null}
       </div>
 
@@ -69,26 +67,24 @@ function Field({
   label,
   hint,
   children,
-  neon,
 }: {
   label: string;
   hint?: string;
   children: React.ReactNode;
-  neon: NeonTheme;
 }) {
   return (
     <label style={{ display: "grid", gap: 6 }}>
       <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
         <div style={{ fontWeight: 600, fontSize: 13 }}>{label}</div>
-        {hint ? <div style={{ color: neon.muted2, fontSize: 12 }}>{hint}</div> : null}
+        {hint ? <div style={{ color: COLORS.mutedSoft, fontSize: 12 }}>{hint}</div> : null}
       </div>
       {children}
     </label>
   );
 }
 
-function TextInput(props: React.InputHTMLAttributes<HTMLInputElement> & { neon: NeonTheme }) {
-  const { readOnly, neon, ...rest } = props;
+function TextInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
+  const { readOnly, ...rest } = props;
   return (
     <input
       {...rest}
@@ -97,9 +93,9 @@ function TextInput(props: React.InputHTMLAttributes<HTMLInputElement> & { neon: 
         width: "100%",
         padding: "12px 12px",
         borderRadius: 14,
-        border: `1px solid ${neon.border}`,
-        background: readOnly ? "#FAFAFA" : neon.panel2,
-        color: readOnly ? neon.muted : neon.text,
+        border: `1px solid ${COLORS.border}`,
+        background: readOnly ? COLORS.panelSoft : COLORS.panelDeep,
+        color: readOnly ? COLORS.muted : COLORS.text,
         outline: "none",
         fontWeight: 600,
         letterSpacing: 0.2,
@@ -114,39 +110,23 @@ function Button({
   onClick,
   variant = "primary",
   disabled,
-  neon,
 }: {
   children: React.ReactNode;
   onClick: () => void;
   variant?: "primary" | "ghost" | "danger";
   disabled?: boolean;
-  neon: NeonTheme;
 }) {
-  const isPrimary = variant === "primary";
-  const isDanger = variant === "danger";
-
+  const cls =
+    variant === "primary" ? "btn btn-primary" :
+    variant === "danger"  ? "btn btn-danger"  :
+                            "btn btn-ghost";
   return (
     <button
       type="button"
       disabled={disabled}
       onClick={onClick}
-      style={{
-        padding: "12px 14px",
-        borderRadius: 14,
-        border: isPrimary
-          ? `1px solid ${neon.accentBorder}`
-          : isDanger
-            ? `1px solid ${neon.dangerBorder}`
-            : `1px solid ${neon.border}`,
-        background: isPrimary ? neon.ctaGradient : isDanger ? neon.dangerSoft : "transparent",
-        color: isPrimary ? neon.ctaText : neon.text,
-        cursor: disabled ? "not-allowed" : "pointer",
-        fontWeight: 700,
-        boxShadow: isPrimary ? "0 10px 24px rgba(0,0,0,.35)" : "none",
-        opacity: disabled ? 0.7 : 1,
-        width: "fit-content",
-        minHeight: 44,
-      }}
+      className={cls}
+      style={{ opacity: disabled ? 0.7 : 1, cursor: disabled ? "not-allowed" : "pointer", minHeight: 44 }}
     >
       {children}
     </button>
@@ -156,11 +136,9 @@ function Button({
 function Note({
   children,
   accent,
-  neon,
 }: {
   children: React.ReactNode;
   accent?: "accent" | "danger";
-  neon: NeonTheme;
 }) {
   const isAccent = accent === "accent";
   const isDanger = accent === "danger";
@@ -171,13 +149,9 @@ function Note({
         marginTop: 4,
         borderRadius: 14,
         padding: 12,
-        border: isAccent
-          ? `1px solid ${neon.accentBorder}`
-          : isDanger
-            ? `1px solid ${neon.dangerBorder}`
-            : `1px solid ${neon.border2}`,
-        background: isAccent ? neon.accentSoft : isDanger ? neon.dangerSoft : neon.panel2,
-        color: neon.muted,
+        border: `1px solid ${isAccent ? COLORS.primaryBorder : isDanger ? COLORS.dangerBorder : COLORS.border}`,
+        background: isAccent ? COLORS.primarySoft : isDanger ? COLORS.dangerSoft : COLORS.panelDeep,
+        color: COLORS.muted,
         fontSize: 13,
         lineHeight: 1.4,
       }}
@@ -188,7 +162,6 @@ function Note({
 }
 
 export default function AccountSettingsPage() {
-  const neon = useNeonTheme();
   const { user, accessProfile, getUser } = useAuth();
   const location = useLocation();
   const isMobile = useIsMobile(720);
@@ -277,13 +250,13 @@ export default function AccountSettingsPage() {
         minWidth: 0,
         display: "grid",
         gap: 14,
-        color: neon.text,
+        color: COLORS.text,
         boxSizing: "border-box",
       }}
     >
       {isLimitedProfile ? (
         <motion.div className="account-settings-section" variants={settingsSectionRevealVariants}>
-          <Note accent="accent" neon={neon}>
+          <Note accent="accent">
             <b>Plano clientes SB:</b> o app mantém o foco em Hoje e Treinos em casa. Aqui você acompanha e ajusta seus dados básicos
             de contato quando a API de atualização estiver ativa.
           </Note>
@@ -303,16 +276,16 @@ export default function AccountSettingsPage() {
             viewport={{ once: true, amount: 0.12 }}
             style={{ display: "grid", gap: 8 }}
           >
-            <div style={{ fontWeight: 600, fontSize: 11, letterSpacing: 1.1, textTransform: "uppercase", color: neon.muted2 }}>
+            <div style={{ fontWeight: 600, fontSize: 11, letterSpacing: 1.1, textTransform: "uppercase", color: COLORS.mutedSoft }}>
               Saúde &amp; compliance
             </div>
             <div
               style={{
                 height: 5,
                 borderRadius: 999,
-                background: "#F9FAFB",
+                background: COLORS.panelDeep,
                 overflow: "hidden",
-                border: `1px solid ${neon.border2}`,
+                border: `1px solid ${COLORS.border}`,
               }}
             >
               <motion.div
@@ -323,12 +296,12 @@ export default function AccountSettingsPage() {
                   height: "100%",
                   borderRadius: 999,
                   transformOrigin: "left center",
-                  background: neon.ctaGradient,
-                  boxShadow: user.studentComplianceComplete ? `0 0 18px ${neon.primary}55` : undefined,
+                  background: "var(--gradient-primary)",
+                  boxShadow: user.studentComplianceComplete ? `0 0 18px ${COLORS.primary}55` : undefined,
                 }}
               />
             </div>
-            <div style={{ color: neon.muted2, fontSize: 12, lineHeight: 1.35 }}>
+            <div style={{ color: COLORS.mutedSoft, fontSize: 12, lineHeight: 1.35 }}>
               {user.studentComplianceComplete ? "Cadastro de compliance concluído." : "Complete triagem e PAR-Q para liberar o uso completo."}
             </div>
           </motion.div>
@@ -370,11 +343,10 @@ export default function AccountSettingsPage() {
             whileHover={shouldReduceMotion ? undefined : { scale: 1.006, transition: { duration: 0.24 } }}
             whileTap={shouldReduceMotion ? undefined : { scale: 0.994 }}
           >
-            <Card neon={neon} title="Dados e contato" subtitle="Preenchidos a partir do seu usuário autenticado (backend / sessão).">
+            <Card title="Dados e contato" subtitle="Preenchidos a partir do seu usuário autenticado (backend / sessão).">
               <div style={{ display: "grid", gap: 12 }}>
-                <Field neon={neon} label="Nome" hint="Como você quer ser chamado">
+                <Field label="Nome" hint="Como você quer ser chamado">
                   <TextInput
-                    neon={neon}
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="Seu nome"
@@ -382,13 +354,12 @@ export default function AccountSettingsPage() {
                   />
                 </Field>
 
-                <Field neon={neon} label="E-mail" hint="Identificador de login — não alterar aqui">
-                  <TextInput neon={neon} value={email} readOnly placeholder="seuemail@dominio.com" autoComplete="email" />
+                <Field label="E-mail" hint="Identificador de login — não alterar aqui">
+                  <TextInput value={email} readOnly placeholder="seuemail@dominio.com" autoComplete="email" />
                 </Field>
 
-                <Field neon={neon} label="Telefone" hint="WhatsApp ou celular para contato">
+                <Field label="Telefone" hint="WhatsApp ou celular para contato">
                   <TextInput
-                    neon={neon}
                     value={phone}
                     onChange={(e) => setPhone(formatPhone(e.target.value))}
                     placeholder="(00) 00000-0000"
@@ -397,8 +368,8 @@ export default function AccountSettingsPage() {
                   />
                 </Field>
 
-                <Field neon={neon} label="CPF" hint="Cadastro — somente leitura">
-                  <TextInput neon={neon} value={cpfMasked} readOnly placeholder="—" autoComplete="off" />
+                <Field label="CPF" hint="Cadastro — somente leitura">
+                  <TextInput value={cpfMasked} readOnly placeholder="—" autoComplete="off" />
                 </Field>
 
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
@@ -408,7 +379,7 @@ export default function AccountSettingsPage() {
                     whileTap={shouldReduceMotion ? undefined : settingsSubtleTap}
                     style={{ width: "fit-content", borderRadius: 14 }}
                   >
-                    <Button neon={neon} onClick={() => void saveProfile()} variant="primary" disabled={savingProfile}>
+                    <Button onClick={() => void saveProfile()} variant="primary" disabled={savingProfile}>
                       {savingProfile ? "Salvando..." : "Salvar dados"}
                     </Button>
                   </motion.div>
@@ -418,7 +389,7 @@ export default function AccountSettingsPage() {
                     whileTap={shouldReduceMotion ? undefined : settingsSubtleTap}
                     style={{ width: "fit-content", borderRadius: 14 }}
                   >
-                    <Button neon={neon} onClick={() => void refreshFromServer()} variant="ghost">
+                    <Button onClick={() => void refreshFromServer()} variant="ghost">
                       Atualizar da sessão
                     </Button>
                   </motion.div>

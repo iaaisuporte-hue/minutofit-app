@@ -112,23 +112,6 @@ function DataRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-function maskCpf(cpf?: string) {
-  const digits = (cpf || "").replace(/\D/g, "");
-  if (digits.length !== 11) return cpf || "Não informado";
-  return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9)}`;
-}
-
-function maskPhone(phone?: string) {
-  const digits = (phone || "").replace(/\D/g, "");
-  if (digits.length === 11) {
-    return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
-  }
-  if (digits.length === 10) {
-    return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
-  }
-  return phone || "Não informado";
-}
-
 function getInitial(name: string) {
   return name.trim()[0]?.toUpperCase() ?? "A";
 }
@@ -307,7 +290,7 @@ function drawEvolutionShareCard(opts: {
 
 export default function UserProfilePage({ onLogout }: Props) {
   const navigate = useNavigate();
-  const { user, email, profileCompleted, branding, academies } = useAuth();
+  const { user, branding, academies } = useAuth();
   const { data: metabolismData } = useMetabolism();
   const { data: gamification } = useGamificationSummary();
   const { data: professionalContext, loading: professionalLoading } = useProfessionalContext();
@@ -318,11 +301,7 @@ export default function UserProfilePage({ onLogout }: Props) {
   const accountSummary = useMemo(
     () => ({
       name: user?.name || "Aluno",
-      accountEmail: user?.email || email || "Não informado",
-      cpf: maskCpf(user?.cpf),
-      phone: maskPhone(user?.phone),
       plan: mapCanonicalPlanToLabel(normalizeToCanonicalPlanName(planName || user?.subscriptionTier)),
-      profileStatus: profileCompleted ? "Completo" : "Pendente",
       fitnessGoal: user?.fitnessGoal || "Não definido",
       experienceLevel: user?.experienceLevel || "Não definido",
       height: user?.heightCm ? `${user.heightCm} cm` : "Não informado",
@@ -330,16 +309,11 @@ export default function UserProfilePage({ onLogout }: Props) {
       dietaryRestrictions: user?.dietaryRestrictions || "Nenhuma informada",
     }),
     [
-      email,
-      profileCompleted,
-      user?.cpf,
       user?.dietaryRestrictions,
-      user?.email,
       user?.experienceLevel,
       user?.fitnessGoal,
       user?.heightCm,
       user?.name,
-      user?.phone,
       planName,
       user?.subscriptionTier,
       user?.weightKg,
@@ -418,55 +392,31 @@ export default function UserProfilePage({ onLogout }: Props) {
               <ProfileSignal label="Profissional" value={professionalSignal} />
               <ProfileSignal label="Academia" value={academyName} />
             </motion.div>
+
+            <motion.div variants={itemRevealVariants} style={{ display: "flex", justifyContent: "flex-end" }}>
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={() => navigate("/app/user/settings")}
+                style={{ fontSize: "var(--text-sm)" }}
+              >
+                Editar conta →
+              </button>
+            </motion.div>
           </motion.div>
         </Card>
       </motion.div>
 
-      <motion.div
-        variants={sectionRevealVariants}
-        style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))", gap: "var(--space-4)" }}
-      >
+      <motion.div variants={sectionRevealVariants} style={{ display: "grid", gap: "var(--space-4)" }}>
         <motion.div variants={itemRevealVariants} whileInView="show" initial={shouldReduceMotion ? false : "hidden"} viewport={{ once: true, amount: 0.15 }}>
           <Card interactive enableTilt={shouldUseTilt} style={{ background: COLORS.panelDeep, borderColor: COLORS.borderStrong }}>
             <div style={{ display: "grid", gap: "var(--space-4)" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "var(--space-3)", flexWrap: "wrap" }}>
-                <div style={{ fontSize: "var(--text-xl)", fontWeight: "var(--font-bold)", color: COLORS.text }}>Dados da conta</div>
-                <button type="button" className="btn btn-ghost" onClick={() => navigate("/app/user/settings")}>
-                  Editar dados pessoais
+                <div style={{ fontSize: "var(--text-xl)", fontWeight: "var(--font-bold)", color: COLORS.text }}>Perfil fitness</div>
+                <button type="button" className="btn btn-ghost" onClick={() => navigate("/app/user/settings")} style={{ fontSize: "var(--text-sm)" }}>
+                  Editar →
                 </button>
               </div>
-              <div style={{ display: "grid", gap: "var(--space-3)" }}>
-                <DataRow label="Nome" value={accountSummary.name} />
-                <DataRow label="E-mail" value={accountSummary.accountEmail} />
-                <DataRow label="CPF" value={accountSummary.cpf} />
-                <DataRow label="Telefone" value={accountSummary.phone} />
-              </div>
-            </div>
-          </Card>
-        </motion.div>
-
-        <motion.div variants={itemRevealVariants} whileInView="show" initial={shouldReduceMotion ? false : "hidden"} viewport={{ once: true, amount: 0.15 }}>
-          <Card interactive enableTilt={shouldUseTilt} style={{ background: COLORS.panelDeep, borderColor: COLORS.borderStrong }}>
-            <div style={{ display: "grid", gap: "var(--space-4)" }}>
-              <div style={{ fontSize: "var(--text-xl)", fontWeight: "var(--font-bold)", color: COLORS.text }}>Assinatura e status</div>
-              <div style={{ display: "grid", gap: "var(--space-3)" }}>
-                <DataRow label="Plano atual" value={accountSummary.plan} />
-                <DataRow label="Perfil concluído" value={accountSummary.profileStatus} />
-              </div>
-            </div>
-          </Card>
-        </motion.div>
-
-        <motion.div
-          variants={itemRevealVariants}
-          whileInView="show"
-          initial={shouldReduceMotion ? false : "hidden"}
-          viewport={{ once: true, amount: 0.15 }}
-          style={isMobile ? undefined : { gridColumn: "1 / -1" }}
-        >
-          <Card interactive enableTilt={shouldUseTilt} style={{ background: COLORS.panelDeep, borderColor: COLORS.borderStrong }}>
-            <div style={{ display: "grid", gap: "var(--space-4)" }}>
-              <div style={{ fontSize: "var(--text-xl)", fontWeight: "var(--font-bold)", color: COLORS.text }}>Perfil fitness</div>
               <div style={{ display: "grid", gap: "var(--space-3)", gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))" }}>
                 <DataRow label="Objetivo" value={accountSummary.fitnessGoal} />
                 <DataRow label="Nível" value={accountSummary.experienceLevel} />
@@ -537,7 +487,13 @@ export default function UserProfilePage({ onLogout }: Props) {
       )}
 
       <motion.div variants={sectionRevealVariants} style={{ display: "flex", justifyContent: "flex-end" }}>
-        <button type="button" className="btn btn-ghost" onClick={onLogout}>
+        <button
+          type="button"
+          className="btn btn-ghost"
+          onClick={() => {
+            if (window.confirm("Sair da conta?")) onLogout();
+          }}
+        >
           Sair da conta
         </button>
       </motion.div>

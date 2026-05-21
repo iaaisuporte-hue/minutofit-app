@@ -1,9 +1,7 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
+import { Link } from "react-router-dom";
 import { fetchMyWorkoutPlans, type UserWorkoutPlan, type UserWorkoutPlanDay, type UserWorkoutPlanItem } from "../../services/userWorkoutPlansApi";
 import { getExercisesBatch, type Exercise } from "../../services/exercisesApi";
-import { persistGamificationCheckin } from "../../services/gamificationApi";
-import { addWorkoutHistoryEntry, type MuscleGroup } from "./workoutHistory";
-import { registerDailyCheckin } from "./gamification";
 import { COLORS } from "../../styles/colors";
 import { EmptyState } from "../../components/EmptyState";
 import { TechniqueCard } from "../../features/training/techniques/TechniqueCard";
@@ -33,88 +31,6 @@ function useThumbTick() {
   return tick;
 }
 
-type WorkoutDoneButtonProps = {
-  planTitle: string;
-  /** Foco do dia atualmente em foco, opcional (alimenta user_workout_logs.muscle_groups) */
-  focusHint?: string | null;
-};
-
-function WorkoutDoneButton({ planTitle, focusHint }: WorkoutDoneButtonProps) {
-  const [state, setState] = useState<"idle" | "saving" | "saved" | "error">("idle");
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
-
-  async function register() {
-    setState("saving");
-    setErrorMsg(null);
-    try {
-      const workoutId = `ficha-${Date.now()}`;
-      const title = `Treino concluído • ${planTitle}`;
-      const muscleGroups = focusHint ? [focusHint as MuscleGroup] : [];
-      await persistGamificationCheckin({
-        source: "workout",
-        xp: 20,
-        workout: { workoutId, title, muscleGroups },
-      });
-      addWorkoutHistoryEntry({ workoutId, title, muscleGroups, date: new Date().toISOString() });
-      registerDailyCheckin("workout", 20);
-      setState("saved");
-    } catch (e) {
-      setState("error");
-      setErrorMsg(e instanceof Error ? e.message : "Não foi possível registrar agora.");
-    }
-  }
-
-  if (state === "saved") {
-    return (
-      <div
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          gap: 8,
-          padding: "8px 12px",
-          borderRadius: 10,
-          border: `1px solid ${COLORS.successBorder}`,
-          background: COLORS.successBg,
-          color: COLORS.text,
-          fontSize: 13,
-          fontWeight: 600,
-        }}
-      >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <polyline points="20 6 9 17 4 12" />
-        </svg>
-        Treino registrado hoje
-      </div>
-    );
-  }
-
-  return (
-    <div style={{ display: "grid", gap: 6 }}>
-      <button
-        type="button"
-        onClick={() => void register()}
-        disabled={state === "saving"}
-        style={{
-          padding: "10px 14px",
-          borderRadius: 10,
-          border: "none",
-          background: state === "saving" ? COLORS.panelSoft : "linear-gradient(135deg, #22C55E, #06B6D4)",
-          color: "#FFFFFF",
-          fontWeight: 700,
-          fontSize: 13,
-          cursor: state === "saving" ? "default" : "pointer",
-          width: "fit-content",
-          boxShadow: state === "saving" ? "none" : "0 6px 18px rgba(34,197,94,0.18)",
-        }}
-      >
-        {state === "saving" ? "Registrando..." : "Marcar treino concluído"}
-      </button>
-      {state === "error" && errorMsg ? (
-        <div style={{ color: COLORS.danger, fontSize: 12 }}>{errorMsg}</div>
-      ) : null}
-    </div>
-  );
-}
 
 type ExerciseModalProps = {
   exercise: Exercise;
@@ -293,7 +209,7 @@ function PlanDayExerciseList({ day, planId }: PlanDayExerciseListProps) {
                     overflow: "hidden",
                     border: `1px solid ${COLORS.border}`,
                     position: "relative",
-                    background: "#F1F5F9",
+                    background: COLORS.panelDeep,
                     cursor: "pointer",
                     padding: 0,
                   }}
@@ -339,14 +255,15 @@ function PlanDayExerciseList({ day, planId }: PlanDayExerciseListProps) {
                     height: 64,
                     borderRadius: 8,
                     border: `1px solid ${COLORS.border}`,
-                    background: "#F1F5F9",
+                    background: COLORS.panelDeep,
                     display: "grid",
                     placeItems: "center",
-                    fontSize: 24,
                     color: COLORS.muted,
                   }}
                 >
-                  ⚡
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M6 4v16M18 4v16M1 9h5M18 9h5M1 15h5M18 15h5" />
+                  </svg>
                 </div>
               )}
 
@@ -375,9 +292,12 @@ function PlanDayExerciseList({ day, planId }: PlanDayExerciseListProps) {
                     href={primaryMedia.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    style={{ color: COLORS.primary, fontSize: 12, textDecoration: "none" }}
+                    style={{ color: COLORS.primary, fontSize: 12, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4 }}
                   >
-                    Ver demonstração
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                      <path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6A3 3 0 0 0 .5 6.2C0 8.1 0 12 0 12s0 3.9.5 5.8a3 3 0 0 0 2.1 2.1c1.9.6 9.4.6 9.4.6s7.5 0 9.4-.6a3 3 0 0 0 2.1-2.1C24 15.9 24 12 24 12s0-3.9-.5-5.8zM9.7 15.5V8.5l6.3 3.5-6.3 3.5z"/>
+                    </svg>
+                    Ver no YouTube
                   </a>
                 )}
                 {item.notes ? (
@@ -576,7 +496,7 @@ export default function MyWorkoutPlansPage() {
       </div>
 
       {loading ? <div style={{ color: COLORS.muted }}>Carregando fichas...</div> : null}
-      {error ? <div style={{ color: "#fca5a5" }}>{error}</div> : null}
+      {error ? <div style={{ color: COLORS.danger }}>{error}</div> : null}
 
       {!loading && !error && !plans.length ? (
         <EmptyState
@@ -605,7 +525,24 @@ export default function MyWorkoutPlansPage() {
             Ficha ativa: <b>{latestPlan.title}</b> · Atualizada em{" "}
             <b>{formatDate(latestPlan.updated_at)}</b>
           </div>
-          <WorkoutDoneButton planTitle={latestPlan.title} focusHint={latestPlan.selected_group ?? null} />
+          <Link
+            to="/app/user/today"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              padding: "8px 14px",
+              borderRadius: 10,
+              background: "var(--gradient-primary)",
+              color: "var(--color-white)",
+              fontWeight: 700,
+              fontSize: 13,
+              textDecoration: "none",
+              flexShrink: 0,
+            }}
+          >
+            Registrar treino no painel do dia →
+          </Link>
         </div>
       ) : null}
 
