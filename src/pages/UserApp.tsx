@@ -124,9 +124,9 @@ export default function UserApp() {
   const canSettings = hasFeature("settings");
 
   const todayUserState = useTodayUserState();
-  const isPersonalLedWithPlan = todayUserState.hasActivePersonal && todayUserState.hasActiveWorkoutPlan;
-  const showSuggestedTrainingNav = canSuggestedTraining && !isPersonalLedWithPlan;
-  const showWorkoutsNav = canWorkouts && !isPersonalLedWithPlan;
+  const isPersonalLed = todayUserState.hasActivePersonal;
+  const showSuggestedTrainingNav = canSuggestedTraining && !isPersonalLed;
+  const showWorkoutsNav = canWorkouts && !isPersonalLed;
 
   function handleLogout() {
     logout();

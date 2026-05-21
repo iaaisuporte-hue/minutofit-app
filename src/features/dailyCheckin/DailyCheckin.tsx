@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { type ReactNode, useState } from 'react';
 import { AnimatePresence, motion, type Variants } from 'framer-motion';
+import { Minus, Moon, Zap } from 'lucide-react';
 import type {
   DailyCondition,
   DailyConditionDetails,
@@ -18,10 +19,10 @@ interface Props {
   onConditionSaved?: (payload: { feeling: DailyFeeling; details: DailyConditionDetails }) => void | Promise<void>;
 }
 
-const FEELING_META: Record<DailyFeeling, { label: string; emoji: string; color: string; bg: string; border: string }> = {
-  tired:    { label: 'Cansado',  emoji: '😴', color: 'var(--color-warn)',         bg: 'var(--color-warn-soft)',         border: 'var(--color-warn-border)' },
-  normal:   { label: 'Normal',   emoji: '😐', color: 'var(--color-accent-hover)', bg: 'var(--color-accent-soft)',       border: 'var(--color-accent-border)' },
-  energized:{ label: 'Disposto', emoji: '⚡', color: 'var(--color-success-text)', bg: 'var(--color-success-soft)',      border: 'var(--color-success-border)' },
+const FEELING_META: Record<DailyFeeling, { label: string; icon: ReactNode; color: string; bg: string; border: string }> = {
+  tired:    { label: 'Cansado',  icon: <Moon size={20} />,  color: 'var(--color-warn)',         bg: 'var(--color-warn-soft)',         border: 'var(--color-warn-border)' },
+  normal:   { label: 'Normal',   icon: <Minus size={20} />, color: 'var(--color-accent-hover)', bg: 'var(--color-accent-soft)',       border: 'var(--color-accent-border)' },
+  energized:{ label: 'Disposto', icon: <Zap size={20} />,   color: 'var(--color-success-text)', bg: 'var(--color-success-soft)',      border: 'var(--color-success-border)' },
 };
 
 const FEELINGS: DailyFeeling[] = ['tired', 'normal', 'energized'];
@@ -213,7 +214,7 @@ export function DailyCheckin({ condition, setCondition, clearCondition, onCondit
                 color: meta.color,
               }}
             >
-              {meta.emoji} {meta.label}
+              {meta.icon} {meta.label}
             </span>
           </div>
           <button
@@ -292,7 +293,7 @@ export function DailyCheckin({ condition, setCondition, clearCondition, onCondit
                 transition: 'border-color 0.15s ease, background 0.15s ease, color 0.15s ease',
               }}
             >
-              <span style={{ fontSize: 20 }}>{meta.emoji}</span>
+              {meta.icon}
               {meta.label}
             </motion.button>
           );
