@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import type { ProfessionalSummary } from "../../../features/professionalVoice";
+import type { WorkoutRecommendation } from "../../../features/training/generateDailyWorkout";
 import { ActionButton } from "./ActionButton";
 import { SURFACE } from "./surface";
 
@@ -43,11 +44,14 @@ function Avatar({ photo, name }: { photo: string | null; name: string }) {
 export function PersonalEmptyState({
   personal,
   isMobile,
+  fallbackWorkout,
 }: {
   personal: ProfessionalSummary;
   isMobile: boolean;
+  fallbackWorkout?: WorkoutRecommendation;
 }) {
   const navigate = useNavigate();
+  const firstName = personal.name.split(" ")[0];
   return (
     <div
       className="today-card"
@@ -57,24 +61,85 @@ export function PersonalEmptyState({
         padding: isMobile ? 18 : 22,
       }}
     >
-      <div style={{ display: "grid", gap: 14 }}>
+      <div style={{ display: "grid", gap: 16 }}>
+        {/* Header: personal + status */}
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <Avatar photo={personal.photo} name={personal.name} />
           <div style={{ display: "grid", gap: 2 }}>
             <div className="today-eyebrow">Acompanhamento ativo</div>
             <div style={{ fontSize: isMobile ? 16 : 18, fontWeight: 700, color: SURFACE.text }}>
-              {personal.name} ainda não liberou um treino
+              {personal.name} está preparando seu treino
             </div>
           </div>
         </div>
 
         <div style={{ fontSize: 14, color: SURFACE.muted, lineHeight: 1.55 }}>
-          Seu personal está lendo seus sinais e libera o treino quando fizer sentido pra hoje.
-          Enquanto isso, mantenha o check-in em dia — é o que alimenta a decisão dele.
+          {firstName} lê seus sinais antes de liberar. Mantenha o check-in em dia —
+          é o que alimenta a decisão dele.
         </div>
 
+        {/* Treino leve adaptativo enquanto aguarda ficha */}
+        {fallbackWorkout && (
+          <div style={{
+            padding: "14px 16px",
+            borderRadius: 12,
+            background: "var(--color-surface-raised)",
+            border: `1px solid ${SURFACE.border}`,
+            display: "grid",
+            gap: 10,
+          }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+              <div style={{ display: "grid", gap: 2 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: SURFACE.muted, textTransform: "uppercase", letterSpacing: "0.07em" }}>
+                  Enquanto isso, sugestão de hoje
+                </div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: SURFACE.text }}>
+                  {fallbackWorkout.title}
+                </div>
+              </div>
+              <span style={{
+                fontSize: 11, fontWeight: 600, color: SURFACE.muted,
+                padding: "3px 10px", borderRadius: 999,
+                border: `1px solid ${SURFACE.border}`, background: SURFACE.page,
+                whiteSpace: "nowrap",
+              }}>
+                {fallbackWorkout.duration} min
+              </span>
+            </div>
+            {fallbackWorkout.exercises.slice(0, 3).length > 0 && (
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                {fallbackWorkout.exercises.slice(0, 3).map((ex) => (
+                  <span key={ex} style={{
+                    fontSize: 11, color: SURFACE.muted, padding: "2px 8px",
+                    borderRadius: 999, border: `1px solid ${SURFACE.border}`, background: SURFACE.page,
+                  }}>
+                    {ex}
+                  </span>
+                ))}
+                {fallbackWorkout.exercises.length > 3 && (
+                  <span style={{ fontSize: 11, color: SURFACE.muted, padding: "2px 8px" }}>
+                    +{fallbackWorkout.exercises.length - 3} exercícios
+                  </span>
+                )}
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={() => navigate("/app/user/suggested-training")}
+              style={{
+                alignSelf: "start", fontSize: 12, fontWeight: 600,
+                color: "var(--color-primary)", background: "none",
+                border: "none", cursor: "pointer", padding: 0,
+                textDecoration: "underline",
+              }}
+            >
+              Ver treino completo →
+            </button>
+          </div>
+        )}
+
         <ActionButton variant="secondary" onClick={() => navigate("/app/user/messages")} fullWidth={isMobile}>
-          Falar com {personal.name.split(" ")[0]}
+          Falar com {firstName}
         </ActionButton>
       </div>
     </div>

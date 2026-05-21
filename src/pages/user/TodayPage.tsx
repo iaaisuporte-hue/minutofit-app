@@ -152,6 +152,7 @@ export default function TodayPage() {
   const showPersonalEmpty = todayState.hasActivePersonal && !todayState.hasActiveWorkoutPlan;
   const showSuggestedWorkout =
     todayState.hasAppAccess && !todayState.hasActiveWorkoutPlan && todayState.trainingMode === "self_guided";
+  const showAcademyWorkout = todayState.trainingMode === "academy_led";
   const showProfessionalVoice =
     (todayState.hasActivePersonal || todayState.hasActiveNutri) && todayState.hasProfessionalObservation;
   const {
@@ -413,10 +414,74 @@ export default function TodayPage() {
         </motion.div>
       )}
 
-      {/* 5b. Personal vinculado, ainda sem ficha — estado vazio elegante */}
+      {/* 5b. Personal vinculado, ainda sem ficha — estado vazio com ação */}
       {showPersonalEmpty && todayState.personal && (
         <motion.div variants={sectionRevealVariants}>
-          <PersonalEmptyState personal={todayState.personal} isMobile={isMobile} />
+          <PersonalEmptyState
+            personal={todayState.personal}
+            isMobile={isMobile}
+            fallbackWorkout={homeWorkout}
+          />
+        </motion.div>
+      )}
+
+      {/* 5d. Academy-led — aluno de academia sem personal: treino sugerido com viés gym */}
+      {showAcademyWorkout && (
+        <motion.div variants={sectionRevealVariants}>
+          <div
+            className="today-card"
+            style={{ borderColor: SURFACE.border, boxShadow: SURFACE.shadow, padding: isMobile ? 18 : 22 }}
+          >
+            <div style={{ display: "grid", gap: 16 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+                <div style={{ display: "grid", gap: 3 }}>
+                  <SectionEyebrow>Treino de hoje</SectionEyebrow>
+                  <div style={{ fontSize: isMobile ? 16 : 18, fontWeight: 700, color: SURFACE.text }}>
+                    {gymWorkout?.title ?? "Treino na academia"}
+                  </div>
+                </div>
+                <span style={{
+                  fontSize: 11, fontWeight: 700, color: SURFACE.muted,
+                  padding: "4px 12px", borderRadius: 999,
+                  border: `1px solid ${SURFACE.border}`, background: SURFACE.page,
+                }}>
+                  Academia
+                </span>
+              </div>
+
+              {gymWorkout && (
+                <>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    <span style={{
+                      fontSize: 12, fontWeight: 700, color: SURFACE.muted,
+                      padding: "3px 10px", borderRadius: 999,
+                      border: `1px solid ${SURFACE.border}`, background: SURFACE.page,
+                    }}>
+                      {gymWorkout.duration} min
+                    </span>
+                  </div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                    {gymWorkout.exercises.slice(0, 5).map((ex) => (
+                      <span key={ex} style={{
+                        fontSize: 12, color: SURFACE.muted, padding: "3px 10px",
+                        borderRadius: 999, border: `1px solid ${SURFACE.border}`, background: SURFACE.page,
+                      }}>
+                        {ex}
+                      </span>
+                    ))}
+                  </div>
+                </>
+              )}
+
+              <ActionButton
+                variant="primary"
+                onClick={() => navigate("/app/user/suggested-training")}
+                fullWidth={isMobile}
+              >
+                Ver treino completo →
+              </ActionButton>
+            </div>
+          </div>
         </motion.div>
       )}
 
