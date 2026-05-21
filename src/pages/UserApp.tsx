@@ -111,7 +111,8 @@ function LimitedUserOnly({ allowed, children }: { allowed: boolean; children: Re
 
 export default function UserApp() {
   const navigate = useNavigate();
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
+  const firstName = user?.name?.split(" ")[0] || "Aluno";
   const { hasFeature, loading } = useFeatureFlags();
   const canMessages = hasFeature("messages");
   const canProfile = hasFeature("profile");
@@ -151,7 +152,7 @@ export default function UserApp() {
           <>
             <div style={{ padding: "8px 4px 16px" }}>
               <MinutoFitLogo width={148} />
-              <div className="shellSubtitle" style={{ marginTop: 8 }}>Aluno</div>
+              <div className="shellSubtitle" style={{ marginTop: 8 }}>{firstName}</div>
             </div>
 
             <div className="navStack">

@@ -260,6 +260,11 @@ export default function ActivityTrackerPage() {
   const [rewardMessage, setRewardMessage] = useState<string | null>(null);
   const [expandedMapId, setExpandedMapId] = useState<string | null>(null);
 
+  // ── Manual (treadmill) mode ──────────────────────────────────────────────
+  const [manualMode, setManualMode] = useState(false);
+  const [manualDurationMin, setManualDurationMin] = useState("");
+  const [manualDistanceKm, setManualDistanceKm] = useState("");
+
   // ── Validation state ─────────────────────────────────────────────────────
   const [liveValidation, setLiveValidation] = useState<{
     isSuspicious: boolean;
@@ -534,6 +539,31 @@ export default function ActivityTrackerPage() {
     setIsPaused(false);
   }
 
+  function saveManualActivity() {
+    const durationSec = Math.round(parseFloat(manualDurationMin) * 60);
+    if (!manualDurationMin || isNaN(durationSec) || durationSec <= 0) return;
+    const distKm = manualDistanceKm ? parseFloat(manualDistanceKm) : 0;
+    const pace = distKm > 0 ? (durationSec / 60) / distKm : 0;
+    const now = new Date();
+    const start = new Date(now.getTime() - durationSec * 1000);
+    const manualActivity: Activity = {
+      id: crypto.randomUUID(),
+      type: selectedType,
+      startTime: start,
+      endTime: now,
+      distance: isNaN(distKm) ? 0 : distKm,
+      pace,
+      duration: durationSec,
+      routeCoordinates: [],
+      calories: estimateCalories(selectedType, durationSec, isNaN(distKm) ? 0 : distKm),
+      intensity: classifyIntensity(selectedType, pace),
+    };
+    setManualDurationMin("");
+    setManualDistanceKm("");
+    setManualMode(false);
+    void saveActivity(manualActivity, false);
+  }
+
   /** Internal: persist activity, update state, trigger gamification */
   async function saveActivity(endActivity: Activity, confirmed: boolean) {
     const updatedActivities = [endActivity, ...activities];
@@ -796,6 +826,46 @@ export default function ActivityTrackerPage() {
           <div className="tr-hero">
             <div className="tr-selection-title">Como seu corpo vai se movimentar hoje?</div>
 
+            {/* Mode toggle: GPS vs Manual */}
+            <div style={{ display: "flex", gap: 6, marginBottom: 4 }}>
+              <button
+                type="button"
+                onClick={() => setManualMode(false)}
+                style={{
+                  flex: 1,
+                  padding: "8px 0",
+                  borderRadius: "var(--radius-card)",
+                  border: `1px solid ${manualMode ? "var(--color-border)" : "var(--color-primary)"}`,
+                  background: manualMode ? "transparent" : "var(--color-primary-soft)",
+                  color: manualMode ? "var(--color-muted)" : "var(--color-primary)",
+                  fontWeight: 600,
+                  fontSize: 13,
+                  cursor: "pointer",
+                  transition: "all 0.15s",
+                }}
+              >
+                Com GPS
+              </button>
+              <button
+                type="button"
+                onClick={() => setManualMode(true)}
+                style={{
+                  flex: 1,
+                  padding: "8px 0",
+                  borderRadius: "var(--radius-card)",
+                  border: `1px solid ${manualMode ? "var(--color-primary)" : "var(--color-border)"}`,
+                  background: manualMode ? "var(--color-primary-soft)" : "transparent",
+                  color: manualMode ? "var(--color-primary)" : "var(--color-muted)",
+                  fontWeight: 600,
+                  fontSize: 13,
+                  cursor: "pointer",
+                  transition: "all 0.15s",
+                }}
+              >
+                Esteira / Sem GPS
+              </button>
+            </div>
+
             <div className="tr-selection-grid">
               {(Object.keys(ACTIVITY_META) as Activity["type"][]).map((type) => {
                 const active = selectedType === type;
@@ -821,52 +891,119 @@ export default function ActivityTrackerPage() {
               })}
             </div>
 
-            {/* GPS status indicator */}
-            {gpsStatus !== "idle" && (
-              <div
-                className={`tr-gps-status tr-gps-status--${gpsStatus}`}
-                role="status"
-                aria-live="polite"
-              >
-                {gpsStatus === "requesting" && (
-                  <><span className="tr-gps-dot tr-gps-dot--searching" />Buscando sinal GPS…</>
-                )}
-                {gpsStatus === "ready" && (
-                  <><span className="tr-gps-dot tr-gps-dot--ready" />GPS pronto{gpsAccuracy !== null ? ` · precisão ${gpsAccuracy} m` : ""}</>
-                )}
-                {gpsStatus === "denied" && (
-                  <><span className="tr-gps-dot tr-gps-dot--error" />GPS bloqueado — ative nas configurações do navegador</>
-                )}
-                {gpsStatus === "unavailable" && (
-                  <><span className="tr-gps-dot tr-gps-dot--error" />GPS indisponível neste dispositivo</>
-                )}
-              </div>
-            )}
-
-            <div className="tr-cta-bar">
-              <div className="tr-cta-left">
-                <div className="tr-cta-icon">
-                  <ActivityIcon type={selectedType} size={20} />
+            {manualMode ? (
+              /* ── Manual entry form (treadmill / no GPS) ── */
+              <div style={{ display: "grid", gap: 10 }}>
+                <div style={{ color: "var(--color-muted)", fontSize: 12, lineHeight: 1.4 }}>
+                  Informe os dados da sua atividade na esteira ou em ambiente sem GPS.
                 </div>
-                <div className="tr-cta-label">{ACTIVITY_META[selectedType].label}</div>
-              </div>
-              <div className="tr-cta-right">
+                <label style={{ display: "grid", gap: 5 }}>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: "var(--color-muted)" }}>Duração (minutos) *</span>
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    min={1}
+                    placeholder="Ex: 30"
+                    value={manualDurationMin}
+                    onChange={(e) => setManualDurationMin(e.target.value)}
+                    style={{
+                      padding: "11px 12px",
+                      borderRadius: "var(--radius-card)",
+                      border: "1px solid var(--color-border)",
+                      background: "var(--color-surface-raised)",
+                      color: "var(--color-text)",
+                      fontWeight: 600,
+                      fontSize: 14,
+                      outline: "none",
+                      width: "100%",
+                      boxSizing: "border-box",
+                    }}
+                  />
+                </label>
+                <label style={{ display: "grid", gap: 5 }}>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: "var(--color-muted)" }}>Distância (km) — opcional</span>
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    min={0}
+                    step={0.1}
+                    placeholder="Ex: 3.5"
+                    value={manualDistanceKm}
+                    onChange={(e) => setManualDistanceKm(e.target.value)}
+                    style={{
+                      padding: "11px 12px",
+                      borderRadius: "var(--radius-card)",
+                      border: "1px solid var(--color-border)",
+                      background: "var(--color-surface-raised)",
+                      color: "var(--color-text)",
+                      fontWeight: 600,
+                      fontSize: 14,
+                      outline: "none",
+                      width: "100%",
+                      boxSizing: "border-box",
+                    }}
+                  />
+                </label>
                 <button
                   type="button"
-                  onClick={startActivity}
                   className="tr-cta-button"
-                  disabled={gpsStatus === "denied"}
-                  title={gpsStatus === "denied" ? "Permissão de GPS negada" : undefined}
+                  onClick={saveManualActivity}
+                  disabled={!manualDurationMin || parseFloat(manualDurationMin) <= 0}
+                  style={{ width: "100%", justifyContent: "center", opacity: (!manualDurationMin || parseFloat(manualDurationMin) <= 0) ? 0.6 : 1 }}
                 >
-                  {gpsStatus === "requesting" ? "Aguardando GPS…" : "▶ Iniciar sessão"}
+                  Registrar atividade
                 </button>
-                <div className="tr-cta-caption">
-                  {gpsStatus === "denied"
-                    ? "Permissão de GPS necessária"
-                    : "Baseado no seu estado de hoje"}
-                </div>
               </div>
-            </div>
+            ) : (
+              <>
+                {/* GPS status indicator */}
+                {gpsStatus !== "idle" && (
+                  <div
+                    className={`tr-gps-status tr-gps-status--${gpsStatus}`}
+                    role="status"
+                    aria-live="polite"
+                  >
+                    {gpsStatus === "requesting" && (
+                      <><span className="tr-gps-dot tr-gps-dot--searching" />Buscando sinal GPS…</>
+                    )}
+                    {gpsStatus === "ready" && (
+                      <><span className="tr-gps-dot tr-gps-dot--ready" />GPS pronto{gpsAccuracy !== null ? ` · precisão ${gpsAccuracy} m` : ""}</>
+                    )}
+                    {gpsStatus === "denied" && (
+                      <><span className="tr-gps-dot tr-gps-dot--error" />GPS bloqueado — ative nas configurações do navegador</>
+                    )}
+                    {gpsStatus === "unavailable" && (
+                      <><span className="tr-gps-dot tr-gps-dot--error" />GPS indisponível neste dispositivo</>
+                    )}
+                  </div>
+                )}
+
+                <div className="tr-cta-bar">
+                  <div className="tr-cta-left">
+                    <div className="tr-cta-icon">
+                      <ActivityIcon type={selectedType} size={20} />
+                    </div>
+                    <div className="tr-cta-label">{ACTIVITY_META[selectedType].label}</div>
+                  </div>
+                  <div className="tr-cta-right">
+                    <button
+                      type="button"
+                      onClick={startActivity}
+                      className="tr-cta-button"
+                      disabled={gpsStatus === "denied"}
+                      title={gpsStatus === "denied" ? "Permissão de GPS negada" : undefined}
+                    >
+                      {gpsStatus === "requesting" ? "Aguardando GPS…" : "▶ Iniciar sessão"}
+                    </button>
+                    <div className="tr-cta-caption">
+                      {gpsStatus === "denied"
+                        ? "Permissão de GPS necessária"
+                        : "Baseado no seu estado de hoje"}
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </Card>
       )}

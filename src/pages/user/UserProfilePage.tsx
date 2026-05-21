@@ -100,7 +100,7 @@ function DataRow({ label, value }: { label: string; value: string }) {
         padding: "12px 14px",
         borderRadius: "var(--radius-card)",
         border: `1px solid ${COLORS.border}`,
-        background: COLORS.panelSoft,
+        background: COLORS.panelDeep,
         alignItems: "center",
       }}
     >
@@ -151,7 +151,7 @@ function MetabolicMetric({ label, value, tone }: { label: string; value: string 
         padding: "var(--space-4)",
         borderRadius: "var(--radius-card)",
         border: `1px solid ${COLORS.border}`,
-        background: COLORS.panelSoft,
+        background: COLORS.panelDeep,
         display: "grid",
         gap: "var(--space-2)",
       }}
