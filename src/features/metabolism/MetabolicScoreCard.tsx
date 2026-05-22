@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useIsMobile } from '../../hooks/useIsMobile';
+import { InfoHint } from '../../components/InfoHint';
 import type { MetabolicData, MetabolicFactor, MetabolicTrend } from './metabolism.types';
 import type { DerivedEnergyStatus, MetabolicForecast } from './metabolismDerivations';
 import { computeMetabolicTrends } from '../metabolicCheckin/computeMetabolicTrends';
@@ -182,8 +183,14 @@ export function MetabolicScoreCard({ data, loading, error, derivedStatus, foreca
         {/* Linha principal: label + score + trend */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap' }}>
           <div style={{ display: 'grid', gap: 6 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'flex', alignItems: 'center', gap: 6 }}>
               Status Metabólico
+              <InfoHint
+                termo="Estado metabólico"
+                resumo="Quão ativo seu corpo está agora — considera sono, treino recente, alimentação e estresse."
+                impacto="Quando está baixo, o app sugere recuperação. Quando está alto, sugere mais intensidade."
+                saibaMaisHref="/app/user/glossario#estado-metabolico"
+              />
             </div>
             <div style={{ fontSize: isMobile ? 22 : 26, fontWeight: 700, color: 'var(--color-text)', letterSpacing: '-0.02em', lineHeight: 1.1 }}>
               {energyStatus.energyLabel}
@@ -201,8 +208,14 @@ export function MetabolicScoreCard({ data, loading, error, derivedStatus, foreca
           <div style={{ display: 'grid', gap: 4, textAlign: 'right' }}>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 5, justifyContent: 'flex-end' }}>
               <div className="metaScoreValue" style={{ fontSize: isMobile ? 40 : 50 }}>{animatedScore}</div>
-              <div style={{ fontSize: 11, color: 'var(--color-text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                score
+              <div style={{ fontSize: 11, color: 'var(--color-text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', display: 'flex', alignItems: 'center', gap: 4 }}>
+                pontos
+                <InfoHint
+                  termo="Score (pontuação)"
+                  resumo="Número de 0 a 100 que representa seu estado metabólico. Não é uma nota — é uma bússola."
+                  impacto="Sobe quando você treina, dorme bem e mantém consistência. Cai com inatividade ou sono ruim."
+                  saibaMaisHref="/app/user/glossario#score"
+                />
               </div>
             </div>
             <div style={{ height: 6, borderRadius: 999, background: 'var(--color-surface-subtle)', overflow: 'hidden', minWidth: 120 }}>
@@ -349,7 +362,7 @@ export function MetabolicScoreCard({ data, loading, error, derivedStatus, foreca
             </div>
             <button type="button" className="btn btn-accent" onClick={nudge.onOpen}
               style={{ fontSize: 12, padding: '5px 14px', flexShrink: 0 }}>
-              Atualizar leitura
+              Registrar como estou
             </button>
           </div>
         )}

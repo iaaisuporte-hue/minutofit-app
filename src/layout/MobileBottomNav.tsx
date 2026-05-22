@@ -12,11 +12,6 @@ const HomeIcon = () => (
   </svg>
 );
 
-const WorkoutsIcon = () => (
-  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <path d="M6 4v16M18 4v16M1 9h5M18 9h5M1 15h5M18 15h5" />
-  </svg>
-);
 
 const FichaIcon = () => (
   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -80,7 +75,7 @@ export default function MobileBottomNav({
   showMessages = false,
   showWorkouts = false,
   showLab = false,
-  showTracker = true,
+  showTracker: _showTracker = true,
   showFicha = false,
   showProfile = false,
   onLogout,
@@ -91,11 +86,11 @@ export default function MobileBottomNav({
   const navSlots = onLogout ? 5 : 5;
   const items: NavItem[] = [
     { to: `${baseUrl}/today`, label: "Hoje", icon: <HomeIcon /> },
-    ...(showFicha ? [{ to: `${baseUrl}/ficha`, label: "Ficha", icon: <FichaIcon /> }] : []),
-    ...(showWorkouts ? [{ to: `${baseUrl}/treinos`, label: "Treinos", icon: <WorkoutsIcon /> }] : []),
-    ...(showLab ? [{ to: `${baseUrl}/movement-lab`, label: "Lab", icon: <LabIcon /> }] : []),
-    ...(showTracker ? [{ to: `${baseUrl}/activities`, label: "Tracker", icon: <TrackerIcon /> }] : []),
-    ...(showMessages ? [{ to: `${baseUrl}/messages`, label: "Chat", icon: <MessagesIcon /> }] : []),
+    ...(showFicha ? [{ to: `${baseUrl}/plano`, label: "Meu plano", icon: <FichaIcon /> }] : []),
+    ...(showWorkouts ? [{ to: `${baseUrl}/plano`, label: "Meu plano", icon: <FichaIcon /> }] : []),
+    { to: `${baseUrl}/evolucao`, label: "Evolução", icon: <TrackerIcon /> },
+    ...(showLab ? [{ to: `${baseUrl}/espelho`, label: "Espelho", icon: <LabIcon /> }] : []),
+    ...(showMessages ? [{ to: `${baseUrl}/messages`, label: "Mensagens", icon: <MessagesIcon /> }] : []),
     ...(showProfile ? [{ to: `${baseUrl}/profile`, label: "Perfil", icon: <ProfileIcon /> }] : []),
   ].slice(0, navSlots);
 

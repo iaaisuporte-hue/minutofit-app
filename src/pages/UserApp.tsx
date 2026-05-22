@@ -28,6 +28,9 @@ import OnboardingPage from "./user/OnboardingPage";
 import SuggestedTrainingPage from "./user/SuggestedTrainingPage";
 import ComplianceBanner from "../components/ComplianceBanner";
 import { MetabolismPill } from "../components/MetabolismPill";
+import GlossarioPage from "./user/GlossarioPage";
+import PlanoPage from "./user/PlanoPage";
+import EvolucaoPage from "./user/EvolucaoPage";
 
 const USER_BASE = "/app/user" as const;
 const USER_DEFAULT = "/app/user/today" as const;
@@ -126,7 +129,6 @@ export default function UserApp() {
 
   const todayUserState = useTodayUserState();
   const isPersonalLed = todayUserState.hasActivePersonal;
-  const showSuggestedTrainingNav = canSuggestedTraining && !isPersonalLed;
   const showWorkoutsNav = canWorkouts && !isPersonalLed;
 
   function handleLogout() {
@@ -157,12 +159,9 @@ export default function UserApp() {
 
             <div className="navStack">
               <MenuLink to={`${USER_BASE}/today`} label="Hoje" iconKey="home" />
-              <MenuLink to={`${USER_BASE}/estado-metabolico`} label="Estado metabólico" iconKey="tracker" />
-              <MenuLink to={`${USER_BASE}/ficha`} label="Minha ficha" iconKey="clipboard" />
-              {canTrainingAi && <MenuLink to={`${USER_BASE}/movement-lab`} label="Lab de Movimento" iconKey="lab" />}
-              {showSuggestedTrainingNav && <MenuLink to={`${USER_BASE}/suggested-training`} label="Treino do dia" iconKey="target" />}
-              {showWorkoutsNav && <MenuLink to={`${USER_BASE}/treinos`} label="Treinos" iconKey="workouts" />}
-              {showTracker && <MenuLink to={`${USER_BASE}/activities`} label="Tracker" iconKey="tracker" />}
+              <MenuLink to={`${USER_BASE}/plano`} label="Meu plano" iconKey="clipboard" />
+              <MenuLink to={`${USER_BASE}/evolucao`} label="Minha evolução" iconKey="tracker" />
+              {canTrainingAi && <MenuLink to={`${USER_BASE}/espelho`} label="Espelho" iconKey="lab" />}
               {canMessages && <MenuLink to={`${USER_BASE}/messages`} label="Mensagens" iconKey="messages" />}
               {canProfile && <MenuLink to={`${USER_BASE}/profile`} label="Perfil" iconKey="profile" />}
 
@@ -298,6 +297,26 @@ export default function UserApp() {
                   </LimitedUserOnly>
                 }
               />
+
+              {/* ✅ GLOSSÁRIO */}
+              <Route path="glossario" element={<GlossarioPage />} />
+
+              {/* ✅ NOVOS DESTINOS AGREGADORES */}
+              <Route path="plano" element={<PlanoPage />} />
+              <Route path="evolucao" element={<EvolucaoPage />} />
+              {/* espelho: alias de movement-lab com novo label */}
+              <Route
+                path="espelho"
+                element={
+                  <LimitedUserOnly allowed={showTrainingAi}>
+                    <MovementLabPage />
+                  </LimitedUserOnly>
+                }
+              />
+
+              {/* ✅ REDIRECTS — rotas antigas → novos destinos */}
+              <Route path="estado-metabolico" element={<Navigate to={`${USER_BASE}/evolucao`} replace />} />
+              <Route path="activities" element={<Navigate to={`${USER_BASE}/evolucao`} replace />} />
 
               {/* ✅ FALLBACK seguro */}
               <Route path="*" element={<RedirectToDefault />} />

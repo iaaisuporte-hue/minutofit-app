@@ -5,6 +5,7 @@ import { getExercisesBatch, type Exercise } from "../../services/exercisesApi";
 import { COLORS } from "../../styles/colors";
 import { EmptyState } from "../../components/EmptyState";
 import { TechniqueCard } from "../../features/training/techniques/TechniqueCard";
+import { InfoHint } from "../../components/InfoHint";
 
 function formatDate(value: string) {
   try {
@@ -272,11 +273,41 @@ function PlanDayExerciseList({ day, planId }: PlanDayExerciseListProps) {
                 <div style={{ fontWeight: 600, fontSize: 14 }}>
                   {idx + 1}. {item.name}
                 </div>
-                <div style={{ color: COLORS.muted, fontSize: 12 }}>
-                  {item.sets} séries × {item.reps} reps · Descanso: {item.rest}
-                  {item.rpe ? ` · RPE ${item.rpe}` : ""}
-                  {item.cadence ? ` · Cadência: ${item.cadence}` : ""}
-                  {!item.technique && item.restPause ? " · Rest-pause" : ""}
+                <div style={{ color: COLORS.muted, fontSize: 12, display: "flex", flexWrap: "wrap", alignItems: "center", gap: 2 }}>
+                  <span>{item.sets} séries × {item.reps} reps · Descanso: {item.rest}</span>
+                  {item.rpe ? (
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}>
+                      {" · "}Esforço {item.rpe}/10
+                      <InfoHint
+                        termo="Esforço (RPE)"
+                        resumo="Escala de 1 a 10 para a intensidade percebida. 1 = muito fácil, 10 = esforço máximo."
+                        impacto="Seu personal usa esse número para calibrar a carga sem precisar medir peso na hora."
+                        saibaMaisHref="/app/user/glossario#rpe"
+                      />
+                    </span>
+                  ) : null}
+                  {item.cadence ? (
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}>
+                      {" · "}Ritmo: {item.cadence}
+                      <InfoHint
+                        termo="Ritmo (cadência)"
+                        resumo="Velocidade de execução, em segundos. Ex: 3-1-2 = 3s descida, 1s pausa, 2s subida."
+                        impacto="Ritmo mais lento aumenta tensão no músculo. Mais rápido desenvolve potência."
+                        saibaMaisHref="/app/user/glossario#cadencia"
+                      />
+                    </span>
+                  ) : null}
+                  {!item.technique && item.restPause ? (
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}>
+                      {" · "}Pausa-descanso
+                      <InfoHint
+                        termo="Pausa-descanso"
+                        resumo="Faz algumas reps, descansa 10-15 segundos e continua sem trocar o peso."
+                        impacto="Permite mais volume com cargas pesadas. Indicado para quem já tem experiência."
+                        saibaMaisHref="/app/user/glossario#pausa-descanso"
+                      />
+                    </span>
+                  ) : null}
                 </div>
                 {item.technique && item.technique.type !== "none" ? (
                   <TechniqueCard technique={item.technique} pairedWithName={biSetPartnerName} />

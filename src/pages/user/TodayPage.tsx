@@ -46,6 +46,14 @@ import { searchExercises } from "../../services/exercisesApi";
 import { useTodayUserState } from "./hooks/useTodayUserState";
 import { PersonalWorkoutCard } from "./components/PersonalWorkoutCard";
 import { PersonalEmptyState } from "./components/PersonalEmptyState";
+import { EmptyMetabolismHero } from "./components/EmptyMetabolismHero";
+import { WelcomeCard } from "./components/WelcomeCard";
+import {
+  getFirstRunState,
+  isFirstRunComplete,
+  markCheckinDone,
+  markWorkoutDone,
+} from "./components/firstRunStorage";
 import "./todayPage.css";
 
 const GROUP_LABEL: Record<MuscleGroup, string> = {
@@ -184,6 +192,10 @@ export default function TodayPage() {
   });
   const [showCheckin, setShowCheckin] = useState(false);
   const [showMetabolicCheckin, setShowMetabolicCheckin] = useState(false);
+  const [firstRun, setFirstRun] = useState(() =>
+    userId ? getFirstRunState(userId) : { checkinDone: true, profileDone: true, workoutDone: true }
+  );
+  const showWelcome = userId ? !isFirstRunComplete(userId) : false;
 
   const conditionState = getDailyConditionState(dailyCondition);
 
@@ -324,6 +336,10 @@ export default function TodayPage() {
       setShowCheckin(false);
       refetchGamification();
       refetchMetabolism();
+      if (userId) {
+        markWorkoutDone(userId);
+        setFirstRun(getFirstRunState(userId));
+      }
     } catch {
       setCheckinMessage("Erro ao registrar. Tente novamente.");
     } finally {
@@ -349,6 +365,20 @@ export default function TodayPage() {
         />
       )}
 
+      {/* 0.5 Card de boas-vindas — primeiro acesso (desaparece após 3 marcos concluídos) */}
+      {showWelcome && (
+        <motion.div variants={sectionRevealVariants}>
+          <WelcomeCard
+            firstName={user?.name?.split(" ")[0] || ""}
+            state={firstRun}
+            onGoToCheckin={() => {
+              const el = document.querySelector("[data-daily-checkin]");
+              el?.scrollIntoView({ behavior: "smooth", block: "center" });
+            }}
+          />
+        </motion.div>
+      )}
+
       {/* 1. Check-in de estado */}
       <motion.div variants={sectionRevealVariants}>
         <DailyCheckin
@@ -368,6 +398,10 @@ export default function TodayPage() {
               });
               refetchGamification();
               refetchMetabolism();
+              if (userId) {
+                markCheckinDone(userId);
+                setFirstRun(getFirstRunState(userId));
+              }
             } catch (e) {
               console.error("[wellbeing] sync failed:", e);
             }
@@ -375,18 +409,22 @@ export default function TodayPage() {
         />
       </motion.div>
 
-      {/* 2. Âncora metabólica — absorve TrendStrip (evolução corporal) e nudge de atualização */}
+      {/* 2. Âncora metabólica — empty state quando sem dados; card completo quando há histórico */}
       <motion.div variants={sectionRevealVariants}>
-        <MetabolicScoreCard
-          data={metabolism}
-          loading={metabolismLoading}
-          error={metabolismError}
-          derivedStatus={adjustedEnergy}
-          forecast={forecast}
-          conditionContext={conditionSignals.length > 0 ? { signals: conditionSignals } : null}
-          trendStrip={{ records: metabolicCheckins, loading: metabolicCheckinsLoading }}
-          nudge={{ state: metabolicNudge, onOpen: () => setShowMetabolicCheckin(true) }}
-        />
+        {!metabolismLoading && !metabolism ? (
+          <EmptyMetabolismHero />
+        ) : (
+          <MetabolicScoreCard
+            data={metabolism}
+            loading={metabolismLoading}
+            error={metabolismError}
+            derivedStatus={adjustedEnergy}
+            forecast={forecast}
+            conditionContext={conditionSignals.length > 0 ? { signals: conditionSignals } : null}
+            trendStrip={{ records: metabolicCheckins, loading: metabolicCheckinsLoading }}
+            nudge={{ state: metabolicNudge, onOpen: () => setShowMetabolicCheckin(true) }}
+          />
+        )}
       </motion.div>
 
       {/* 2.5. Voz do profissional — só com observação real (sem placeholder genérico). */}
@@ -488,7 +526,7 @@ export default function TodayPage() {
                 onClick={() => navigate("/app/user/suggested-training")}
                 fullWidth={isMobile}
               >
-                Ver treino completo →
+                Ver o treino inteiro →
               </ActionButton>
             </div>
           </div>
@@ -619,7 +657,7 @@ export default function TodayPage() {
                 </div>
 
                 <ActionButton onClick={() => navigate(getWorkoutRoute(workoutMode))} fullWidth={isMobile}>
-                  Abrir plano completo →
+                  Ver o treino inteiro →
                 </ActionButton>
               </div>
             )}
@@ -719,7 +757,7 @@ export default function TodayPage() {
                       </AnimatePresence>
 
                       <ActionButton onClick={handleQuickCheckin} fullWidth>
-                        Confirmar treino
+                        Registrar como feito
                       </ActionButton>
                     </div>
                   </motion.div>
