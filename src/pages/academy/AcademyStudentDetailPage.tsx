@@ -13,6 +13,7 @@ import {
   type Enrollment,
   type StudentActivity,
 } from "../../services/academyApi";
+import { ConfirmDialog } from "../../components/ConfirmDialog";
 
 const STATUS_LABELS: Record<string, string> = {
   lead:      "Lead",
@@ -182,6 +183,14 @@ export default function AcademyStudentDetailPage() {
 
   const [tempPassword, setTempPassword] = useState<string | null>(null);
 
+  const [confirmDialog, setConfirmDialog] = useState<{
+    open: boolean;
+    title: string;
+    message?: string;
+    onConfirm: () => void;
+    danger?: boolean;
+  }>({ open: false, title: "", onConfirm: () => {} });
+
   const id = Number(userId);
 
   const load = useCallback(async () => {
@@ -217,20 +226,27 @@ export default function AcademyStudentDetailPage() {
     }
   }
 
-  async function handleResetPassword() {
-    if (!confirm(`Redefinir a senha de ${student?.name || student?.email}? Uma senha temporária será gerada para você compartilhar com o aluno.`)) return;
-    setAction("reset-password");
-    setSuccess("");
-    setError("");
-    setTempPassword(null);
-    try {
-      const pwd = await resetStudentPasswordApi(id);
-      setTempPassword(pwd);
-    } catch (e: any) {
-      setError(e.message);
-    } finally {
-      setAction(null);
-    }
+  function handleResetPassword() {
+    setConfirmDialog({
+      open: true,
+      title: `Redefinir senha de ${student?.name || student?.email}?`,
+      message: "Uma senha temporária será gerada para você compartilhar com o aluno.",
+      onConfirm: async () => {
+        setConfirmDialog((d) => ({ ...d, open: false }));
+        setAction("reset-password");
+        setSuccess("");
+        setError("");
+        setTempPassword(null);
+        try {
+          const pwd = await resetStudentPasswordApi(id);
+          setTempPassword(pwd);
+        } catch (e: any) {
+          setError(e.message);
+        } finally {
+          setAction(null);
+        }
+      },
+    });
   }
 
   async function handleEnroll(e: React.FormEvent) {
@@ -414,7 +430,16 @@ export default function AcademyStudentDetailPage() {
                     className="btn btn-ghost btn-sm"
                     style={{ color: "var(--color-danger-text)" }}
                     disabled={actionLoading === "cancel"}
-                    onClick={() => { if (confirm("Confirmar cancelamento do aluno?")) handleAction("cancel"); }}
+                    onClick={() => setConfirmDialog({
+                      open: true,
+                      title: "Cancelar matrícula do aluno?",
+                      message: "Esta ação pode ser revertida reativando o aluno posteriormente.",
+                      danger: true,
+                      onConfirm: () => {
+                        setConfirmDialog((d) => ({ ...d, open: false }));
+                        handleAction("cancel");
+                      },
+                    })}
                   >
                     {actionLoading === "cancel" ? "Cancelando..." : "Cancelar matrícula"}
                   </button>
@@ -632,6 +657,15 @@ export default function AcademyStudentDetailPage() {
           </div>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={confirmDialog.open}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        danger={confirmDialog.danger}
+        onConfirm={confirmDialog.onConfirm}
+        onCancel={() => setConfirmDialog((d) => ({ ...d, open: false }))}
+      />
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { EmptyState } from "../../components/EmptyState";
+import { ConfirmDialog } from "../../components/ConfirmDialog";
 import {
   fetchPlans,
   createPlan,
@@ -28,6 +29,7 @@ export default function AcademyPlansPage() {
   const [error, setError]           = useState("");
   const [success, setSuccess]       = useState("");
   const [archiving, setArchiving]   = useState<number | null>(null);
+  const [confirmArchiveId, setConfirmArchiveId] = useState<number | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -92,7 +94,11 @@ export default function AcademyPlansPage() {
   }
 
   async function handleArchive(planId: number) {
-    if (!confirm("Arquivar este plano? Matrículas existentes não serão afetadas.")) return;
+    setConfirmArchiveId(planId);
+  }
+
+  async function doArchive(planId: number) {
+    setConfirmArchiveId(null);
     setArchiving(planId);
     setError("");
     try {
@@ -281,6 +287,15 @@ export default function AcademyPlansPage() {
           )}
         </div>
       )}
+
+      <ConfirmDialog
+        open={confirmArchiveId !== null}
+        title="Arquivar este plano?"
+        message="Matrículas existentes não serão afetadas."
+        confirmLabel="Arquivar"
+        onConfirm={() => confirmArchiveId !== null && doArchive(confirmArchiveId)}
+        onCancel={() => setConfirmArchiveId(null)}
+      />
     </div>
   );
 }

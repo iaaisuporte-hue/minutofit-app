@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { EmptyState } from "../../components/EmptyState";
 import { LoadingSkeleton } from "../../components/LoadingSkeleton";
+import { ConfirmDialog } from "../../components/ConfirmDialog";
 import {
   fetchTeam,
   addMemberDirect,
@@ -100,6 +101,8 @@ export default function AcademyTeamPage() {
 
   // Inline role edit
   const [editingUserId, setEditingUserId] = useState<number | null>(null);
+  const [confirmToggle, setConfirmToggle] = useState<TeamMember | null>(null);
+  const [confirmRevokeId, setConfirmRevokeId] = useState<number | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -150,13 +153,17 @@ export default function AcademyTeamPage() {
     }
   }
 
-  async function handleToggleActive(m: TeamMember) {
-    if (!confirm(`${m.isActive ? "Desativar" : "Reativar"} ${m.name}?`)) return;
+  function handleToggleActive(m: TeamMember) {
+    setConfirmToggle(m);
+  }
+
+  async function doToggleActive(m: TeamMember) {
+    setConfirmToggle(null);
     try {
       await updateMember(m.userId, { isActive: !m.isActive });
       await load();
     } catch (err: any) {
-      alert(err.message);
+      setError(err.message);
     }
   }
 
@@ -170,13 +177,17 @@ export default function AcademyTeamPage() {
     }
   }
 
-  async function handleRevoke(id: number) {
-    if (!confirm("Revogar este convite?")) return;
+  function handleRevoke(id: number) {
+    setConfirmRevokeId(id);
+  }
+
+  async function doRevoke(id: number) {
+    setConfirmRevokeId(null);
     try {
       await revokeInvitation(id);
       await load();
     } catch (err: any) {
-      alert(err.message);
+      setError(err.message);
     }
   }
 
@@ -510,6 +521,24 @@ export default function AcademyTeamPage() {
           )}
         </>
       )}
+
+      <ConfirmDialog
+        open={confirmToggle !== null}
+        title={confirmToggle ? `${confirmToggle.isActive ? "Desativar" : "Reativar"} ${confirmToggle.name}?` : ""}
+        danger={confirmToggle?.isActive}
+        confirmLabel={confirmToggle?.isActive ? "Desativar" : "Reativar"}
+        onConfirm={() => confirmToggle && doToggleActive(confirmToggle)}
+        onCancel={() => setConfirmToggle(null)}
+      />
+      <ConfirmDialog
+        open={confirmRevokeId !== null}
+        title="Revogar este convite?"
+        message="O link de convite deixará de funcionar."
+        danger
+        confirmLabel="Revogar"
+        onConfirm={() => confirmRevokeId !== null && doRevoke(confirmRevokeId)}
+        onCancel={() => setConfirmRevokeId(null)}
+      />
     </div>
   );
 }
