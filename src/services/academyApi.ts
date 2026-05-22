@@ -275,6 +275,9 @@ export interface Student {
   activePlan: { id: number; name: string; monthlyPrice: number; startDate: string } | null;
   hasUsedLab?: boolean;
   hasUsedTracker?: boolean;
+  hasApp?: boolean;
+  hasPersonal?: boolean;
+  hasNutri?: boolean;
 }
 
 export interface Enrollment {
@@ -322,12 +325,20 @@ export interface StudentActivity {
   workouts30d: number;
   checkins30d: number;
   adherence30dPct: number | null;
+  adherence7dPct?: number | null;
+}
+
+export interface StudentMemberships {
+  hasApp: boolean;
+  hasPersonal: boolean;
+  hasNutri: boolean;
 }
 
 export interface StudentDetail extends Student {
   enrollments: Enrollment[];
   auditHistory: AuditEntry[];
   activity?: StudentActivity;
+  memberships?: StudentMemberships;
 }
 
 export async function fetchStudents(params?: {

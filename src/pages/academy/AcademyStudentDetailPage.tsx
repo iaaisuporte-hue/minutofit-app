@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { EmptyState } from "../../components/EmptyState";
 import {
   fetchStudent,
   fetchPlans,
@@ -14,6 +15,7 @@ import {
   type StudentActivity,
 } from "../../services/academyApi";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
+import type { StudentMemberships } from "../../services/academyApi";
 
 const STATUS_LABELS: Record<string, string> = {
   lead:      "Lead",
@@ -75,6 +77,112 @@ function InfoField({ label, value }: { label: string; value?: string | null }) {
     <div>
       <div className="dash-eyebrow" style={{ marginBottom: 2 }}>{label}</div>
       <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--font-medium)" }}>{value}</div>
+    </div>
+  );
+}
+
+function MaaSStrip({
+  activity,
+  memberships,
+}: {
+  activity?: StudentDetail["activity"];
+  memberships?: StudentMemberships;
+}) {
+  const adherence7d = activity?.adherence7dPct;
+  const adherence30d = activity?.adherence30dPct;
+
+  const adherenceColor = (v: number | null | undefined) =>
+    v == null ? "var(--color-border)"
+    : v >= 70 ? "var(--color-success)"
+    : v >= 40 ? "var(--color-warn)"
+    : "var(--color-danger)";
+
+  const hasSomeSignal = activity && (
+    activity.lastWorkout ||
+    activity.lastCheckin ||
+    activity.workouts30d > 0 ||
+    (adherence7d != null && adherence7d > 0)
+  );
+
+  return (
+    <div className="section-card">
+      <h2 className="section-card__title" style={{ marginBottom: "var(--space-4)" }}>
+        Sinais metabólicos
+      </h2>
+
+      {!hasSomeSignal ? (
+        <div className="dash-alert-empty--ok">
+          <div className="dash-alert-ok-signal">Sinais em formação</div>
+          <p className="dash-alert-ok-detail">
+            Aparecerão após os primeiros check-ins e treinos do aluno.
+          </p>
+        </div>
+      ) : (
+        <>
+          {/* Aderência 7d */}
+          {adherence7d != null && (
+            <div style={{ marginBottom: "var(--space-4)" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                <span style={{ fontSize: "var(--text-xs)", color: "var(--color-text-muted)" }}>Aderência 7 dias</span>
+                <span style={{ fontSize: "var(--text-xs)", fontWeight: "var(--font-semibold)", color: adherenceColor(adherence7d) }}>
+                  {adherence7d}%
+                </span>
+              </div>
+              <div style={{ height: 5, background: "var(--color-surface-2, rgba(0,0,0,.06))", borderRadius: 99, overflow: "hidden" }}>
+                <div style={{ width: `${adherence7d}%`, height: "100%", background: adherenceColor(adherence7d), borderRadius: 99, transition: "width .4s ease" }} />
+              </div>
+            </div>
+          )}
+
+          {/* Aderência 30d */}
+          {adherence30d != null && (
+            <div style={{ marginBottom: "var(--space-4)" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                <span style={{ fontSize: "var(--text-xs)", color: "var(--color-text-muted)" }}>Aderência 30 dias</span>
+                <span style={{ fontSize: "var(--text-xs)", fontWeight: "var(--font-semibold)", color: adherenceColor(adherence30d) }}>
+                  {adherence30d}%
+                </span>
+              </div>
+              <div style={{ height: 5, background: "var(--color-surface-2, rgba(0,0,0,.06))", borderRadius: 99, overflow: "hidden" }}>
+                <div style={{ width: `${adherence30d}%`, height: "100%", background: adherenceColor(adherence30d), borderRadius: 99, transition: "width .4s ease" }} />
+              </div>
+            </div>
+          )}
+
+          {/* Contagens */}
+          {activity && (
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-3)", marginBottom: "var(--space-4)" }}>
+              <div>
+                <div className="dash-eyebrow" style={{ marginBottom: 2 }}>Treinos em 30d</div>
+                <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--font-semibold)" }}>{activity.workouts30d}</div>
+              </div>
+              <div>
+                <div className="dash-eyebrow" style={{ marginBottom: 2 }}>Check-ins em 30d</div>
+                <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--font-semibold)" }}>{activity.checkins30d}</div>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Produtos ativos */}
+      {memberships && (memberships.hasApp || memberships.hasPersonal || memberships.hasNutri) && (
+        <div>
+          <div className="dash-eyebrow" style={{ marginBottom: "var(--space-2)" }}>Produtos ativos</div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2)" }}>
+            {memberships.hasApp && <span className="badge badge-success" style={{ fontSize: 11 }}>App</span>}
+            {memberships.hasPersonal && <span className="badge badge-info" style={{ fontSize: 11 }}>Personal</span>}
+            {memberships.hasNutri && <span className="badge badge-info" style={{ fontSize: 11 }}>Nutri</span>}
+          </div>
+        </div>
+      )}
+      {memberships && !memberships.hasApp && !memberships.hasPersonal && !memberships.hasNutri && hasSomeSignal && (
+        <div style={{ marginTop: "var(--space-3)", padding: "var(--space-3)", background: "var(--color-surface-2, rgba(0,0,0,.04))", borderRadius: "var(--radius-md)", border: "1px dashed var(--color-border)" }}>
+          <span style={{ fontSize: "var(--text-xs)", color: "var(--color-text-muted)" }}>
+            Aluno sem produtos MetaCore ativos — oportunidade de upgrade.
+          </span>
+        </div>
+      )}
     </div>
   );
 }
@@ -576,9 +684,10 @@ export default function AcademyStudentDetailPage() {
           <div className="section-card">
             <h2 className="section-card__title" style={{ marginBottom: "var(--space-4)" }}>Histórico de eventos</h2>
             {student.auditHistory.length === 0 ? (
-              <div className="dash-alert-empty">
-                Nenhum evento registrado ainda. Os registros aparecerão conforme as ações forem realizadas.
-              </div>
+              <EmptyState
+                title="Nenhum evento registrado ainda"
+                description="Os registros aparecerão conforme as ações forem realizadas."
+              />
             ) : (
               <div style={{ display: "grid", gap: "var(--space-3)" }}>
                 {student.auditHistory.map((entry) => (
@@ -645,16 +754,7 @@ export default function AcademyStudentDetailPage() {
             </div>
           )}
 
-          {/* Metabolic signals placeholder */}
-          <div className="section-card">
-            <h2 className="section-card__title" style={{ marginBottom: "var(--space-3)" }}>Sinais metabólicos</h2>
-            <div className="dash-alert-empty--ok">
-              <div className="dash-alert-ok-signal">Indicadores em formação</div>
-              <p className="dash-alert-ok-detail">
-                Os sinais metabólicos aparecerão após os primeiros check-ins e sessões de treino do aluno.
-              </p>
-            </div>
-          </div>
+          <MaaSStrip activity={student.activity} memberships={student.memberships} />
         </div>
       </div>
 

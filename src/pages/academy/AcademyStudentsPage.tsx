@@ -112,6 +112,7 @@ export default function AcademyStudentsPage() {
   const [addLoading, setAddLoading] = useState(false);
   const [addError, setAddError]     = useState("");
   const [addResult, setAddResult]   = useState<{ tempPassword?: string; inviteUrl?: string } | null>(null);
+  const [wizardStep, setWizardStep] = useState<1 | 2 | 3>(1);
 
   const PAGE_SIZE = 20;
 
@@ -193,7 +194,20 @@ export default function AcademyStudentsPage() {
     setAddForm((f) => ({ ...f, [key]: value }));
   }
 
-  function resetAdd() { setAddForm(DEFAULT_ADD); setAddError(""); setAddResult(null); }
+  function resetAdd() { setAddForm(DEFAULT_ADD); setAddError(""); setAddResult(null); setWizardStep(1); }
+
+  function wizardNext() {
+    setAddError("");
+    if (wizardStep === 1) {
+      if (!addForm.name.trim() || !addForm.email.trim()) {
+        setAddError("Nome e e-mail são obrigatórios.");
+        return;
+      }
+    }
+    if (wizardStep === 3) return;
+    setWizardStep((s) => (s + 1) as 1 | 2 | 3);
+  }
+  function wizardBack() { setAddError(""); setWizardStep((s) => (s - 1) as 1 | 2 | 3); }
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
@@ -353,27 +367,25 @@ export default function AcademyStudentsPage() {
                     }
                   </td>
                   <td>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                      <span
-                        className="badge"
-                        style={{
-                          fontSize: 10,
-                          opacity: s.hasUsedLab ? 1 : 0.55,
-                          border: `1px solid ${s.hasUsedLab ? "var(--color-success-border)" : "var(--color-border)"}`,
-                        }}
-                      >
-                        Lab{s.hasUsedLab ? "" : " · não usou"}
-                      </span>
-                      <span
-                        className="badge"
-                        style={{
-                          fontSize: 10,
-                          opacity: s.hasUsedTracker ? 1 : 0.55,
-                          border: `1px solid ${s.hasUsedTracker ? "var(--color-success-border)" : "var(--color-border)"}`,
-                        }}
-                      >
-                        Tracker{s.hasUsedTracker ? "" : " · não usou"}
-                      </span>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                      {s.hasApp && (
+                        <span className="badge badge-success" style={{ fontSize: 10 }}>App</span>
+                      )}
+                      {s.hasPersonal && (
+                        <span className="badge badge-info" style={{ fontSize: 10 }}>Personal</span>
+                      )}
+                      {s.hasNutri && (
+                        <span className="badge badge-info" style={{ fontSize: 10 }}>Nutri</span>
+                      )}
+                      {s.hasUsedLab && (
+                        <span className="badge" style={{ fontSize: 10 }}>Lab</span>
+                      )}
+                      {s.hasUsedTracker && (
+                        <span className="badge" style={{ fontSize: 10 }}>Tracker</span>
+                      )}
+                      {!s.hasApp && !s.hasPersonal && !s.hasNutri && !s.hasUsedLab && !s.hasUsedTracker && (
+                        <span className="muted small">—</span>
+                      )}
                     </div>
                   </td>
                   <td className="small">{s.joinedAt ? new Date(s.joinedAt).toLocaleDateString("pt-BR") : "—"}</td>
@@ -423,7 +435,7 @@ export default function AcademyStudentsPage() {
                   key={m}
                   type="button"
                   className={`mode-toggle__btn${addForm.mode === m ? " mode-toggle__btn--active" : ""}`}
-                  onClick={() => setField("mode", m)}
+                  onClick={() => { setField("mode", m); setWizardStep(1); setAddError(""); }}
                 >
                   {m === "direct" ? "Cadastro completo" : "Convite por e-mail"}
                 </button>
@@ -484,185 +496,168 @@ export default function AcademyStudentsPage() {
                 </div>
               </form>
             ) : (
-              /* ── Direct mode — full form ── */
-              <form onSubmit={handleAdd} className="form-grid">
-                {/* SECTION: Dados pessoais */}
-                <div>
-                  <div className="dash-eyebrow" style={{ marginBottom: "var(--space-3)" }}>Dados pessoais</div>
-                  <div className="form-grid" style={{ gap: "var(--space-3)" }}>
-                    <div className="field">
-                      <label className="label">Nome completo <span style={{ color: "var(--color-danger)" }}>*</span></label>
-                      <input className="input" required value={addForm.name} onChange={(e) => setField("name", e.target.value)} placeholder="João da Silva" />
+              /* ── Direct mode — wizard 3 passos ── */
+              <div>
+                {/* Progress bar */}
+                <div style={{ display: "flex", gap: "var(--space-2)", marginBottom: "var(--space-5)", alignItems: "center" }}>
+                  {([1, 2, 3] as const).map((s) => (
+                    <div key={s} style={{ flex: 1, display: "flex", flexDirection: "column", gap: 4 }}>
+                      <div style={{
+                        height: 3,
+                        borderRadius: 99,
+                        background: s <= wizardStep ? "var(--color-primary)" : "var(--color-border)",
+                        transition: "background .2s",
+                      }} />
+                      <span style={{ fontSize: "var(--text-xs)", color: s === wizardStep ? "var(--color-primary)" : "var(--color-text-muted)", fontWeight: s === wizardStep ? "var(--font-semibold)" : undefined }}>
+                        {s === 1 ? "Identidade" : s === 2 ? "Ficha & saúde" : "Plano & aceites"}
+                      </span>
                     </div>
-                    <div className="form-grid form-grid--2col">
-                      <div className="field">
-                        <label className="label">CPF</label>
-                        <input className="input" value={addForm.cpf} onChange={(e) => setField("cpf", e.target.value)} placeholder="000.000.000-00" />
-                      </div>
-                      <div className="field">
-                        <label className="label">Data de nascimento</label>
-                        <input type="date" className="input" value={addForm.birthDate} onChange={(e) => setField("birthDate", e.target.value)} />
-                      </div>
-                    </div>
-                    <div className="form-grid form-grid--2col">
-                      <div className="field">
-                        <label className="label">Telefone / WhatsApp</label>
-                        <input className="input" value={addForm.phone} onChange={(e) => setField("phone", e.target.value)} placeholder="(00) 90000-0000" />
-                      </div>
-                      <div className="field">
-                        <label className="label">E-mail <span style={{ color: "var(--color-danger)" }}>*</span></label>
-                        <input className="input" type="email" required value={addForm.email} onChange={(e) => setField("email", e.target.value)} placeholder="aluno@email.com" />
-                      </div>
-                    </div>
-                    <div className="field">
-                      <label className="label">Foto (URL da imagem)</label>
-                      <input className="input" type="url" value={addForm.avatarUrl} onChange={(e) => setField("avatarUrl", e.target.value)} placeholder="https://..." />
-                      <span className="field-hint">Link público de uma imagem. Upload direto disponível em breve.</span>
-                    </div>
-                  </div>
+                  ))}
                 </div>
 
-                <hr style={{ border: "none", borderTop: "1px solid var(--color-border)", margin: 0 }} />
+                <form onSubmit={(e) => { e.preventDefault(); if (wizardStep < 3) wizardNext(); else handleAdd(e); }} className="form-grid">
 
-                {/* SECTION: Matrícula */}
-                <div>
-                  <div className="dash-eyebrow" style={{ marginBottom: "var(--space-3)" }}>Matrícula</div>
-                  <div className="form-grid" style={{ gap: "var(--space-3)" }}>
-                    <div className="form-grid form-grid--2col">
+                  {/* PASSO 1 — Identidade */}
+                  {wizardStep === 1 && (
+                    <div className="form-grid" style={{ gap: "var(--space-3)" }}>
                       <div className="field">
-                        <label className="label">Plano</label>
-                        <select className="input" value={addForm.planId} onChange={(e) => setField("planId", e.target.value)}>
-                          <option value="">Sem plano agora</option>
-                          {plans.map((p) => (
-                            <option key={p.id} value={String(p.id)}>
-                              {p.name} — R$ {Number(p.monthlyPrice).toFixed(2)}
-                            </option>
-                          ))}
+                        <label className="label">Nome completo <span style={{ color: "var(--color-danger)" }}>*</span></label>
+                        <input className="input" autoFocus required value={addForm.name} onChange={(e) => setField("name", e.target.value)} placeholder="João da Silva" />
+                      </div>
+                      <div className="form-grid form-grid--2col">
+                        <div className="field">
+                          <label className="label">E-mail <span style={{ color: "var(--color-danger)" }}>*</span></label>
+                          <input className="input" type="email" required value={addForm.email} onChange={(e) => setField("email", e.target.value)} placeholder="aluno@email.com" />
+                        </div>
+                        <div className="field">
+                          <label className="label">Telefone / WhatsApp</label>
+                          <input className="input" value={addForm.phone} onChange={(e) => setField("phone", e.target.value)} placeholder="(00) 90000-0000" />
+                        </div>
+                      </div>
+                      <div className="form-grid form-grid--2col">
+                        <div className="field">
+                          <label className="label">CPF</label>
+                          <input className="input" value={addForm.cpf} onChange={(e) => setField("cpf", e.target.value)} placeholder="000.000.000-00" />
+                        </div>
+                        <div className="field">
+                          <label className="label">Data de nascimento</label>
+                          <input type="date" className="input" value={addForm.birthDate} onChange={(e) => setField("birthDate", e.target.value)} />
+                        </div>
+                      </div>
+                      <div className="field">
+                        <label className="label">Foto (URL)</label>
+                        <input className="input" type="url" value={addForm.avatarUrl} onChange={(e) => setField("avatarUrl", e.target.value)} placeholder="https://..." />
+                        <span className="field-hint">Upload direto disponível em breve.</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* PASSO 2 — Ficha & saúde */}
+                  {wizardStep === 2 && (
+                    <div className="form-grid" style={{ gap: "var(--space-3)" }}>
+                      <div className="field">
+                        <label className="label">Objetivo principal</label>
+                        <select className="input" value={addForm.mainGoal} onChange={(e) => setField("mainGoal", e.target.value)}>
+                          {GOAL_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                         </select>
                       </div>
                       <div className="field">
-                        <label className="label">Data de início</label>
-                        <input type="date" className="input" value={addForm.startDate} onChange={(e) => setField("startDate", e.target.value)} />
+                        <label className="label">Restrições médicas</label>
+                        <textarea className="input" rows={3} value={addForm.medicalRestrictions} onChange={(e) => setField("medicalRestrictions", e.target.value)} placeholder="Problemas articulares, cardíacos, alergias… ou deixe em branco" />
+                      </div>
+                      <div>
+                        <div className="dash-eyebrow" style={{ marginBottom: "var(--space-2)" }}>Contato de emergência</div>
+                        <div className="form-grid form-grid--2col">
+                          <div className="field">
+                            <label className="label">Nome</label>
+                            <input className="input" value={addForm.emergencyContactName} onChange={(e) => setField("emergencyContactName", e.target.value)} placeholder="Nome do contato" />
+                          </div>
+                          <div className="field">
+                            <label className="label">Telefone</label>
+                            <input className="input" value={addForm.emergencyContactPhone} onChange={(e) => setField("emergencyContactPhone", e.target.value)} placeholder="(00) 90000-0000" />
+                          </div>
+                        </div>
                       </div>
                     </div>
-                    <div className="field">
-                      <label className="label">Forma de pagamento</label>
-                      <select className="input" value={addForm.paymentMethod} onChange={(e) => setField("paymentMethod", e.target.value)}>
-                        {PAYMENT_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                      </select>
+                  )}
+
+                  {/* PASSO 3 — Plano & aceites */}
+                  {wizardStep === 3 && (
+                    <div className="form-grid" style={{ gap: "var(--space-4)" }}>
+                      <div>
+                        <div className="dash-eyebrow" style={{ marginBottom: "var(--space-3)" }}>Matrícula</div>
+                        <div className="form-grid" style={{ gap: "var(--space-3)" }}>
+                          <div className="form-grid form-grid--2col">
+                            <div className="field">
+                              <label className="label">Plano</label>
+                              <select className="input" value={addForm.planId} onChange={(e) => setField("planId", e.target.value)}>
+                                <option value="">Sem plano agora</option>
+                                {plans.map((p) => (
+                                  <option key={p.id} value={String(p.id)}>{p.name} — R$ {Number(p.monthlyPrice).toFixed(2)}</option>
+                                ))}
+                              </select>
+                            </div>
+                            <div className="field">
+                              <label className="label">Início</label>
+                              <input type="date" className="input" value={addForm.startDate} onChange={(e) => setField("startDate", e.target.value)} />
+                            </div>
+                          </div>
+                          <div className="field">
+                            <label className="label">Forma de pagamento</label>
+                            <select className="input" value={addForm.paymentMethod} onChange={(e) => setField("paymentMethod", e.target.value)}>
+                              {PAYMENT_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                            </select>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="dash-eyebrow" style={{ marginBottom: "var(--space-3)" }}>Aceites obrigatórios</div>
+                        <div className="form-grid" style={{ gap: "var(--space-3)" }}>
+                          <label style={{ display: "flex", alignItems: "flex-start", gap: "var(--space-3)", cursor: "pointer" }}>
+                            <input type="checkbox" checked={addForm.acceptedTerms} onChange={(e) => setField("acceptedTerms", e.target.checked)} style={{ marginTop: 3, flexShrink: 0, accentColor: "var(--color-primary)", width: 16, height: 16 }} />
+                            <span style={{ fontSize: "var(--text-sm)", color: "var(--color-text)" }}>
+                              O aluno declara que leu e aceita os <strong>Termos de Uso</strong>.<span style={{ color: "var(--color-danger)" }}> *</span>
+                            </span>
+                          </label>
+                          <label style={{ display: "flex", alignItems: "flex-start", gap: "var(--space-3)", cursor: "pointer" }}>
+                            <input type="checkbox" checked={addForm.acceptedLgpd} onChange={(e) => setField("acceptedLgpd", e.target.checked)} style={{ marginTop: 3, flexShrink: 0, accentColor: "var(--color-primary)", width: 16, height: 16 }} />
+                            <span style={{ fontSize: "var(--text-sm)", color: "var(--color-text)" }}>
+                              O aluno autoriza o tratamento de seus dados conforme a <strong>LGPD</strong>.<span style={{ color: "var(--color-danger)" }}> *</span>
+                            </span>
+                          </label>
+                        </div>
+                      </div>
+
+                      <label style={{ display: "flex", alignItems: "flex-start", gap: "var(--space-3)", cursor: "pointer", padding: "var(--space-3)", background: "var(--color-surface-2, rgba(0,0,0,.04))", borderRadius: "var(--radius-md)", border: "1px solid var(--color-border)" }}>
+                        <input type="checkbox" checked={addForm.giveAppBonus} onChange={(e) => setField("giveAppBonus", e.target.checked)} style={{ marginTop: 3, flexShrink: 0, accentColor: "var(--color-primary)", width: 16, height: 16 }} />
+                        <span style={{ fontSize: "var(--text-sm)", color: "var(--color-text)" }}>
+                          <strong>Conceder acesso ao App MetaCore como bônus.</strong>
+                          <span className="field-hint" style={{ display: "block", marginTop: 2 }}>Se o vínculo for cancelado, o aluno mantém acesso por 30 dias.</span>
+                        </span>
+                      </label>
                     </div>
-                  </div>
-                </div>
+                  )}
 
-                <hr style={{ border: "none", borderTop: "1px solid var(--color-border)", margin: 0 }} />
+                  {addError && <p className="field-error">{addError}</p>}
 
-                {/* SECTION: Ficha do aluno */}
-                <div>
-                  <div className="dash-eyebrow" style={{ marginBottom: "var(--space-3)" }}>Ficha do aluno</div>
-                  <div className="form-grid" style={{ gap: "var(--space-3)" }}>
-                    <div className="field">
-                      <label className="label">Objetivo principal</label>
-                      <select className="input" value={addForm.mainGoal} onChange={(e) => setField("mainGoal", e.target.value)}>
-                        {GOAL_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                      </select>
-                    </div>
-                    <div className="field">
-                      <label className="label">Restrições médicas</label>
-                      <textarea
-                        className="input" rows={2}
-                        value={addForm.medicalRestrictions}
-                        onChange={(e) => setField("medicalRestrictions", e.target.value)}
-                        placeholder="Problemas articulares, cardíacos, alergias… ou deixe em branco"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <hr style={{ border: "none", borderTop: "1px solid var(--color-border)", margin: 0 }} />
-
-                {/* SECTION: Contato de emergência */}
-                <div>
-                  <div className="dash-eyebrow" style={{ marginBottom: "var(--space-3)" }}>Contato de emergência</div>
-                  <div className="form-grid form-grid--2col">
-                    <div className="field">
-                      <label className="label">Nome</label>
-                      <input className="input" value={addForm.emergencyContactName} onChange={(e) => setField("emergencyContactName", e.target.value)} placeholder="Nome do contato" />
-                    </div>
-                    <div className="field">
-                      <label className="label">Telefone</label>
-                      <input className="input" value={addForm.emergencyContactPhone} onChange={(e) => setField("emergencyContactPhone", e.target.value)} placeholder="(00) 90000-0000" />
-                    </div>
-                  </div>
-                </div>
-
-                <hr style={{ border: "none", borderTop: "1px solid var(--color-border)", margin: 0 }} />
-
-                {/* SECTION: Aceites */}
-                <div>
-                  <div className="dash-eyebrow" style={{ marginBottom: "var(--space-3)" }}>Aceites obrigatórios</div>
-                  <div className="form-grid" style={{ gap: "var(--space-3)" }}>
-                    <label style={{ display: "flex", alignItems: "flex-start", gap: "var(--space-3)", cursor: "pointer" }}>
-                      <input
-                        type="checkbox"
-                        checked={addForm.acceptedTerms}
-                        onChange={(e) => setField("acceptedTerms", e.target.checked)}
-                        style={{ marginTop: 3, flexShrink: 0, accentColor: "var(--color-primary)", width: 16, height: 16 }}
-                      />
-                      <span style={{ fontSize: "var(--text-sm)", color: "var(--color-text)" }}>
-                        O aluno declara que leu e aceita os <strong>Termos de Uso</strong> da academia.
-                        <span style={{ color: "var(--color-danger)" }}> *</span>
-                      </span>
-                    </label>
-                    <label style={{ display: "flex", alignItems: "flex-start", gap: "var(--space-3)", cursor: "pointer" }}>
-                      <input
-                        type="checkbox"
-                        checked={addForm.acceptedLgpd}
-                        onChange={(e) => setField("acceptedLgpd", e.target.checked)}
-                        style={{ marginTop: 3, flexShrink: 0, accentColor: "var(--color-primary)", width: 16, height: 16 }}
-                      />
-                      <span style={{ fontSize: "var(--text-sm)", color: "var(--color-text)" }}>
-                        O aluno autoriza o tratamento de seus dados conforme a <strong>Lei Geral de Proteção de Dados (LGPD)</strong>.
-                        <span style={{ color: "var(--color-danger)" }}> *</span>
-                      </span>
-                    </label>
-                    {(!addForm.acceptedTerms || !addForm.acceptedLgpd) && (
-                      <p className="field-hint">Os dois aceites são obrigatórios para concluir o cadastro.</p>
+                  <div style={{ display: "flex", gap: "var(--space-3)", paddingTop: "var(--space-2)" }}>
+                    {wizardStep < 3 ? (
+                      <>
+                        <button className="btn btn-primary" type="submit">Próximo</button>
+                        {wizardStep > 1 && <button type="button" className="btn btn-ghost" onClick={wizardBack}>Voltar</button>}
+                        <button type="button" className="btn btn-ghost" style={{ marginLeft: "auto" }} onClick={() => { setShowAdd(false); resetAdd(); }}>Cancelar</button>
+                      </>
+                    ) : (
+                      <>
+                        <button className="btn btn-primary" type="submit" disabled={addLoading}>{addLoading ? "Cadastrando..." : "Cadastrar aluno"}</button>
+                        <button type="button" className="btn btn-ghost" onClick={wizardBack}>Voltar</button>
+                        <button type="button" className="btn btn-ghost" style={{ marginLeft: "auto" }} onClick={() => { setShowAdd(false); resetAdd(); }}>Cancelar</button>
+                      </>
                     )}
                   </div>
-                </div>
-
-                <hr style={{ border: "none", borderTop: "1px solid var(--color-border)", margin: 0 }} />
-
-                {/* SECTION: Bônus de produto */}
-                <div>
-                  <div className="dash-eyebrow" style={{ marginBottom: "var(--space-3)" }}>Bônus de produto</div>
-                  <label style={{ display: "flex", alignItems: "flex-start", gap: "var(--space-3)", cursor: "pointer" }}>
-                    <input
-                      type="checkbox"
-                      checked={addForm.giveAppBonus}
-                      onChange={(e) => setField("giveAppBonus", e.target.checked)}
-                      style={{ marginTop: 3, flexShrink: 0, accentColor: "var(--color-primary)", width: 16, height: 16 }}
-                    />
-                    <span style={{ fontSize: "var(--text-sm)", color: "var(--color-text)" }}>
-                      <strong>Conceder acesso ao App MinutoFit como bônus.</strong>
-                      <span className="field-hint" style={{ display: "block", marginTop: 2 }}>
-                        O aluno entra no App junto com a Academia. Se o vínculo for cancelado, mantém acesso por 30 dias para decidir se quer assinar standalone.
-                      </span>
-                    </span>
-                  </label>
-                </div>
-
-                {addError && <p className="field-error">{addError}</p>}
-
-                <div style={{ display: "flex", gap: "var(--space-3)", paddingTop: "var(--space-1)" }}>
-                  <button className="btn btn-primary" type="submit" disabled={addLoading}>
-                    {addLoading ? "Cadastrando..." : "Cadastrar aluno"}
-                  </button>
-                  <button type="button" className="btn btn-ghost" onClick={() => { setShowAdd(false); resetAdd(); }}>
-                    Cancelar
-                  </button>
-                </div>
-              </form>
+                </form>
+              </div>
             )}
           </div>
         </div>
