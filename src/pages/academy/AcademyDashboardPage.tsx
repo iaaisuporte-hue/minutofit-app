@@ -5,6 +5,7 @@ import {
   type AcademyDashboard,
   type AcademyDashboardAtRiskStudent,
   type AcademyTopPersonal,
+  type AcademyCommercialSignals,
 } from "../../services/academyApi";
 import { EmptyState } from "../../components/EmptyState";
 import { resolveAcademyHeroLogo } from "./academyFallbackLogo";
@@ -124,6 +125,19 @@ function AtRiskCard({ students }: { students: AcademyDashboardAtRiskStudent[] })
               >
                 Em risco
               </span>
+              {s.phone && (
+                <a
+                  href={`https://wa.me/55${s.phone.replace(/\D/g, "")}?text=${encodeURIComponent(`Olá ${s.name.split(" ")[0]}, tudo bem? Notamos que faz um tempo que você não aparece por aqui. Sentimos sua falta! 💪`)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn btn-sm"
+                  onClick={(e) => e.stopPropagation()}
+                  title="Abrir WhatsApp (ação manual)"
+                  style={{ whiteSpace: "nowrap", textDecoration: "none" }}
+                >
+                  WhatsApp
+                </a>
+              )}
               <button
                 className="btn btn-sm"
                 onClick={(e) => {
@@ -147,6 +161,109 @@ function AtRiskCard({ students }: { students: AcademyDashboardAtRiskStudent[] })
         >
           Ver todos em risco
         </button>
+      </div>
+    </div>
+  );
+}
+
+function CommercialSignalsPanel({ signals, studentsCount }: { signals: AcademyCommercialSignals; studentsCount: number }) {
+  const navigate = useNavigate();
+  const hasSignals = signals.upgradeCandidates > 0 || signals.noWorkoutPlan > 0 || signals.externalPersonal > 0;
+
+  if (!hasSignals || studentsCount === 0) return null;
+
+  return (
+    <div className="dash-section" style={{ marginTop: "var(--space-6)" }}>
+      <div className="dash-section-header">
+        <div className="dash-section-title">Sinais comerciais</div>
+        <div className="dash-section-subtitle">Oportunidades identificadas na base ativa</div>
+      </div>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)", marginTop: "var(--space-4)" }}>
+        {signals.upgradeCandidates > 0 && (
+          <div
+            className="dash-alert-row"
+            style={{
+              display: "flex", alignItems: "center", gap: "var(--space-3)",
+              padding: "var(--space-3) var(--space-4)",
+              background: "var(--color-surface-1, var(--color-surface))",
+              border: "1px solid var(--color-border)",
+              borderRadius: "var(--radius-md)",
+              cursor: "pointer",
+            }}
+            onClick={() => navigate("/app/academy/students")}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => e.key === "Enter" && navigate("/app/academy/students")}
+          >
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontWeight: 600, fontSize: "0.875rem" }}>
+                {signals.upgradeCandidates} aluno{signals.upgradeCandidates !== 1 ? "s" : ""} sem App MetaCore
+              </div>
+              <div style={{ fontSize: "0.75rem", color: "var(--color-text-2)", marginTop: 1 }}>
+                Aderência ativa nos últimos 30 dias — candidatos ao upgrade premium
+              </div>
+            </div>
+            <span className="badge" style={{ background: "var(--color-primary-soft, rgba(0,0,0,.06))", color: "var(--color-primary)", flexShrink: 0 }}>
+              App
+            </span>
+          </div>
+        )}
+
+        {signals.noWorkoutPlan > 0 && (
+          <div
+            className="dash-alert-row"
+            style={{
+              display: "flex", alignItems: "center", gap: "var(--space-3)",
+              padding: "var(--space-3) var(--space-4)",
+              background: "var(--color-surface-1, var(--color-surface))",
+              border: "1px solid var(--color-border)",
+              borderRadius: "var(--radius-md)",
+              cursor: "pointer",
+            }}
+            onClick={() => navigate("/app/academy/students")}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => e.key === "Enter" && navigate("/app/academy/students")}
+          >
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontWeight: 600, fontSize: "0.875rem" }}>
+                {signals.noWorkoutPlan} aluno{signals.noWorkoutPlan !== 1 ? "s" : ""} sem ficha ativa
+              </div>
+              <div style={{ fontSize: "0.75rem", color: "var(--color-text-2)", marginTop: 1 }}>
+                Matriculado{signals.noWorkoutPlan !== 1 ? "s" : ""} há mais de 30 dias sem plano de treino atribuído
+              </div>
+            </div>
+            <span className="badge" style={{ background: "var(--color-warn-soft, rgba(245,158,11,.08))", color: "var(--color-warn, #f59e0b)", flexShrink: 0 }}>
+              Personal
+            </span>
+          </div>
+        )}
+
+        {signals.externalPersonal > 0 && (
+          <div
+            className="dash-alert-row"
+            style={{
+              display: "flex", alignItems: "center", gap: "var(--space-3)",
+              padding: "var(--space-3) var(--space-4)",
+              background: "var(--color-surface-1, var(--color-surface))",
+              border: "1px solid var(--color-border)",
+              borderRadius: "var(--radius-md)",
+            }}
+          >
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontWeight: 600, fontSize: "0.875rem" }}>
+                {signals.externalPersonal} aluno{signals.externalPersonal !== 1 ? "s" : ""} com personal externo
+              </div>
+              <div style={{ fontSize: "0.75rem", color: "var(--color-text-2)", marginTop: 1 }}>
+                Acompanhado{signals.externalPersonal !== 1 ? "s" : ""} por personal não vinculado à academia — oportunidade de adoção
+              </div>
+            </div>
+            <span className="badge" style={{ background: "var(--color-surface-2, rgba(0,0,0,.06))", color: "var(--color-text-2)", flexShrink: 0 }}>
+              Externo
+            </span>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -203,6 +320,7 @@ export default function AcademyDashboardPage() {
   const averageMetabolismScore = data?.averageMetabolismScore ?? null;
   const topPersonals           = data?.topPersonals ?? [];
   const adoption               = data?.adoption;
+  const commercialSignals      = data?.commercialSignals;
   const academyName            = branding?.display_name ?? academy?.display_name ?? "Academia";
   const logoColor      = branding?.primary_color ?? "var(--color-primary)";
   const initial        = academyName.slice(0, 2).toUpperCase();
@@ -345,6 +463,11 @@ export default function AcademyDashboardPage() {
 
       {/* At-risk students card */}
       <AtRiskCard students={atRiskStudents} />
+
+      {/* M7 — Commercial signals */}
+      {commercialSignals && (
+        <CommercialSignalsPanel signals={commercialSignals} studentsCount={students} />
+      )}
 
       {/* 3.4 — Average metabolism score */}
       <div className="dash-section" style={{ marginTop: "var(--space-6)" }}>

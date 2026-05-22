@@ -51,9 +51,16 @@ export interface AcademyDashboardAtRiskStudent {
   id: number;
   name: string;
   email: string;
+  phone?: string | null;
   lastCheckin: string | null;
   lastWorkout: string | null;
   daysInactive: number;
+}
+
+export interface AcademyCommercialSignals {
+  upgradeCandidates: number;
+  noWorkoutPlan: number;
+  externalPersonal: number;
 }
 
 export interface AcademyTopPersonal {
@@ -89,6 +96,7 @@ export interface AcademyDashboard {
   averageMetabolismScore: number | null;
   topPersonals: AcademyTopPersonal[];
   adoption: AcademyAdoption;
+  commercialSignals?: AcademyCommercialSignals;
 }
 
 export interface AcademyAuditRow {
