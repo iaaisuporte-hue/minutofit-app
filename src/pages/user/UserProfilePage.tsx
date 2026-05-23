@@ -9,6 +9,7 @@ import { mapCanonicalPlanToLabel, normalizeToCanonicalPlanName } from "../../uti
 import { useMetabolism } from "../../features/metabolism/useMetabolism";
 import { useGamificationSummary } from "../../features/gamification/useGamificationSummary";
 import { useProfessionalContext } from "../../features/professionalVoice";
+import { MinhaEquipeSection } from "../../features/team";
 import { deriveEnergyStatus } from "../../features/metabolism/metabolismDerivations";
 import {
   itemRevealVariants,
@@ -290,10 +291,10 @@ function drawEvolutionShareCard(opts: {
 
 export default function UserProfilePage({ onLogout }: Props) {
   const navigate = useNavigate();
-  const { user, branding, academies } = useAuth();
+  const { user, branding, academies, activeAcademyId } = useAuth();
   const { data: metabolismData } = useMetabolism();
   const { data: gamification } = useGamificationSummary();
-  const { data: professionalContext, loading: professionalLoading } = useProfessionalContext();
+  const { data: professionalContext, loading: professionalLoading, refetch: refetchProfessional } = useProfessionalContext();
   const { planName } = useFeatureFlags();
   const isMobile = useIsMobile(720);
   const { shouldReduceMotion, shouldUseTilt } = useTodayMotionSafe({ isMobile });
@@ -405,6 +406,17 @@ export default function UserProfilePage({ onLogout }: Props) {
             </motion.div>
           </motion.div>
         </Card>
+      </motion.div>
+
+      {/* Minha Equipe MetaCore */}
+      <motion.div variants={sectionRevealVariants}>
+        <MinhaEquipeSection
+          professionalContext={professionalContext}
+          contextLoading={professionalLoading}
+          hasAcademy={!!activeAcademyId}
+          academyName={academyName}
+          onConnectionChanged={refetchProfessional}
+        />
       </motion.div>
 
       <motion.div variants={sectionRevealVariants} style={{ display: "grid", gap: "var(--space-4)" }}>

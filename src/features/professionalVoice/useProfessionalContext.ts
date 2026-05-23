@@ -18,12 +18,16 @@ interface UseProfessionalContextResult {
   data: ProfessionalContext | null;
   loading: boolean;
   error: string | null;
+  refetch: () => void;
 }
 
 export function useProfessionalContext(): UseProfessionalContextResult {
   const [data, setData] = useState<ProfessionalContext | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [tick, setTick] = useState(0);
+
+  const refetch = useCallback(() => setTick((t) => t + 1), []);
 
   const fetchData = useCallback(async (signal: AbortSignal) => {
     setLoading(true);
@@ -52,7 +56,7 @@ export function useProfessionalContext(): UseProfessionalContextResult {
     const controller = new AbortController();
     void fetchData(controller.signal);
     return () => controller.abort();
-  }, [fetchData]);
+  }, [fetchData, tick]);
 
-  return { data, loading, error };
+  return { data, loading, error, refetch };
 }

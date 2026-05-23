@@ -1,6 +1,7 @@
 import { useAuth } from "../auth/AuthContext";
 import AppShell from "../layout/AppShell";
 import MinutoFitLogo from "../components/MinutoFitLogo";
+import { IncomingRequestsPanel } from "../features/team";
 
 export default function NutriApp() {
   const auth = useAuth();
@@ -40,6 +41,8 @@ export default function NutriApp() {
             Pacientes, planos alimentares e avaliações.
           </p>
         </div>
+        <IncomingRequestsPanel role="nutri" />
+
         <div
           style={{
             display: "grid",

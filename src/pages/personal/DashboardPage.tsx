@@ -22,6 +22,7 @@ import {
   type StudentNarrativeTone,
 } from "./lib/studentNarrative";
 import { InsightsStrip } from "../../features/personalRetention/InsightsStrip";
+import { IncomingRequestsPanel } from "../../features/team";
 import { FinancePanel } from "../../features/personalRetention/FinancePanel";
 import { QuickMessageModal } from "../../features/personalRetention/QuickMessageModal";
 import "./personalPremium.css";
@@ -301,6 +302,11 @@ export default function DashboardPage() {
             Revisões
           </button>
         </div>
+      </div>
+
+      {/* Solicitações de vínculo de alunos (iniciadas pelo aluno) */}
+      <div style={{ marginTop: 12 }}>
+        <IncomingRequestsPanel role="personal" />
       </div>
 
       {/* Estado da carteira: distribuição + filtros + KPI strip — fora do hero, em camadas claras */}
