@@ -95,12 +95,13 @@ export function MinhaEquipeSection({
       ? { ...professionalContext.nutri, role: 'nutri' as ProfessionalRole, label: 'Nutricionista' }
       : null,
   ].filter(Boolean) as Array<{ id: number; name: string; role: ProfessionalRole; label: string }>;
+  const pendingRoles = new Set(outgoingRequests.map((request) => request.professionalRole));
 
   // Em modo embedded sempre mostramos 2 slots fixos (Personal + Nutri),
-  // mesmo vazios — cada empty state ganha CTA próprio quando aluno é autônomo.
+  // mesmo vazios — cada empty state ganha CTA próprio para escolher acompanhamento.
   const emptySlots: Array<{ role: ProfessionalRole; label: string }> = embedded
     ? (['personal', 'nutri'] as ProfessionalRole[])
-        .filter((r) => !members.some((m) => m.role === r))
+        .filter((r) => !members.some((m) => m.role === r) && !pendingRoles.has(r))
         .map((r) => ({ role: r, label: r === 'personal' ? 'Personal' : 'Nutricionista' }))
     : [];
 
@@ -295,35 +296,34 @@ export function MinhaEquipeSection({
                 </div>
                 <div style={{ fontSize: 12, color: COLORS.muted, marginTop: 1 }}>
                   {hasAcademy
-                    ? `Não incluído pela ${academyName ?? 'sua academia'}`
+                    ? `Não incluído pela ${academyName ?? 'sua academia'} · escolha um profissional`
                     : slot.role === 'personal'
                       ? 'Um personal acompanha seus treinos no dia a dia.'
                       : 'Um nutri amplifica seu plano alimentar.'}
                 </div>
               </div>
-              {!hasAcademy && (
-                <button
-                  type="button"
-                  onClick={() => setShowAddSheet(slot.role)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 4,
-                    padding: '5px 10px',
-                    borderRadius: 6,
-                    border: `1px solid ${COLORS.borderStrong}`,
-                    background: 'transparent',
-                    color: COLORS.text,
-                    fontSize: 12,
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    flexShrink: 0,
-                  }}
-                >
-                  <PlusIcon />
-                  Adicionar
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={() => setShowAddSheet(slot.role)}
+                aria-label={`Escolher ${slot.label.toLowerCase()} para acompanhamento`}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  padding: '5px 10px',
+                  borderRadius: 6,
+                  border: `1px solid ${COLORS.borderStrong}`,
+                  background: 'transparent',
+                  color: COLORS.text,
+                  fontSize: 12,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  flexShrink: 0,
+                }}
+              >
+                <PlusIcon />
+                Escolher
+              </button>
             </div>
           ))}
 
