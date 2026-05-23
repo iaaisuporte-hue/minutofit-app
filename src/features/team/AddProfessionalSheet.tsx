@@ -4,6 +4,7 @@ import type { ConsentScope, ProfessionalRole } from './types';
 import { DEFAULT_SCOPES_NUTRI, DEFAULT_SCOPES_PERSONAL, SCOPE_LABELS } from './types';
 import { resolveProfessional, createConnectionRequest } from './api';
 import type { ResolvedProfessional } from './types';
+import { Toast } from './Toast';
 
 interface Props {
   onSuccess: () => void;
@@ -32,6 +33,7 @@ export function AddProfessionalSheet({ onSuccess, onClose }: Props) {
   const [message, setMessage] = useState('');
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const handleRoleChange = (r: ProfessionalRole) => {
     setRole(r);
@@ -83,11 +85,13 @@ export function AddProfessionalSheet({ onSuccess, onClose }: Props) {
     } catch (err: unknown) {
       const e = err as { message?: string };
       if (e.message === 'too_many_pending') {
-        alert('Você já tem muitas solicitações pendentes. Cancele uma antes de enviar outra.');
+        setErrorMsg('Você já tem muitas solicitações pendentes. Cancele uma antes de enviar outra.');
       } else if (e.message === 'daily_limit_exceeded') {
-        alert('Você atingiu o limite de solicitações por hoje. Tente novamente amanhã.');
+        setErrorMsg('Você atingiu o limite de solicitações por hoje. Tente novamente amanhã.');
+      } else if (e.message === 'academy_blocks_external') {
+        setErrorMsg('Sua academia não permite vincular profissional externo.');
       } else {
-        alert('Não foi possível enviar. Tente novamente.');
+        setErrorMsg('Não foi possível enviar. Tente novamente.');
       }
     } finally {
       setSending(false);
@@ -339,6 +343,7 @@ export function AddProfessionalSheet({ onSuccess, onClose }: Props) {
           )}
         </div>
       </div>
+      {errorMsg && <Toast message={errorMsg} kind="error" onDismiss={() => setErrorMsg(null)} />}
     </div>
   );
 }

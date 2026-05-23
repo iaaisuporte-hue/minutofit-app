@@ -4,6 +4,8 @@ import type { ProfessionalRole, ProfessionalRequest } from './types';
 import { listOutgoingRequests, revokeConnection } from './api';
 import { AddProfessionalSheet } from './AddProfessionalSheet';
 import { ConsentScopeManager } from './ConsentScopeManager';
+import { ConfirmModal } from './ConfirmModal';
+import { Toast } from './Toast';
 import type { ProfessionalContext } from '../professionalVoice/useProfessionalContext';
 
 interface Props {
@@ -47,6 +49,8 @@ export function MinhaEquipeSection({
   const [activePanel, setActivePanel] = useState<ActivePanel>(null);
   const [outgoingRequests, setOutgoingRequests] = useState<ProfessionalRequest[]>([]);
   const [revoking, setRevoking] = useState<string | null>(null);
+  const [confirmRevoke, setConfirmRevoke] = useState<{ professionalId: number; role: ProfessionalRole; name: string } | null>(null);
+  const [toast, setToast] = useState<{ message: string; kind: 'success' | 'error' } | null>(null);
 
   const loadRequests = useCallback(async () => {
     try {
@@ -59,15 +63,22 @@ export function MinhaEquipeSection({
 
   useEffect(() => { void loadRequests(); }, [loadRequests]);
 
-  const handleRevoke = async (professionalId: number, role: ProfessionalRole, name: string) => {
-    if (!confirm(`Encerrar acompanhamento com ${name}? Ele perderá acesso aos seus dados imediatamente.`)) return;
+  const requestRevoke = (professionalId: number, role: ProfessionalRole, name: string) => {
+    setConfirmRevoke({ professionalId, role, name });
+  };
+
+  const handleRevokeConfirmed = async () => {
+    if (!confirmRevoke) return;
+    const { professionalId, role, name } = confirmRevoke;
     setRevoking(`${professionalId}-${role}`);
     try {
       await revokeConnection(professionalId, role);
+      setConfirmRevoke(null);
       setActivePanel(null);
       onConnectionChanged();
+      setToast({ message: `Acompanhamento com ${name} encerrado.`, kind: 'success' });
     } catch {
-      alert('Não foi possível encerrar. Tente novamente.');
+      setToast({ message: 'Não foi possível encerrar. Tente novamente.', kind: 'error' });
     } finally {
       setRevoking(null);
     }
@@ -283,8 +294,21 @@ export function MinhaEquipeSection({
           professionalRole={activePanel.role}
           professionalName={activePanel.name}
           revoking={revoking === `${activePanel.professionalId}-${activePanel.role}`}
-          onRevoke={() => handleRevoke(activePanel.professionalId, activePanel.role, activePanel.name)}
+          onRevoke={() => requestRevoke(activePanel.professionalId, activePanel.role, activePanel.name)}
           onClose={() => setActivePanel(null)}
+        />
+      )}
+
+      {/* Confirmação destrutiva */}
+      {confirmRevoke && (
+        <ConfirmModal
+          title={`Encerrar acompanhamento com ${confirmRevoke.name}?`}
+          description="O profissional perderá acesso a todos os seus dados imediatamente. Esta ação não pode ser desfeita."
+          confirmLabel="Encerrar"
+          destructive
+          loading={revoking !== null}
+          onConfirm={() => void handleRevokeConfirmed()}
+          onCancel={() => setConfirmRevoke(null)}
         />
       )}
 
@@ -294,10 +318,13 @@ export function MinhaEquipeSection({
           onSuccess={() => {
             setShowAddSheet(false);
             void loadRequests();
+            setToast({ message: 'Solicitação enviada com sucesso.', kind: 'success' });
           }}
           onClose={() => setShowAddSheet(false)}
         />
       )}
+
+      {toast && <Toast message={toast.message} kind={toast.kind} onDismiss={() => setToast(null)} />}
     </div>
   );
 }

@@ -3,6 +3,8 @@ import { COLORS } from '../../styles/colors';
 import type { ProfessionalRequest, ProfessionalRole } from './types';
 import { SCOPE_LABELS } from './types';
 import { listIncomingRequests, acceptRequest, rejectRequest } from './api';
+import { ConfirmModal } from './ConfirmModal';
+import { Toast } from './Toast';
 
 interface Props {
   role: ProfessionalRole;
@@ -13,6 +15,8 @@ export function IncomingRequestsPanel({ role, onCountChange }: Props) {
   const [requests, setRequests] = useState<ProfessionalRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState<string | null>(null);
+  const [rejectTarget, setRejectTarget] = useState<ProfessionalRequest | null>(null);
+  const [toast, setToast] = useState<{ message: string; kind: 'success' | 'error' } | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -35,22 +39,26 @@ export function IncomingRequestsPanel({ role, onCountChange }: Props) {
       await acceptRequest(req.id);
       setRequests((prev) => prev.filter((r) => r.id !== req.id));
       onCountChange?.(requests.length - 1);
+      setToast({ message: `${req.studentName ?? 'Aluno'} adicionado(a) à sua carteira.`, kind: 'success' });
     } catch {
-      alert('Não foi possível aceitar. Tente novamente.');
+      setToast({ message: 'Não foi possível aceitar a solicitação.', kind: 'error' });
     } finally {
       setProcessing(null);
     }
   };
 
-  const handleReject = async (req: ProfessionalRequest) => {
-    const reason = prompt('Motivo da recusa (opcional, visível ao aluno):') ?? undefined;
+  const handleRejectConfirmed = async (reason?: string) => {
+    if (!rejectTarget) return;
+    const req = rejectTarget;
     setProcessing(req.id);
     try {
       await rejectRequest(req.id, reason);
       setRequests((prev) => prev.filter((r) => r.id !== req.id));
       onCountChange?.(requests.length - 1);
+      setRejectTarget(null);
+      setToast({ message: 'Solicitação recusada.', kind: 'success' });
     } catch {
-      alert('Não foi possível recusar. Tente novamente.');
+      setToast({ message: 'Não foi possível recusar a solicitação.', kind: 'error' });
     } finally {
       setProcessing(null);
     }
@@ -149,7 +157,7 @@ export function IncomingRequestsPanel({ role, onCountChange }: Props) {
             <button
               type="button"
               disabled={processing === req.id}
-              onClick={() => void handleReject(req)}
+              onClick={() => setRejectTarget(req)}
               style={{
                 flex: 1,
                 padding: '8px',
@@ -187,6 +195,21 @@ export function IncomingRequestsPanel({ role, onCountChange }: Props) {
           </div>
         </div>
       ))}
+
+      {rejectTarget && (
+        <ConfirmModal
+          title={`Recusar solicitação de ${rejectTarget.studentName ?? 'aluno'}?`}
+          description="O aluno poderá tentar novamente em 7 dias."
+          confirmLabel="Recusar"
+          destructive
+          loading={processing === rejectTarget.id}
+          reasonPlaceholder="Motivo (opcional, visível ao aluno)"
+          onConfirm={(reason) => void handleRejectConfirmed(reason)}
+          onCancel={() => setRejectTarget(null)}
+        />
+      )}
+
+      {toast && <Toast message={toast.message} kind={toast.kind} onDismiss={() => setToast(null)} />}
     </div>
   );
 }

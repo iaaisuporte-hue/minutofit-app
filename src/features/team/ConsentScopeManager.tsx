@@ -3,6 +3,7 @@ import { COLORS } from '../../styles/colors';
 import type { ConsentEntry, ConsentScope, ProfessionalRole } from './types';
 import { SCOPE_LABELS } from './types';
 import { listConsents, revokeConsent } from './api';
+import { Toast } from './Toast';
 
 interface Props {
   professionalId: number;
@@ -24,6 +25,7 @@ export function ConsentScopeManager({
   const [consents, setConsents] = useState<ConsentEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [togglingScope, setTogglingScope] = useState<ConsentScope | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -48,7 +50,7 @@ export function ConsentScopeManager({
         prev.map((c) => (c.scope === scope ? { ...c, status: 'revoked', revokedAt: new Date().toISOString() } : c))
       );
     } catch {
-      alert('Não foi possível alterar a permissão. Tente novamente.');
+      setErrorMsg('Não foi possível alterar a permissão.');
     } finally {
       setTogglingScope(null);
     }
@@ -200,6 +202,7 @@ export function ConsentScopeManager({
           </div>
         </div>
       </div>
+      {errorMsg && <Toast message={errorMsg} kind="error" onDismiss={() => setErrorMsg(null)} />}
     </div>
   );
 }
