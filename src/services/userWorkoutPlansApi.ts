@@ -34,6 +34,8 @@ export type UserWorkoutPlan = {
   days: UserWorkoutPlanDay[];
   created_at: string;
   updated_at: string;
+  /** Quando preenchido, o aluno abandonou a ficha. Só o personal pode reativar/excluir. */
+  abandoned_at?: string | null;
 };
 
 export async function fetchMyWorkoutPlans(limit = 20) {
@@ -43,4 +45,18 @@ export async function fetchMyWorkoutPlans(limit = 20) {
     throw new Error(data?.error || "Nao foi possivel carregar suas fichas.");
   }
   return (data?.data || []) as UserWorkoutPlan[];
+}
+
+/**
+ * Aluno abandona uma ficha. Some da listagem dele mas continua existindo
+ * (só o personal pode excluir ou reativar).
+ */
+export async function abandonMyWorkoutPlan(planId: number): Promise<void> {
+  const response = await authFetch(`${API_URL}/user/workout-plans/${planId}/abandon`, {
+    method: "POST",
+  });
+  const data = await parseJson(response);
+  if (!response.ok) {
+    throw new Error(data?.error || "Nao foi possivel abandonar a ficha.");
+  }
 }

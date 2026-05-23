@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
-import { fetchMyWorkoutPlans, type UserWorkoutPlan, type UserWorkoutPlanDay, type UserWorkoutPlanItem } from "../../services/userWorkoutPlansApi";
+import { fetchMyWorkoutPlans, abandonMyWorkoutPlan, type UserWorkoutPlan, type UserWorkoutPlanDay, type UserWorkoutPlanItem } from "../../services/userWorkoutPlansApi";
 import { getExercisesBatch, type Exercise } from "../../services/exercisesApi";
 import { COLORS } from "../../styles/colors";
 import { EmptyState } from "../../components/EmptyState";
 import { TechniqueCard } from "../../features/training/techniques/TechniqueCard";
 import { InfoHint } from "../../components/InfoHint";
+import { ConfirmModal } from "../../features/team/ConfirmModal";
+import { Toast } from "../../features/team/Toast";
 
 function formatDate(value: string) {
   try {
@@ -357,9 +359,10 @@ type PlanCardProps = {
   plan: UserWorkoutPlan;
   isOpen: boolean;
   onToggle: () => void;
+  onAbandon: () => void;
 };
 
-function PlanCard({ plan, isOpen, onToggle }: PlanCardProps) {
+function PlanCard({ plan, isOpen, onToggle, onAbandon }: PlanCardProps) {
   const [activeDayIdx, setActiveDayIdx] = useState(0);
 
   const days = useMemo(() => {
@@ -468,6 +471,42 @@ function PlanCard({ plan, isOpen, onToggle }: PlanCardProps) {
             day={days[activeDayIdx] ?? days[0]}
             planId={plan.id}
           />
+
+          {/* Rodapé com ação "Abandonar ficha" */}
+          <div
+            style={{
+              marginTop: 14,
+              paddingTop: 12,
+              borderTop: `1px solid ${COLORS.border}`,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 8,
+              flexWrap: "wrap",
+            }}
+          >
+            <div style={{ fontSize: 11, color: COLORS.mutedSoft, lineHeight: 1.5 }}>
+              Não vai usar esta ficha agora? Você pode abandoná-la — ela some daqui,
+              mas só o seu personal pode reativar ou excluir.
+            </div>
+            <button
+              type="button"
+              onClick={onAbandon}
+              style={{
+                padding: "6px 12px",
+                borderRadius: 6,
+                border: `1px solid ${COLORS.border}`,
+                background: "transparent",
+                color: COLORS.muted,
+                fontSize: 12,
+                fontWeight: 600,
+                cursor: "pointer",
+                flexShrink: 0,
+              }}
+            >
+              Abandonar ficha
+            </button>
+          </div>
         </div>
       ) : null}
     </div>
@@ -479,6 +518,27 @@ export default function MyWorkoutPlansPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [openPlanId, setOpenPlanId] = useState<number | null>(null);
+  const [abandonTarget, setAbandonTarget] = useState<UserWorkoutPlan | null>(null);
+  const [abandoning, setAbandoning] = useState(false);
+  const [toast, setToast] = useState<{ message: string; kind: "success" | "error" } | null>(null);
+
+  const handleAbandonConfirmed = useCallback(async () => {
+    if (!abandonTarget) return;
+    setAbandoning(true);
+    try {
+      await abandonMyWorkoutPlan(abandonTarget.id);
+      setPlans((prev) => prev.filter((p) => p.id !== abandonTarget.id));
+      setToast({ message: `Ficha "${abandonTarget.title}" abandonada.`, kind: "success" });
+      setAbandonTarget(null);
+    } catch (e) {
+      setToast({
+        message: e instanceof Error ? e.message : "Não foi possível abandonar a ficha.",
+        kind: "error",
+      });
+    } finally {
+      setAbandoning(false);
+    }
+  }, [abandonTarget]);
 
   useEffect(() => {
     let cancelled = false;
@@ -571,8 +631,24 @@ export default function MyWorkoutPlansPage() {
           plan={plan}
           isOpen={openPlanId === plan.id}
           onToggle={() => togglePlan(plan.id)}
+          onAbandon={() => setAbandonTarget(plan)}
         />
       ))}
+
+      {abandonTarget && (
+        <ConfirmModal
+          title={`Abandonar "${abandonTarget.title}"?`}
+          description="A ficha some da sua lista, mas continua existindo. Só o seu personal pode reativar ou excluir. Tem certeza?"
+          confirmLabel="Sim, abandonar"
+          cancelLabel="Não"
+          destructive
+          loading={abandoning}
+          onConfirm={() => void handleAbandonConfirmed()}
+          onCancel={() => setAbandonTarget(null)}
+        />
+      )}
+
+      {toast && <Toast message={toast.message} kind={toast.kind} onDismiss={() => setToast(null)} />}
     </div>
   );
 }

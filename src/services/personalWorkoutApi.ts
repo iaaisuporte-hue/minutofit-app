@@ -35,6 +35,8 @@ export type PersonalWorkoutPlanRow = {
   days: WorkoutPlanDay[];
   created_at: string;
   updated_at: string;
+  /** Preenchido quando o aluno abandonou — personal vê com badge "Abandonada" e pode reativar. */
+  abandoned_at?: string | null;
 };
 
 export async function fetchPersonalWorkoutPlans(studentId: string, limit = 50) {
@@ -44,6 +46,21 @@ export async function fetchPersonalWorkoutPlans(studentId: string, limit = 50) {
     throw new Error(data?.error || "Nao foi possivel carregar as fichas.");
   }
   return (data?.data || []) as PersonalWorkoutPlanRow[];
+}
+
+/**
+ * Personal reativa uma ficha que o aluno tinha abandonado — ela volta a
+ * aparecer na listagem do aluno.
+ */
+export async function reactivateWorkoutPlan(studentId: string | number, planId: number): Promise<void> {
+  const response = await authFetch(
+    `${API_URL}/personal/students/${studentId}/workout-plans/${planId}/reactivate`,
+    { method: "POST" }
+  );
+  const data = await parseJson(response);
+  if (!response.ok) {
+    throw new Error(data?.error || "Nao foi possivel reativar a ficha.");
+  }
 }
 
 export type CreateWorkoutPlanBody =

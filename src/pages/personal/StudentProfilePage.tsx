@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { fetchPersonalWorkoutPlans, type PersonalWorkoutPlanRow } from "../../services/personalWorkoutApi";
+import { fetchPersonalWorkoutPlans, reactivateWorkoutPlan, type PersonalWorkoutPlanRow } from "../../services/personalWorkoutApi";
 import StudentProfileModal from "./StudentProfileModal";
+import { Toast } from "../../features/team/Toast";
 import "./personalPremium.css";
 
 type TabKey = "overview" | "workouts";
@@ -18,6 +19,27 @@ export default function StudentProfilePage() {
   const [plans, setPlans] = useState<PersonalWorkoutPlanRow[]>([]);
   const [plansLoading, setPlansLoading] = useState(false);
   const [plansError, setPlansError] = useState<string | null>(null);
+  const [reactivatingPlanId, setReactivatingPlanId] = useState<number | null>(null);
+  const [toast, setToast] = useState<{ message: string; kind: "success" | "error" } | null>(null);
+
+  async function handleReactivate(plan: PersonalWorkoutPlanRow) {
+    if (!studentId) return;
+    setReactivatingPlanId(plan.id);
+    try {
+      await reactivateWorkoutPlan(studentId, plan.id);
+      setPlans((prev) =>
+        prev.map((p) => (p.id === plan.id ? { ...p, abandoned_at: null } : p))
+      );
+      setToast({ message: `Ficha "${plan.title}" reativada.`, kind: "success" });
+    } catch (e) {
+      setToast({
+        message: e instanceof Error ? e.message : "Não foi possível reativar.",
+        kind: "error",
+      });
+    } finally {
+      setReactivatingPlanId(null);
+    }
+  }
 
   useEffect(() => {
     if (!studentId || tab !== "workouts") return;
@@ -84,30 +106,75 @@ export default function StudentProfilePage() {
             {!plansLoading && !plansError && plans.length === 0 ? (
               <div className="muted">As fichas atribuídas aparecerão aqui depois do primeiro plano salvo para este aluno.</div>
             ) : null}
-            {plans.map((plan) => (
-              <div className="card card-pad" key={plan.id} style={{ display: "grid", gap: 10 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-                  <div>
-                    <strong>{plan.title}</strong>
-                    <div className="small">Frequência {plan.week_preset} · Atualizado em {formatDate(plan.updated_at)}</div>
-                  </div>
-                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                    <button type="button" className="pp-btn pp-btn--sm" onClick={() => navigate(`/app/personal/students/${studentId}/workouts/builder?planId=${plan.id}${plan.source_protocol_id ? `&protocol=${plan.source_protocol_id}` : ""}`)}>
-                      Editar no builder
-                    </button>
-                    {plan.source_protocol_id ? (
-                      <button type="button" className="pp-btn pp-btn--ghost pp-btn--sm" onClick={() => navigate(`/app/personal/library?protocol=${plan.source_protocol_id}`)}>
-                        Ver protocolo de origem
+            {plans.map((plan) => {
+              const abandoned = !!plan.abandoned_at;
+              return (
+                <div
+                  className="card card-pad"
+                  key={plan.id}
+                  style={{
+                    display: "grid",
+                    gap: 10,
+                    opacity: abandoned ? 0.85 : 1,
+                    borderColor: abandoned ? "var(--color-warn-border)" : undefined,
+                    background: abandoned ? "var(--color-warn-soft)" : undefined,
+                  }}
+                >
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+                    <div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                        <strong>{plan.title}</strong>
+                        {abandoned && (
+                          <span
+                            style={{
+                              fontSize: 10,
+                              fontWeight: 700,
+                              padding: "2px 8px",
+                              borderRadius: 100,
+                              background: "var(--color-warn-border)",
+                              color: "var(--color-text)",
+                              textTransform: "uppercase",
+                              letterSpacing: "0.05em",
+                            }}
+                          >
+                            Abandonada pelo aluno
+                          </span>
+                        )}
+                      </div>
+                      <div className="small">
+                        Frequência {plan.week_preset} · Atualizado em {formatDate(plan.updated_at)}
+                        {abandoned && plan.abandoned_at ? ` · Abandono em ${formatDate(plan.abandoned_at)}` : ""}
+                      </div>
+                    </div>
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                      {abandoned && (
+                        <button
+                          type="button"
+                          className="pp-btn pp-btn--sm"
+                          disabled={reactivatingPlanId === plan.id}
+                          onClick={() => void handleReactivate(plan)}
+                        >
+                          {reactivatingPlanId === plan.id ? "Reativando..." : "Reativar"}
+                        </button>
+                      )}
+                      <button type="button" className="pp-btn pp-btn--sm" onClick={() => navigate(`/app/personal/students/${studentId}/workouts/builder?planId=${plan.id}${plan.source_protocol_id ? `&protocol=${plan.source_protocol_id}` : ""}`)}>
+                        Editar no builder
                       </button>
-                    ) : null}
+                      {plan.source_protocol_id ? (
+                        <button type="button" className="pp-btn pp-btn--ghost pp-btn--sm" onClick={() => navigate(`/app/personal/library?protocol=${plan.source_protocol_id}`)}>
+                          Ver protocolo de origem
+                        </button>
+                      ) : null}
+                    </div>
                   </div>
+                  <div className="small">{plan.days.length} dia(s) estruturado(s)</div>
                 </div>
-                <div className="small">{plan.days.length} dia(s) estruturado(s)</div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </section>
       )}
+      {toast && <Toast message={toast.message} kind={toast.kind} onDismiss={() => setToast(null)} />}
     </div>
   );
 }
