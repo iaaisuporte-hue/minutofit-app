@@ -86,10 +86,10 @@ export default function MobileBottomNav({
   const navSlots = onLogout ? 5 : 5;
   const items: NavItem[] = [
     { to: `${baseUrl}/today`, label: "Hoje", icon: <HomeIcon /> },
-    ...(showFicha ? [{ to: `${baseUrl}/plano`, label: "Meu plano", icon: <FichaIcon /> }] : []),
-    ...(showWorkouts ? [{ to: `${baseUrl}/plano`, label: "Meu plano", icon: <FichaIcon /> }] : []),
-    { to: `${baseUrl}/evolucao`, label: "Evolução", icon: <TrackerIcon /> },
-    ...(showLab ? [{ to: `${baseUrl}/espelho`, label: "Espelho", icon: <LabIcon /> }] : []),
+    ...(showFicha ? [{ to: `${baseUrl}/ficha`, label: "Meu plano", icon: <FichaIcon /> }] : []),
+    ...(showWorkouts ? [{ to: `${baseUrl}/treinos`, label: "Treinos", icon: <FichaIcon /> }] : []),
+    ...(_showTracker ? [{ to: `${baseUrl}/activities`, label: "Atividades", icon: <TrackerIcon /> }] : []),
+    ...(showLab ? [{ to: `${baseUrl}/movement-lab`, label: "Espelho", icon: <LabIcon /> }] : []),
     ...(showMessages ? [{ to: `${baseUrl}/messages`, label: "Mensagens", icon: <MessagesIcon /> }] : []),
     ...(showProfile ? [{ to: `${baseUrl}/profile`, label: "Perfil", icon: <ProfileIcon /> }] : []),
   ].slice(0, navSlots);

@@ -20,7 +20,15 @@ export function useWorkoutHistory(days = 30): UseWorkoutHistoryResult {
       const payload = await parseJson(res);
       if (signal.aborted) return;
       if (res.ok && Array.isArray(payload)) {
-        setData(payload as WorkoutHistoryEntry[]);
+        // Mescla API com localStorage: inclui entradas locais que não estão no banco
+        // (ex: check-ins salvos quando a API estava falhando).
+        const apiEntries = payload as WorkoutHistoryEntry[];
+        const apiIds = new Set(apiEntries.map((e) => e.workoutId));
+        const localOnly = readWorkoutHistory().filter((e) => !apiIds.has(e.workoutId));
+        const merged = [...apiEntries, ...localOnly].sort(
+          (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+        );
+        setData(merged);
       } else {
         setData(readWorkoutHistory());
       }
