@@ -238,23 +238,9 @@ export default function UserApp() {
                 }
               />
 
-              {/* ✅ ONBOARDING (blindado: relativa + absoluta) */}
-              <Route
-                path="onboarding"
-                element={
-                  <LimitedUserOnly allowed={canTrainingAi}>
-                    <OnboardingPage />
-                  </LimitedUserOnly>
-                }
-              />
-              <Route
-                path="/app/user/onboarding"
-                element={
-                  <LimitedUserOnly allowed={canTrainingAi}>
-                    <OnboardingPage />
-                  </LimitedUserOnly>
-                }
-              />
+              {/* ✅ ONBOARDING (blindado: relativa + absoluta) — acessível a todos os alunos */}
+              <Route path="onboarding" element={<OnboardingPage />} />
+              <Route path="/app/user/onboarding" element={<OnboardingPage />} />
 
               {/* ✅ ROTAS antigas (mantidas) */}
               <Route

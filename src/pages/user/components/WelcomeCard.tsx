@@ -44,7 +44,7 @@ export function WelcomeCard({ firstName, state, onGoToCheckin }: Props) {
       descricao: "O app já tem uma sugestão pronta para você — sem precisar de personal.",
       done: state.workoutDone,
       cta: "Ver treino",
-      onClick: () => navigate("/app/user/suggested-training"),
+      onClick: () => navigate("/app/user/ficha"),
     },
   ];
 

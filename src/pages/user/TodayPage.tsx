@@ -380,7 +380,7 @@ export default function TodayPage() {
       )}
 
       {/* 1. Check-in de estado */}
-      <motion.div variants={sectionRevealVariants}>
+      <motion.div variants={sectionRevealVariants} data-daily-checkin>
         <DailyCheckin
           condition={dailyCondition}
           setCondition={setDailyCondition}
