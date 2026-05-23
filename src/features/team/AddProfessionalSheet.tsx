@@ -9,6 +9,8 @@ import { Toast } from './Toast';
 interface Props {
   onSuccess: () => void;
   onClose: () => void;
+  /** Pré-seleciona personal ou nutri ao abrir (default: 'personal') */
+  initialRole?: ProfessionalRole;
 }
 
 type Step = 'identify' | 'confirm';
@@ -22,14 +24,16 @@ const ALL_SCOPES_NUTRI: ConsentScope[] = [
   'body_metrics', 'body_photos', 'parq_anamnese',
 ];
 
-export function AddProfessionalSheet({ onSuccess, onClose }: Props) {
-  const [role, setRole] = useState<ProfessionalRole>('personal');
+export function AddProfessionalSheet({ onSuccess, onClose, initialRole = 'personal' }: Props) {
+  const [role, setRole] = useState<ProfessionalRole>(initialRole);
   const [identifier, setIdentifier] = useState('');
   const [resolving, setResolving] = useState(false);
   const [resolved, setResolved] = useState<ResolvedProfessional | null>(null);
   const [resolveError, setResolveError] = useState<string | null>(null);
   const [step, setStep] = useState<Step>('identify');
-  const [scopes, setScopes] = useState<Set<ConsentScope>>(new Set(DEFAULT_SCOPES_PERSONAL));
+  const [scopes, setScopes] = useState<Set<ConsentScope>>(
+    new Set(initialRole === 'nutri' ? DEFAULT_SCOPES_NUTRI : DEFAULT_SCOPES_PERSONAL)
+  );
   const [message, setMessage] = useState('');
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);

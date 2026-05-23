@@ -8,8 +8,6 @@ import { useFeatureFlags } from "../../auth/FeatureFlagsContext";
 import { mapCanonicalPlanToLabel, normalizeToCanonicalPlanName } from "../../utils/planNormalization";
 import { useMetabolism } from "../../features/metabolism/useMetabolism";
 import { useGamificationSummary } from "../../features/gamification/useGamificationSummary";
-import { useProfessionalContext } from "../../features/professionalVoice";
-import { MinhaEquipeSection } from "../../features/team";
 import { deriveEnergyStatus } from "../../features/metabolism/metabolismDerivations";
 import {
   itemRevealVariants,
@@ -291,10 +289,9 @@ function drawEvolutionShareCard(opts: {
 
 export default function UserProfilePage({ onLogout }: Props) {
   const navigate = useNavigate();
-  const { user, branding, academies, activeAcademyId } = useAuth();
+  const { user, branding, academies } = useAuth();
   const { data: metabolismData } = useMetabolism();
   const { data: gamification } = useGamificationSummary();
-  const { data: professionalContext, loading: professionalLoading, refetch: refetchProfessional } = useProfessionalContext();
   const { planName } = useFeatureFlags();
   const isMobile = useIsMobile(720);
   const { shouldReduceMotion, shouldUseTilt } = useTodayMotionSafe({ isMobile });
@@ -322,15 +319,6 @@ export default function UserProfilePage({ onLogout }: Props) {
   );
 
   const academyName = branding?.displayName ?? academies?.[0]?.displayName ?? "MetaCore";
-  const professionalNames = [
-    professionalContext?.personal ? `${professionalContext.personal.name.split(" ")[0]} · Personal` : null,
-    professionalContext?.nutri ? `${professionalContext.nutri.name.split(" ")[0]} · Nutri` : null,
-  ].filter(Boolean);
-  const professionalSignal = professionalLoading
-    ? "Sincronizando acompanhamento"
-    : professionalNames.length > 0
-      ? professionalNames.join(" + ")
-      : "Acompanhamento a vincular";
   const derivedEnergy = useMemo(() => deriveEnergyStatus(metabolismData), [metabolismData]);
   const metabolicUpdatedLabel = useMemo(() => formatCurrentDate(), []);
 
@@ -390,11 +378,17 @@ export default function UserProfilePage({ onLogout }: Props) {
             <motion.div variants={itemRevealVariants} style={{ display: "flex", gap: "var(--space-3)", flexWrap: "wrap" }}>
               <ProfileSignal label="Plano" value={accountSummary.plan} />
               <ProfileSignal label="Consistência" value={`${gamification?.streak ?? 0} dias`} />
-              <ProfileSignal label="Profissional" value={professionalSignal} />
               <ProfileSignal label="Academia" value={academyName} />
             </motion.div>
 
-            <motion.div variants={itemRevealVariants} style={{ display: "flex", justifyContent: "flex-end" }}>
+            <motion.div variants={itemRevealVariants} style={{ display: "flex", justifyContent: "flex-end", gap: "var(--space-3)", flexWrap: "wrap" }}>
+              <Link
+                to="/app/user/equipe"
+                className="btn btn-ghost"
+                style={{ fontSize: "var(--text-sm)", textDecoration: "none" }}
+              >
+                Ver minha equipe →
+              </Link>
               <button
                 type="button"
                 className="btn btn-ghost"
@@ -406,17 +400,6 @@ export default function UserProfilePage({ onLogout }: Props) {
             </motion.div>
           </motion.div>
         </Card>
-      </motion.div>
-
-      {/* Minha Equipe MetaCore */}
-      <motion.div variants={sectionRevealVariants}>
-        <MinhaEquipeSection
-          professionalContext={professionalContext}
-          contextLoading={professionalLoading}
-          hasAcademy={!!activeAcademyId}
-          academyName={academyName}
-          onConnectionChanged={refetchProfessional}
-        />
       </motion.div>
 
       <motion.div variants={sectionRevealVariants} style={{ display: "grid", gap: "var(--space-4)" }}>

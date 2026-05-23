@@ -29,6 +29,7 @@ import SuggestedTrainingPage from "./user/SuggestedTrainingPage";
 import ComplianceBanner from "../components/ComplianceBanner";
 import { MetabolismPill } from "../components/MetabolismPill";
 import GlossarioPage from "./user/GlossarioPage";
+import MinhaEquipePage from "./user/MinhaEquipePage";
 
 const USER_BASE = "/app/user" as const;
 const USER_DEFAULT = "/app/user/today" as const;
@@ -67,6 +68,14 @@ const NAV_ICONS: Record<string, React.ReactNode> = {
   profile: (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
+    </svg>
+  ),
+  team: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
     </svg>
   ),
   target: (
@@ -166,6 +175,7 @@ export default function UserApp() {
               {showTracker && <MenuLink to={`${USER_BASE}/activities`} label="Atividades" iconKey="tracker" />}
               {canMessages && <MenuLink to={`${USER_BASE}/messages`} label="Mensagens" iconKey="messages" />}
               {canProfile && <MenuLink to={`${USER_BASE}/profile`} label="Perfil" iconKey="profile" />}
+              <MenuLink to={`${USER_BASE}/equipe`} label="Minha equipe" iconKey="team" />
 
               {canSettings && (
                 <div style={{ paddingTop: 12, paddingBottom: 4 }}>
@@ -309,6 +319,10 @@ export default function UserApp() {
                   </LimitedUserOnly>
                 }
               />
+
+              {/* ✅ MINHA EQUIPE — destino próprio (Onda 1.5) + alias */}
+              <Route path="equipe" element={<MinhaEquipePage />} />
+              <Route path="minha-equipe" element={<MinhaEquipePage />} />
 
               {/* ✅ FALLBACK seguro */}
               <Route path="*" element={<RedirectToDefault />} />

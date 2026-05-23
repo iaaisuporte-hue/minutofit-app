@@ -16,6 +16,8 @@ interface Props {
   /** nome da academia, para mensagem explicativa */
   academyName?: string;
   onConnectionChanged: () => void;
+  /** Quando true, omite o header próprio (usado dentro de MinhaEquipePage) */
+  embedded?: boolean;
 }
 
 const PersonIcon = () => (
@@ -44,8 +46,9 @@ export function MinhaEquipeSection({
   hasAcademy,
   academyName,
   onConnectionChanged,
+  embedded = false,
 }: Props) {
-  const [showAddSheet, setShowAddSheet] = useState(false);
+  const [showAddSheet, setShowAddSheet] = useState<ProfessionalRole | null>(null);
   const [activePanel, setActivePanel] = useState<ActivePanel>(null);
   const [outgoingRequests, setOutgoingRequests] = useState<ProfessionalRequest[]>([]);
   const [revoking, setRevoking] = useState<string | null>(null);
@@ -93,6 +96,14 @@ export function MinhaEquipeSection({
       : null,
   ].filter(Boolean) as Array<{ id: number; name: string; role: ProfessionalRole; label: string }>;
 
+  // Em modo embedded sempre mostramos 2 slots fixos (Personal + Nutri),
+  // mesmo vazios — cada empty state ganha CTA próprio quando aluno é autônomo.
+  const emptySlots: Array<{ role: ProfessionalRole; label: string }> = embedded
+    ? (['personal', 'nutri'] as ProfessionalRole[])
+        .filter((r) => !members.some((m) => m.role === r))
+        .map((r) => ({ role: r, label: r === 'personal' ? 'Personal' : 'Nutricionista' }))
+    : [];
+
   return (
     <div
       style={{
@@ -102,58 +113,60 @@ export function MinhaEquipeSection({
         overflow: 'hidden',
       }}
     >
-      {/* Header */}
-      <div
-        style={{
-          padding: '14px 16px 10px',
-          borderBottom: `1px solid ${COLORS.border}`,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 8,
-        }}
-      >
-        <div>
-          <div
-            style={{
-              fontSize: 10,
-              fontWeight: 700,
-              color: COLORS.muted,
-              textTransform: 'uppercase',
-              letterSpacing: '0.08em',
-              marginBottom: 2,
-            }}
-          >
-            Minha Equipe MetaCore
+      {/* Header — omitido em modo embedded (page-level já tem header próprio) */}
+      {!embedded && (
+        <div
+          style={{
+            padding: '14px 16px 10px',
+            borderBottom: `1px solid ${COLORS.border}`,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 8,
+          }}
+        >
+          <div>
+            <div
+              style={{
+                fontSize: 10,
+                fontWeight: 700,
+                color: COLORS.muted,
+                textTransform: 'uppercase',
+                letterSpacing: '0.08em',
+                marginBottom: 2,
+              }}
+            >
+              Profissionais
+            </div>
+            <div style={{ fontSize: 13, color: COLORS.muted, lineHeight: 1.4 }}>
+              Quem acompanha você
+            </div>
           </div>
-          <div style={{ fontSize: 13, color: COLORS.muted, lineHeight: 1.4 }}>
-            Profissionais que acompanham você
-          </div>
+          {!hasAcademy && (
+            <button
+              type="button"
+              onClick={() => setShowAddSheet('personal')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 5,
+                padding: '6px 12px',
+                borderRadius: 6,
+                border: `1px solid ${COLORS.borderStrong}`,
+                background: 'transparent',
+                color: COLORS.text,
+                fontSize: 12,
+                fontWeight: 600,
+                cursor: 'pointer',
+                flexShrink: 0,
+              }}
+            >
+              <PlusIcon />
+              Adicionar
+            </button>
+          )}
         </div>
-        {!hasAcademy && (
-          <button
-            type="button"
-            onClick={() => setShowAddSheet(true)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 5,
-              padding: '6px 12px',
-              borderRadius: 6,
-              border: `1px solid ${COLORS.borderStrong}`,
-              background: 'transparent',
-              color: COLORS.text,
-              fontSize: 12,
-              fontWeight: 600,
-              cursor: 'pointer',
-              flexShrink: 0,
-            }}
-          >
-            <PlusIcon />
-            Adicionar
-          </button>
-        )}
-      </div>
+      )}
 
       {/* Members */}
       <div style={{ padding: '0 0 4px' }}>
@@ -163,7 +176,7 @@ export function MinhaEquipeSection({
           </div>
         )}
 
-        {!contextLoading && members.length === 0 && (
+        {!contextLoading && !embedded && members.length === 0 && (
           <div style={{ padding: '16px', textAlign: 'center' }}>
             {hasAcademy ? (
               <div style={{ fontSize: 13, color: COLORS.muted, lineHeight: 1.6 }}>
@@ -180,7 +193,7 @@ export function MinhaEquipeSection({
                 Um personal ou nutricionista amplifica os sinais que você registra.{' '}
                 <button
                   type="button"
-                  onClick={() => setShowAddSheet(true)}
+                  onClick={() => setShowAddSheet('personal')}
                   style={{
                     background: 'none',
                     border: 'none',
@@ -243,6 +256,74 @@ export function MinhaEquipeSection({
               <div style={{ color: COLORS.muted }}>
                 <ChevronIcon />
               </div>
+            </div>
+          ))}
+
+        {/* Slots vazios (apenas em modo embedded) — sempre exibe Personal + Nutri */}
+        {!contextLoading && embedded &&
+          emptySlots.map((slot) => (
+            <div
+              key={`empty-${slot.role}`}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+                padding: '12px 16px',
+                borderBottom: `1px solid ${COLORS.border}`,
+              }}
+            >
+              <div
+                style={{
+                  width: 38,
+                  height: 38,
+                  borderRadius: '50%',
+                  background: COLORS.panelDeep,
+                  border: `1px dashed ${COLORS.border}`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                  color: COLORS.muted,
+                  opacity: 0.6,
+                }}
+              >
+                <PersonIcon />
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 14, fontWeight: 600, color: COLORS.text }}>
+                  {slot.label}
+                </div>
+                <div style={{ fontSize: 12, color: COLORS.muted, marginTop: 1 }}>
+                  {hasAcademy
+                    ? `Não incluído pela ${academyName ?? 'sua academia'}`
+                    : slot.role === 'personal'
+                      ? 'Um personal acompanha seus treinos no dia a dia.'
+                      : 'Um nutri amplifica seu plano alimentar.'}
+                </div>
+              </div>
+              {!hasAcademy && (
+                <button
+                  type="button"
+                  onClick={() => setShowAddSheet(slot.role)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    padding: '5px 10px',
+                    borderRadius: 6,
+                    border: `1px solid ${COLORS.borderStrong}`,
+                    background: 'transparent',
+                    color: COLORS.text,
+                    fontSize: 12,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    flexShrink: 0,
+                  }}
+                >
+                  <PlusIcon />
+                  Adicionar
+                </button>
+              )}
             </div>
           ))}
 
@@ -315,12 +396,13 @@ export function MinhaEquipeSection({
       {/* Sheet de adicionar */}
       {showAddSheet && (
         <AddProfessionalSheet
+          initialRole={showAddSheet}
           onSuccess={() => {
-            setShowAddSheet(false);
+            setShowAddSheet(null);
             void loadRequests();
             setToast({ message: 'Solicitação enviada com sucesso.', kind: 'success' });
           }}
-          onClose={() => setShowAddSheet(false)}
+          onClose={() => setShowAddSheet(null)}
         />
       )}
 
