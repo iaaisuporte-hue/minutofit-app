@@ -13,7 +13,7 @@ export function useBuilderCatalog() {
     setCatalogError(null);
     void (async () => {
       try {
-        const rows = await searchExercises({ limit: 200 });
+        const rows = await searchExercises({ limit: 500 });
         if (cancelled) return;
         setAllExercises(rows.map(exerciseSummaryToCatalogEntry).map(catalogEntryToExercise));
       } catch (e) {

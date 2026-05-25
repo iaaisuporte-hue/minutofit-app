@@ -134,6 +134,8 @@ export default function WorkoutBuilderPage() {
   const [exerciseQuery, setExerciseQuery] = useState("");
   const [libGroupFilter, setLibGroupFilter] = useState<MuscleGroup | "all">("all");
   const [showVideoOnly, setShowVideoOnly] = useState(false);
+  const [libraryPage, setLibraryPage] = useState(0);
+  const LIBRARY_PAGE_SIZE = 50;
 
   // ── Multi-day workout state ────────────────────────────────────────
   // daysItems: dict idx -> exercises for that day
@@ -402,6 +404,22 @@ export default function WorkoutBuilderPage() {
     if (!q) return base;
     return base.filter((e) => e.name.toLowerCase().includes(q));
   }, [allExercises, exerciseQuery, showVideoOnly, libGroupFilter]);
+
+  // Paginação: 50 por página. Reseta quando filtros mudam.
+  useEffect(() => {
+    setLibraryPage(0);
+  }, [exerciseQuery, libGroupFilter, showVideoOnly]);
+
+  const totalPages = Math.max(1, Math.ceil(libraryList.length / LIBRARY_PAGE_SIZE));
+  const currentPage = Math.min(libraryPage, totalPages - 1);
+  const pagedLibraryList = useMemo(
+    () =>
+      libraryList.slice(
+        currentPage * LIBRARY_PAGE_SIZE,
+        currentPage * LIBRARY_PAGE_SIZE + LIBRARY_PAGE_SIZE
+      ),
+    [libraryList, currentPage]
+  );
 
   // ── Exercise ops (always on active day) ──────────────────────────
   const {
@@ -719,7 +737,7 @@ export default function WorkoutBuilderPage() {
                   {exerciseQuery ? "Nenhum resultado para esta busca." : "Nenhum exercício neste grupo."}
                 </div>
               ) : (
-                libraryList.map((ex) => {
+                pagedLibraryList.map((ex) => {
                   const already = items.some((i) => i.exerciseId === ex.id);
                   return (
                     <div
@@ -862,6 +880,61 @@ export default function WorkoutBuilderPage() {
                 })
               )}
             </div>
+
+            {/* Pagination — só aparece quando há mais de 1 página */}
+            {totalPages > 1 && !catalogLoading ? (
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: 8,
+                  paddingTop: 6,
+                  borderTop: `1px solid ${WB.border}`,
+                  marginTop: 4,
+                }}
+              >
+                <span style={{ fontSize: 12, color: WB.muted }}>
+                  Página {currentPage + 1} de {totalPages} · {libraryList.length} exercícios
+                </span>
+                <div style={{ display: "flex", gap: 6 }}>
+                  <button
+                    type="button"
+                    disabled={currentPage === 0}
+                    onClick={() => setLibraryPage((p) => Math.max(0, p - 1))}
+                    style={{
+                      padding: "5px 10px",
+                      borderRadius: 8,
+                      border: `1px solid ${WB.border}`,
+                      background: "transparent",
+                      color: currentPage === 0 ? WB.muted : WB.text,
+                      cursor: currentPage === 0 ? "default" : "pointer",
+                      fontSize: 12,
+                      fontWeight: 600,
+                    }}
+                  >
+                    ‹ Anterior
+                  </button>
+                  <button
+                    type="button"
+                    disabled={currentPage >= totalPages - 1}
+                    onClick={() => setLibraryPage((p) => Math.min(totalPages - 1, p + 1))}
+                    style={{
+                      padding: "5px 10px",
+                      borderRadius: 8,
+                      border: `1px solid ${WB.border}`,
+                      background: "transparent",
+                      color: currentPage >= totalPages - 1 ? WB.muted : WB.text,
+                      cursor: currentPage >= totalPages - 1 ? "default" : "pointer",
+                      fontSize: 12,
+                      fontWeight: 600,
+                    }}
+                  >
+                    Próxima ›
+                  </button>
+                </div>
+              </div>
+            ) : null}
           </div>
         </WbCard>
 
