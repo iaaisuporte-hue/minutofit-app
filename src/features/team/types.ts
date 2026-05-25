@@ -13,7 +13,7 @@ export type ConsentScope =
 
 export type ProfessionalRole = 'personal' | 'nutri';
 export type RequestStatus = 'pending' | 'accepted' | 'rejected' | 'cancelled' | 'expired';
-export type RequestedVia = 'email' | 'code' | 'link';
+export type RequestedVia = 'email' | 'code' | 'link' | 'discovery';
 
 export const SCOPE_LABELS: Record<ConsentScope, string> = {
   profile: 'Perfil básico',
@@ -61,4 +61,25 @@ export interface ProfessionalRequest {
 export interface ResolvedProfessional {
   id: number;
   name: string;
+}
+
+
+export interface NetworkProfessional {
+  professionalId: number;
+  professionalRole: ProfessionalRole;
+  displayName: string;
+  photoUrl: string | null;
+  specialties: string[];
+  metabolicFocus: string | null;
+  modality: 'in_person' | 'online' | 'hybrid' | null;
+  city: string | null;
+  stateUf: string | null;
+  availabilityStatus: 'available' | 'limited' | 'unavailable';
+  credentialCode: string;
+  credentialStatus: 'pending_review' | 'approved' | 'rejected';
+}
+
+export interface ProfessionalNetworkResponse {
+  policy: 'allow' | 'block';
+  professionals: NetworkProfessional[];
 }

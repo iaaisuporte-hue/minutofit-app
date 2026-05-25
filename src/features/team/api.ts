@@ -7,9 +7,25 @@ import type {
   ProfessionalRequest,
   RequestedVia,
   ResolvedProfessional,
+  ProfessionalNetworkResponse,
 } from './types';
 
 const BASE = `${API_URL}/student`;
+
+
+export async function listProfessionalNetwork(opts: {
+  role?: ProfessionalRole;
+  limit?: number;
+} = {}): Promise<ProfessionalNetworkResponse> {
+  const params = new URLSearchParams();
+  if (opts.role) params.set('role', opts.role);
+  if (opts.limit) params.set('limit', String(opts.limit));
+  const qs = params.toString();
+  const res = await authFetch(`${BASE}/professional-network${qs ? `?${qs}` : ''}`);
+  const payload = await parseJson(res);
+  if (!res.ok) throw new Error(payload?.error ?? 'network_list_failed');
+  return payload.data as ProfessionalNetworkResponse;
+}
 
 export async function resolveProfessional(
   identifier: string,
