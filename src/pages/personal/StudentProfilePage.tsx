@@ -3,6 +3,9 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { fetchPersonalWorkoutPlans, reactivateWorkoutPlan, type PersonalWorkoutPlanRow } from "../../services/personalWorkoutApi";
 import StudentProfileModal from "./StudentProfileModal";
 import { Toast } from "../../features/team/Toast";
+import { EmptyState } from "../../components/EmptyState";
+import { ApplyFromLibraryDrawer } from "../../features/personalRetention/ApplyFromLibraryDrawer";
+import { DuplicatePlanMenu } from "../../features/personalRetention/DuplicatePlanMenu";
 import "./personalPremium.css";
 
 type TabKey = "overview" | "workouts";
@@ -21,6 +24,22 @@ export default function StudentProfilePage() {
   const [plansError, setPlansError] = useState<string | null>(null);
   const [reactivatingPlanId, setReactivatingPlanId] = useState<number | null>(null);
   const [toast, setToast] = useState<{ message: string; kind: "success" | "error" } | null>(null);
+  const [applyDrawerOpen, setApplyDrawerOpen] = useState(false);
+
+  async function reloadPlans() {
+    if (!studentId) return;
+    setPlansLoading(true);
+    try {
+      const rows = await fetchPersonalWorkoutPlans(studentId, 50);
+      setPlans(rows);
+      setPlansError(null);
+    } catch (e) {
+      setPlans([]);
+      setPlansError(e instanceof Error ? e.message : "Nao foi possivel carregar as fichas.");
+    } finally {
+      setPlansLoading(false);
+    }
+  }
 
   async function handleReactivate(plan: PersonalWorkoutPlanRow) {
     if (!studentId) return;
@@ -96,15 +115,35 @@ export default function StudentProfilePage() {
               <div className="pp-panel__title">Fichas atribuídas</div>
               <div className="pp-panel__subtitle">Veja o que o aluno enxerga e acompanhe a origem de cada ficha.</div>
             </div>
-            <button type="button" className="pp-btn pp-btn--primary" onClick={() => navigate(`/app/personal/students/${studentId}/workouts/builder`)}>
-              Atribuir nova ficha
-            </button>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <button type="button" className="pp-btn pp-btn--primary" onClick={() => setApplyDrawerOpen(true)}>
+                Aplicar da biblioteca
+              </button>
+              <button type="button" className="pp-btn pp-btn--ghost" onClick={() => navigate(`/app/personal/students/${studentId}/workouts/builder`)}>
+                Criar do zero
+              </button>
+            </div>
           </div>
           <div className="pp-panel__body" style={{ display: "grid", gap: 12 }}>
             {plansLoading ? <div className="muted">Carregando fichas...</div> : null}
             {plansError ? <div className="muted">{plansError}</div> : null}
             {!plansLoading && !plansError && plans.length === 0 ? (
-              <div className="muted">As fichas atribuídas aparecerão aqui depois do primeiro plano salvo para este aluno.</div>
+              <EmptyState
+                eyebrow="Sem fichas atribuídas"
+                title="Comece pelo caminho mais rápido"
+                description="Aplique um protocolo pronto da sua biblioteca em 2 cliques ou monte uma ficha do zero no builder."
+                action={
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
+                    <button type="button" className="pp-btn pp-btn--primary pp-btn--sm" onClick={() => setApplyDrawerOpen(true)}>
+                      Aplicar da biblioteca
+                    </button>
+                    <button type="button" className="pp-btn pp-btn--ghost pp-btn--sm" onClick={() => navigate(`/app/personal/students/${studentId}/workouts/builder`)}>
+                      Criar do zero
+                    </button>
+                  </div>
+                }
+                variant="info"
+              />
             ) : null}
             {plans.map((plan) => {
               const abandoned = !!plan.abandoned_at;
@@ -125,20 +164,7 @@ export default function StudentProfilePage() {
                       <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                         <strong>{plan.title}</strong>
                         {abandoned && (
-                          <span
-                            style={{
-                              fontSize: 10,
-                              fontWeight: 700,
-                              padding: "2px 8px",
-                              borderRadius: 100,
-                              background: "var(--color-warn-border)",
-                              color: "var(--color-text)",
-                              textTransform: "uppercase",
-                              letterSpacing: "0.05em",
-                            }}
-                          >
-                            Abandonada pelo aluno
-                          </span>
+                          <span className="pp-pill pp-pill--attention">Abandonada pelo aluno</span>
                         )}
                       </div>
                       <div className="small">
@@ -165,6 +191,15 @@ export default function StudentProfilePage() {
                           Ver protocolo de origem
                         </button>
                       ) : null}
+                      <DuplicatePlanMenu
+                        plan={plan}
+                        currentStudentId={studentId}
+                        onSuccess={(message) => {
+                          setToast({ message, kind: "success" });
+                          void reloadPlans();
+                        }}
+                        onError={(message) => setToast({ message, kind: "error" })}
+                      />
                     </div>
                   </div>
                   <div className="small">{plan.days.length} dia(s) estruturado(s)</div>
@@ -175,6 +210,18 @@ export default function StudentProfilePage() {
         </section>
       )}
       {toast && <Toast message={toast.message} kind={toast.kind} onDismiss={() => setToast(null)} />}
+      {applyDrawerOpen && (
+        <ApplyFromLibraryDrawer
+          studentId={studentId}
+          studentName="o aluno"
+          onClose={() => setApplyDrawerOpen(false)}
+          onApplied={(title) => {
+            setToast({ message: `Ficha "${title}" aplicada.`, kind: "success" });
+            void reloadPlans();
+          }}
+          onError={(message) => setToast({ message, kind: "error" })}
+        />
+      )}
     </div>
   );
 }

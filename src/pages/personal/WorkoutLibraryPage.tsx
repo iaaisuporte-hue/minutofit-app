@@ -5,6 +5,7 @@ import { SkeletonStudentList } from "../../components/feedback/Skeleton";
 import { fetchPersonalDashboard } from "../../services/personalDashboardApi";
 import type { PersonalDashboardStudent } from "../../services/personalDashboardApi";
 import {
+  createWorkoutProtocol,
   deleteWorkoutProtocol,
   fetchWorkoutProtocols,
   setProtocolFavorite,
@@ -114,6 +115,34 @@ export default function WorkoutLibraryPage() {
         kind: "error",
         message: e instanceof Error ? e.message : "Nao foi possivel atualizar favorito.",
       });
+    }
+  }
+
+  const [duplicatingId, setDuplicatingId] = useState<number | null>(null);
+
+  async function handleDuplicate(p: WorkoutProtocol) {
+    setDuplicatingId(p.id);
+    try {
+      const days = (p.days?.length ?? 0) > 0
+        ? p.days.map((d) => ({ name: d.name, focus: d.focus, items: d.items }))
+        : undefined;
+      const created = await createWorkoutProtocol({
+        title: `Cópia de ${p.title}`,
+        description: p.description ?? undefined,
+        weekPreset: p.weekPreset,
+        selectedGroup: p.selectedGroup,
+        items: p.items ?? [],
+        days,
+      });
+      setProtocols((prev) => [created, ...prev]);
+      setFeedback({ kind: "success", message: `Protocolo "${created.title}" criado.` });
+    } catch (e) {
+      setFeedback({
+        kind: "error",
+        message: e instanceof Error ? e.message : "Não foi possível duplicar o protocolo.",
+      });
+    } finally {
+      setDuplicatingId(null);
     }
   }
 
@@ -274,6 +303,15 @@ export default function WorkoutLibraryPage() {
                         aria-pressed={p.isFavorite}
                       >
                         {p.isFavorite ? "Remover favorito" : "Favoritar"}
+                      </WbButton>
+                      <WbButton
+                        variant="ghost"
+                        type="button"
+                        onClick={() => void handleDuplicate(p)}
+                        disabled={duplicatingId === p.id}
+                        title="Duplicar este protocolo para a sua biblioteca"
+                      >
+                        {duplicatingId === p.id ? "Duplicando…" : "Duplicar"}
                       </WbButton>
                       {p.scope === "personal" ? (
                         <WbButton

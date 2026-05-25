@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { fetchPersonalDashboard } from "../../services/personalDashboardApi";
 import type { PersonalDashboardStudent } from "../../services/personalDashboardApi";
@@ -431,6 +431,35 @@ export default function WorkoutBuilderPage() {
     setDaysItems,
     setSelectedDayIdx,
   });
+
+  // ── Contextual defaults ──────────────────────────────────────────
+  // Quando o builder abre via /students/:id/workouts/builder SEM ?planId/?protocol,
+  // populamos nome + frequência derivados do sinal MaaS do aluno antes que o
+  // personal precise editar os defaults rígidos. Roda 1× por aluno.
+  const contextualDefaultsAppliedRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!selectedStudentId) return;
+    if (contextualDefaultsAppliedRef.current === selectedStudentId) return;
+    if (searchParams.get("planId") || searchParams.get("protocol")) return;
+    const signal = studentSignals[selectedStudentId];
+    const student = students.find((s) => s.id === selectedStudentId);
+    if (!signal || !student) return;
+
+    contextualDefaultsAppliedRef.current = selectedStudentId;
+
+    const firstName = student.name.split(" ")[0] || student.name;
+    const monthYear = new Date().toLocaleDateString("pt-BR", { month: "short", year: "numeric" });
+    setWorkoutName(`Ficha · ${firstName} · ${monthYear}`);
+
+    // Frequência sugerida (presets disponíveis: 4 / 5 / 6):
+    //   alto risco / pouca atividade → começar com o menor (4×)
+    //   alta aderência e baixo risco → manter intensidade (6×)
+    //   caso intermediário → 5×
+    const startGentle = signal.riskScore >= 70 || signal.workouts7d <= 1;
+    const highEngagement = signal.riskScore <= 30 && signal.workouts7d >= 5;
+    const derivedPreset: WeekPreset = startGentle ? "4" : highEngagement ? "6" : "5";
+    applyWeekPreset(derivedPreset);
+  }, [selectedStudentId, studentSignals, students, searchParams, applyWeekPreset]);
 
   // ── Save ─────────────────────────────────────────────────────────
   const { saving, saveUnified } = useWorkoutBuilderSave({
