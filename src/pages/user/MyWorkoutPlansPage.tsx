@@ -8,6 +8,8 @@ import { TechniqueCard } from "../../features/training/techniques/TechniqueCard"
 import { InfoHint } from "../../components/InfoHint";
 import { ConfirmModal } from "../../features/team/ConfirmModal";
 import { Toast } from "../../features/team/Toast";
+import { persistGamificationCheckin } from "../../services/gamificationApi";
+import { addWorkoutHistoryEntry, type MuscleGroup } from "../user/workoutHistory";
 
 function formatDate(value: string) {
   try {
@@ -114,6 +116,28 @@ function ExerciseGifModal({ exercise, onClose }: ExerciseModalProps) {
       </div>
     </div>
   );
+}
+
+const MUSCLE_KEYWORD_MAP: Array<[RegExp, MuscleGroup]> = [
+  [/peito|chest|peitoral/i, 'chest'],
+  [/cost[as]|back|dorsal|lat[s]?/i, 'back'],
+  [/perna|leg[s]?|glúteo|glute/i, 'legs'],
+  [/ombro|shoulder/i, 'shoulders'],
+  [/bra[çc]o|arm[s]?|bícep|bicep|trícep|tricep/i, 'arms'],
+  [/core|abdômen|abdom|abs/i, 'core'],
+  [/corpo inteiro|full.?body|geral|total/i, 'full_body'],
+  [/cardio|aeró|aerob/i, 'cardio'],
+  [/mobilidade|flexib|stretching/i, 'mobility'],
+];
+
+function deriveMuscleGroupsFromFocus(focus: string | null, selectedGroup: string | null): MuscleGroup[] {
+  const text = focus ?? selectedGroup ?? '';
+  if (!text) return ['full_body'];
+  const found: MuscleGroup[] = [];
+  for (const [pattern, group] of MUSCLE_KEYWORD_MAP) {
+    if (pattern.test(text) && !found.includes(group)) found.push(group);
+  }
+  return found.length > 0 ? found : ['full_body'];
 }
 
 type PlanDayExerciseListProps = {
@@ -364,6 +388,11 @@ type PlanCardProps = {
 
 function PlanCard({ plan, isOpen, onToggle, onAbandon }: PlanCardProps) {
   const [activeDayIdx, setActiveDayIdx] = useState(0);
+  const [isRegistering, setIsRegistering] = useState(false);
+  const [registeredToday, setRegisteredToday] = useState(false);
+  const [registrationXp, setRegistrationXp] = useState<number | null>(null);
+  const [registrationStreak, setRegistrationStreak] = useState<number | null>(null);
+  const [registrationError, setRegistrationError] = useState<string | null>(null);
 
   const days = useMemo(() => {
     if (Array.isArray(plan.days) && plan.days.length > 0) return plan.days;
@@ -387,6 +416,42 @@ function PlanCard({ plan, isOpen, onToggle, onAbandon }: PlanCardProps) {
     whiteSpace: "nowrap",
     flexShrink: 0,
   });
+
+  const activeDay = days[activeDayIdx] ?? days[0];
+  const hasExercises = (activeDay?.items?.length ?? 0) > 0;
+
+  async function handleCompleteSession() {
+    if (isRegistering || registeredToday) return;
+    setIsRegistering(true);
+    setRegistrationError(null);
+
+    const dayLabel = activeDay?.name ?? 'Sessão';
+    const workoutId = `plan-${plan.id}-day-${activeDay?.index ?? activeDayIdx + 1}-${Date.now()}`;
+    const title = `${plan.title} · ${dayLabel}`;
+    const muscleGroups = deriveMuscleGroupsFromFocus(activeDay?.focus ?? null, plan.selected_group);
+
+    addWorkoutHistoryEntry({
+      workoutId,
+      title,
+      muscleGroups,
+      date: new Date().toISOString(),
+    });
+
+    try {
+      const result = await persistGamificationCheckin({
+        source: 'workout',
+        xp: 30,
+        workout: { workoutId, title, muscleGroups },
+      });
+      setRegisteredToday(true);
+      setRegistrationXp(result?.xp ?? null);
+      setRegistrationStreak(result?.streak ?? null);
+    } catch {
+      setRegistrationError('Não foi possível registrar. Tente novamente.');
+    } finally {
+      setIsRegistering(false);
+    }
+  }
 
   return (
     <div
@@ -471,6 +536,50 @@ function PlanCard({ plan, isOpen, onToggle, onAbandon }: PlanCardProps) {
             day={days[activeDayIdx] ?? days[0]}
             planId={plan.id}
           />
+
+          {hasExercises && (
+            <div style={{ marginTop: 16 }}>
+              <button
+                type="button"
+                onClick={() => void handleCompleteSession()}
+                disabled={isRegistering || registeredToday}
+                style={{
+                  width: '100%',
+                  padding: '13px 16px',
+                  minHeight: 48,
+                  borderRadius: 12,
+                  border: 'none',
+                  background: registeredToday ? 'var(--color-success)' : COLORS.primary,
+                  color: '#fff',
+                  fontWeight: 700,
+                  fontSize: 15,
+                  cursor: (isRegistering || registeredToday) ? 'not-allowed' : 'pointer',
+                  opacity: isRegistering ? 0.75 : 1,
+                  transition: 'background 0.2s, opacity 0.2s',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                }}
+              >
+                {isRegistering && (
+                  <span style={{ display: 'inline-block', width: 14, height: 14, border: '2px solid rgba(255,255,255,.4)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
+                )}
+                {registeredToday
+                  ? `Sessão registrada${registrationStreak ? ` · ${registrationStreak} dias` : ''}${registrationXp ? ` · +XP` : ''}`
+                  : isRegistering
+                    ? 'Registrando...'
+                    : 'Concluir sessão de hoje'
+                }
+              </button>
+
+              {registrationError && (
+                <div style={{ marginTop: 8, color: COLORS.danger, fontSize: 13, fontWeight: 500 }}>
+                  {registrationError}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Rodapé com ação "Abandonar ficha" */}
           <div

@@ -2028,3 +2028,7 @@ html[data-academy-branding="applied"] .admin-pill-positive {
   background:   var(--color-primary-soft);
   color:        var(--color-primary);
 }
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
