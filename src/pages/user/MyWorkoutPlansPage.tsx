@@ -390,9 +390,9 @@ function PlanCard({ plan, isOpen, onToggle, onAbandon }: PlanCardProps) {
   const [activeDayIdx, setActiveDayIdx] = useState(0);
   const [isRegistering, setIsRegistering] = useState(false);
   const [registeredToday, setRegisteredToday] = useState(false);
-  const [registrationXp, setRegistrationXp] = useState<number | null>(null);
   const [registrationStreak, setRegistrationStreak] = useState<number | null>(null);
   const [registrationError, setRegistrationError] = useState<string | null>(null);
+  const [successToast, setSuccessToast] = useState<string | null>(null);
 
   const days = useMemo(() => {
     if (Array.isArray(plan.days) && plan.days.length > 0) return plan.days;
@@ -444,10 +444,12 @@ function PlanCard({ plan, isOpen, onToggle, onAbandon }: PlanCardProps) {
         workout: { workoutId, title, muscleGroups },
       });
       setRegisteredToday(true);
-      setRegistrationXp(result?.xp ?? null);
       setRegistrationStreak(result?.streak ?? null);
+      const streakText = result?.streak ? `${result.streak} dias seguidos` : '';
+      const parts = ['+30 XP', streakText].filter(Boolean);
+      setSuccessToast(`Treino registrado! ${parts.join(' · ')}`);
     } catch {
-      setRegistrationError('Não foi possível registrar. Tente novamente.');
+      setRegistrationError('Não foi possível registrar.');
     } finally {
       setIsRegistering(false);
     }
@@ -553,7 +555,7 @@ function PlanCard({ plan, isOpen, onToggle, onAbandon }: PlanCardProps) {
                   color: '#fff',
                   fontWeight: 700,
                   fontSize: 15,
-                  cursor: (isRegistering || registeredToday) ? 'not-allowed' : 'pointer',
+                  cursor: isRegistering ? 'not-allowed' : registeredToday ? 'default' : 'pointer',
                   opacity: isRegistering ? 0.75 : 1,
                   transition: 'background 0.2s, opacity 0.2s',
                   display: 'flex',
@@ -565,8 +567,13 @@ function PlanCard({ plan, isOpen, onToggle, onAbandon }: PlanCardProps) {
                 {isRegistering && (
                   <span style={{ display: 'inline-block', width: 14, height: 14, border: '2px solid rgba(255,255,255,.4)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
                 )}
+                {registeredToday && (
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <polyline points="20 6 9 17 4 12"/>
+                  </svg>
+                )}
                 {registeredToday
-                  ? `Sessão registrada${registrationStreak ? ` · ${registrationStreak} dias` : ''}${registrationXp ? ` · +XP` : ''}`
+                  ? `Sessão registrada${registrationStreak ? ` · ${registrationStreak} dias` : ''}`
                   : isRegistering
                     ? 'Registrando...'
                     : 'Concluir sessão de hoje'
@@ -574,8 +581,31 @@ function PlanCard({ plan, isOpen, onToggle, onAbandon }: PlanCardProps) {
               </button>
 
               {registrationError && (
-                <div style={{ marginTop: 8, color: COLORS.danger, fontSize: 13, fontWeight: 500 }}>
-                  {registrationError}
+                <div style={{ marginTop: 8 }}>
+                  <div style={{ color: COLORS.danger, fontSize: 13, fontWeight: 500, display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                      <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                    </svg>
+                    {registrationError}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => { setRegistrationError(null); void handleCompleteSession(); }}
+                    style={{
+                      marginTop: 6,
+                      padding: '5px 12px',
+                      border: `1px solid ${COLORS.border}`,
+                      borderRadius: 6,
+                      background: 'transparent',
+                      color: COLORS.muted,
+                      fontSize: 12,
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Tentar novamente
+                  </button>
                 </div>
               )}
             </div>
@@ -618,6 +648,9 @@ function PlanCard({ plan, isOpen, onToggle, onAbandon }: PlanCardProps) {
           </div>
         </div>
       ) : null}
+    {successToast && (
+      <Toast message={successToast} kind="success" onDismiss={() => setSuccessToast(null)} />
+    )}
     </div>
   );
 }
