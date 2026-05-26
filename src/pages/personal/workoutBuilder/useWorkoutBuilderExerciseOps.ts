@@ -44,17 +44,17 @@ export function useWorkoutBuilderExerciseOps({ selectedDayIdx, setDaysItems }: A
   /**
    * Remove pelo índice posicional, não pelo exerciseId — protocolos podem
    * repetir o mesmo exercício (supersets, bi-sets, drop sets sequenciais)
-   * e filtrar por id removeria todas as instâncias de uma vez.
+   * e filtrar por id removeria todas as instâncias de uma vez. Sempre
+   * retorna uma nova referência de daysItems para garantir re-render
+   * mesmo se algum memo upstream estiver agressivo.
    */
   const removeExercise = useCallback(
     (index: number) => {
       setDaysItems((prev) => {
         const dayItems = prev[selectedDayIdx] ?? [];
-        if (index < 0 || index >= dayItems.length) return prev;
-        return {
-          ...prev,
-          [selectedDayIdx]: dayItems.filter((_, i) => i !== index),
-        };
+        if (index < 0 || index >= dayItems.length) return { ...prev };
+        const nextDayItems = dayItems.slice(0, index).concat(dayItems.slice(index + 1));
+        return { ...prev, [selectedDayIdx]: nextDayItems };
       });
     },
     [selectedDayIdx, setDaysItems],

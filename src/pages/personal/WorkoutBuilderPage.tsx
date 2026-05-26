@@ -1008,7 +1008,7 @@ export default function WorkoutBuilderPage() {
                 <div style={{ display: "grid", gap: 8 }}>
                   {items.map((it, idx) => (
                     <div
-                      key={`${idx}-${it.exerciseId}`}
+                      key={`row-${selectedDayIdx}-${idx}`}
                       style={{
                         border: `1px solid ${WB.border}`,
                         borderRadius: 9,
