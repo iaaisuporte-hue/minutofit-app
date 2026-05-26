@@ -32,3 +32,9 @@ public/mediapipe/
 *.njsproj
 *.sln
 *.sw?
+
+# Tooling state (Claude Code, Spec Kit). Specs vivem no parent (minuto-app/specs/).
+.claude/
+.specify/
+memory/
+specs/
