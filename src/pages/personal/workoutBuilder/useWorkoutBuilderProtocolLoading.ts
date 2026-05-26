@@ -19,6 +19,12 @@ type Args = {
   setWorkoutName: (n: string) => void;
   setWeekPreset: (wp: WeekPreset) => void;
   setSourceProtocolId: (id: number | null) => void;
+  /**
+   * Setado para o id do protocolo carregado QUANDO escopo='personal' (próprio
+   * do personal). Para platform/academy fica null — save cria cópia pessoal
+   * em vez de tentar PATCH (que o backend bloqueia com 403/404).
+   */
+  setEditingProtocolId: (id: number | null) => void;
   setSelectedGroup: (g: MuscleGroup) => void;
   setDaysItems: (i: Record<number, WorkoutExercise[]>) => void;
   setDaysMeta: (m: DayMeta[]) => void;
@@ -42,6 +48,9 @@ export function useWorkoutBuilderProtocolLoading(args: Args) {
       args.setWorkoutName(p.title);
       args.setWeekPreset(coerceWeekPreset(p.weekPreset));
       args.setSourceProtocolId(p.id);
+      // Editar in-place só vale para protocolos do próprio personal.
+      // Platform/academy: save cria cópia pessoal (POST), preservando a lineage.
+      args.setEditingProtocolId(p.scope === "personal" ? p.id : null);
       const sg = p.selectedGroup;
       if (sg && KNOWN_GROUPS.includes(sg as MuscleGroup)) args.setSelectedGroup(sg as MuscleGroup);
 

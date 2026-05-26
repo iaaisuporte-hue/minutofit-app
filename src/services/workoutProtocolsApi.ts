@@ -125,6 +125,32 @@ export async function createWorkoutProtocol(input: {
   return data?.data as WorkoutProtocol;
 }
 
+/**
+ * Atualiza protocolo existente (scope: personal). Backend verifica ownership
+ * e bloqueia edits em scope=platform. Para escopos não-pessoais, prefira
+ * `createWorkoutProtocol` para criar cópia pessoal.
+ */
+export async function updateWorkoutProtocol(
+  protocolId: number,
+  input: {
+    title?: string;
+    description?: string | null;
+    weekPreset?: string;
+    selectedGroup?: string | null;
+    items?: WorkoutPlanItem[];
+    days?: Array<{ name?: string; focus?: string | null; items?: WorkoutPlanItem[] }>;
+  }
+) {
+  const response = await authFetch(`${API_URL}/personal/protocols/${protocolId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  const data = await parseJson(response);
+  if (!response.ok) throw new Error(data?.error || "Nao foi possivel atualizar o protocolo.");
+  return data?.data as WorkoutProtocol;
+}
+
 
 export async function fetchProtocolUsages(protocolId: number) {
   const response = await authFetch(`${API_URL}/personal/protocols/${protocolId}/usages`);

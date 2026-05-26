@@ -130,6 +130,9 @@ export default function WorkoutBuilderPage() {
   const [recentPlansCount, setRecentPlansCount] = useState<number | null>(null);
   // When set: builder is in "edit" mode — save calls PATCH instead of POST
   const [editingPlanId, setEditingPlanId] = useState<number | null>(null);
+  // Análogo para protocolo — setado quando protocolo carregado é scope=personal.
+  // Sem aluno selecionado + editingProtocolId set → save vira PATCH /protocols/:id.
+  const [editingProtocolId, setEditingProtocolId] = useState<number | null>(null);
 
   // ── Library filters ───────────────────────────────────────────────
   const [exerciseQuery, setExerciseQuery] = useState("");
@@ -311,6 +314,7 @@ export default function WorkoutBuilderPage() {
     setWorkoutName,
     setWeekPreset,
     setSourceProtocolId,
+    setEditingProtocolId,
     setSelectedGroup,
     setDaysItems,
     setDaysMeta,
@@ -502,6 +506,7 @@ export default function WorkoutBuilderPage() {
     selectedStudentId,
     selectedStudentName: selectedStudent?.name,
     editingPlanId,
+    editingProtocolId,
     isMultiDay,
     setFeedback,
     setSourceProtocolId,
@@ -658,7 +663,7 @@ export default function WorkoutBuilderPage() {
             title={!canSave ? "Adicione exercícios" : ""}
             onClick={() => void saveUnified()}
           >
-            {saving ? "Salvando…" : editingPlanId ? "Salvar alterações" : selectedStudent ? "Salvar e atribuir" : "Salvar na biblioteca"}
+            {saving ? "Salvando…" : editingPlanId ? "Salvar alterações" : selectedStudent ? "Salvar e atribuir" : editingProtocolId ? "Atualizar protocolo" : "Salvar na biblioteca"}
           </WbButton>
         </div>
       </div>
@@ -1229,7 +1234,7 @@ export default function WorkoutBuilderPage() {
                 disabled={!canSave || saving}
                 onClick={() => void saveUnified()}
               >
-                {saving ? "Salvando…" : editingPlanId ? "Salvar alterações" : selectedStudent ? "Salvar e atribuir" : "Salvar na biblioteca"}
+                {saving ? "Salvando…" : editingPlanId ? "Salvar alterações" : selectedStudent ? "Salvar e atribuir" : editingProtocolId ? "Atualizar protocolo" : "Salvar na biblioteca"}
               </WbButton>
             </div>
           </WbCard>

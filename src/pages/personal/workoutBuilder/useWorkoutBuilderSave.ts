@@ -3,7 +3,7 @@ import {
   createPersonalWorkoutPlan,
   updatePersonalWorkoutPlan,
 } from "../../../services/personalWorkoutApi";
-import { createWorkoutProtocol } from "../../../services/workoutProtocolsApi";
+import { createWorkoutProtocol, updateWorkoutProtocol } from "../../../services/workoutProtocolsApi";
 import type { DayMeta, MuscleGroup, WeekPreset, WorkoutExercise } from "./builderTypes";
 
 type Feedback = { kind: "success" | "error"; message: string } | null;
@@ -18,6 +18,8 @@ type Args = {
   selectedStudentId: string;
   selectedStudentName?: string;
   editingPlanId: number | null;
+  /** Setado quando protocolo carregado é do próprio personal — save vira PATCH. */
+  editingProtocolId: number | null;
   isMultiDay: boolean;
   setFeedback: (f: Feedback) => void;
   setSourceProtocolId: (id: number | null) => void;
@@ -87,6 +89,18 @@ export function useWorkoutBuilderSave(args: Args) {
           });
         }
         await args.onSaved(args.selectedStudentId);
+      } else if (args.editingProtocolId) {
+        await updateWorkoutProtocol(args.editingProtocolId, {
+          title: args.workoutName,
+          weekPreset: args.weekPreset,
+          selectedGroup: args.isMultiDay ? null : args.selectedGroup,
+          items: args.daysItems[0] ?? [],
+          days,
+        });
+        args.setFeedback({
+          kind: "success",
+          message: `Protocolo "${args.workoutName}" atualizado na sua biblioteca.`,
+        });
       } else {
         await createWorkoutProtocol({
           title: args.workoutName,
