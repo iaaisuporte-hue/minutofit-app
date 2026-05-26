@@ -319,11 +319,22 @@ export default function WorkoutBuilderPage() {
     setFeedback,
   });
 
+  // Guard: a useEffect abaixo re-dispara em todo render porque
+  // `loadProtocolIntoBuilder` é instável (useCallback deps com `args` que é
+  // objeto literal novo a cada render). Sem este guard, múltiplas promises
+  // de fetch são iniciadas em paralelo; cada uma resolve e chama
+  // `hydrateFromProtocol`, sobrescrevendo edits do usuário (sintoma "pisca
+  // e reaparece" ao deletar exercício). O ref dedupe por id e garante que
+  // apenas UMA promise é iniciada por protocolo.
+  const loadedProtocolIdRef = useRef<number | null>(null);
+
   useEffect(() => {
     const raw = searchParams.get("protocol");
     if (!raw) return;
     const pid = Number(raw);
     if (!Number.isFinite(pid)) return;
+    if (loadedProtocolIdRef.current === pid) return;
+    loadedProtocolIdRef.current = pid;
     let cancelled = false;
     void (async () => {
       const ok = await loadProtocolIntoBuilder(pid, "Protocolo da biblioteca aplicado.");
