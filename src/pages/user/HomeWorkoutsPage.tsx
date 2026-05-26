@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { motion, useReducedMotion, useScroll, useTransform } from "framer-motion";
+import { Play } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import InteractiveSurfaceCard from "../../components/InteractiveSurfaceCard";
 import { useIsMobile } from "../../hooks/useIsMobile";
@@ -62,7 +63,7 @@ function ExtraYoutubeModal({
 }) {
   const shouldReduceMotion = Boolean(useReducedMotion());
   const videos = HOME_EXTRA_YOUTUBE_BY_GROUP[group];
-  const title = group === "chest" ? "🏋️ Treino de peito — mais opções no YouTube" : "🦵 Treino de perna — mais opções no YouTube";
+  const title = group === "chest" ? "Treino de peito — mais opções no YouTube" : "Treino de perna — mais opções no YouTube";
 
   return (
     <div
@@ -145,8 +146,19 @@ function ExtraYoutubeModal({
                 cursor: "pointer",
               }}
             >
-              <div style={{ fontSize: 28, lineHeight: 1 }} aria-hidden>
-                ▶️
+              <div
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 8,
+                  background: "rgba(34,197,94,.16)",
+                  display: "grid",
+                  placeItems: "center",
+                  flexShrink: 0,
+                }}
+                aria-hidden
+              >
+                <Play size={18} color="#16A34A" fill="#16A34A" />
               </div>
               <div>
                 <div style={{ fontWeight: 600, color: "#1F2937" }}>{video.title}</div>

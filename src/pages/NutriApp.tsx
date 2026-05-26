@@ -44,22 +44,24 @@ export default function NutriApp() {
         <IncomingRequestsPanel role="nutri" />
 
         <div
+          className="card cardPad"
           style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-            gap: 12,
+            display: "flex",
+            flexDirection: "column",
+            gap: 8,
+            border: "1px dashed var(--color-border)",
+            background: "var(--color-surface-subtle)",
           }}
         >
-          {[
-            { title: "Pacientes ativos", value: "24" },
-            { title: "Planos em revisão", value: "8" },
-            { title: "Retornos da semana", value: "12" },
-          ].map((item) => (
-            <div key={item.title} className="card cardPad">
-              <div style={{ fontSize: 12, color: "#9CA3AF", fontWeight: 500, marginBottom: 8 }}>{item.title}</div>
-              <div style={{ fontSize: 28, fontWeight: 700, color: "#1F2937" }}>{item.value}</div>
-            </div>
-          ))}
+          <div style={{ fontSize: 11, fontWeight: 600, color: "var(--color-text-subtle)", letterSpacing: "0.04em", textTransform: "uppercase" }}>
+            Área em construção
+          </div>
+          <div style={{ fontSize: 16, fontWeight: 600, color: "var(--color-text)" }}>
+            Plataforma de acompanhamento nutricional contínuo
+          </div>
+          <div style={{ fontSize: 13, color: "var(--color-text-muted)", lineHeight: 1.55 }}>
+            O painel completo de pacientes, planos alimentares, metas e adesão entra em breve, integrado a treino, energia e rotina do aluno. Por enquanto, as solicitações de vínculo recebidas aparecem acima.
+          </div>
         </div>
       </div>
     </AppShell>

@@ -100,8 +100,8 @@
   --space-4:  16px;
   --space-5:  20px;
   --space-6:  24px;
-  --space-7:  32px;
   --space-8:  32px;
+  --space-7:  var(--space-8); /* alias — preserva consumidores; valor canônico é --space-8 */
   --space-10: 40px;
 
   /* ── Radius ───────────────────────────────────────────────── */

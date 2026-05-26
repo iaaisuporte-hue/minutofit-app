@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Dumbbell } from "lucide-react";
 import { useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { fetchPersonalDashboard } from "../../services/personalDashboardApi";
 import type { PersonalDashboardStudent } from "../../services/personalDashboardApi";
@@ -817,11 +818,11 @@ export default function WorkoutBuilderPage() {
                             flexShrink: 0,
                             display: "grid",
                             placeItems: "center",
-                            fontSize: 18,
                             color: WB.muted,
                           }}
+                          aria-hidden
                         >
-                          ⚡
+                          <Dumbbell size={18} />
                         </div>
                       )}
                       <div style={{ flex: 1, minWidth: 0 }}>

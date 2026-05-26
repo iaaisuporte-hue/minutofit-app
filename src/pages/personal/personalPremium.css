@@ -951,6 +951,7 @@
   .pp-student-row,
   .pp-alert {
     align-items: stretch;
+    flex-wrap: wrap;
   }
 
   .pp-actions,

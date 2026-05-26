@@ -7,7 +7,6 @@ import MinutoFitLogo from "../components/MinutoFitLogo";
 
 import { useTodayUserState } from "./user/hooks/useTodayUserState";
 import AccountSettingsPage from "./user/AccountSettingsPage";
-import TreinosPage from "./user/TreinosPage";
 import HomeWorkoutsPage from "./user/HomeWorkoutsPage";
 import UpgradePlanPage from "./user/UpgradePlanPage";
 import WorkoutPlayerPage from "./user/WorkoutPlayerPage";
@@ -137,7 +136,6 @@ export default function UserApp() {
   const todayUserState = useTodayUserState();
   const isPersonalLed = todayUserState.hasActivePersonal;
   const showSuggestedTrainingNav = canSuggestedTraining && !isPersonalLed;
-  const showWorkoutsNav = canWorkouts && !isPersonalLed;
 
   function handleLogout() {
     logout();
@@ -151,7 +149,6 @@ export default function UserApp() {
             baseUrl={USER_BASE}
             showFicha={true}
             showMessages={canMessages}
-            showWorkouts={showWorkoutsNav}
             showLab={canTrainingAi}
             showTracker={showTracker}
             showProfile={canProfile}
@@ -171,7 +168,6 @@ export default function UserApp() {
               <MenuLink to={`${USER_BASE}/ficha`} label="Meu plano" iconKey="clipboard" />
               {canTrainingAi && <MenuLink to={`${USER_BASE}/movement-lab`} label="Espelho" iconKey="lab" />}
               {showSuggestedTrainingNav && <MenuLink to={`${USER_BASE}/suggested-training`} label="Treino do dia" iconKey="target" />}
-              {showWorkoutsNav && <MenuLink to={`${USER_BASE}/treinos`} label="Treinos" iconKey="workouts" />}
               {showTracker && <MenuLink to={`${USER_BASE}/activities`} label="Atividades" iconKey="tracker" />}
               {canMessages && <MenuLink to={`${USER_BASE}/messages`} label="Mensagens" iconKey="messages" />}
               {canProfile && <MenuLink to={`${USER_BASE}/profile`} label="Perfil" iconKey="profile" />}
@@ -253,14 +249,7 @@ export default function UserApp() {
               <Route path="/app/user/onboarding" element={<OnboardingPage />} />
 
               {/* ✅ ROTAS antigas (mantidas) */}
-              <Route
-                path="treinos"
-                element={
-                  <LimitedUserOnly allowed={canWorkouts}>
-                    <TreinosPage />
-                  </LimitedUserOnly>
-                }
-              />
+              <Route path="treinos" element={<Navigate to="/app/user/today" replace />} />
               <Route
                 path="ficha"
                 element={

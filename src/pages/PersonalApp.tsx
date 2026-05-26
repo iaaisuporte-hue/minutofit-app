@@ -116,9 +116,31 @@ export default function PersonalApp() {
     navigate("/login", { replace: true });
   }
 
+  const mobileMessagesIcon = (
+    <NavLink
+      to="/app/personal/messages"
+      style={{ position: "relative", display: "flex", alignItems: "center", padding: 8, borderRadius: 8, color: "var(--color-text-muted)", textDecoration: "none" }}
+      title="Mensagens"
+    >
+      {({ isActive }) => (
+        <>
+          <span style={{ color: isActive ? "var(--color-primary)" : "var(--color-text-muted)", display: "flex" }}>
+            <MessagesIcon />
+          </span>
+          {unreadCount > 0 && (
+            <span style={{ position: "absolute", top: 2, right: 2, minWidth: 16, height: 16, borderRadius: 999, background: "var(--color-primary)", color: "#fff", fontSize: 10, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 3px", lineHeight: 1 }}>
+              {unreadCount > 9 ? "9+" : unreadCount}
+            </span>
+          )}
+        </>
+      )}
+    </NavLink>
+  );
+
   return (
     <AppShell
       bottomNav={<PersonalMobileBottomNav onLogout={handleLogout} />}
+      mobileHeader={mobileMessagesIcon}
       sidebar={
         <>
           {/* Cabeçalho da sidebar: logo + ícone de mensagens */}
