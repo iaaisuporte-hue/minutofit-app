@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 interface Props {
   termo: string;
@@ -9,13 +10,18 @@ interface Props {
 
 export function InfoHint({ termo, resumo, impacto, saibaMaisHref }: Props) {
   const [open, setOpen] = useState(false);
+  const [position, setPosition] = useState<{ left: number; top: number; placement: "top" | "bottom" } | null>(null);
   const ref = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const tooltipRef = useRef<HTMLDivElement>(null);
+  const tooltipId = useId();
 
   useEffect(() => {
     if (!open) return;
     function close(e: MouseEvent | KeyboardEvent) {
       if (e instanceof KeyboardEvent && e.key !== "Escape") return;
       if (e instanceof MouseEvent && ref.current?.contains(e.target as Node)) return;
+      if (e instanceof MouseEvent && tooltipRef.current?.contains(e.target as Node)) return;
       setOpen(false);
     }
     document.addEventListener("mousedown", close);
@@ -26,15 +32,48 @@ export function InfoHint({ termo, resumo, impacto, saibaMaisHref }: Props) {
     };
   }, [open]);
 
+  useEffect(() => {
+    if (!open) return;
+
+    function updatePosition() {
+      const button = buttonRef.current;
+      if (!button) return;
+
+      const rect = button.getBoundingClientRect();
+      const width = 280;
+      const margin = 12;
+      const left = Math.min(
+        window.innerWidth - width - margin,
+        Math.max(margin, rect.left + rect.width / 2 - width / 2)
+      );
+      const placement = rect.top > 190 ? "top" : "bottom";
+      const top = placement === "top" ? rect.top - 8 : rect.bottom + 8;
+
+      setPosition({ left, top, placement });
+    }
+
+    updatePosition();
+    window.addEventListener("resize", updatePosition);
+    window.addEventListener("scroll", updatePosition, true);
+    return () => {
+      window.removeEventListener("resize", updatePosition);
+      window.removeEventListener("scroll", updatePosition, true);
+    };
+  }, [open]);
+
   return (
     <span
       ref={ref}
       style={{ position: "relative", display: "inline-flex", alignItems: "center" }}
     >
       <button
+        ref={buttonRef}
         type="button"
         onClick={() => setOpen((v) => !v)}
+        onFocus={() => setOpen(true)}
+        onMouseEnter={() => setOpen(true)}
         aria-expanded={open}
+        aria-describedby={open ? tooltipId : undefined}
         aria-label={`O que é ${termo}?`}
         style={{
           display: "inline-flex",
@@ -57,17 +96,21 @@ export function InfoHint({ termo, resumo, impacto, saibaMaisHref }: Props) {
         ?
       </button>
 
-      {open && (
+      {open && position && createPortal(
         <div
+          id={tooltipId}
+          ref={tooltipRef}
           role="tooltip"
           aria-label={`Explicação: ${termo}`}
+          onMouseLeave={() => setOpen(false)}
           style={{
-            position: "absolute",
-            bottom: "calc(100% + 8px)",
-            left: "50%",
-            transform: "translateX(-50%)",
-            zIndex: 200,
-            width: 260,
+            position: "fixed",
+            top: position.top,
+            left: position.left,
+            transform: position.placement === "top" ? "translateY(-100%)" : undefined,
+            zIndex: 9999,
+            width: 280,
+            maxWidth: "calc(100vw - 24px)",
             background: "var(--color-surface)",
             border: "1px solid var(--color-border-strong)",
             borderRadius: 10,
@@ -116,7 +159,8 @@ export function InfoHint({ termo, resumo, impacto, saibaMaisHref }: Props) {
               Ver no glossário →
             </a>
           )}
-        </div>
+        </div>,
+        document.body
       )}
     </span>
   );
