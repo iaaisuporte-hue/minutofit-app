@@ -54,6 +54,7 @@ import {
   markCheckinDone,
   markWorkoutDone,
 } from "./components/firstRunStorage";
+import { NutritionCheckinCard } from "../../features/nutrition/NutritionCheckinCard";
 import "./todayPage.css";
 
 const GROUP_LABEL: Record<MuscleGroup, string> = {
@@ -407,6 +408,11 @@ export default function TodayPage() {
             }
           }}
         />
+      </motion.div>
+
+      {/* 1.5. Plano alimentar — check-in diário (silencioso: não renderiza se sem plano) */}
+      <motion.div variants={sectionRevealVariants}>
+        <NutritionCheckinCard />
       </motion.div>
 
       {/* 2. Âncora metabólica — empty state quando sem dados; card completo quando há histórico */}

@@ -29,6 +29,7 @@ import ComplianceBanner from "../components/ComplianceBanner";
 import { MetabolismPill } from "../components/MetabolismPill";
 import GlossarioPage from "./user/GlossarioPage";
 import MinhaEquipePage from "./user/MinhaEquipePage";
+import NutritionPlanViewPage from "./user/NutritionPlanViewPage";
 
 const USER_BASE = "/app/user" as const;
 const USER_DEFAULT = "/app/user/today" as const;
@@ -312,6 +313,7 @@ export default function UserApp() {
               {/* ✅ MINHA EQUIPE — destino próprio (Onda 1.5) + alias */}
               <Route path="equipe" element={<MinhaEquipePage />} />
               <Route path="minha-equipe" element={<MinhaEquipePage />} />
+              <Route path="plano-alimentar" element={<NutritionPlanViewPage />} />
 
               {/* ✅ FALLBACK seguro */}
               <Route path="*" element={<RedirectToDefault />} />
