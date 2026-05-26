@@ -146,6 +146,8 @@ export default function WorkoutBuilderPage() {
   const [daysItems, setDaysItems] = useState<Record<number, WorkoutExercise[]>>(() => buildEmptyDayItems(weekPresetToCount("5")));
   const [daysMeta, setDaysMeta] = useState<DayMeta[]>(() => buildDefaultDayMeta(weekPresetToCount("5")));
   const [selectedDayIdx, setSelectedDayIdx] = useState(0);
+  const [editingDayIdx, setEditingDayIdx] = useState<number | null>(null);
+  const [editingDayName, setEditingDayName] = useState("");
 
   // ── UI ────────────────────────────────────────────────────────────
   const [feedback, setFeedback] = useState<{ kind: "success" | "error"; message: string } | null>(null);
@@ -978,30 +980,88 @@ export default function WorkoutBuilderPage() {
                     {weeklyPlan?.split ? `Plano ${weeklyPlan.split} — ` : ""}Selecione o dia
                   </div>
                   <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-                    {daysMeta.map((meta, idx) => (
-                      <button
-                        key={meta.name}
-                        type="button"
-                        onClick={() => setSelectedDayIdx(idx)}
-                        style={{
-                          padding: "5px 11px",
-                          borderRadius: 8,
-                          border: `1px solid ${idx === selectedDayIdx ? WB.primaryBorder : WB.border}`,
-                          background: idx === selectedDayIdx ? WB.primary : "transparent",
-                          color: idx === selectedDayIdx ? "#FFFFFF" : WB.text,
-                          cursor: "pointer",
-                          fontSize: 12,
-                          fontWeight: 650,
-                          lineHeight: 1.4,
-                        }}
-                        title={meta.focus ?? undefined}
-                      >
-                        {meta.name}
-                        {meta.focus ? (
-                          <span style={{ display: "block", fontSize: 10, fontWeight: 400, opacity: 0.8 }}>{meta.focus}</span>
-                        ) : null}
-                      </button>
-                    ))}
+                    {daysMeta.map((meta, idx) => {
+                      const isActive = idx === selectedDayIdx;
+                      const isEditing = editingDayIdx === idx;
+
+                      if (isEditing) {
+                        return (
+                          <input
+                            key={meta.index}
+                            autoFocus
+                            value={editingDayName}
+                            maxLength={30}
+                            onChange={(e) => setEditingDayName(e.target.value)}
+                            onBlur={() => {
+                              const trimmed = editingDayName.trim();
+                              if (trimmed) setDaysMeta((prev) => prev.map((m, i) => i === idx ? { ...m, name: trimmed } : m));
+                              setEditingDayIdx(null);
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") { e.currentTarget.blur(); }
+                              if (e.key === "Escape") { setEditingDayIdx(null); }
+                            }}
+                            style={{
+                              padding: "4px 8px",
+                              borderRadius: 8,
+                              border: `1px solid ${WB.primaryBorder}`,
+                              background: WB.primary,
+                              color: "#fff",
+                              fontSize: 12,
+                              fontWeight: 650,
+                              outline: "none",
+                              width: Math.max(70, editingDayName.length * 8 + 24),
+                              minWidth: 70,
+                            }}
+                          />
+                        );
+                      }
+
+                      return (
+                        <button
+                          key={meta.index}
+                          type="button"
+                          onClick={() => setSelectedDayIdx(idx)}
+                          style={{
+                            padding: "5px 11px",
+                            borderRadius: 8,
+                            border: `1px solid ${isActive ? WB.primaryBorder : WB.border}`,
+                            background: isActive ? WB.primary : "transparent",
+                            color: isActive ? "#FFFFFF" : WB.text,
+                            cursor: "pointer",
+                            fontSize: 12,
+                            fontWeight: 650,
+                            lineHeight: 1.4,
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 5,
+                          }}
+                          title={meta.focus ?? undefined}
+                        >
+                          <span>{meta.name}</span>
+                          {isActive && (
+                            <span
+                              role="button"
+                              aria-label="Renomear dia"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditingDayIdx(idx);
+                                setEditingDayName(meta.name);
+                              }}
+                              style={{ display: "flex", alignItems: "center", opacity: 0.7, cursor: "text" }}
+                            >
+                              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                              </svg>
+                            </span>
+                          )}
+                          {meta.focus ? (
+                            <span style={{ display: "block", fontSize: 10, fontWeight: 400, opacity: 0.8 }}>{meta.focus}</span>
+                          ) : null}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               ) : null}
