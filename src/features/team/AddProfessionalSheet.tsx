@@ -142,10 +142,28 @@ export function AddProfessionalSheet({ onSuccess, onClose, initialRole = 'person
 
   return (
     <div
-      style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', zIndex: 1000 }}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        background: 'rgba(0,0,0,0.45)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 16,
+        zIndex: 1000,
+      }}
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div style={{ background: COLORS.panel, borderRadius: '12px 12px 0 0', width: '100%', maxWidth: 520, maxHeight: '90vh', overflow: 'auto', boxShadow: 'var(--shadow-md)' }}>
+      <div
+        style={{
+          background: COLORS.panel,
+          borderRadius: 12,
+          width: 'min(100%, 520px)',
+          maxHeight: 'calc(100vh - 32px)',
+          overflow: 'auto',
+          boxShadow: 'var(--shadow-md)',
+        }}
+      >
         <div style={{ padding: '16px 16px 12px', borderBottom: `1px solid ${COLORS.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
             <div style={{ fontSize: 11, fontWeight: 700, color: COLORS.muted, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Rede de Profissionais</div>
