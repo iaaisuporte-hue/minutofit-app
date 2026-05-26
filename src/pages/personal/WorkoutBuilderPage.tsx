@@ -1008,7 +1008,7 @@ export default function WorkoutBuilderPage() {
                 <div style={{ display: "grid", gap: 8 }}>
                   {items.map((it, idx) => (
                     <div
-                      key={it.exerciseId}
+                      key={`${idx}-${it.exerciseId}`}
                       style={{
                         border: `1px solid ${WB.border}`,
                         borderRadius: 9,
@@ -1030,7 +1030,7 @@ export default function WorkoutBuilderPage() {
                           <button
                             type="button"
                             disabled={idx === 0}
-                            onClick={() => moveExercise(it.exerciseId, -1)}
+                            onClick={() => moveExercise(idx, -1)}
                             style={iconBtn(idx === 0)}
                             title="Mover para cima"
                           >
@@ -1039,7 +1039,7 @@ export default function WorkoutBuilderPage() {
                           <button
                             type="button"
                             disabled={idx >= items.length - 1}
-                            onClick={() => moveExercise(it.exerciseId, 1)}
+                            onClick={() => moveExercise(idx, 1)}
                             style={iconBtn(idx >= items.length - 1)}
                             title="Mover para baixo"
                           >
@@ -1047,7 +1047,7 @@ export default function WorkoutBuilderPage() {
                           </button>
                           <button
                             type="button"
-                            onClick={() => removeExercise(it.exerciseId)}
+                            onClick={() => removeExercise(idx)}
                             style={{ ...iconBtn(false), color: WB.muted, fontSize: 12 }}
                             title="Remover"
                           >

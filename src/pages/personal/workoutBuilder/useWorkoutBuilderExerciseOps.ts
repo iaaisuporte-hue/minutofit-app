@@ -41,25 +41,33 @@ export function useWorkoutBuilderExerciseOps({ selectedDayIdx, setDaysItems }: A
     [selectedDayIdx, setDaysItems],
   );
 
+  /**
+   * Remove pelo índice posicional, não pelo exerciseId — protocolos podem
+   * repetir o mesmo exercício (supersets, bi-sets, drop sets sequenciais)
+   * e filtrar por id removeria todas as instâncias de uma vez.
+   */
   const removeExercise = useCallback(
-    (exerciseId: string) => {
-      setDaysItems((prev) => ({
-        ...prev,
-        [selectedDayIdx]: (prev[selectedDayIdx] ?? []).filter((i) => i.exerciseId !== exerciseId),
-      }));
+    (index: number) => {
+      setDaysItems((prev) => {
+        const dayItems = prev[selectedDayIdx] ?? [];
+        if (index < 0 || index >= dayItems.length) return prev;
+        return {
+          ...prev,
+          [selectedDayIdx]: dayItems.filter((_, i) => i !== index),
+        };
+      });
     },
     [selectedDayIdx, setDaysItems],
   );
 
   const moveExercise = useCallback(
-    (exerciseId: string, dir: -1 | 1) => {
+    (index: number, dir: -1 | 1) => {
       setDaysItems((prev) => {
         const dayItems = [...(prev[selectedDayIdx] ?? [])];
-        const idx = dayItems.findIndex((i) => i.exerciseId === exerciseId);
-        if (idx < 0) return prev;
-        const next = idx + dir;
+        if (index < 0 || index >= dayItems.length) return prev;
+        const next = index + dir;
         if (next < 0 || next >= dayItems.length) return prev;
-        [dayItems[idx], dayItems[next]] = [dayItems[next], dayItems[idx]];
+        [dayItems[index], dayItems[next]] = [dayItems[next], dayItems[index]];
         return { ...prev, [selectedDayIdx]: dayItems };
       });
     },
