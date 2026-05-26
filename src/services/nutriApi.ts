@@ -133,6 +133,26 @@ export async function endNutritionPlan(patientId: number, planId: number): Promi
   if (!json.success) throw new Error(json.error ?? 'Failed to end plan');
 }
 
+export async function updateNutritionPlan(
+  patientId: number,
+  planId: number,
+  data: {
+    title?: string;
+    objective?: NutriObjective;
+    general_notes?: string;
+    meals?: Array<{ name: string; orientation: string; order_index: number }>;
+  }
+): Promise<NutritionPlan> {
+  const res = await authFetch(`${API_URL}/nutri/patients/${patientId}/nutrition-plans/${planId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  const json = await parseJson(res);
+  if (!json.success) throw new Error(json.error ?? 'Failed to update plan');
+  return json.data;
+}
+
 // ---------------------------------------------------------------------------
 // Nutri — adherence
 // ---------------------------------------------------------------------------
@@ -194,6 +214,18 @@ export async function fetchMyNutritionPlan(): Promise<NutritionPlan | null> {
   const res = await authFetch(`${API_URL}/user/nutrition-plan`);
   const json = await parseJson(res);
   return json.data ?? null;
+}
+
+export async function fetchMyAdherenceHistory(days = 30): Promise<Array<{
+  check_date: string;
+  adherence: Adherence;
+  note: string | null;
+  plan_title: string;
+  created_at: string;
+}>> {
+  const res = await authFetch(`${API_URL}/user/nutrition-adherence-checkins?days=${days}`);
+  const json = await parseJson(res);
+  return json.data ?? [];
 }
 
 export async function recordNutritionCheckin(adherence: Adherence, note?: string): Promise<NutritionCheckin> {

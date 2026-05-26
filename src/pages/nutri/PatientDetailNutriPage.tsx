@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { COLORS } from "../../styles/colors";
+import { ConfirmDialog } from "../../components/ConfirmDialog";
 import {
   fetchPatientPlans,
   fetchAdherence,
@@ -8,7 +9,9 @@ import {
   fetchObservations,
   createObservation,
   endNutritionPlan,
+  updateNutritionPlan,
   OBJECTIVE_LABELS,
+  type NutriObjective,
   type NutritionPlan,
   type NutritionObservation,
   type Adherence,
@@ -71,11 +74,22 @@ function TabBar({
 // Tab: Plano
 // ---------------------------------------------------------------------------
 
+type EditDraft = {
+  title: string;
+  objective: NutriObjective;
+  general_notes: string;
+  meals: Array<{ name: string; orientation: string; order_index: number }>;
+};
+
 function PlanTab({ patientId }: { patientId: number }) {
   const navigate = useNavigate();
   const [data, setData] = useState<{ active: NutritionPlan | null; history: NutritionPlan[] } | null>(null);
   const [loading, setLoading] = useState(true);
   const [ending, setEnding] = useState(false);
+  const [confirmEnd, setConfirmEnd] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [draft, setDraft] = useState<EditDraft | null>(null);
 
   useEffect(() => {
     fetchPatientPlans(patientId)
@@ -83,9 +97,55 @@ function PlanTab({ patientId }: { patientId: number }) {
       .finally(() => setLoading(false));
   }, [patientId]);
 
+  function openEdit(plan: NutritionPlan) {
+    setDraft({
+      title: plan.title,
+      objective: plan.objective,
+      general_notes: plan.general_notes ?? "",
+      meals: plan.meals?.map((m) => ({ name: m.name, orientation: m.orientation, order_index: m.order_index })) ?? [],
+    });
+    setEditing(true);
+  }
+
+  function updateMeal(idx: number, field: "name" | "orientation", value: string) {
+    setDraft((prev) => {
+      if (!prev) return prev;
+      const meals = prev.meals.map((m, i) => i === idx ? { ...m, [field]: value } : m);
+      return { ...prev, meals };
+    });
+  }
+
+  function addMeal() {
+    setDraft((prev) => {
+      if (!prev || prev.meals.length >= 6) return prev;
+      return { ...prev, meals: [...prev.meals, { name: "", orientation: "", order_index: prev.meals.length }] };
+    });
+  }
+
+  function removeMeal(idx: number) {
+    setDraft((prev) => {
+      if (!prev) return prev;
+      return { ...prev, meals: prev.meals.filter((_, i) => i !== idx).map((m, i) => ({ ...m, order_index: i })) };
+    });
+  }
+
+  async function handleSaveEdit() {
+    if (!draft || !data?.active) return;
+    if (!draft.title.trim()) return;
+    if (draft.meals.length === 0 || draft.meals.some((m) => !m.name.trim() || !m.orientation.trim())) return;
+    setSaving(true);
+    try {
+      await updateNutritionPlan(patientId, data.active.id, draft);
+      const refreshed = await fetchPatientPlans(patientId);
+      setData(refreshed as { active: NutritionPlan | null; history: NutritionPlan[] });
+      setEditing(false);
+    } finally {
+      setSaving(false);
+    }
+  }
+
   async function handleEndPlan() {
     if (!data?.active) return;
-    if (!window.confirm("Encerrar este plano alimentar? O aluno perderá acesso ao plano ativo.")) return;
     setEnding(true);
     try {
       await endNutritionPlan(patientId, data.active.id);
@@ -93,6 +153,7 @@ function PlanTab({ patientId }: { patientId: number }) {
       setData(refreshed as { active: NutritionPlan | null; history: NutritionPlan[] });
     } finally {
       setEnding(false);
+      setConfirmEnd(false);
     }
   }
 
@@ -100,8 +161,70 @@ function PlanTab({ patientId }: { patientId: number }) {
 
   const { active, history } = data ?? { active: null, history: [] };
 
+  // ── Edit mode ──────────────────────────────────────────────────
+  if (editing && draft && active) {
+    const objectives: NutriObjective[] = ["weight_loss", "muscle_gain", "metabolic_health", "performance", "maintenance"];
+    const canSave = draft.title.trim() && draft.meals.length > 0 && draft.meals.every((m) => m.name.trim() && m.orientation.trim());
+    return (
+      <div>
+        <div className="card cardPad" style={{ marginBottom: 12 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: COLORS.muted, marginBottom: 12 }}>Editar plano</div>
+
+          <div className="field" style={{ marginBottom: 12 }}>
+            <label className="label" htmlFor="edit-title">Título</label>
+            <input id="edit-title" className="input" value={draft.title} onChange={(e) => setDraft((p) => p ? { ...p, title: e.target.value } : p)} />
+          </div>
+
+          <div className="field" style={{ marginBottom: 12 }}>
+            <label className="label" htmlFor="edit-objective">Objetivo</label>
+            <select id="edit-objective" className="input" value={draft.objective} onChange={(e) => setDraft((p) => p ? { ...p, objective: e.target.value as NutriObjective } : p)}>
+              {objectives.map((o) => <option key={o} value={o}>{OBJECTIVE_LABELS[o]}</option>)}
+            </select>
+          </div>
+
+          <div className="field" style={{ marginBottom: 16 }}>
+            <label className="label" htmlFor="edit-notes">Orientações gerais</label>
+            <textarea id="edit-notes" className="input" rows={3} style={{ resize: "vertical" }} value={draft.general_notes} onChange={(e) => setDraft((p) => p ? { ...p, general_notes: e.target.value } : p)} />
+          </div>
+
+          <div style={{ fontSize: 12, fontWeight: 600, color: COLORS.muted, marginBottom: 10 }}>Refeições</div>
+          {draft.meals.map((m, i) => (
+            <div key={i} style={{ border: "1px solid var(--color-border)", borderRadius: 8, padding: "10px 12px", marginBottom: 8 }}>
+              <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+                <input className="input" placeholder="Nome da refeição" value={m.name} onChange={(e) => updateMeal(i, "name", e.target.value)} style={{ flex: 1 }} />
+                {draft.meals.length > 1 && (
+                  <button type="button" onClick={() => removeMeal(i)} style={{ background: "none", border: "none", color: COLORS.danger, cursor: "pointer", fontSize: 18, padding: "0 4px", lineHeight: 1 }}>×</button>
+                )}
+              </div>
+              <textarea className="input" rows={2} placeholder="Orientações" value={m.orientation} onChange={(e) => updateMeal(i, "orientation", e.target.value)} style={{ resize: "vertical" }} />
+            </div>
+          ))}
+          {draft.meals.length < 6 && (
+            <button type="button" className="btn btn-ghost btn-sm" style={{ marginBottom: 16 }} onClick={addMeal}>+ Refeição</button>
+          )}
+
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <button type="button" className="btn btn-primary" disabled={!canSave || saving} onClick={() => void handleSaveEdit()}>
+              {saving ? "Salvando..." : "Salvar alterações"}
+            </button>
+            <button type="button" className="btn btn-ghost" onClick={() => setEditing(false)}>Cancelar</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div>
+      <ConfirmDialog
+        open={confirmEnd}
+        title="Encerrar plano alimentar?"
+        message="O aluno perderá acesso ao plano ativo imediatamente. Esta ação não pode ser desfeita."
+        confirmLabel={ending ? "Encerrando..." : "Encerrar plano"}
+        danger
+        onConfirm={() => void handleEndPlan()}
+        onCancel={() => setConfirmEnd(false)}
+      />
       {active ? (
         <div>
           <div className="card cardPad" style={{ marginBottom: 16 }}>
@@ -128,6 +251,7 @@ function PlanTab({ patientId }: { patientId: number }) {
             ))}
 
             <div style={{ display: "flex", gap: 10, marginTop: 20, flexWrap: "wrap" }}>
+              <button type="button" className="btn btn-ghost btn-sm" onClick={() => openEdit(active)}>Editar plano</button>
               <button
                 type="button"
                 onClick={() => navigate(`../plano/novo`, { relative: "path" })}
@@ -146,8 +270,7 @@ function PlanTab({ patientId }: { patientId: number }) {
               </button>
               <button
                 type="button"
-                onClick={() => void handleEndPlan()}
-                disabled={ending}
+                onClick={() => setConfirmEnd(true)}
                 style={{
                   padding: "9px 18px",
                   borderRadius: 8,
@@ -156,11 +279,10 @@ function PlanTab({ patientId }: { patientId: number }) {
                   color: COLORS.danger,
                   fontWeight: 600,
                   fontSize: 13,
-                  cursor: ending ? "not-allowed" : "pointer",
-                  opacity: ending ? 0.6 : 1,
+                  cursor: "pointer",
                 }}
               >
-                {ending ? "Encerrando..." : "Encerrar plano"}
+                Encerrar plano
               </button>
             </div>
           </div>
