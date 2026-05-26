@@ -170,11 +170,29 @@ export async function fetchAdherence(patientId: number, days = 7): Promise<{
 // Nutri — context
 // ---------------------------------------------------------------------------
 
+export interface PatientMetabolism {
+  score: number;
+  status: 'low' | 'moderate' | 'high';
+  trend: 'up' | 'down' | 'stable';
+  trend7d?: { delta: number; direction: 'up' | 'down' | 'stable' };
+  factors?: Array<{ name: string; impact: number }>;
+  interpretation?: { hint: string; action: string } | null;
+}
+
+export interface PatientDailyCheckin {
+  check_date: string;
+  feeling?: 'energized' | 'neutral' | 'tired' | null;
+  slept_well?: boolean | null;
+  in_pain?: boolean | null;
+  stressed?: boolean | null;
+  notes?: string | null;
+}
+
 export async function fetchPatientContext(patientId: number): Promise<{
   hasMetabolicConsent: boolean;
   hasDailyConsent: boolean;
-  metabolism?: unknown;
-  dailyCheckins?: unknown[];
+  metabolism?: PatientMetabolism | null;
+  dailyCheckins?: PatientDailyCheckin[];
 }> {
   const res = await authFetch(`${API_URL}/nutri/patients/${patientId}/context`);
   const json = await parseJson(res);

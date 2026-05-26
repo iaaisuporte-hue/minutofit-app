@@ -15,6 +15,8 @@ import {
   type NutritionPlan,
   type NutritionObservation,
   type Adherence,
+  type PatientMetabolism,
+  type PatientDailyCheckin,
 } from "../../services/nutriApi";
 
 // ---------------------------------------------------------------------------
@@ -418,52 +420,186 @@ function AdherenceTab({ patientId }: { patientId: number }) {
 // Tab: Contexto
 // ---------------------------------------------------------------------------
 
+const METABOLIC_STATUS_LABEL: Record<PatientMetabolism['status'], string> = {
+  high:     'Alto',
+  moderate: 'Moderado',
+  low:      'Baixo',
+};
+
+const METABOLIC_STATUS_COLOR: Record<PatientMetabolism['status'], string> = {
+  high:     COLORS.primary,
+  moderate: 'var(--color-warn)',
+  low:      COLORS.danger,
+};
+
+const FEELING_LABEL: Record<NonNullable<PatientDailyCheckin['feeling']>, string> = {
+  energized: 'Bem-disposto',
+  neutral:   'Neutro',
+  tired:     'Cansado',
+};
+
+const FEELING_COLOR: Record<NonNullable<PatientDailyCheckin['feeling']>, string> = {
+  energized: COLORS.primary,
+  neutral:   COLORS.muted,
+  tired:     COLORS.danger,
+};
+
+function TrendArrow({ direction, delta }: { direction: 'up' | 'down' | 'stable'; delta: number }) {
+  if (direction === 'stable') return <span style={{ color: COLORS.muted }}>Estável</span>;
+  const up = direction === 'up';
+  return (
+    <span style={{ color: up ? COLORS.primary : COLORS.danger }}>
+      {up ? '↑' : '↓'} {Math.abs(delta)} pts esta semana
+    </span>
+  );
+}
+
 function ContextTab({ patientId }: { patientId: number }) {
   const [data, setData] = useState<{
     hasMetabolicConsent: boolean;
     hasDailyConsent: boolean;
-    metabolism?: { score?: number; trend?: string; updatedAt?: string } | null;
-    dailyCheckins?: Array<{ check_date: string; energy_level?: number; sleep_quality?: number }>;
+    metabolism?: PatientMetabolism | null;
+    dailyCheckins?: PatientDailyCheckin[];
   } | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchPatientContext(patientId)
-      .then((d) => setData(d as typeof data))
+      .then(setData)
       .finally(() => setLoading(false));
   }, [patientId]);
 
   if (loading) return <div style={{ color: COLORS.muted, fontSize: 14 }}>Carregando...</div>;
 
+  const m = data?.metabolism;
+  const checkins = data?.dailyCheckins ?? [];
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      {/* Metabolic */}
+
+      {/* ── Metabolismo ── */}
       <div className="card cardPad">
-        <div style={{ fontSize: 13, fontWeight: 700, color: COLORS.text, marginBottom: 8 }}>Metabolismo</div>
-        {data?.hasMetabolicConsent && data.metabolism ? (
+        <div style={{ fontSize: 13, fontWeight: 700, color: COLORS.text, marginBottom: 12 }}>Metabolismo</div>
+
+        {!data?.hasMetabolicConsent ? (
           <div style={{ fontSize: 13, color: COLORS.muted }}>
-            Score: {(data.metabolism as { score?: number }).score ?? "N/D"} ·{" "}
-            Tendência: {(data.metabolism as { trend?: string }).trend ?? "N/D"}
+            Paciente ainda não concedeu acesso ao estado metabólico.
+          </div>
+        ) : !m ? (
+          <div style={{ fontSize: 13, color: COLORS.muted }}>
+            Snapshot metabólico ainda não disponível para este paciente.
           </div>
         ) : (
-          <div style={{ fontSize: 13, color: COLORS.muted }}>
-            {data?.hasMetabolicConsent
-              ? "Dados metabólicos indisponíveis."
-              : "Painel metabólico indisponível — paciente ainda não concedeu acesso ao estado metabólico."}
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {/* Score + status */}
+            <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
+              <span style={{ fontSize: 32, fontWeight: 800, color: METABOLIC_STATUS_COLOR[m.status], lineHeight: 1 }}>
+                {m.score}
+              </span>
+              <span style={{ fontSize: 13, color: METABOLIC_STATUS_COLOR[m.status], fontWeight: 600 }}>
+                Metabólico: {METABOLIC_STATUS_LABEL[m.status]}
+              </span>
+            </div>
+
+            {/* Tendência 7d */}
+            {m.trend7d && (
+              <div style={{ fontSize: 13 }}>
+                <TrendArrow direction={m.trend7d.direction} delta={m.trend7d.delta} />
+              </div>
+            )}
+
+            {/* Fatores top 3 */}
+            {m.factors && m.factors.length > 0 && (
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                {m.factors.slice(0, 3).map((f, i) => (
+                  <span
+                    key={i}
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 600,
+                      padding: "3px 8px",
+                      borderRadius: 20,
+                      background: f.impact >= 0 ? COLORS.primarySoft : COLORS.dangerSoft,
+                      color: f.impact >= 0 ? COLORS.primary : COLORS.danger,
+                      border: `1px solid ${f.impact >= 0 ? COLORS.primaryBorder : COLORS.dangerBorder}`,
+                    }}
+                  >
+                    {f.impact >= 0 ? '+' : '−'} {f.name}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {/* Interpretação IA */}
+            {m.interpretation?.hint && (
+              <div style={{ fontSize: 12, color: COLORS.muted, fontStyle: "italic", lineHeight: 1.5 }}>
+                {m.interpretation.hint}
+              </div>
+            )}
           </div>
         )}
       </div>
 
-      {/* Daily checkins */}
+      {/* ── Check-ins de bem-estar ── */}
       <div className="card cardPad">
-        <div style={{ fontSize: 13, fontWeight: 700, color: COLORS.text, marginBottom: 8 }}>Check-ins de bem-estar</div>
-        {data?.hasDailyConsent && data.dailyCheckins ? (
+        <div style={{ fontSize: 13, fontWeight: 700, color: COLORS.text, marginBottom: 12 }}>
+          Check-ins de bem-estar
+        </div>
+
+        {!data?.hasDailyConsent ? (
           <div style={{ fontSize: 13, color: COLORS.muted }}>
-            {data.dailyCheckins.length} registro(s) nos últimos 7 dias.
+            Paciente ainda não concedeu acesso aos check-ins diários.
           </div>
+        ) : checkins.length === 0 ? (
+          <div style={{ fontSize: 13, color: COLORS.muted }}>Nenhum check-in nos últimos 7 dias.</div>
         ) : (
-          <div style={{ fontSize: 13, color: COLORS.muted }}>
-            O paciente ainda não concedeu acesso aos check-ins diários.
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {checkins.map((c) => {
+              const dateLabel = new Date(c.check_date + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit' });
+              return (
+                <div
+                  key={c.check_date}
+                  style={{
+                    display: "flex",
+                    alignItems: "flex-start",
+                    gap: 10,
+                    padding: "8px 10px",
+                    borderRadius: 8,
+                    border: `1px solid ${COLORS.border}`,
+                    fontSize: 12,
+                  }}
+                >
+                  <span style={{ minWidth: 72, color: COLORS.muted, fontWeight: 600 }}>{dateLabel}</span>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 4, flex: 1 }}>
+                    {c.feeling && (
+                      <span style={{ color: FEELING_COLOR[c.feeling], fontWeight: 600 }}>
+                        {FEELING_LABEL[c.feeling]}
+                      </span>
+                    )}
+                    {c.slept_well === true && (
+                      <span style={{ color: COLORS.primary }}>· Dormiu bem</span>
+                    )}
+                    {c.slept_well === false && (
+                      <span style={{ color: 'var(--color-warn)' }}>· Sono ruim</span>
+                    )}
+                    {c.in_pain === true && (
+                      <span style={{ color: COLORS.danger }}>· Com dor</span>
+                    )}
+                    {c.stressed === true && (
+                      <span style={{ color: 'var(--color-warn)' }}>· Estressado</span>
+                    )}
+                    {!c.feeling && c.slept_well == null && c.in_pain == null && c.stressed == null && (
+                      <span style={{ color: COLORS.muted }}>Sem detalhes</span>
+                    )}
+                    {c.notes && (
+                      <span style={{ color: COLORS.muted, display: "block", width: "100%", marginTop: 2 }}>
+                        {c.notes.length > 60 ? c.notes.slice(0, 60) + '…' : c.notes}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
