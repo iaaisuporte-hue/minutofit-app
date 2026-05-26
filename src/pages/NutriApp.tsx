@@ -31,10 +31,10 @@ export default function NutriApp() {
           </div>
 
           <div className="navStack">
-            <NavLink to="pacientes" className={navLinkStyle}>
+            <NavLink to="/app/nutri/pacientes" className={navLinkStyle}>
               Pacientes
             </NavLink>
-            <NavLink to="convites" className={navLinkStyle}>
+            <NavLink to="/app/nutri/convites" className={navLinkStyle}>
               Convites
             </NavLink>
           </div>
