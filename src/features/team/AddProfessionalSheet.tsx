@@ -58,13 +58,10 @@ export function AddProfessionalSheet({ onSuccess, onClose, initialRole = 'person
         if (!active) return;
         setProfessionals(payload.professionals);
       })
-      .catch((err: unknown) => {
+      .catch(() => {
         if (!active) return;
-        const code = (err as { message?: string }).message;
         setProfessionals([]);
-        setNetworkError(code === 'academy_blocks_professional_network'
-          ? 'Sua academia revisa vínculos externos antes de liberar a rede.'
-          : 'Não foi possível carregar a rede agora.');
+        setNetworkError('Não foi possível carregar a rede agora. Tente novamente.');
       })
       .finally(() => active && setLoadingNetwork(false));
     return () => { active = false; };
@@ -128,7 +125,6 @@ export function AddProfessionalSheet({ onSuccess, onClose, initialRole = 'person
       const messages: Record<string, string> = {
         too_many_pending: 'Você já tem muitas solicitações pendentes. Cancele uma antes de enviar outra.',
         daily_limit_exceeded: 'Você atingiu o limite de solicitações por hoje. Tente novamente amanhã.',
-        academy_blocks_professional_network: 'Sua academia precisa liberar vínculos externos antes dessa solicitação.',
         conflict_active_link: `Você já tem ${roleLabel(role).toLowerCase()} ativo nesse acompanhamento.`,
         professional_not_available: 'Este profissional ainda não está disponível na Rede de Profissionais.',
       };

@@ -143,29 +143,27 @@ export function MinhaEquipeSection({
               Quem acompanha você
             </div>
           </div>
-          {!hasAcademy && (
-            <button
-              type="button"
-              onClick={() => setShowAddSheet('personal')}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 5,
-                padding: '6px 12px',
-                borderRadius: 6,
-                border: `1px solid ${COLORS.borderStrong}`,
-                background: 'transparent',
-                color: COLORS.text,
-                fontSize: 12,
-                fontWeight: 600,
-                cursor: 'pointer',
-                flexShrink: 0,
-              }}
-            >
-              <PlusIcon />
-              Adicionar
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={() => setShowAddSheet('personal')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 5,
+              padding: '6px 12px',
+              borderRadius: 6,
+              border: `1px solid ${COLORS.borderStrong}`,
+              background: 'transparent',
+              color: COLORS.text,
+              fontSize: 12,
+              fontWeight: 600,
+              cursor: 'pointer',
+              flexShrink: 0,
+            }}
+          >
+            <PlusIcon />
+            Adicionar
+          </button>
         </div>
       )}
 
