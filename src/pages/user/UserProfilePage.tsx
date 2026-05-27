@@ -333,13 +333,10 @@ export default function UserProfilePage({ onLogout }: Props) {
         <Card
           interactive
           enableTilt={shouldUseTilt}
-          style={{
-            background: COLORS.panelDeep,
-            borderColor: COLORS.borderStrong,
-            overflow: "hidden",
-          }}
+          style={{ padding: 0, overflow: "hidden" }}
         >
-          <motion.div style={{ display: "grid", gap: "var(--space-5)" }}>
+          <div style={{ height: 4, background: "var(--gradient-primary)" }} />
+          <motion.div style={{ display: "grid", gap: "var(--space-5)", padding: "var(--space-5)" }}>
             <motion.div
               variants={itemRevealVariants}
               style={{
@@ -404,7 +401,7 @@ export default function UserProfilePage({ onLogout }: Props) {
 
       <motion.div variants={sectionRevealVariants} style={{ display: "grid", gap: "var(--space-4)" }}>
         <motion.div variants={itemRevealVariants} whileInView="show" initial={shouldReduceMotion ? false : "hidden"} viewport={{ once: true, amount: 0.15 }}>
-          <Card interactive enableTilt={shouldUseTilt} style={{ background: COLORS.panelDeep, borderColor: COLORS.borderStrong }}>
+          <Card interactive enableTilt={shouldUseTilt}>
             <div style={{ display: "grid", gap: "var(--space-4)" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "var(--space-3)", flexWrap: "wrap" }}>
                 <div style={{ fontSize: "var(--text-xl)", fontWeight: "var(--font-bold)", color: COLORS.text }}>Perfil fitness</div>
@@ -426,7 +423,7 @@ export default function UserProfilePage({ onLogout }: Props) {
 
       {metabolismData && (
         <motion.div variants={sectionRevealVariants}>
-          <Card interactive enableTilt={shouldUseTilt} style={{ background: COLORS.panelDeep, borderColor: COLORS.borderStrong }}>
+          <Card interactive enableTilt={shouldUseTilt}>
             <div style={{ display: "grid", gap: "var(--space-4)" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "var(--space-3)" }}>
                 <div style={{ display: "grid", gap: "var(--space-1)", maxWidth: 520 }}>
@@ -469,10 +466,17 @@ export default function UserProfilePage({ onLogout }: Props) {
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "var(--space-3)" }}>
                 <MetabolicMetric label="Score" value={Math.round(metabolismData.score)} />
-                <MetabolicMetric label="Energia" value={derivedEnergy?.energyLabel ?? "Em formação"} />
+                <MetabolicMetric
+                  label="Estado"
+                  value={
+                    derivedEnergy?.band === "low" ? "Pedindo recuperação"
+                    : derivedEnergy?.band === "high" ? "Em alta"
+                    : "Equilibrado"
+                  }
+                />
                 <MetabolicMetric
                   label="Tendência"
-                  value={metabolismData.trend === "up" ? "↑ Subindo" : metabolismData.trend === "down" ? "↓ Caindo" : "→ Estável"}
+                  value={metabolismData.trend === "up" ? "↑ melhorando" : metabolismData.trend === "down" ? "↓ em queda" : "→ estável"}
                   tone={metabolismData.trend === "up" ? "up" : metabolismData.trend === "down" ? "down" : undefined}
                 />
               </div>
