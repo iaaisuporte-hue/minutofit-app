@@ -256,7 +256,7 @@ function PlanTab({ patientId }: { patientId: number }) {
               <button type="button" className="btn btn-ghost btn-sm" onClick={() => openEdit(active)}>Editar plano</button>
               <button
                 type="button"
-                onClick={() => navigate(`../plano/novo`, { relative: "path" })}
+                onClick={() => navigate(`/app/nutri/pacientes/${patientId}/plano/novo`)}
                 style={{
                   padding: "9px 18px",
                   borderRadius: 8,
@@ -314,7 +314,7 @@ function PlanTab({ patientId }: { patientId: number }) {
           <div style={{ fontSize: 15, color: COLORS.muted, marginBottom: 16 }}>Nenhum plano alimentar ativo.</div>
           <button
             type="button"
-            onClick={() => navigate(`../plano/novo`, { relative: "path" })}
+            onClick={() => navigate(`/app/nutri/pacientes/${patientId}/plano/novo`)}
             style={{
               padding: "11px 24px",
               borderRadius: 10,
