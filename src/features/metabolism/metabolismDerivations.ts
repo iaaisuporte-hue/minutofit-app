@@ -138,44 +138,55 @@ export function deriveMetabolicForecast(
 
 export function deriveHistoryMarkers(
   history: MetabolicHistory,
-  options: { todayCheckedIn: boolean; condition?: DailyCondition | null }
+  options: {
+    todayCheckedIn: boolean;
+    condition?: DailyCondition | null;
+    /** Datas de treinos reais (ISO string ou YYYY-MM-DD). Fonte primária para marcadores W. */
+    workoutDates?: string[];
+  }
 ): HistoryMarker[] {
   if (history.length < 2) return [];
 
+  // Normaliza datas de workout para YYYY-MM-DD (igual ao formato do histórico metabólico)
+  const workoutDateSet = new Set(
+    (options.workoutDates ?? []).map((d) => d.slice(0, 10))
+  );
+
+  const historyDates = new Set(history.map((p) => p.date));
   const markers: HistoryMarker[] = [];
 
+  // 1. Marcadores W baseados em registros reais de treino
+  for (const date of workoutDateSet) {
+    if (historyDates.has(date)) {
+      markers.push({ date, kind: "workout", label: "Treino registrado" });
+    }
+  }
+
+  // 2. Marcadores de queda baseados em delta do score (independente de treino)
   for (let index = 1; index < history.length; index += 1) {
     const current = history[index];
     const previous = history[index - 1];
     const delta = current.score - previous.score;
 
-    if (delta >= 5) {
-      markers.push({
-        date: current.date,
-        kind: "workout",
-        label: "Treino registrado",
-      });
-    } else if (delta <= -5) {
-      markers.push({
-        date: current.date,
-        kind: "drop",
-        label: "Queda por inatividade",
-      });
+    if (delta <= -5 && !markers.some((m) => m.date === current.date && m.kind === "drop")) {
+      markers.push({ date: current.date, kind: "drop", label: "Queda por inatividade" });
+    }
+
+    // Fallback W por delta positivo — só se não há registro real na data
+    if (delta >= 5 && !markers.some((m) => m.date === current.date && m.kind === "workout")) {
+      markers.push({ date: current.date, kind: "workout", label: "Treino registrado" });
     }
   }
 
+  // 3. W de hoje se todayCheckedIn e nenhum registro real da data
   if (options.todayCheckedIn && history.length > 0) {
     const lastDate = history[history.length - 1].date;
-    if (!markers.some((marker) => marker.date === lastDate && marker.kind === "workout")) {
-      markers.push({
-        date: lastDate,
-        kind: "workout",
-        label: "Treino registrado",
-      });
+    if (!markers.some((m) => m.date === lastDate && m.kind === "workout")) {
+      markers.push({ date: lastDate, kind: "workout", label: "Treino registrado" });
     }
   }
 
-  // Wellbeing check-in marker — só aparece quando não há workout marker na mesma data
+  // 4. Marcador de check-in de bem-estar — só se não há W na mesma data
   if (options.condition && history.length > 0) {
     const condDate = options.condition.date;
     if (!markers.some((m) => m.date === condDate)) {

@@ -239,8 +239,12 @@ export default function TodayPage() {
     [defaultImpact, metabolism, streak, todayCheckedIn]
   );
   const markers = useMemo(
-    () => deriveHistoryMarkers(metabolismHistory, { todayCheckedIn, condition: dailyCondition }),
-    [metabolismHistory, todayCheckedIn, dailyCondition]
+    () => deriveHistoryMarkers(metabolismHistory, {
+      todayCheckedIn,
+      condition: dailyCondition,
+      workoutDates: workoutHistoryData.map((e) => e.date),
+    }),
+    [metabolismHistory, todayCheckedIn, dailyCondition, workoutHistoryData]
   );
   const conditionSignals = useMemo(() => deriveConditionSignals(dailyCondition), [dailyCondition]);
   const criticalSignals = useMemo(() => {
