@@ -30,6 +30,7 @@ import { MetabolismPill } from "../components/MetabolismPill";
 import GlossarioPage from "./user/GlossarioPage";
 import MinhaEquipePage from "./user/MinhaEquipePage";
 import NutritionPlanViewPage from "./user/NutritionPlanViewPage";
+import MeuPlanoPage from "./user/MeuPlanoPage";
 
 const USER_BASE = "/app/user" as const;
 const USER_DEFAULT = "/app/user/today" as const;
@@ -255,7 +256,7 @@ export default function UserApp() {
                 path="ficha"
                 element={
                   <LimitedUserOnly allowed={!loading}>
-                    <MyWorkoutPlansPage />
+                    <MeuPlanoPage />
                   </LimitedUserOnly>
                 }
               />
