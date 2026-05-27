@@ -272,37 +272,42 @@ export function MetabolicScoreCard({ data, loading, error, derivedStatus, foreca
             transition={{ duration: 0.18 }}
             onClick={(e) => { if (e.target === e.currentTarget) setDetailOpen(false); }}
             style={{
-              position: 'fixed', inset: 0, zIndex: 'var(--z-modal)' as React.CSSProperties['zIndex'],
-              background: 'rgba(15, 23, 42, 0.38)',
-              display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
-              padding: '0 0 env(safe-area-inset-bottom)',
+              position: 'fixed', inset: 0, zIndex: 200,
+              background: 'rgba(15, 23, 42, 0.45)',
+              display: 'flex',
+              alignItems: isMobile ? 'flex-end' : 'center',
+              justifyContent: 'center',
+              padding: isMobile ? '0' : '16px',
             }}
             role="presentation"
           >
             <motion.div
               key="metabolic-detail-panel"
-              initial={{ y: '100%', opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: '100%', opacity: 0 }}
+              initial={isMobile ? { y: '100%', opacity: 0 } : { scale: 0.96, opacity: 0 }}
+              animate={isMobile ? { y: 0, opacity: 1 } : { scale: 1, opacity: 1 }}
+              exit={isMobile ? { y: '100%', opacity: 0 } : { scale: 0.96, opacity: 0 }}
               transition={{ type: 'spring', stiffness: 340, damping: 32 }}
               role="dialog"
               aria-modal="true"
               aria-label="Leitura metabólica completa"
               style={{
-                width: 'min(640px, 100%)',
-                maxHeight: '88vh',
+                width: 'min(600px, 100%)',
+                maxHeight: isMobile ? '90vh' : '85vh',
                 overflowY: 'auto',
                 background: 'var(--color-surface)',
-                borderRadius: '20px 20px 0 0',
-                padding: isMobile ? '20px 18px 32px' : '24px 24px 36px',
+                borderRadius: isMobile ? '20px 20px 0 0' : '20px',
+                padding: isMobile ? '20px 18px 32px' : '28px 28px 36px',
                 display: 'grid',
                 gap: 20,
+                boxShadow: '0 24px 64px rgba(15,23,42,0.18)',
               }}
             >
-              {/* Handle + título */}
-              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: -8 }}>
-                <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--color-border-strong)' }} />
-              </div>
+              {/* Handle — apenas mobile */}
+              {isMobile && (
+                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: -8 }}>
+                  <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--color-border-strong)' }} />
+                </div>
+              )}
 
               <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
                 <div style={{ display: 'grid', gap: 3 }}>
