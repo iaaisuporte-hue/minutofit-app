@@ -1,6 +1,6 @@
-import { type ReactNode, useState } from 'react';
-import { AnimatePresence, motion, type Variants } from 'framer-motion';
-import { Minus, Moon, Zap } from 'lucide-react';
+import { forwardRef, type ReactNode, useImperativeHandle, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { Minus, Moon, X, Zap } from 'lucide-react';
 import type {
   DailyCondition,
   DailyConditionDetails,
@@ -10,47 +10,29 @@ import type {
 } from './useDailyCondition';
 import { buildCheckinFeedback } from './buildCheckinFeedback';
 
+export interface DailyCheckinHandle {
+  openSheet: (feeling?: DailyFeeling) => void;
+}
+
 interface Props {
   condition: DailyCondition | null;
   setCondition: (feeling: DailyFeeling, details?: DailyConditionDetails) => void;
   clearCondition: () => void;
   onConditionSet?: () => void;
-  /** Sync to API after local state is saved (Onda 4). Errors are swallowed here. */
   onConditionSaved?: (payload: { feeling: DailyFeeling; details: DailyConditionDetails }) => void | Promise<void>;
 }
 
 const FEELING_META: Record<DailyFeeling, { label: string; icon: ReactNode; color: string; bg: string; border: string }> = {
-  tired:    { label: 'Cansado',  icon: <Moon size={20} />,  color: 'var(--color-warn)',         bg: 'var(--color-warn-soft)',         border: 'var(--color-warn-border)' },
-  normal:   { label: 'Normal',   icon: <Minus size={20} />, color: 'var(--color-accent-hover)', bg: 'var(--color-accent-soft)',       border: 'var(--color-accent-border)' },
-  energized:{ label: 'Disposto', icon: <Zap size={20} />,   color: 'var(--color-success-text)', bg: 'var(--color-success-soft)',      border: 'var(--color-success-border)' },
+  tired:    { label: 'Cansado',  icon: <Moon size={20} />,  color: 'var(--color-warn)',         bg: 'var(--color-warn-soft)',    border: 'var(--color-warn-border)' },
+  normal:   { label: 'Normal',   icon: <Minus size={20} />, color: 'var(--color-accent-hover)', bg: 'var(--color-accent-soft)', border: 'var(--color-accent-border)' },
+  energized:{ label: 'Disposto', icon: <Zap size={20} />,   color: 'var(--color-success-text)', bg: 'var(--color-success-soft)',border: 'var(--color-success-border)' },
 };
 
 const FEELINGS: DailyFeeling[] = ['tired', 'normal', 'energized'];
 
-const detailExpandVariants: Variants = {
-  hidden: { height: 0, opacity: 0 },
-  show:   { height: 'auto', opacity: 1, transition: { duration: 0.28, ease: [0.4, 0, 0.2, 1] as const } },
-  exit:   { height: 0, opacity: 0, transition: { duration: 0.2, ease: [0.4, 0, 1, 1] as const } },
-};
-
-function ToggleRow({
-  label,
-  value,
-  onChange,
-}: {
-  label: string;
-  value: boolean;
-  onChange: (v: boolean) => void;
-}) {
+function ToggleRow({ label, value, onChange }: { label: string; value: boolean; onChange: (v: boolean) => void }) {
   return (
-    <div
-      style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        gap: 12,
-      }}
-    >
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
       <span style={{ fontSize: 13, color: 'var(--color-text-muted)', fontWeight: 500 }}>{label}</span>
       <div style={{ display: 'flex', gap: 6 }}>
         {([true, false] as const).map((opt) => (
@@ -59,11 +41,7 @@ function ToggleRow({
             type="button"
             onClick={() => onChange(opt)}
             style={{
-              padding: '4px 14px',
-              borderRadius: 999,
-              fontSize: 12,
-              fontWeight: 700,
-              cursor: 'pointer',
+              padding: '4px 14px', borderRadius: 999, fontSize: 12, fontWeight: 700, cursor: 'pointer',
               border: `1px solid ${value === opt ? 'var(--color-accent)' : 'var(--color-border)'}`,
               background: value === opt ? 'var(--color-accent-soft)' : 'transparent',
               color: value === opt ? 'var(--color-accent-hover)' : 'var(--color-text-muted)',
@@ -78,16 +56,8 @@ function ToggleRow({
   );
 }
 
-/**
- * Linha opt-in: nenhuma opção selecionada por padrão. Re-clicar a opção
- * selecionada deseleciona (volta a undefined). Onda 4 MaaS — sinais
- * secundários nunca devem ser obrigatórios.
- */
 function OptionalScaleRow<T extends string>({
-  label,
-  value,
-  options,
-  onChange,
+  label, value, options, onChange,
 }: {
   label: string;
   value: T | undefined;
@@ -95,14 +65,7 @@ function OptionalScaleRow<T extends string>({
   onChange: (v: T | undefined) => void;
 }) {
   return (
-    <div
-      style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        gap: 12,
-      }}
-    >
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
       <span style={{ fontSize: 13, color: 'var(--color-text-muted)', fontWeight: 500 }}>{label}</span>
       <div style={{ display: 'flex', gap: 6 }}>
         {options.map((opt) => {
@@ -113,11 +76,7 @@ function OptionalScaleRow<T extends string>({
               type="button"
               onClick={() => onChange(selected ? undefined : opt.value)}
               style={{
-                padding: '4px 12px',
-                borderRadius: 999,
-                fontSize: 12,
-                fontWeight: 700,
-                cursor: 'pointer',
+                padding: '4px 12px', borderRadius: 999, fontSize: 12, fontWeight: 700, cursor: 'pointer',
                 border: `1px solid ${selected ? 'var(--color-accent)' : 'var(--color-border)'}`,
                 background: selected ? 'var(--color-accent-soft)' : 'transparent',
                 color: selected ? 'var(--color-accent-hover)' : 'var(--color-text-muted)',
@@ -150,36 +109,59 @@ const HYDRATION_OPTIONS: ReadonlyArray<{ value: 'yes' | 'no'; label: string }> =
   { value: 'no',  label: 'Não' },
 ];
 
-export function DailyCheckin({ condition, setCondition, clearCondition, onConditionSet, onConditionSaved }: Props) {
-  const [pendingFeeling, setPendingFeeling] = useState<DailyFeeling | null>(null);
-  const [details, setDetails] = useState<DailyConditionDetails>({
-    sleptWell: true,
-    inPain: false,
-    stressed: false,
-  });
+const DEFAULT_DETAILS: DailyConditionDetails = { sleptWell: true, inPain: false, stressed: false };
 
-  function handleFeelingSelect(feeling: DailyFeeling) {
-    setPendingFeeling(feeling);
+export const DailyCheckin = forwardRef<DailyCheckinHandle, Props>(function DailyCheckin(
+  { condition, setCondition, clearCondition, onConditionSet, onConditionSaved },
+  ref,
+) {
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [sheetFeeling, setSheetFeeling] = useState<DailyFeeling | null>(null);
+  const [details, setDetails] = useState<DailyConditionDetails>({ ...DEFAULT_DETAILS });
+  const [saveState, setSaveState] = useState<'idle' | 'saving' | 'error'>('idle');
+
+  useImperativeHandle(ref, () => ({
+    openSheet: (feeling?: DailyFeeling) => {
+      setSheetFeeling(feeling ?? null);
+      setDetails({ ...DEFAULT_DETAILS });
+      setSaveState('idle');
+      setSheetOpen(true);
+    },
+  }));
+
+  function openSheet(feeling: DailyFeeling) {
+    setSheetFeeling(feeling);
+    setDetails({ ...DEFAULT_DETAILS });
+    setSaveState('idle');
+    setSheetOpen(true);
+  }
+
+  function closeSheet() {
+    setSheetOpen(false);
+    setSheetFeeling(null);
+    setDetails({ ...DEFAULT_DETAILS });
+    setSaveState('idle');
   }
 
   async function handleConfirm() {
-    if (!pendingFeeling) return;
-    setCondition(pendingFeeling, details);
+    if (!sheetFeeling) return;
+    setSaveState('saving');
+    setCondition(sheetFeeling, details);
     onConditionSet?.();
     try {
-      await onConditionSaved?.({ feeling: pendingFeeling, details: { ...details } });
+      await onConditionSaved?.({ feeling: sheetFeeling, details: { ...details } });
+      setSaveState('idle');
+      closeSheet();
     } catch {
-      /* non-blocking */
+      setSaveState('error');
     }
   }
 
   function handleChange() {
     clearCondition();
-    setPendingFeeling(null);
-    setDetails({ sleptWell: true, inPain: false, stressed: false });
   }
 
-  // Completed state — compact badge row + interpretive feedback
+  // ── Estado preenchido: resumo compacto ──────────────────────────────────
   if (condition) {
     const meta = FEELING_META[condition.feeling];
     const feedback = buildCheckinFeedback(condition);
@@ -202,16 +184,10 @@ export function DailyCheckin({ condition, setCondition, clearCondition, onCondit
             </span>
             <span
               style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 5,
-                padding: '4px 12px',
-                borderRadius: 999,
-                fontSize: 12,
-                fontWeight: 700,
-                background: meta.bg,
-                border: `1px solid ${meta.border}`,
-                color: meta.color,
+                display: 'inline-flex', alignItems: 'center', gap: 5,
+                padding: '4px 12px', borderRadius: 999,
+                fontSize: 12, fontWeight: 700,
+                background: meta.bg, border: `1px solid ${meta.border}`, color: meta.color,
               }}
             >
               {meta.icon} {meta.label}
@@ -220,16 +196,7 @@ export function DailyCheckin({ condition, setCondition, clearCondition, onCondit
           <button
             type="button"
             onClick={handleChange}
-            style={{
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              fontSize: 12,
-              fontWeight: 600,
-              color: 'var(--color-text-muted)',
-              padding: '4px 8px',
-              borderRadius: 8,
-            }}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600, color: 'var(--color-text-muted)', padding: '4px 8px', borderRadius: 8 }}
           >
             Alterar
           </button>
@@ -241,153 +208,215 @@ export function DailyCheckin({ condition, setCondition, clearCondition, onCondit
     );
   }
 
+  // ── Estado vazio: 3 botões de emoji ───────────────────────────────────
   return (
-    <div
-      style={{
-        background: 'var(--color-surface)',
-        border: '1px solid var(--color-border)',
-        borderRadius: 20,
-        padding: '18px 20px',
-        boxShadow: 'var(--shadow-md)',
-        display: 'grid',
-        gap: 14,
-      }}
-    >
-      {/* Header */}
-      <div style={{ display: 'grid', gap: 3 }}>
-        <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-text-subtle)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-          Check-in diário
-        </span>
-        <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--color-text)' }}>
-          Como está seu corpo hoje?
-        </span>
-        <span style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>
-          Esses sinais alimentam toda a sua leitura de hoje
-        </span>
+    <>
+      <div
+        style={{
+          background: 'var(--color-surface)',
+          border: '1px solid var(--color-border)',
+          borderRadius: 20,
+          padding: '18px 20px',
+          boxShadow: 'var(--shadow-md)',
+          display: 'grid',
+          gap: 14,
+        }}
+      >
+        <div style={{ display: 'grid', gap: 3 }}>
+          <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-text-subtle)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+            Check-in diário
+          </span>
+          <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--color-text)' }}>
+            Como está seu corpo hoje?
+          </span>
+          <span style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>
+            Esses sinais alimentam toda a sua leitura de hoje
+          </span>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+          {FEELINGS.map((feeling) => {
+            const meta = FEELING_META[feeling];
+            return (
+              <motion.button
+                key={feeling}
+                type="button"
+                onClick={() => openSheet(feeling)}
+                whileTap={{ scale: 0.96 }}
+                style={{
+                  padding: '12px 8px', borderRadius: 14,
+                  border: '1.5px solid var(--color-border)',
+                  background: 'transparent',
+                  color: 'var(--color-text-muted)',
+                  fontSize: 13, fontWeight: 700, cursor: 'pointer',
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+                  transition: 'border-color 0.15s ease, background 0.15s ease, color 0.15s ease',
+                }}
+              >
+                {meta.icon}
+                {meta.label}
+              </motion.button>
+            );
+          })}
+        </div>
       </div>
 
-      {/* Feeling buttons */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
-        {FEELINGS.map((feeling) => {
-          const meta = FEELING_META[feeling];
-          const selected = pendingFeeling === feeling;
-          return (
-            <motion.button
-              key={feeling}
-              type="button"
-              onClick={() => handleFeelingSelect(feeling)}
-              whileTap={{ scale: 0.96 }}
-              style={{
-                padding: '12px 8px',
-                borderRadius: 14,
-                border: `1.5px solid ${selected ? meta.border : 'var(--color-border)'}`,
-                background: selected ? meta.bg : 'transparent',
-                color: selected ? meta.color : 'var(--color-text-muted)',
-                fontSize: 13,
-                fontWeight: 700,
-                cursor: 'pointer',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: 4,
-                transition: 'border-color 0.15s ease, background 0.15s ease, color 0.15s ease',
-              }}
-            >
-              {meta.icon}
-              {meta.label}
-            </motion.button>
-          );
-        })}
-      </div>
-
-      {/* Collapsible detail section */}
+      {/* Sheet/modal de detalhes */}
       <AnimatePresence>
-        {pendingFeeling && (
+        {sheetOpen && (
           <motion.div
-            key="details"
-            variants={detailExpandVariants}
-            initial="hidden"
-            animate="show"
-            exit="exit"
-            style={{ overflow: 'hidden' }}
+            key="checkin-sheet-backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.18 }}
+            onClick={(e) => { if (e.target === e.currentTarget) closeSheet(); }}
+            style={{
+              position: 'fixed', inset: 0, zIndex: 'var(--z-modal)' as React.CSSProperties['zIndex'],
+              background: 'rgba(15, 23, 42, 0.38)',
+              display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+              padding: '0 0 env(safe-area-inset-bottom)',
+            }}
+            role="presentation"
           >
-            <div
+            <motion.div
+              key="checkin-sheet-panel"
+              initial={{ y: '100%', opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: '100%', opacity: 0 }}
+              transition={{ type: 'spring', stiffness: 340, damping: 32 }}
+              role="dialog"
+              aria-modal="true"
+              aria-label="Detalhes do check-in"
               style={{
+                width: 'min(520px, 100%)',
+                maxHeight: '88vh',
+                overflowY: 'auto',
+                background: 'var(--color-surface)',
+                borderRadius: '20px 20px 0 0',
+                padding: '20px 20px 32px',
                 display: 'grid',
-                gap: 10,
-                paddingTop: 4,
-                borderTop: '1px solid var(--color-border-subtle)',
+                gap: 16,
               }}
             >
-              <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-text-subtle)', textTransform: 'uppercase', letterSpacing: '0.07em', paddingTop: 8 }}>
-                Detalhes (opcional)
-              </span>
-              <ToggleRow
-                label="Dormiu bem?"
-                value={details.sleptWell}
-                onChange={(v) => setDetails((d) => ({ ...d, sleptWell: v }))}
-              />
-              <ToggleRow
-                label="Está com dor?"
-                value={details.inPain}
-                onChange={(v) => setDetails((d) => ({ ...d, inPain: v }))}
-              />
-              <ToggleRow
-                label="Dia estressante?"
-                value={details.stressed}
-                onChange={(v) => setDetails((d) => ({ ...d, stressed: v }))}
-              />
+              {/* Handle visual */}
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: -4 }}>
+                <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--color-border-strong)' }} />
+              </div>
 
-              <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-text-subtle)', textTransform: 'uppercase', letterSpacing: '0.07em', paddingTop: 6 }}>
-                Sinais extras (se quiser)
-              </span>
-              <OptionalScaleRow
-                label="Bem hidratado?"
-                value={details.hydrationOk === true ? 'yes' : details.hydrationOk === false ? 'no' : undefined}
-                options={HYDRATION_OPTIONS}
-                onChange={(v) => setDetails((d) => ({
-                  ...d,
-                  hydrationOk: v === 'yes' ? true : v === 'no' ? false : undefined,
-                }))}
-              />
-              <OptionalScaleRow<NutritionLevel>
-                label="Alimentação hoje"
-                value={details.nutritionLevel}
-                options={NUTRITION_OPTIONS}
-                onChange={(v) => setDetails((d) => ({ ...d, nutritionLevel: v }))}
-              />
-              <OptionalScaleRow<MentalLoadLevel>
-                label="Carga mental"
-                value={details.mentalLoadLevel}
-                options={MENTAL_LOAD_OPTIONS}
-                onChange={(v) => setDetails((d) => ({ ...d, mentalLoadLevel: v }))}
-              />
+              {/* Header */}
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+                <div style={{ display: 'grid', gap: 3 }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-text-subtle)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+                    Check-in diário
+                  </span>
+                  {sheetFeeling && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span
+                        style={{
+                          display: 'inline-flex', alignItems: 'center', gap: 5,
+                          padding: '5px 14px', borderRadius: 999,
+                          fontSize: 13, fontWeight: 700,
+                          background: FEELING_META[sheetFeeling].bg,
+                          border: `1px solid ${FEELING_META[sheetFeeling].border}`,
+                          color: FEELING_META[sheetFeeling].color,
+                        }}
+                      >
+                        {FEELING_META[sheetFeeling].icon} {FEELING_META[sheetFeeling].label}
+                      </span>
+                      <div style={{ display: 'flex', gap: 4 }}>
+                        {FEELINGS.filter((f) => f !== sheetFeeling).map((f) => (
+                          <button
+                            key={f}
+                            type="button"
+                            onClick={() => setSheetFeeling(f)}
+                            title={FEELING_META[f].label}
+                            style={{
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              width: 28, height: 28, borderRadius: 999,
+                              border: '1px solid var(--color-border)', background: 'transparent',
+                              color: 'var(--color-text-muted)', cursor: 'pointer', fontSize: 12,
+                            }}
+                          >
+                            {FEELING_META[f].icon}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={closeSheet}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted)', padding: 4, borderRadius: 8 }}
+                  aria-label="Fechar"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Detalhes */}
+              <div style={{ display: 'grid', gap: 10 }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-text-subtle)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+                  Detalhes (opcional)
+                </span>
+                <ToggleRow label="Dormiu bem?" value={details.sleptWell} onChange={(v) => setDetails((d) => ({ ...d, sleptWell: v }))} />
+                <ToggleRow label="Está com dor?" value={details.inPain} onChange={(v) => setDetails((d) => ({ ...d, inPain: v }))} />
+                <ToggleRow label="Dia estressante?" value={details.stressed} onChange={(v) => setDetails((d) => ({ ...d, stressed: v }))} />
+              </div>
+
+              <div style={{ display: 'grid', gap: 10 }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-text-subtle)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+                  Sinais extras (se quiser)
+                </span>
+                <OptionalScaleRow
+                  label="Bem hidratado?"
+                  value={details.hydrationOk === true ? 'yes' : details.hydrationOk === false ? 'no' : undefined}
+                  options={HYDRATION_OPTIONS}
+                  onChange={(v) => setDetails((d) => ({ ...d, hydrationOk: v === 'yes' ? true : v === 'no' ? false : undefined }))}
+                />
+                <OptionalScaleRow<NutritionLevel>
+                  label="Alimentação hoje"
+                  value={details.nutritionLevel}
+                  options={NUTRITION_OPTIONS}
+                  onChange={(v) => setDetails((d) => ({ ...d, nutritionLevel: v }))}
+                />
+                <OptionalScaleRow<MentalLoadLevel>
+                  label="Carga mental"
+                  value={details.mentalLoadLevel}
+                  options={MENTAL_LOAD_OPTIONS}
+                  onChange={(v) => setDetails((d) => ({ ...d, mentalLoadLevel: v }))}
+                />
+              </div>
+
+              {saveState === 'error' && (
+                <div
+                  role="alert"
+                  style={{ fontSize: 13, color: 'var(--color-danger)', padding: '8px 12px', borderRadius: 8, background: 'var(--color-danger-soft)', border: '1px solid var(--color-danger-border)' }}
+                >
+                  Não conseguimos salvar. Tente de novo.
+                </div>
+              )}
 
               <motion.button
                 type="button"
                 onClick={handleConfirm}
-                whileHover={{ scale: 1.015 }}
-                whileTap={{ scale: 0.985 }}
+                disabled={!sheetFeeling || saveState === 'saving'}
+                whileHover={saveState !== 'saving' ? { scale: 1.015 } : undefined}
+                whileTap={saveState !== 'saving' ? { scale: 0.985 } : undefined}
                 style={{
-                  marginTop: 4,
-                  padding: '12px 16px',
-                  borderRadius: 14,
-                  border: 'none',
-                  background: 'var(--gradient-primary)',
-                  color: 'var(--color-white)',
-                  fontSize: 14,
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  width: '100%',
-                  letterSpacing: '0.02em',
+                  padding: '13px 16px', borderRadius: 14, border: 'none',
+                  background: saveState === 'saving' ? 'var(--color-border-strong)' : 'var(--gradient-primary)',
+                  color: 'var(--color-white)', fontSize: 14, fontWeight: 700, cursor: saveState === 'saving' ? 'not-allowed' : 'pointer',
+                  width: '100%', letterSpacing: '0.02em', transition: 'background 0.2s ease',
                 }}
               >
-                Confirmar check-in
+                {saveState === 'saving' ? 'Salvando…' : saveState === 'error' ? 'Tentar de novo' : 'Registrar check-in'}
               </motion.button>
-            </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
+    </>
   );
-}
+});

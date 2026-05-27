@@ -27,6 +27,18 @@ function frame1FromUrl(url: string | null | undefined): string | null {
   return null;
 }
 
+function isVisualExerciseMedia(media: Exercise["media"][number] | undefined | null) {
+  return !!media && (media.mediaType === "gif" || media.mediaType === "image");
+}
+
+function getPreferredVisualMedia(exercise: Exercise | null | undefined) {
+  const primary = exercise?.media?.find((m) => m.isPrimary) ?? exercise?.media?.[0];
+  const gif = exercise?.media?.find((m) => m.mediaType === "gif" || m.url.toLowerCase().includes(".gif"));
+  const image = exercise?.media?.find((m) => m.mediaType === "image");
+  const preferred = gif ?? image ?? primary;
+  return isVisualExerciseMedia(preferred) ? preferred : null;
+}
+
 function useThumbTick() {
   const [tick, setTick] = useState(false);
   useEffect(() => {
@@ -43,8 +55,9 @@ type ExerciseModalProps = {
 };
 
 function ExerciseGifModal({ exercise, onClose }: ExerciseModalProps) {
-  const primary = exercise.media?.find((m) => m.isPrimary) ?? exercise.media?.[0];
-  const gifMedia = exercise.media?.find((m) => m.mediaType === "gif" || m.mediaType === "image") ?? primary;
+  const gifMedia = getPreferredVisualMedia(exercise);
+  const frame1 = frame1FromUrl(gifMedia?.url);
+  const showFrame1 = useThumbTick();
 
   return (
     <div
@@ -88,17 +101,51 @@ function ExerciseGifModal({ exercise, onClose }: ExerciseModalProps) {
             ×
           </button>
         </div>
-        {gifMedia && (gifMedia.mediaType === "gif" || gifMedia.mediaType === "image") ? (
-          <img
-            src={gifMedia.url}
-            alt={exercise.name}
+        {gifMedia ? (
+          <div
             style={{
+              position: "relative",
               width: "100%",
-              borderRadius: 10,
-              objectFit: "contain",
+              aspectRatio: "1 / 1",
               maxHeight: 300,
+              borderRadius: 10,
+              overflow: "hidden",
+              background: COLORS.panelDeep,
             }}
-          />
+          >
+            <img
+              key={gifMedia.url}
+              src={gifMedia.url}
+              alt={exercise.name}
+              decoding="async"
+              style={{
+                position: "absolute",
+                inset: 0,
+                width: "100%",
+                height: "100%",
+                objectFit: "contain",
+                transition: frame1 ? "opacity 0.3s ease" : undefined,
+                opacity: frame1 ? (showFrame1 ? 0 : 1) : 1,
+              }}
+            />
+            {frame1 ? (
+              <img
+                src={frame1}
+                alt=""
+                aria-hidden="true"
+                decoding="async"
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "contain",
+                  transition: "opacity 0.3s ease",
+                  opacity: showFrame1 ? 1 : 0,
+                }}
+              />
+            ) : null}
+          </div>
         ) : null}
         <div style={{ fontSize: 12, color: COLORS.muted }}>
           {exercise.targetMuscle}
@@ -204,8 +251,8 @@ function PlanDayExerciseList({ day, planId }: PlanDayExerciseListProps) {
             biSetPartnerName = partner?.name ?? null;
           }
           const primaryMedia = ex?.media?.find((m) => m.isPrimary) ?? ex?.media?.[0];
-          const gifMedia = ex?.media?.find((m) => m.mediaType === "gif" || m.mediaType === "image") ?? primaryMedia;
-          const hasGif = gifMedia && (gifMedia.mediaType === "gif" || gifMedia.mediaType === "image");
+          const gifMedia = getPreferredVisualMedia(ex);
+          const hasGif = !!gifMedia;
           const f1 = hasGif ? frame1FromUrl(gifMedia.url) : null;
 
           return (

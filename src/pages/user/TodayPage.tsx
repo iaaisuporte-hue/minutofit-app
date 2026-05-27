@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext";
@@ -30,7 +30,7 @@ import { useGamificationSummary } from "../../features/gamification/useGamificat
 import { ProfessionalVoiceCard } from "../../features/professionalVoice";
 import { WeeklyLoopCard, useHasWeeklyLoopInsights } from "../../features/loopVisibility";
 import { IncomingMessageBanner, useLatestUnreadFromProfessional } from "../../features/incomingMessage";
-import { DailyCheckin } from "../../features/dailyCheckin/DailyCheckin";
+import { DailyCheckin, type DailyCheckinHandle } from "../../features/dailyCheckin/DailyCheckin";
 import {
   computeNudgeState,
   MetabolicCheckinModal,
@@ -191,6 +191,7 @@ export default function TodayPage() {
     const saved = loadAnswers(userId);
     return saved?.trainingPlace === "gym" || saved?.trainingPlace === "both" ? "gym" : "home";
   });
+  const checkinRef = useRef<DailyCheckinHandle>(null);
   const [showCheckin, setShowCheckin] = useState(false);
   const [showMetabolicCheckin, setShowMetabolicCheckin] = useState(false);
   const [firstRun, setFirstRun] = useState(() =>
@@ -375,6 +376,7 @@ export default function TodayPage() {
             onGoToCheckin={() => {
               const el = document.querySelector("[data-daily-checkin]");
               el?.scrollIntoView({ behavior: "smooth", block: "center" });
+              checkinRef.current?.openSheet();
             }}
           />
         </motion.div>
@@ -383,6 +385,7 @@ export default function TodayPage() {
       {/* 1. Check-in de estado */}
       <motion.div variants={sectionRevealVariants} data-daily-checkin>
         <DailyCheckin
+          ref={checkinRef}
           condition={dailyCondition}
           setCondition={setDailyCondition}
           clearCondition={clearDailyCondition}

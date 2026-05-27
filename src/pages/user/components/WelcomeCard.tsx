@@ -19,10 +19,10 @@ type Marco = {
 export function WelcomeCard({ firstName, state, onGoToCheckin }: Props) {
   const navigate = useNavigate();
   const isMobile = useIsMobile(720);
-  const concluidos = [state.checkinDone, state.profileDone, state.workoutDone].filter(Boolean).length;
+  const concluidos = [state.checkinDone, state.profileDone].filter(Boolean).length;
 
   // Todos concluídos → card desaparece (chamador controla isso)
-  if (concluidos === 3) return null;
+  if (concluidos === 2) return null;
 
   const marcos: Marco[] = [
     {
@@ -38,13 +38,6 @@ export function WelcomeCard({ firstName, state, onGoToCheckin }: Props) {
       done: state.profileDone,
       cta: "Configurar agora",
       onClick: () => navigate("/app/user/onboarding"),
-    },
-    {
-      label: "Veja seu primeiro treino sugerido",
-      descricao: "O app já tem uma sugestão pronta para você — sem precisar de personal.",
-      done: state.workoutDone,
-      cta: "Ver treino",
-      onClick: () => navigate("/app/user/ficha"),
     },
   ];
 
@@ -155,7 +148,7 @@ export function WelcomeCard({ firstName, state, onGoToCheckin }: Props) {
         </div>
 
         <div style={{ fontSize: 12, color: "var(--color-text-subtle)", textAlign: "center" }}>
-          {concluidos}/3 concluídos — esse card desaparece quando você terminar.
+          {concluidos}/2 concluídos — esse card desaparece quando você terminar.
         </div>
       </div>
     </div>
