@@ -6,6 +6,7 @@ import { IncomingRequestsPanel } from "../features/team";
 import NutritionPatientsPage from "./nutri/NutritionPatientsPage";
 import PatientDetailNutriPage from "./nutri/PatientDetailNutriPage";
 import CreatePlanPage from "./nutri/CreatePlanPage";
+import NetworkProfilePage from "./professional/NetworkProfilePage";
 
 function ConvitesPage() {
   return (
@@ -37,6 +38,9 @@ export default function NutriApp() {
             <NavLink to="/app/nutri/convites" className={navLinkStyle}>
               Convites
             </NavLink>
+            <NavLink to="/app/nutri/meu-perfil" className={navLinkStyle}>
+              Meu perfil
+            </NavLink>
           </div>
 
           <div style={{ flex: 1 }} />
@@ -55,6 +59,7 @@ export default function NutriApp() {
         <Route path="pacientes/:patientId" element={<PatientDetailNutriPage />} />
         <Route path="pacientes/:patientId/plano/novo" element={<CreatePlanPage />} />
         <Route path="convites" element={<ConvitesPage />} />
+        <Route path="meu-perfil" element={<NetworkProfilePage />} />
       </Routes>
     </AppShell>
   );

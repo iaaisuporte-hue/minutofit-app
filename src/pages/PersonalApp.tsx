@@ -14,6 +14,7 @@ import MessagesPage from "./personal/MessagesPage";
 import ReviewWorkoutsPage from "./personal/ReviewWorkoutsPage";
 import WorkoutLibraryPage from "./personal/WorkoutLibraryPage";
 import StudentProfilePage from "./personal/StudentProfilePage";
+import NetworkProfilePage from "./professional/NetworkProfilePage";
 
 // ✅ BUILDER REAL
 import WorkoutBuilderPage from "./personal/WorkoutBuilderPage";
@@ -196,6 +197,7 @@ export default function PersonalApp() {
             <MenuLink to="/app/personal/review" label="Revisões" />
             <MenuLink to="/app/personal/library" label="Protocolos" />
             <MenuLink to="/app/personal/builder" label="Builder" />
+            <MenuLink to="/app/personal/meu-perfil" label="Meu perfil" />
           </div>
 
           <div style={{ flex: 1 }} />
@@ -247,6 +249,8 @@ export default function PersonalApp() {
             <Route path="students/:studentId/workouts/new" element={<RedirectToBuilder />} />
 
             <Route path="students/:studentId" element={<StudentProfilePage />} />
+
+            <Route path="meu-perfil" element={<NetworkProfilePage />} />
 
             <Route path="*" element={<RedirectToDashboard />} />
           </Routes>
