@@ -28,12 +28,66 @@ export const ADHERENCE_LABELS: Record<Adherence, string> = {
   skipped: 'Não segui',
 };
 
+export type MealCheckinStatus = 'done' | 'partial' | 'skipped' | 'substituted' | 'delayed';
+
+export type MealStatus = 'upcoming' | 'due_now' | 'done' | 'partial' | 'skipped' | 'substituted' | 'delayed' | 'missed_window' | 'no_time';
+
+export type MetabolicGoal = 'energy' | 'recovery' | 'satiety' | 'sleep_light';
+export type WorkoutRelation = 'pre' | 'post' | 'none';
+
+export const METABOLIC_GOAL_LABELS: Record<MetabolicGoal, string> = {
+  energy:      'Energia inicial',
+  recovery:    'Recuperação pós-treino',
+  satiety:     'Saciedade duradoura',
+  sleep_light: 'Leveza para o sono',
+};
+
+export const WORKOUT_RELATION_LABELS: Record<WorkoutRelation, string> = {
+  pre:  'Pré-treino',
+  post: 'Pós-treino',
+  none: 'Sem relação com treino',
+};
+
+export interface MealAlternative {
+  id: number;
+  meal_id: number;
+  description: string;
+  order_index: number;
+}
+
 export interface NutritionMeal {
   id: number;
   plan_id: number;
   name: string;
   orientation: string;
   order_index: number;
+  meal_time: string | null;
+  tolerance_minutes: number | null;
+  reminder_minutes: number | null;
+  metabolic_goal: MetabolicGoal | null;
+  workout_relation: WorkoutRelation | null;
+  hydration_note: string | null;
+  supplement_note: string | null;
+  alternatives: MealAlternative[];
+}
+
+export interface MealTimelineEntry extends NutritionMeal {
+  status: MealStatus;
+  checkin: MealCheckinRecord | null;
+}
+
+export interface MealCheckinRecord {
+  id: string;
+  patient_id: number;
+  plan_id: number;
+  meal_id: number;
+  check_date: string;
+  status: MealCheckinStatus;
+  recorded_at: string;
+  satiety: number | null;
+  hunger: number | null;
+  energy: number | null;
+  note: string | null;
 }
 
 export interface NutritionPlan {
@@ -106,13 +160,27 @@ export async function fetchPatientPlans(patientId: number): Promise<{
   return json.data ?? { active: null, history: [] };
 }
 
+export type MealPayload = {
+  name: string;
+  orientation: string;
+  order_index: number;
+  meal_time?: string | null;
+  tolerance_minutes?: number | null;
+  reminder_minutes?: number | null;
+  metabolic_goal?: MetabolicGoal | null;
+  workout_relation?: WorkoutRelation | null;
+  hydration_note?: string | null;
+  supplement_note?: string | null;
+  alternatives?: Array<{ description: string; order_index: number }>;
+};
+
 export async function createNutritionPlan(
   patientId: number,
   data: {
     title: string;
     objective: NutriObjective;
     general_notes?: string;
-    meals: Array<{ name: string; orientation: string; order_index: number }>;
+    meals: MealPayload[];
   }
 ): Promise<NutritionPlan> {
   const res = await authFetch(`${API_URL}/nutri/patients/${patientId}/nutrition-plans`, {
@@ -140,7 +208,7 @@ export async function updateNutritionPlan(
     title?: string;
     objective?: NutriObjective;
     general_notes?: string;
-    meals?: Array<{ name: string; orientation: string; order_index: number }>;
+    meals?: MealPayload[];
   }
 ): Promise<NutritionPlan> {
   const res = await authFetch(`${API_URL}/nutri/patients/${patientId}/nutrition-plans/${planId}`, {
@@ -244,6 +312,62 @@ export async function fetchMyAdherenceHistory(days = 30): Promise<Array<{
   const res = await authFetch(`${API_URL}/user/nutrition-adherence-checkins?days=${days}`);
   const json = await parseJson(res);
   return json.data ?? [];
+}
+
+// ---------------------------------------------------------------------------
+// User (aluno) — meal timeline + per-meal check-in  (Onda A)
+// ---------------------------------------------------------------------------
+
+export interface MealTimeline {
+  plan_id: number;
+  title: string;
+  objective: NutriObjective;
+  general_notes: string | null;
+  nutri_name: string;
+  today: string;
+  meals: MealTimelineEntry[];
+}
+
+export async function fetchMealTimeline(): Promise<MealTimeline | null> {
+  const res = await authFetch(`${API_URL}/user/meals/today`);
+  const json = await parseJson(res);
+  return json.data ?? null;
+}
+
+export async function recordMealCheckin(
+  mealId: number,
+  data: {
+    status: MealCheckinStatus;
+    satiety?: number | null;
+    hunger?: number | null;
+    energy?: number | null;
+    note?: string | null;
+  }
+): Promise<MealCheckinRecord> {
+  const res = await authFetch(`${API_URL}/user/meals/${mealId}/checkins`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  const json = await parseJson(res);
+  if (!json.success) throw new Error(json.error ?? 'Failed to record meal checkin');
+  return json.data;
+}
+
+// ---------------------------------------------------------------------------
+// Nutri — meal heatmap  (Onda A)
+// ---------------------------------------------------------------------------
+
+export interface MealHeatmapData {
+  plan: { id: number; title: string } | null;
+  meals: Array<{ id: number; name: string; meal_time: string | null; order_index: number }>;
+  checkins: Array<{ meal_id: number; check_date: string; status: MealCheckinStatus }>;
+}
+
+export async function fetchMealHeatmap(patientId: number, days = 14): Promise<MealHeatmapData> {
+  const res = await authFetch(`${API_URL}/nutri/patients/${patientId}/meal-heatmap?days=${days}`);
+  const json = await parseJson(res);
+  return json.data ?? { plan: null, meals: [], checkins: [] };
 }
 
 export async function recordNutritionCheckin(adherence: Adherence, note?: string): Promise<NutritionCheckin> {

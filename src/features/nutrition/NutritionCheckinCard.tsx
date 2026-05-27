@@ -1,154 +1,190 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { COLORS } from "../../styles/colors";
 import {
-  fetchMyNutritionPlan,
-  recordNutritionCheckin,
-  ADHERENCE_LABELS,
-  OBJECTIVE_LABELS,
-  type Adherence,
-  type NutritionPlan,
+  fetchMealTimeline,
+  recordMealCheckin,
+  type MealTimeline,
+  type MealTimelineEntry,
+  type MealCheckinStatus,
+  type MealStatus,
 } from "../../services/nutriApi";
 
 // ---------------------------------------------------------------------------
-// Types
+// Helpers
 // ---------------------------------------------------------------------------
 
-type CardState = "loading" | "no_plan" | "idle" | "confirming" | "submitting" | "done" | "error";
+function formatTime(t: string | null) {
+  return t ? t.slice(0, 5) : null;
+}
 
-// ---------------------------------------------------------------------------
-// Sub-components
-// ---------------------------------------------------------------------------
+function minutesUntil(mealTime: string | null): number | null {
+  if (!mealTime) return null;
+  const [h, m] = mealTime.split(":").map(Number);
+  const now = new Date();
+  return h * 60 + m - (now.getHours() * 60 + now.getMinutes());
+}
 
-function AdherenceButton({
-  label,
-  selected,
-  onClick,
-}: {
-  label: string;
-  selected: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      style={{
-        flex: 1,
-        minWidth: 100,
-        padding: "10px 12px",
-        borderRadius: 10,
-        border: selected ? `2px solid ${COLORS.primary}` : "1.5px solid var(--color-border)",
-        background: selected ? COLORS.primarySoft : "var(--color-surface)",
-        color: selected ? COLORS.primary : COLORS.text,
-        fontWeight: selected ? 700 : 500,
-        fontSize: 13,
-        cursor: "pointer",
-        transition: "all 0.15s",
-        lineHeight: 1.3,
-      }}
-    >
-      {label}
-    </button>
+function formatCountdown(mins: number): string {
+  if (mins <= 0) return "agora";
+  if (mins < 60) return `${mins} min`;
+  const h = Math.floor(mins / 60);
+  const rm = mins % 60;
+  return rm > 0 ? `${h}h ${rm}min` : `${h}h`;
+}
+
+function getNextMeal(meals: MealTimelineEntry[]): MealTimelineEntry | null {
+  // Priority: due_now first, then upcoming soonest, then no_time unchecked
+  const dueNow = meals.find((m) => m.status === "due_now");
+  if (dueNow) return dueNow;
+
+  const upcoming = meals
+    .filter((m) => m.status === "upcoming")
+    .sort((a, b) => {
+      const ma = minutesUntil(a.meal_time) ?? Infinity;
+      const mb = minutesUntil(b.meal_time) ?? Infinity;
+      return ma - mb;
+    });
+  if (upcoming.length > 0) return upcoming[0];
+
+  // Fallback: first unchecked meal without time
+  const noTime = meals.find(
+    (m) =>
+      m.status === "no_time" &&
+      !["done", "partial", "substituted", "delayed"].includes(m.status)
   );
+  return noTime ?? null;
 }
 
 // ---------------------------------------------------------------------------
-// Main component
+// Component
 // ---------------------------------------------------------------------------
+
+type CardState = "loading" | "no_plan" | "idle" | "all_done" | "submitting";
+
+const CHECKIN_OPTIONS: Array<{ status: MealCheckinStatus; label: string }> = [
+  { status: "done",       label: "Segui" },
+  { status: "partial",    label: "Parcial" },
+  { status: "skipped",    label: "Pulei" },
+  { status: "substituted", label: "Substituí" },
+];
 
 export function NutritionCheckinCard() {
   const [cardState, setCardState] = useState<CardState>("loading");
-  const [plan, setPlan] = useState<NutritionPlan | null>(null);
-  const [selected, setSelected] = useState<Adherence | null>(null);
-  const [note, setNote] = useState("");
+  const [timeline, setTimeline] = useState<MealTimeline | null>(null);
+  const [nextMeal, setNextMeal] = useState<MealTimelineEntry | null>(null);
+  const [submitting, setSubmitting] = useState<MealCheckinStatus | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const noteRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
-    fetchMyNutritionPlan()
-      .then((p) => {
-        if (!p) {
+    fetchMealTimeline()
+      .then((t) => {
+        if (!t || t.meals.length === 0) {
           setCardState("no_plan");
           return;
         }
-        setPlan(p);
-        if (p.todayCheckin) {
-          setCardState("done");
+        setTimeline(t);
+        const next = getNextMeal(t.meals);
+        if (!next) {
+          setCardState("all_done");
         } else {
+          setNextMeal(next);
           setCardState("idle");
         }
       })
-      .catch(() => {
-        // Silent — don't block TodayPage
-        setCardState("no_plan");
-      });
+      .catch(() => setCardState("no_plan"));
   }, []);
 
-  function handleSelectAdherence(a: Adherence) {
-    setSelected(a);
-    setCardState("confirming");
-    setTimeout(() => noteRef.current?.focus(), 50);
-  }
-
-  function handleCancel() {
-    setSelected(null);
-    setNote("");
-    setSubmitError(null);
-    setCardState("idle");
-  }
-
-  async function handleConfirm() {
-    if (!selected) return;
-    setCardState("submitting");
+  async function handleCheckin(status: MealCheckinStatus) {
+    if (!nextMeal) return;
+    setSubmitting(status);
     setSubmitError(null);
     try {
-      await recordNutritionCheckin(selected, note.trim() || undefined);
-      setCardState("done");
-    } catch (err: unknown) {
-      const e = err as Error & { status?: number };
-      if (e.status === 409) {
-        // Already checked in — treat as done
-        setCardState("done");
-      } else {
-        setSubmitError("Não foi possível registrar. Tente novamente.");
-        setCardState("confirming");
-      }
+      await recordMealCheckin(nextMeal.id, { status });
+
+      // Update local state and recalculate next meal
+      setTimeline((prev) => {
+        if (!prev) return prev;
+        const updated = prev.meals.map((m) =>
+          m.id === nextMeal.id
+            ? {
+                ...m,
+                status: status as MealStatus,
+                checkin: { ...m.checkin, status, meal_id: m.id } as MealTimelineEntry["checkin"],
+              }
+            : m
+        );
+        const next2 = getNextMeal(updated as MealTimelineEntry[]);
+        if (!next2) {
+          setCardState("all_done");
+        } else {
+          setNextMeal(next2 as MealTimelineEntry);
+        }
+        return { ...prev, meals: updated as MealTimelineEntry[] };
+      });
+      setSubmitting(null);
+    } catch {
+      setSubmitError("Não foi possível registrar. Tente novamente.");
+      setSubmitting(null);
     }
   }
 
-  // Don't render if no plan or still loading
   if (cardState === "loading" || cardState === "no_plan") return null;
 
   // ---------------------------------------------------------------------------
-  // State: Done
+  // All done for the day
   // ---------------------------------------------------------------------------
-  if (cardState === "done") {
-    const todayAdherence = plan?.todayCheckin?.adherence ?? selected ?? "full";
+  if (cardState === "all_done") {
+    const meals = timeline?.meals ?? [];
+    const checkedCount = meals.filter((m) =>
+      ["done", "partial", "substituted", "delayed"].includes(m.status)
+    ).length;
     return (
       <div
         className="today-card"
         style={{
           background: "var(--color-success-soft, rgba(34,197,94,.08))",
           borderRadius: 16,
-          padding: "18px 20px",
+          padding: "16px 20px",
           border: "1.5px solid var(--color-success, #22C55E)",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            flexWrap: "wrap",
+            gap: 8,
+          }}
+        >
           <div>
-            <div style={{ fontSize: 12, fontWeight: 600, color: "var(--color-success, #22C55E)", marginBottom: 3, textTransform: "uppercase", letterSpacing: "0.04em" }}>
-              Plano alimentar ✓
+            <div
+              style={{
+                fontSize: 12,
+                fontWeight: 600,
+                color: "var(--color-success, #22C55E)",
+                marginBottom: 2,
+                textTransform: "uppercase",
+                letterSpacing: "0.04em",
+              }}
+            >
+              Alimentação
             </div>
-            <div style={{ fontSize: 15, fontWeight: 600, color: COLORS.text }}>
-              {ADHERENCE_LABELS[todayAdherence as Adherence] ?? "Check-in registrado"}
+            <div style={{ fontSize: 14, fontWeight: 600, color: COLORS.text }}>
+              {checkedCount} de {meals.length} refeições registradas
             </div>
           </div>
           <Link
-            to="/app/user/plano-alimentar"
-            style={{ fontSize: 13, color: COLORS.primary, fontWeight: 600, textDecoration: "none" }}
+            to="/app/user/ficha"
+            style={{
+              fontSize: 13,
+              color: COLORS.primary,
+              fontWeight: 600,
+              textDecoration: "none",
+            }}
           >
-            Ver meu plano →
+            Ver plano →
           </Link>
         </div>
       </div>
@@ -156,116 +192,150 @@ export function NutritionCheckinCard() {
   }
 
   // ---------------------------------------------------------------------------
-  // State: Confirming / Submitting
+  // Idle — show next meal with CTA
   // ---------------------------------------------------------------------------
-  if (cardState === "confirming" || cardState === "submitting") {
-    return (
-      <div className="today-card" style={{ background: COLORS.card, borderRadius: 16, padding: "18px 20px", border: "1px solid var(--color-border)" }}>
-        <div style={{ fontSize: 14, fontWeight: 700, color: COLORS.text, marginBottom: 12 }}>
-          {selected ? ADHERENCE_LABELS[selected] : ""}
-        </div>
-        <div style={{ fontSize: 13, color: COLORS.muted, marginBottom: 6 }}>Alguma observação? (opcional)</div>
-        <textarea
-          ref={noteRef}
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-          placeholder="Como foi sua alimentação hoje..."
-          rows={2}
-          maxLength={200}
-          style={{
-            width: "100%",
-            border: "1px solid var(--color-border)",
-            borderRadius: 8,
-            padding: "9px 12px",
-            fontSize: 14,
-            color: COLORS.text,
-            background: "var(--color-surface)",
-            resize: "none",
-            fontFamily: "inherit",
-            outline: "none",
-            boxSizing: "border-box",
-          }}
-        />
-        {submitError && (
-          <div style={{ fontSize: 12, color: COLORS.danger, marginTop: 4 }}>{submitError}</div>
-        )}
-        <div style={{ display: "flex", gap: 10, marginTop: 12, justifyContent: "flex-end" }}>
-          <button
-            type="button"
-            onClick={handleCancel}
-            disabled={cardState === "submitting"}
+  if (!nextMeal) return null;
+
+  const isDueNow = nextMeal.status === "due_now";
+  const timeLabel = formatTime(nextMeal.meal_time);
+  const minsUntil = minutesUntil(nextMeal.meal_time);
+  const checkedCount = (timeline?.meals ?? []).filter((m) =>
+    ["done", "partial", "substituted", "delayed"].includes(m.status)
+  ).length;
+  const totalMeals = timeline?.meals.length ?? 0;
+
+  return (
+    <div
+      className="today-card"
+      style={{
+        background: COLORS.card,
+        borderRadius: 16,
+        padding: "16px 20px",
+        border: isDueNow
+          ? `1.5px solid ${COLORS.primary}`
+          : "1px solid var(--color-border)",
+      }}
+    >
+      {/* Header row */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          marginBottom: 8,
+          flexWrap: "wrap",
+          gap: 6,
+        }}
+      >
+        <div>
+          <div
             style={{
-              padding: "9px 18px",
+              fontSize: 11,
+              fontWeight: 600,
+              color: COLORS.muted,
+              textTransform: "uppercase",
+              letterSpacing: "0.04em",
+              marginBottom: 1,
+            }}
+          >
+            {isDueNow ? "Refeição agora" : "Próxima refeição"}
+            {timeLabel && (
+              <span style={{ marginLeft: 6 }}>· {timeLabel}</span>
+            )}
+            {!isDueNow && minsUntil !== null && minsUntil > 0 && (
+              <span
+                style={{ marginLeft: 4, color: COLORS.primary }}
+              >
+                · em {formatCountdown(minsUntil)}
+              </span>
+            )}
+          </div>
+          <div
+            style={{ fontSize: 15, fontWeight: 700, color: COLORS.text }}
+          >
+            {nextMeal.name}
+          </div>
+        </div>
+        <Link
+          to="/app/user/ficha"
+          style={{
+            fontSize: 12,
+            color: COLORS.muted,
+            textDecoration: "none",
+            flexShrink: 0,
+          }}
+        >
+          {checkedCount}/{totalMeals}
+        </Link>
+      </div>
+
+      {/* Orientation preview */}
+      <div
+        style={{
+          fontSize: 12,
+          color: COLORS.muted,
+          lineHeight: 1.5,
+          marginBottom: 12,
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          display: "-webkit-box",
+          WebkitLineClamp: 2,
+          WebkitBoxOrient: "vertical",
+          whiteSpace: "pre-wrap",
+        }}
+      >
+        {nextMeal.orientation}
+      </div>
+
+      {/* Check-in buttons */}
+      <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
+        {CHECKIN_OPTIONS.map(({ status, label }) => (
+          <button
+            key={status}
+            type="button"
+            disabled={submitting !== null}
+            onClick={() => void handleCheckin(status)}
+            style={{
+              flex: "1 1 auto",
+              minWidth: 70,
+              padding: "8px 10px",
               borderRadius: 8,
               border: "1.5px solid var(--color-border)",
-              background: "none",
-              color: COLORS.text,
+              background:
+                isDueNow && status === "done"
+                  ? COLORS.primary
+                  : "var(--color-surface)",
+              color:
+                isDueNow && status === "done" ? "#fff" : COLORS.text,
               fontWeight: 600,
-              fontSize: 13,
-              cursor: "pointer",
+              fontSize: 12,
+              cursor: submitting !== null ? "not-allowed" : "pointer",
+              opacity: submitting !== null && submitting !== status ? 0.5 : 1,
+              transition: "all 0.15s",
             }}
           >
-            Cancelar
+            {submitting === status ? "..." : label}
           </button>
-          <button
-            type="button"
-            onClick={() => void handleConfirm()}
-            disabled={cardState === "submitting"}
-            style={{
-              padding: "9px 22px",
-              borderRadius: 8,
-              border: "none",
-              background: COLORS.primary,
-              color: "#fff",
-              fontWeight: 700,
-              fontSize: 13,
-              cursor: cardState === "submitting" ? "not-allowed" : "pointer",
-              opacity: cardState === "submitting" ? 0.7 : 1,
-            }}
-          >
-            {cardState === "submitting" ? "Registrando..." : "Confirmar"}
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // ---------------------------------------------------------------------------
-  // State: Idle
-  // ---------------------------------------------------------------------------
-  return (
-    <div className="today-card" style={{ background: COLORS.card, borderRadius: 16, padding: "18px 20px", border: "1px solid var(--color-border)" }}>
-      <div style={{ marginBottom: 12 }}>
-        <div style={{ fontSize: 11, fontWeight: 600, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 2 }}>
-          Plano alimentar · {plan?.title ?? ""}
-        </div>
-        <div style={{ fontSize: 14, fontWeight: 600, color: COLORS.text }}>
-          Como foi sua alimentação hoje?
-        </div>
-        {plan?.objective && (
-          <div style={{ fontSize: 12, color: COLORS.muted, marginTop: 2 }}>
-            Objetivo: {OBJECTIVE_LABELS[plan.objective]}
-          </div>
-        )}
-      </div>
-
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-        {(["full", "partial", "skipped"] as Adherence[]).map((a) => (
-          <AdherenceButton
-            key={a}
-            label={ADHERENCE_LABELS[a]}
-            selected={selected === a}
-            onClick={() => handleSelectAdherence(a)}
-          />
         ))}
       </div>
 
-      <div style={{ marginTop: 12 }}>
+      {submitError && (
+        <div style={{ fontSize: 12, color: COLORS.danger, marginTop: 6 }}>
+          {submitError}
+        </div>
+      )}
+
+      <div style={{ marginTop: 10 }}>
         <Link
-          to="/app/user/plano-alimentar"
-          style={{ fontSize: 13, color: COLORS.primary, fontWeight: 600, textDecoration: "none" }}
+          to="/app/user/ficha"
+          style={{
+            fontSize: 12,
+            color: COLORS.primary,
+            fontWeight: 600,
+            textDecoration: "none",
+          }}
         >
-          Ver meu plano →
+          Ver plano completo →
         </Link>
       </div>
     </div>

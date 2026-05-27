@@ -7,6 +7,7 @@ import {
   fetchAdherence,
   fetchPatientContext,
   fetchObservations,
+  fetchMealHeatmap,
   createObservation,
   endNutritionPlan,
   updateNutritionPlan,
@@ -15,6 +16,8 @@ import {
   type NutritionPlan,
   type NutritionObservation,
   type Adherence,
+  type MealCheckinStatus,
+  type MealHeatmapData,
   type PatientMetabolism,
   type PatientDailyCheckin,
 } from "../../services/nutriApi";
@@ -335,17 +338,236 @@ function PlanTab({ patientId }: { patientId: number }) {
 }
 
 // ---------------------------------------------------------------------------
-// Tab: Adesão
+// Tab: Adesão — meal × day heatmap
 // ---------------------------------------------------------------------------
 
-const ADHERENCE_ICON: Record<string, string> = { full: "✓", partial: "─", skipped: "○" };
-const ADHERENCE_COLOR: Record<string, string> = {
-  full: "var(--color-primary)",
-  partial: "var(--color-warn)",
-  skipped: "var(--color-danger)",
+const HEATMAP_COLORS: Record<MealCheckinStatus | "none", string> = {
+  done:        "var(--color-success, #22C55E)",
+  partial:     "var(--color-warn, #F59E0B)",
+  substituted: "var(--color-primary)",
+  delayed:     "var(--color-warn, #F59E0B)",
+  skipped:     "var(--color-danger, #EF4444)",
+  none:        "var(--color-border)",
 };
 
+const HEATMAP_ABBR: Record<MealCheckinStatus | "none", string> = {
+  done:        "✓",
+  partial:     "~",
+  substituted: "S",
+  delayed:     "A",
+  skipped:     "–",
+  none:        "·",
+};
+
+function buildDateRange(days: number): string[] {
+  const dates: string[] = [];
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    dates.push(d.toISOString().slice(0, 10));
+  }
+  return dates;
+}
+
 function AdherenceTab({ patientId }: { patientId: number }) {
+  const DAYS = 14;
+  const [heatmap, setHeatmap] = useState<MealHeatmapData | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchMealHeatmap(patientId, DAYS)
+      .then(setHeatmap)
+      .finally(() => setLoading(false));
+  }, [patientId]);
+
+  if (loading) return <div style={{ color: COLORS.muted, fontSize: 14 }}>Carregando...</div>;
+
+  // Fallback to legacy adherence if no meal checkins schema yet
+  if (!heatmap?.plan || heatmap.meals.length === 0) {
+    return <LegacyAdherenceTab patientId={patientId} />;
+  }
+
+  const dates = buildDateRange(DAYS);
+  const checkinMap = new Map<string, MealCheckinStatus>();
+  for (const c of heatmap.checkins) {
+    checkinMap.set(`${c.meal_id}:${c.check_date}`, c.status);
+  }
+
+  // Summary stats
+  const total = heatmap.meals.length * dates.length;
+  const doneCount = heatmap.checkins.filter(
+    (c) => c.status === "done" || c.status === "substituted"
+  ).length;
+  const partialCount = heatmap.checkins.filter((c) => c.status === "partial").length;
+  const adherePct = Math.round(((doneCount + partialCount * 0.5) / total) * 100);
+
+  return (
+    <div>
+      {/* Summary */}
+      <div className="card cardPad" style={{ marginBottom: 16 }}>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 8 }}>
+          <span style={{ fontSize: 28, fontWeight: 800, color: COLORS.primary, lineHeight: 1 }}>
+            {adherePct}%
+          </span>
+          <span style={{ fontSize: 13, color: COLORS.muted }}>
+            adesão · últimos {DAYS} dias · {heatmap.meals.length} refeições
+          </span>
+        </div>
+        <div
+          style={{
+            height: 6,
+            borderRadius: 99,
+            background: "var(--color-surface-raised)",
+            overflow: "hidden",
+          }}
+        >
+          <div
+            style={{
+              height: "100%",
+              width: `${adherePct}%`,
+              background:
+                adherePct >= 70
+                  ? "var(--color-success, #22C55E)"
+                  : adherePct >= 40
+                  ? "var(--color-warn, #F59E0B)"
+                  : COLORS.danger,
+              borderRadius: 99,
+              transition: "width 0.4s",
+            }}
+          />
+        </div>
+      </div>
+
+      {/* Heatmap grid */}
+      <div className="card cardPad" style={{ overflowX: "auto" }}>
+        <div style={{ minWidth: 480 }}>
+          {/* Date header */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: `120px repeat(${dates.length}, 1fr)`,
+              gap: 2,
+              marginBottom: 4,
+            }}
+          >
+            <div />
+            {dates.map((d) => (
+              <div
+                key={d}
+                style={{
+                  fontSize: 9,
+                  color: COLORS.muted,
+                  textAlign: "center",
+                  fontWeight: 600,
+                }}
+              >
+                {new Date(d + "T12:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}
+              </div>
+            ))}
+          </div>
+
+          {/* Meal rows */}
+          {heatmap.meals.map((meal) => (
+            <div
+              key={meal.id}
+              style={{
+                display: "grid",
+                gridTemplateColumns: `120px repeat(${dates.length}, 1fr)`,
+                gap: 2,
+                marginBottom: 2,
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 11,
+                  fontWeight: 600,
+                  color: COLORS.text,
+                  alignSelf: "center",
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  paddingRight: 8,
+                }}
+                title={meal.meal_time ? `${meal.name} · ${meal.meal_time.slice(0, 5)}` : meal.name}
+              >
+                {meal.name}
+                {meal.meal_time && (
+                  <span style={{ fontWeight: 400, color: COLORS.muted, marginLeft: 4 }}>
+                    {meal.meal_time.slice(0, 5)}
+                  </span>
+                )}
+              </div>
+              {dates.map((d) => {
+                const status = checkinMap.get(`${meal.id}:${d}`) ?? "none";
+                const isToday = d === new Date().toISOString().slice(0, 10);
+                return (
+                  <div
+                    key={d}
+                    title={`${meal.name} · ${d} · ${status}`}
+                    style={{
+                      height: 24,
+                      borderRadius: 4,
+                      background: HEATMAP_COLORS[status],
+                      opacity: status === "none" ? 0.3 : 1,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: 9,
+                      color: "#fff",
+                      fontWeight: 700,
+                      outline: isToday ? `2px solid ${COLORS.primary}` : "none",
+                    }}
+                  >
+                    {HEATMAP_ABBR[status]}
+                  </div>
+                );
+              })}
+            </div>
+          ))}
+        </div>
+
+        {/* Legend */}
+        <div
+          style={{
+            display: "flex",
+            gap: 12,
+            flexWrap: "wrap",
+            marginTop: 12,
+            fontSize: 11,
+            color: COLORS.muted,
+          }}
+        >
+          {(
+            [
+              ["done", "Seguiu"],
+              ["partial", "Parcial"],
+              ["substituted", "Substituiu"],
+              ["skipped", "Pulou"],
+              ["none", "Sem registro"],
+            ] as Array<[MealCheckinStatus | "none", string]>
+          ).map(([s, l]) => (
+            <span key={s} style={{ display: "flex", alignItems: "center", gap: 4 }}>
+              <span
+                style={{
+                  display: "inline-block",
+                  width: 12,
+                  height: 12,
+                  borderRadius: 2,
+                  background: HEATMAP_COLORS[s],
+                  opacity: s === "none" ? 0.3 : 1,
+                }}
+              />
+              {l}
+            </span>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Fallback: legacy daily adherence bar (for patients without granular checkins yet)
+function LegacyAdherenceTab({ patientId }: { patientId: number }) {
   const [data, setData] = useState<{
     plan: { id: number; title: string } | null;
     checkins: Array<{ check_date: string; adherence: Adherence; note: string | null }>;
@@ -364,53 +586,35 @@ function AdherenceTab({ patientId }: { patientId: number }) {
   const fullCount = data.checkins.filter((c) => c.adherence === "full").length;
   const partialCount = data.checkins.filter((c) => c.adherence === "partial").length;
   const adherePct = Math.round(((fullCount + partialCount * 0.5) / 7) * 100);
+  const ICON: Record<string, string> = { full: "✓", partial: "─", skipped: "○" };
+  const COLOR: Record<string, string> = {
+    full: "var(--color-success, #22C55E)",
+    partial: "var(--color-warn, #F59E0B)",
+    skipped: COLORS.danger,
+  };
 
   return (
-    <div>
-      <div className="card cardPad" style={{ marginBottom: 16 }}>
-        <div style={{ fontSize: 14, fontWeight: 600, color: COLORS.text, marginBottom: 10 }}>
-          Esta semana: {adherePct}% de adesão ({data.checkins.length}/7 dias)
-        </div>
-        <div
-          style={{
-            height: 8,
-            borderRadius: 4,
-            background: "var(--color-surface-raised)",
-            overflow: "hidden",
-            marginBottom: 16,
-          }}
-        >
-          <div
-            style={{
-              height: "100%",
-              width: `${adherePct}%`,
-              background: adherePct >= 70 ? COLORS.primary : adherePct >= 40 ? "var(--color-warn)" : COLORS.danger,
-              borderRadius: 4,
-              transition: "width 0.4s",
-            }}
-          />
-        </div>
-        <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-          {data.checkins.map((c) => (
-            <div key={c.check_date} style={{ textAlign: "center", minWidth: 44 }}>
-              <div
-                style={{
-                  fontSize: 18,
-                  color: ADHERENCE_COLOR[c.adherence] ?? COLORS.muted,
-                  lineHeight: 1.3,
-                }}
-              >
-                {ADHERENCE_ICON[c.adherence] ?? "○"}
-              </div>
-              <div style={{ fontSize: 11, color: COLORS.muted }}>
-                {new Date(c.check_date).toLocaleDateString("pt-BR", { weekday: "short" })}
-              </div>
+    <div className="card cardPad">
+      <div style={{ fontSize: 14, fontWeight: 600, color: COLORS.text, marginBottom: 10 }}>
+        Esta semana: {adherePct}% de adesão ({data.checkins.length}/7 dias)
+      </div>
+      <div style={{ height: 8, borderRadius: 4, background: "var(--color-surface-raised)", overflow: "hidden", marginBottom: 16 }}>
+        <div style={{ height: "100%", width: `${adherePct}%`, background: adherePct >= 70 ? COLORS.primary : adherePct >= 40 ? "var(--color-warn)" : COLORS.danger, borderRadius: 4 }} />
+      </div>
+      <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+        {data.checkins.map((c) => (
+          <div key={c.check_date} style={{ textAlign: "center", minWidth: 44 }}>
+            <div style={{ fontSize: 18, color: COLOR[c.adherence] ?? COLORS.muted, lineHeight: 1.3 }}>
+              {ICON[c.adherence] ?? "○"}
             </div>
-          ))}
-        </div>
-        <div style={{ fontSize: 11, color: COLORS.muted, marginTop: 12 }}>
-          Legenda: ✓ Seguiu · ─ Parcial · ○ Não seguiu / sem registro
-        </div>
+            <div style={{ fontSize: 11, color: COLORS.muted }}>
+              {new Date(c.check_date).toLocaleDateString("pt-BR", { weekday: "short" })}
+            </div>
+          </div>
+        ))}
+      </div>
+      <div style={{ fontSize: 11, color: COLORS.muted, marginTop: 12 }}>
+        Legenda: ✓ Seguiu · ─ Parcial · ○ Não seguiu / sem registro
       </div>
     </div>
   );
