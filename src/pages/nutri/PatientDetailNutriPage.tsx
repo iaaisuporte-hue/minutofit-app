@@ -802,7 +802,7 @@ function ContextTab({ patientId }: { patientId: number }) {
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {checkins.map((c) => {
-              const dateLabel = new Date(c.check_date + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit' });
+              const dateLabel = new Date(c.check_date.slice(0, 10) + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit' });
               return (
                 <div
                   key={c.check_date}
