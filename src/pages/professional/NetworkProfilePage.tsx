@@ -9,6 +9,8 @@ import {
   type Modality,
   type AvailabilityStatus,
 } from "../../services/professionalNetworkApi";
+import OfferingsSection from "./OfferingsSection";
+import SubscribersSection from "./SubscribersSection";
 
 const MODALITY_LABELS: Record<Modality, string> = {
   in_person: "Presencial",
@@ -526,6 +528,9 @@ export default function NetworkProfilePage() {
           )}
         </div>
       </div>
+
+      <OfferingsSection />
+      <SubscribersSection />
     </div>
   );
 }
