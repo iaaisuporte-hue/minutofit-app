@@ -56,7 +56,6 @@ const LogoutIcon = () => (
 interface Props {
   baseUrl: string;
   showMessages?: boolean;
-  showWorkouts?: boolean;
   showLab?: boolean;
   showTracker?: boolean;
   /** Mostra "Minha ficha" — destino primário do aluno do personal autônomo */
@@ -73,7 +72,6 @@ interface Props {
 export default function MobileBottomNav({
   baseUrl,
   showMessages = false,
-  showWorkouts = false,
   showLab = false,
   showTracker: _showTracker = true,
   showFicha = false,
@@ -87,7 +85,6 @@ export default function MobileBottomNav({
   const items: NavItem[] = [
     { to: `${baseUrl}/today`, label: "Hoje", icon: <HomeIcon /> },
     ...(showFicha ? [{ to: `${baseUrl}/ficha`, label: "Meu plano", icon: <FichaIcon /> }] : []),
-    ...(showWorkouts ? [{ to: `${baseUrl}/treinos`, label: "Treinos", icon: <FichaIcon /> }] : []),
     ...(_showTracker ? [{ to: `${baseUrl}/activities`, label: "Atividades", icon: <TrackerIcon /> }] : []),
     ...(showLab ? [{ to: `${baseUrl}/movement-lab`, label: "Espelho", icon: <LabIcon /> }] : []),
     ...(showMessages ? [{ to: `${baseUrl}/messages`, label: "Mensagens", icon: <MessagesIcon /> }] : []),
