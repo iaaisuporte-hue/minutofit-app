@@ -11,6 +11,9 @@ import {
   createObservation,
   endNutritionPlan,
   updateNutritionPlan,
+  publishVoiceNote,
+  listVoiceNotes,
+  fetchPatientInsights,
   OBJECTIVE_LABELS,
   type NutriObjective,
   type NutritionPlan,
@@ -20,6 +23,8 @@ import {
   type MealHeatmapData,
   type PatientMetabolism,
   type PatientDailyCheckin,
+  type VoiceNote,
+  type NutriInsight,
 } from "../../services/nutriApi";
 
 // ---------------------------------------------------------------------------
@@ -933,11 +938,223 @@ function ObservationsTab({ patientId }: { patientId: number }) {
 }
 
 // ---------------------------------------------------------------------------
+// Tab: Insights (Spec 005)
+// ---------------------------------------------------------------------------
+
+const INSIGHT_ICON: Record<NutriInsight['type'], string> = {
+  adherence_drop: '↓',
+  late_hunger: '~',
+  ghost_meal: '○',
+  silent_absence: '!',
+};
+
+const INSIGHT_COLOR: Record<NutriInsight['type'], string> = {
+  adherence_drop: 'var(--color-danger,#EF4444)',
+  late_hunger: 'var(--color-warn,#f59e0b)',
+  ghost_meal: 'var(--color-warn,#f59e0b)',
+  silent_absence: 'var(--color-danger,#EF4444)',
+};
+
+function InsightsTab({ patientId }: { patientId: number }) {
+  const [insights, setInsights] = useState<NutriInsight[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setLoading(true);
+    fetchPatientInsights(patientId)
+      .then(setInsights)
+      .finally(() => setLoading(false));
+  }, [patientId]);
+
+  if (loading) {
+    return <div style={{ fontSize: 14, color: COLORS.muted }}>Calculando insights...</div>;
+  }
+
+  if (insights.length === 0) {
+    return (
+      <div className="card cardPad" style={{ fontSize: 14, color: COLORS.muted }}>
+        Nenhum sinal de alerta detectado nos últimos 7 dias. Paciente em rota estável.
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ display: 'grid', gap: 12 }}>
+      {insights.map((ins, i) => (
+        <div
+          key={i}
+          className="card cardPad"
+          style={{
+            display: 'flex',
+            gap: 14,
+            alignItems: 'flex-start',
+            borderLeft: `3px solid ${INSIGHT_COLOR[ins.type]}`,
+          }}
+        >
+          <span
+            style={{
+              fontSize: 18,
+              fontWeight: 900,
+              color: INSIGHT_COLOR[ins.type],
+              lineHeight: 1,
+              flexShrink: 0,
+              marginTop: 1,
+            }}
+          >
+            {INSIGHT_ICON[ins.type]}
+          </span>
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: COLORS.text, marginBottom: 4 }}>
+              {ins.label}
+            </div>
+            <div style={{ fontSize: 13, color: COLORS.muted, lineHeight: 1.5 }}>
+              {ins.detail}
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Tab: Voz (Spec 005)
+// ---------------------------------------------------------------------------
+
+function formatDateShort(iso: string): string {
+  return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+}
+
+function VozTab({ patientId }: { patientId: number }) {
+  const [notes, setNotes] = useState<VoiceNote[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [draft, setDraft] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const MAX = 240;
+
+  const reload = () => {
+    setLoading(true);
+    listVoiceNotes(patientId)
+      .then(setNotes)
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => { reload(); }, [patientId]);
+
+  async function handlePublish() {
+    const text = draft.trim().slice(0, MAX);
+    if (!text || saving) return;
+    setSaving(true);
+    setSaveError(null);
+    try {
+      await publishVoiceNote(patientId, text);
+      setDraft('');
+      reload();
+    } catch {
+      setSaveError('Não foi possível publicar. Tente novamente.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div>
+      {/* Composer */}
+      <div className="card cardPad" style={{ marginBottom: 20 }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.muted, marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+          Nova nota para o paciente
+        </div>
+        <textarea
+          value={draft}
+          onChange={(e) => setDraft(e.target.value.slice(0, MAX))}
+          placeholder="Escreva uma orientação ou observação visível ao paciente... (máx. 240 caracteres)"
+          rows={3}
+          style={{
+            width: '100%',
+            border: `1px solid ${COLORS.border}`,
+            borderRadius: 8,
+            padding: '10px 12px',
+            fontSize: 14,
+            color: COLORS.text,
+            background: 'var(--color-surface)',
+            resize: 'vertical',
+            fontFamily: 'inherit',
+            boxSizing: 'border-box',
+            outline: 'none',
+          }}
+        />
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
+          <span style={{ fontSize: 12, color: COLORS.muted }}>
+            {draft.length}/{MAX}
+          </span>
+          {saveError && (
+            <span style={{ fontSize: 12, color: 'var(--color-danger,#EF4444)' }}>{saveError}</span>
+          )}
+          <button
+            type="button"
+            onClick={() => void handlePublish()}
+            disabled={saving || draft.trim().length === 0}
+            style={{
+              padding: '7px 18px',
+              borderRadius: 8,
+              border: 'none',
+              background: COLORS.primary,
+              color: '#fff',
+              fontSize: 13,
+              fontWeight: 700,
+              cursor: saving || draft.trim().length === 0 ? 'not-allowed' : 'pointer',
+              opacity: saving || draft.trim().length === 0 ? 0.6 : 1,
+            }}
+          >
+            {saving ? 'Publicando...' : 'Publicar para paciente'}
+          </button>
+        </div>
+      </div>
+
+      {/* Histórico */}
+      <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.muted, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>
+        Notas publicadas
+      </div>
+      {loading ? (
+        <div style={{ fontSize: 14, color: COLORS.muted }}>Carregando...</div>
+      ) : notes.length === 0 ? (
+        <div style={{ fontSize: 14, color: COLORS.muted }}>Nenhuma nota publicada ainda.</div>
+      ) : (
+        <div style={{ display: 'grid', gap: 10 }}>
+          {notes.map((n) => (
+            <div
+              key={n.id}
+              className="card cardPad"
+              style={{ display: 'grid', gap: 6 }}
+            >
+              <p style={{ margin: 0, fontSize: 14, color: COLORS.text, lineHeight: 1.5 }}>
+                "{n.body}"
+              </p>
+              <div style={{ display: 'flex', gap: 12, fontSize: 12, color: COLORS.muted }}>
+                <span>{formatDateShort(n.publishedAt)}</span>
+                {n.readAt ? (
+                  <span style={{ color: 'var(--color-success,#22C55E)' }}>
+                    Lida em {formatDateShort(n.readAt)}
+                  </span>
+                ) : (
+                  <span>Não lida</span>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Main page
 // ---------------------------------------------------------------------------
 
-type TabName = "Plano" | "Adesão" | "Contexto" | "Observações";
-const TABS: TabName[] = ["Plano", "Adesão", "Contexto", "Observações"];
+type TabName = "Plano" | "Adesão" | "Contexto" | "Observações" | "Insights" | "Voz";
+const TABS: TabName[] = ["Plano", "Adesão", "Contexto", "Observações", "Insights", "Voz"];
 
 export default function PatientDetailNutriPage() {
   const { patientId } = useParams<{ patientId: string }>();
@@ -978,6 +1195,8 @@ export default function PatientDetailNutriPage() {
       {tab === "Adesão" && <AdherenceTab patientId={id} />}
       {tab === "Contexto" && <ContextTab patientId={id} />}
       {tab === "Observações" && <ObservationsTab patientId={id} />}
+      {tab === "Insights" && <InsightsTab patientId={id} />}
+      {tab === "Voz" && <VozTab patientId={id} />}
     </div>
   );
 }

@@ -55,6 +55,8 @@ import {
   markWorkoutDone,
 } from "./components/firstRunStorage";
 import { NutritionCheckinCard } from "../../features/nutrition/NutritionCheckinCard";
+import { NutriVoiceCard } from "../../features/nutrition/NutriVoiceCard";
+import { useNutriVoiceNote } from "../../features/nutrition/useNutriVoiceNote";
 import "./todayPage.css";
 
 const GROUP_LABEL: Record<MuscleGroup, string> = {
@@ -160,6 +162,7 @@ export default function TodayPage() {
   const { data: metabolismHistory, loading: historyLoading } = useMetabolismHistory(historyDays);
   const { data: workoutHistoryData } = useWorkoutHistory(30);
   const todayState = useTodayUserState();
+  const { note: nutriVoiceNote } = useNutriVoiceNote();
   const showPersonalWorkout = todayState.hasActivePersonal && todayState.hasActiveWorkoutPlan;
   const showPersonalEmpty = todayState.hasActivePersonal && !todayState.hasActiveWorkoutPlan;
   const showSuggestedWorkout =
@@ -421,6 +424,13 @@ export default function TodayPage() {
       <motion.div variants={sectionRevealVariants}>
         <NutritionCheckinCard />
       </motion.div>
+
+      {/* 1.6. Voz da nutricionista — nota publicada nas últimas 72h */}
+      {nutriVoiceNote && (
+        <motion.div variants={sectionRevealVariants}>
+          <NutriVoiceCard note={nutriVoiceNote} />
+        </motion.div>
+      )}
 
       {/* 2. Âncora metabólica — empty state quando sem dados; card completo quando há histórico */}
       <motion.div variants={sectionRevealVariants}>

@@ -148,7 +148,24 @@ export default function NutritionPatientsPage() {
               <div style={{ flex: 1, minWidth: 0, textAlign: "left" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                   <span style={{ fontSize: 15, fontWeight: 600, color: COLORS.text }}>{p.name}</span>
-                  {p.riskFlag && (
+                  {p.adherenceDropFlag && (
+                    <span
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 700,
+                        color: "var(--color-danger,#EF4444)",
+                        background: "rgba(239,68,68,.10)",
+                        borderRadius: 4,
+                        padding: "1px 6px",
+                        letterSpacing: "0.02em",
+                        textTransform: "uppercase",
+                        border: "1px solid rgba(239,68,68,.25)",
+                      }}
+                    >
+                      Em queda
+                    </span>
+                  )}
+                  {p.riskFlag && !p.adherenceDropFlag && (
                     <span
                       style={{
                         fontSize: 11,

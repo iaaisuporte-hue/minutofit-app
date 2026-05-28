@@ -126,8 +126,10 @@ export interface PatientSummary {
   academy_id: number | null;
   activePlan: { plan_id: number; title: string; started_at: string } | null;
   adherence7d: number;
+  adherence30d: number;
   lastCheckinDate: string | null;
   riskFlag: boolean;
+  adherenceDropFlag: boolean;
 }
 
 export interface NutritionObservation {
@@ -368,6 +370,53 @@ export async function fetchMealHeatmap(patientId: number, days = 14): Promise<Me
   const res = await authFetch(`${API_URL}/nutri/patients/${patientId}/meal-heatmap?days=${days}`);
   const json = await parseJson(res);
   return json.data ?? { plan: null, meals: [], checkins: [] };
+}
+
+// ---------------------------------------------------------------------------
+// Voice Notes (Spec 005)
+// ---------------------------------------------------------------------------
+
+export interface VoiceNote {
+  id: string;
+  nutriId: number;
+  patientId: number;
+  body: string;
+  anchorMealId: string | null;
+  publishedAt: string;
+  readAt: string | null;
+}
+
+export interface NutriInsight {
+  type: 'adherence_drop' | 'late_hunger' | 'ghost_meal' | 'silent_absence';
+  label: string;
+  detail: string;
+}
+
+export async function publishVoiceNote(
+  patientId: number,
+  body: string,
+  anchorMealId?: string,
+): Promise<VoiceNote> {
+  const res = await authFetch(`${API_URL}/nutri/patients/${patientId}/voice-notes`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ body, anchorMealId }),
+  });
+  const json = await parseJson(res);
+  if (!res.ok) throw new Error(json?.error ?? 'publish_failed');
+  return json.data as VoiceNote;
+}
+
+export async function listVoiceNotes(patientId: number): Promise<VoiceNote[]> {
+  const res = await authFetch(`${API_URL}/nutri/patients/${patientId}/voice-notes`);
+  const json = await parseJson(res);
+  return (json.data ?? []) as VoiceNote[];
+}
+
+export async function fetchPatientInsights(patientId: number): Promise<NutriInsight[]> {
+  const res = await authFetch(`${API_URL}/nutri/patients/${patientId}/insights`);
+  const json = await parseJson(res);
+  return (json.data ?? []) as NutriInsight[];
 }
 
 export async function recordNutritionCheckin(adherence: Adherence, note?: string): Promise<NutritionCheckin> {
