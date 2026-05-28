@@ -18,6 +18,7 @@ import {
   useTodayMotionSafe,
 } from "./todayPageMotion";
 import "./todayPage.css";
+import { SportProfileSection } from "../../features/sport/components/SportProfileSection";
 import { COLORS } from "../../styles/colors";
 
 type Props = {
@@ -484,6 +485,12 @@ export default function UserProfilePage({ onLogout }: Props) {
           </Card>
         </motion.div>
       )}
+
+      <motion.div variants={sectionRevealVariants}>
+        <Card interactive enableTilt={shouldUseTilt}>
+          <SportProfileSection />
+        </Card>
+      </motion.div>
 
       <motion.div variants={sectionRevealVariants} style={{ display: "flex", justifyContent: "flex-end" }}>
         <button

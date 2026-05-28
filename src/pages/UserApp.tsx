@@ -31,6 +31,8 @@ import GlossarioPage from "./user/GlossarioPage";
 import MinhaEquipePage from "./user/MinhaEquipePage";
 import NutritionPlanViewPage from "./user/NutritionPlanViewPage";
 import MeuPlanoPage from "./user/MeuPlanoPage";
+import SportHomePage from "./user/sport/SportHomePage";
+import { useSportProfile } from "../features/sport/hooks/useSportProfile";
 
 const USER_BASE = "/app/user" as const;
 const USER_DEFAULT = "/app/user/today" as const;
@@ -94,6 +96,13 @@ const NAV_ICONS: Record<string, React.ReactNode> = {
       <circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
     </svg>
   ),
+  sport: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="10" />
+      <path d="M12 8v4l3 3" />
+      <path d="M5.2 5.2l1.4 1.4M17.4 5.2l-1.4 1.4M5.2 18.8l1.4-1.4M17.4 18.8l-1.4-1.4" />
+    </svg>
+  ),
   dot: <span style={{ fontSize: 14, lineHeight: 1 }}>·</span>,
 };
 
@@ -139,6 +148,8 @@ export default function UserApp() {
   const isPersonalLed = todayUserState.hasActivePersonal;
   const showSuggestedTrainingNav = canSuggestedTraining && !isPersonalLed;
 
+  const { isSportActive } = useSportProfile();
+
   function handleLogout() {
     logout();
     navigate("/login", { replace: true });
@@ -171,6 +182,7 @@ export default function UserApp() {
               {canTrainingAi && <MenuLink to={`${USER_BASE}/movement-lab`} label="Espelho" iconKey="lab" />}
               {showSuggestedTrainingNav && <MenuLink to={`${USER_BASE}/suggested-training`} label="Treino do dia" iconKey="target" />}
               {showTracker && <MenuLink to={`${USER_BASE}/activities`} label="Atividades" iconKey="tracker" />}
+              {isSportActive && <MenuLink to={`${USER_BASE}/sport`} label="Esporte" iconKey="sport" />}
               {canMessages && <MenuLink to={`${USER_BASE}/messages`} label="Mensagens" iconKey="messages" />}
               {canProfile && <MenuLink to={`${USER_BASE}/profile`} label="Perfil" iconKey="profile" />}
               <MenuLink to={`${USER_BASE}/equipe`} label="Minha equipe" iconKey="team" />
@@ -310,6 +322,9 @@ export default function UserApp() {
                   </LimitedUserOnly>
                 }
               />
+
+              {/* ✅ FIGHT INTELLIGENCE — gated por sport_profile.active */}
+              <Route path="sport/*" element={<SportHomePage />} />
 
               {/* ✅ MINHA EQUIPE — destino próprio (Onda 1.5) + alias */}
               <Route path="equipe" element={<MinhaEquipePage />} />
