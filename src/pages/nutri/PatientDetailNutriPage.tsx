@@ -88,7 +88,7 @@ type EditDraft = {
   title: string;
   objective: NutriObjective;
   general_notes: string;
-  meals: Array<{ name: string; orientation: string; order_index: number }>;
+  meals: Array<{ name: string; orientation: string; meal_time: string; order_index: number }>;
 };
 
 function PlanTab({ patientId }: { patientId: number }) {
@@ -112,12 +112,12 @@ function PlanTab({ patientId }: { patientId: number }) {
       title: plan.title,
       objective: plan.objective,
       general_notes: plan.general_notes ?? "",
-      meals: plan.meals?.map((m) => ({ name: m.name, orientation: m.orientation, order_index: m.order_index })) ?? [],
+      meals: plan.meals?.map((m) => ({ name: m.name, orientation: m.orientation, meal_time: m.meal_time ?? '', order_index: m.order_index })) ?? [],
     });
     setEditing(true);
   }
 
-  function updateMeal(idx: number, field: "name" | "orientation", value: string) {
+  function updateMeal(idx: number, field: "name" | "orientation" | "meal_time", value: string) {
     setDraft((prev) => {
       if (!prev) return prev;
       const meals = prev.meals.map((m, i) => i === idx ? { ...m, [field]: value } : m);
@@ -128,7 +128,7 @@ function PlanTab({ patientId }: { patientId: number }) {
   function addMeal() {
     setDraft((prev) => {
       if (!prev || prev.meals.length >= 6) return prev;
-      return { ...prev, meals: [...prev.meals, { name: "", orientation: "", order_index: prev.meals.length }] };
+      return { ...prev, meals: [...prev.meals, { name: "", orientation: "", meal_time: "", order_index: prev.meals.length }] };
     });
   }
 
@@ -145,7 +145,10 @@ function PlanTab({ patientId }: { patientId: number }) {
     if (draft.meals.length === 0 || draft.meals.some((m) => !m.name.trim() || !m.orientation.trim())) return;
     setSaving(true);
     try {
-      await updateNutritionPlan(patientId, data.active.id, draft);
+      await updateNutritionPlan(patientId, data.active.id, {
+        ...draft,
+        meals: draft.meals.map((m) => ({ ...m, meal_time: m.meal_time || null })),
+      });
       const refreshed = await fetchPatientPlans(patientId);
       setData(refreshed as { active: NutritionPlan | null; history: NutritionPlan[] });
       setEditing(false);
@@ -178,7 +181,7 @@ function PlanTab({ patientId }: { patientId: number }) {
     return (
       <div>
         <div className="card cardPad" style={{ marginBottom: 12 }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: COLORS.muted, marginBottom: 12 }}>Editar plano</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: COLORS.text, marginBottom: 12 }}>Editar plano</div>
 
           <div className="field" style={{ marginBottom: 12 }}>
             <label className="label" htmlFor="edit-title">Título</label>
@@ -197,16 +200,51 @@ function PlanTab({ patientId }: { patientId: number }) {
             <textarea id="edit-notes" className="input" rows={3} style={{ resize: "vertical" }} value={draft.general_notes} onChange={(e) => setDraft((p) => p ? { ...p, general_notes: e.target.value } : p)} />
           </div>
 
-          <div style={{ fontSize: 12, fontWeight: 600, color: COLORS.muted, marginBottom: 10 }}>Refeições</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.text, marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.06em" }}>Refeições</div>
           {draft.meals.map((m, i) => (
-            <div key={i} style={{ border: "1px solid var(--color-border)", borderRadius: 8, padding: "10px 12px", marginBottom: 8 }}>
-              <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-                <input className="input" placeholder="Nome da refeição" value={m.name} onChange={(e) => updateMeal(i, "name", e.target.value)} style={{ flex: 1 }} />
-                {draft.meals.length > 1 && (
-                  <button type="button" onClick={() => removeMeal(i)} style={{ background: "none", border: "none", color: COLORS.danger, cursor: "pointer", fontSize: 18, padding: "0 4px", lineHeight: 1 }}>×</button>
+            <div key={i} style={{ border: "1px solid var(--color-border)", borderRadius: 10, padding: "12px 14px", marginBottom: 10, background: "var(--color-surface)" }}>
+              {/* Nome + horário + remover */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr auto auto", gap: 8, alignItems: "center", marginBottom: 8 }}>
+                <input
+                  className="input"
+                  placeholder={`Refeição ${i + 1} · nome`}
+                  value={m.name}
+                  onChange={(e) => updateMeal(i, "name", e.target.value)}
+                />
+                <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                  <label style={{ fontSize: 10, fontWeight: 600, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                    Horário
+                  </label>
+                  <input
+                    type="time"
+                    className="input"
+                    value={m.meal_time}
+                    onChange={(e) => updateMeal(i, "meal_time", e.target.value)}
+                    style={{ width: 110 }}
+                    title="Horário ideal da refeição"
+                  />
+                </div>
+                {draft.meals.length > 1 ? (
+                  <button
+                    type="button"
+                    onClick={() => removeMeal(i)}
+                    style={{ background: "none", border: "1px solid var(--color-border)", borderRadius: 8, padding: "8px 10px", color: COLORS.danger, cursor: "pointer", fontSize: 16, lineHeight: 1, alignSelf: "flex-end" }}
+                    aria-label="Remover refeição"
+                  >
+                    ×
+                  </button>
+                ) : (
+                  <div style={{ width: 38 }} />
                 )}
               </div>
-              <textarea className="input" rows={2} placeholder="Orientações" value={m.orientation} onChange={(e) => updateMeal(i, "orientation", e.target.value)} style={{ resize: "vertical" }} />
+              <textarea
+                className="input"
+                rows={2}
+                placeholder="Orientações para esta refeição..."
+                value={m.orientation}
+                onChange={(e) => updateMeal(i, "orientation", e.target.value)}
+                style={{ resize: "vertical" }}
+              />
             </div>
           ))}
           {draft.meals.length < 6 && (
