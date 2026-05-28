@@ -83,3 +83,43 @@ export interface ProfessionalNetworkResponse {
   policy: 'allow' | 'block';
   professionals: NetworkProfessional[];
 }
+
+// ── US4: planos comerciais e assinaturas ────────────────────────────────
+
+export type OfferingPeriod = 'monthly' | 'quarterly' | 'semiannual' | 'annual';
+export type SubscriptionStatus = 'pending_payment' | 'active' | 'paused' | 'cancelled' | 'expired';
+
+export interface PublicOffering {
+  id: string;
+  professionalId: number;
+  professionalRole: ProfessionalRole;
+  title: string;
+  description: string | null;
+  priceCents: number;
+  currency: string;
+  period: OfferingPeriod;
+  status: 'active' | 'archived';
+}
+
+export interface StudentSubscription {
+  id: string;
+  studentId: number;
+  professionalId: number;
+  professionalRole: ProfessionalRole;
+  offeringId: string;
+  priceCentsSnapshot: number;
+  periodSnapshot: OfferingPeriod;
+  status: SubscriptionStatus;
+  currentPeriodStart: string | null;
+  currentPeriodEnd: string | null;
+  nextChargeAt: string | null;
+  cancelledAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CheckoutResponse {
+  subscription: StudentSubscription;
+  redirectUrl: string;
+  expiresAt: string;
+}

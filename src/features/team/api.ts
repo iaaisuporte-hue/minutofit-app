@@ -8,6 +8,9 @@ import type {
   RequestedVia,
   ResolvedProfessional,
   ProfessionalNetworkResponse,
+  PublicOffering,
+  StudentSubscription,
+  CheckoutResponse,
 } from './types';
 
 const BASE = `${API_URL}/student`;
@@ -117,4 +120,38 @@ export async function rejectRequest(requestId: string, reason?: string): Promise
     body: JSON.stringify({ reason }),
   });
   if (!res.ok) throw new Error('reject_failed');
+}
+
+// ── US4: planos pagos do aluno ────────────────────────────────────────────
+
+export async function listProfessionalOfferings(professionalId: number): Promise<PublicOffering[]> {
+  const res = await authFetch(`${BASE}/professionals/${professionalId}/offerings`);
+  const payload = await parseJson(res);
+  if (!res.ok) throw new Error(payload?.error ?? 'list_offerings_failed');
+  return (payload.data ?? []) as PublicOffering[];
+}
+
+export async function startCheckout(offeringId: string): Promise<CheckoutResponse> {
+  const res = await authFetch(`${BASE}/subscriptions`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ offeringId }),
+  });
+  const payload = await parseJson(res);
+  if (!res.ok) throw Object.assign(new Error(payload?.error ?? 'checkout_failed'), { details: payload?.details });
+  return payload.data as CheckoutResponse;
+}
+
+export async function listMySubscriptions(): Promise<StudentSubscription[]> {
+  const res = await authFetch(`${BASE}/subscriptions`);
+  const payload = await parseJson(res);
+  if (!res.ok) throw new Error('list_subscriptions_failed');
+  return (payload.data ?? []) as StudentSubscription[];
+}
+
+export async function cancelMySubscription(subscriptionId: string): Promise<StudentSubscription> {
+  const res = await authFetch(`${BASE}/subscriptions/${subscriptionId}`, { method: 'DELETE' });
+  const payload = await parseJson(res);
+  if (!res.ok) throw new Error(payload?.error ?? 'cancel_failed');
+  return payload.data as StudentSubscription;
 }

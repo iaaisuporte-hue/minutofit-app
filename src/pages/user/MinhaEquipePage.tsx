@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext";
 import { useProfessionalContext } from "../../features/professionalVoice";
-import { MinhaEquipeSection, AcademyCard } from "../../features/team";
+import { MinhaEquipeSection, AcademyCard, MySubscriptionsSection } from "../../features/team";
 import { COLORS } from "../../styles/colors";
 
 const ShieldIcon = () => (
@@ -78,6 +78,9 @@ export default function MinhaEquipePage() {
         onConnectionChanged={refetchProfessional}
         embedded
       />
+
+      {/* Assinaturas pagas (US4) — só renderiza se houver pendentes/ativas */}
+      <MySubscriptionsSection />
 
       {/* Academia */}
       <AcademyCard
