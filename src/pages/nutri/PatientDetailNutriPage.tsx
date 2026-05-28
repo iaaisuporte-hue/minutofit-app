@@ -520,7 +520,8 @@ function AdherenceTab({ patientId }: { patientId: number }) {
   const dates = buildDateRange(DAYS);
   const checkinMap = new Map<string, MealCheckinStatus>();
   for (const c of heatmap.checkins) {
-    checkinMap.set(`${c.meal_id}:${c.check_date}`, c.status);
+    const dateKey = String(c.check_date).slice(0, 10);
+    checkinMap.set(`${c.meal_id}:${dateKey}`, c.status);
   }
 
   // Summary stats
