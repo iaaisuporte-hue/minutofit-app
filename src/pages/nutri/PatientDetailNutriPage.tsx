@@ -402,7 +402,7 @@ function computeAdherenceIntel(
   const map = new Map<string, MealCheckinStatus>();
   for (const c of checkins) map.set(`${c.meal_id}:${c.check_date}`, c.status);
 
-  function mealPct(mealId: string, window: string[]): number {
+  function mealPct(mealId: number, window: string[]): number {
     const done = window.filter((d) => {
       const s = map.get(`${mealId}:${d}`);
       return s === "done" || s === "substituted";
