@@ -381,7 +381,7 @@ function PlanTab({ patientId }: { patientId: number }) {
 }
 
 // ---------------------------------------------------------------------------
-// Tab: Adesão — meal × day heatmap
+// Tab: Adesão — meal × day heatmap + intelligence layer
 // ---------------------------------------------------------------------------
 
 const HEATMAP_COLORS: Record<MealCheckinStatus | "none", string> = {
@@ -392,6 +392,93 @@ const HEATMAP_COLORS: Record<MealCheckinStatus | "none", string> = {
   skipped:     "var(--color-danger, #EF4444)",
   none:        "var(--color-border)",
 };
+
+// Computes intelligence metrics from local heatmap data (no extra API call)
+function computeAdherenceIntel(
+  checkins: MealHeatmapData["checkins"],
+  meals: MealHeatmapData["meals"],
+  dates: string[],
+) {
+  const map = new Map<string, MealCheckinStatus>();
+  for (const c of checkins) map.set(`${c.meal_id}:${c.check_date}`, c.status);
+
+  function mealPct(mealId: string, window: string[]): number {
+    const done = window.filter((d) => {
+      const s = map.get(`${mealId}:${d}`);
+      return s === "done" || s === "substituted";
+    }).length;
+    const partial = window.filter((d) => map.get(`${mealId}:${d}`) === "partial").length;
+    return window.length > 0 ? Math.round(((done + partial * 0.5) / window.length) * 100) : 0;
+  }
+
+  function dayHasCheckin(date: string): boolean {
+    return meals.some((m) => {
+      const s = map.get(`${m.id}:${date}`);
+      return !!s && s !== "skipped";
+    });
+  }
+
+  // Overall per-meal adherence
+  const mealStats = meals.map((m) => ({ meal: m, pct: mealPct(m.id, dates) }));
+  const weakest = [...mealStats].sort((a, b) => a.pct - b.pct)[0] ?? null;
+
+  // Trend: last 7d vs first 7d (requires ≥7 days window)
+  let trend: "up" | "down" | "stable" | null = null;
+  if (dates.length >= 7) {
+    const first7 = dates.slice(0, Math.floor(dates.length / 2));
+    const last7  = dates.slice(Math.floor(dates.length / 2));
+    const avgFirst = meals.length > 0
+      ? Math.round(mealStats.reduce((s, ms) => s + mealPct(ms.meal.id, first7), 0) / meals.length)
+      : 0;
+    const avgLast = meals.length > 0
+      ? Math.round(mealStats.reduce((s, ms) => s + mealPct(ms.meal.id, last7), 0) / meals.length)
+      : 0;
+    const delta = avgLast - avgFirst;
+    trend = delta >= 15 ? "up" : delta <= -15 ? "down" : "stable";
+  }
+
+  // Current streak (consecutive days ending today with ≥1 non-skip check-in)
+  let streak = 0;
+  for (let i = dates.length - 1; i >= 0; i--) {
+    if (dayHasCheckin(dates[i])) streak++;
+    else break;
+  }
+
+  // Worst day of week (day with most skips/nulls, requires ≥2 occurrences)
+  const skipsByDow: Record<number, number> = {};
+  const countsByDow: Record<number, number> = {};
+  for (const d of dates) {
+    const dow = new Date(d + "T12:00").getDay();
+    countsByDow[dow] = (countsByDow[dow] ?? 0) + 1;
+    const skips = meals.filter((m) => {
+      const s = map.get(`${m.id}:${d}`);
+      return !s || s === "skipped";
+    }).length;
+    skipsByDow[dow] = (skipsByDow[dow] ?? 0) + skips;
+  }
+  const DOW_LABELS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+  let worstDow: string | null = null;
+  let worstRate = 0;
+  for (const [dow, skips] of Object.entries(skipsByDow)) {
+    const cnt = countsByDow[Number(dow)] ?? 0;
+    const rate = cnt >= 2 ? skips / (cnt * meals.length) : 0;
+    if (rate > worstRate && rate >= 0.6) { worstRate = rate; worstDow = DOW_LABELS[Number(dow)]; }
+  }
+
+  return { mealStats, weakest, trend, streak, worstDow };
+}
+
+function AdherenceNarrative({ pct }: { pct: number }) {
+  const cfg =
+    pct >= 80 ? { label: "Constância excelente", color: "var(--color-success,#22C55E)" }
+    : pct >= 60 ? { label: "Boa constância",       color: "var(--color-success,#22C55E)" }
+    : pct >= 40 ? { label: "Constância moderada",  color: "var(--color-warn,#F59E0B)" }
+    : pct >= 20 ? { label: "Constância baixa",     color: "var(--color-warn,#F59E0B)" }
+    :             { label: "Adesão muito baixa",    color: "var(--color-danger,#EF4444)" };
+  return (
+    <span style={{ fontSize: 14, fontWeight: 600, color: cfg.color }}>{cfg.label}</span>
+  );
+}
 
 const HEATMAP_ABBR: Record<MealCheckinStatus | "none", string> = {
   done:        "✓",
@@ -444,44 +531,75 @@ function AdherenceTab({ patientId }: { patientId: number }) {
   const partialCount = heatmap.checkins.filter((c) => c.status === "partial").length;
   const adherePct = Math.round(((doneCount + partialCount * 0.5) / total) * 100);
 
+  const intel = computeAdherenceIntel(heatmap.checkins, heatmap.meals, dates);
+
+  const TREND_LABEL: Record<"up" | "down" | "stable", { icon: string; text: string; color: string }> = {
+    up:     { icon: "↑", text: "Melhorando",     color: "var(--color-success,#22C55E)" },
+    down:   { icon: "↓", text: "Em queda",       color: "var(--color-danger,#EF4444)" },
+    stable: { icon: "→", text: "Estável",         color: "var(--color-text-muted)" },
+  };
+
+  const barColor =
+    adherePct >= 70 ? "var(--color-success,#22C55E)"
+    : adherePct >= 40 ? "var(--color-warn,#F59E0B)"
+    : "var(--color-danger,#EF4444)";
+
   return (
-    <div>
-      {/* Summary */}
-      <div className="card cardPad" style={{ marginBottom: 16 }}>
-        <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 8 }}>
-          <span style={{ fontSize: 28, fontWeight: 800, color: COLORS.primary, lineHeight: 1 }}>
-            {adherePct}%
-          </span>
-          <span style={{ fontSize: 13, color: COLORS.muted }}>
-            adesão · últimos {DAYS} dias · {heatmap.meals.length} refeições
-          </span>
+    <div style={{ display: "grid", gap: 12 }}>
+      {/* ── Intelligence summary card ── */}
+      <div className="card cardPad">
+        {/* Header row: % + narrative + trend */}
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, marginBottom: 10 }}>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
+            <span style={{ fontSize: 32, fontWeight: 800, color: barColor, lineHeight: 1 }}>
+              {adherePct}%
+            </span>
+            <AdherenceNarrative pct={adherePct} />
+          </div>
+          {intel.trend && (
+            <span style={{
+              fontSize: 12, fontWeight: 700, color: TREND_LABEL[intel.trend].color,
+              background: `color-mix(in srgb, ${TREND_LABEL[intel.trend].color} 12%, transparent)`,
+              border: `1px solid color-mix(in srgb, ${TREND_LABEL[intel.trend].color} 30%, transparent)`,
+              borderRadius: 20, padding: "3px 10px",
+              display: "flex", alignItems: "center", gap: 4, flexShrink: 0,
+            }}>
+              {TREND_LABEL[intel.trend].icon} {TREND_LABEL[intel.trend].text}
+            </span>
+          )}
         </div>
-        <div
-          style={{
-            height: 6,
-            borderRadius: 99,
-            background: "var(--color-surface-raised)",
-            overflow: "hidden",
-          }}
-        >
-          <div
-            style={{
-              height: "100%",
-              width: `${adherePct}%`,
-              background:
-                adherePct >= 70
-                  ? "var(--color-success, #22C55E)"
-                  : adherePct >= 40
-                  ? "var(--color-warn, #F59E0B)"
-                  : COLORS.danger,
-              borderRadius: 99,
-              transition: "width 0.4s",
-            }}
-          />
+
+        {/* Progress bar */}
+        <div style={{ height: 7, borderRadius: 99, background: "var(--color-surface-raised)", overflow: "hidden", marginBottom: 14 }}>
+          <div style={{ height: "100%", width: `${adherePct}%`, background: barColor, borderRadius: 99, transition: "width 0.5s" }} />
+        </div>
+
+        {/* Stats strip */}
+        <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+            <span style={{ fontSize: 10, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.06em" }}>Sequência atual</span>
+            <span style={{ fontSize: 16, fontWeight: 700, color: intel.streak > 0 ? "var(--color-success,#22C55E)" : COLORS.muted }}>
+              {intel.streak} {intel.streak === 1 ? "dia" : "dias"}
+            </span>
+          </div>
+          <div style={{ width: 1, background: "var(--color-border)", alignSelf: "stretch" }} />
+          <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+            <span style={{ fontSize: 10, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.06em" }}>Janela</span>
+            <span style={{ fontSize: 16, fontWeight: 700, color: COLORS.text }}>{DAYS} dias · {heatmap.meals.length} refeições</span>
+          </div>
+          {intel.worstDow && (
+            <>
+              <div style={{ width: 1, background: "var(--color-border)", alignSelf: "stretch" }} />
+              <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                <span style={{ fontSize: 10, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.06em" }}>Dia crítico</span>
+                <span style={{ fontSize: 16, fontWeight: 700, color: "var(--color-warn,#F59E0B)" }}>{intel.worstDow}</span>
+              </div>
+            </>
+          )}
         </div>
       </div>
 
-      {/* Heatmap grid */}
+      {/* ── Heatmap grid ── */}
       <div className="card cardPad" style={{ overflowX: "auto" }}>
         <div style={{ minWidth: 480 }}>
           {/* Date header */}
@@ -570,16 +688,7 @@ function AdherenceTab({ patientId }: { patientId: number }) {
         </div>
 
         {/* Legend */}
-        <div
-          style={{
-            display: "flex",
-            gap: 12,
-            flexWrap: "wrap",
-            marginTop: 12,
-            fontSize: 11,
-            color: COLORS.muted,
-          }}
-        >
+        <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 12, fontSize: 11, color: COLORS.muted }}>
           {(
             [
               ["done", "Seguiu"],
@@ -590,21 +699,57 @@ function AdherenceTab({ patientId }: { patientId: number }) {
             ] as Array<[MealCheckinStatus | "none", string]>
           ).map(([s, l]) => (
             <span key={s} style={{ display: "flex", alignItems: "center", gap: 4 }}>
-              <span
-                style={{
-                  display: "inline-block",
-                  width: 12,
-                  height: 12,
-                  borderRadius: 2,
-                  background: HEATMAP_COLORS[s],
-                  opacity: s === "none" ? 0.3 : 1,
-                }}
-              />
+              <span style={{ display: "inline-block", width: 12, height: 12, borderRadius: 2, background: HEATMAP_COLORS[s], opacity: s === "none" ? 0.3 : 1 }} />
               {l}
             </span>
           ))}
         </div>
       </div>
+
+      {/* ── Meal-level intelligence strip ── */}
+      {intel.mealStats.length > 0 && (
+        <div className="card cardPad">
+          <div style={{ fontSize: 10, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 10 }}>
+            Adesão por refeição
+          </div>
+          <div style={{ display: "grid", gap: 8 }}>
+            {[...intel.mealStats]
+              .sort((a, b) => a.pct - b.pct)
+              .map(({ meal, pct }) => {
+                const isWeakest = intel.weakest?.meal.id === meal.id;
+                const barC = pct >= 70 ? "var(--color-success,#22C55E)" : pct >= 40 ? "var(--color-warn,#F59E0B)" : "var(--color-danger,#EF4444)";
+                return (
+                  <div key={meal.id}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                      <span style={{ fontSize: 12, fontWeight: isWeakest ? 700 : 500, color: isWeakest ? COLORS.text : COLORS.muted, display: "flex", alignItems: "center", gap: 6 }}>
+                        {isWeakest && pct < 60 && (
+                          <span style={{ fontSize: 10, background: "rgba(239,68,68,.12)", color: "var(--color-danger,#EF4444)", border: "1px solid rgba(239,68,68,.25)", borderRadius: 4, padding: "1px 5px", fontWeight: 700 }}>
+                            atenção
+                          </span>
+                        )}
+                        {meal.name}
+                        {meal.meal_time && <span style={{ fontWeight: 400, color: COLORS.muted }}>{meal.meal_time.slice(0, 5)}</span>}
+                      </span>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: barC }}>{pct}%</span>
+                    </div>
+                    <div style={{ height: 5, borderRadius: 99, background: "var(--color-surface-raised)", overflow: "hidden" }}>
+                      <div style={{ height: "100%", width: `${pct}%`, background: barC, borderRadius: 99, transition: "width 0.4s" }} />
+                    </div>
+                  </div>
+                );
+              })}
+          </div>
+
+          {intel.weakest && intel.weakest.pct < 40 && (
+            <div style={{ marginTop: 14, padding: "10px 14px", borderRadius: 8, background: "rgba(239,68,68,.06)", border: "1px solid rgba(239,68,68,.15)", fontSize: 13, color: COLORS.text, lineHeight: 1.5 }}>
+              <span style={{ fontWeight: 700 }}>"{intel.weakest.meal.name}"</span> tem apenas {intel.weakest.pct}% de adesão nos últimos {DAYS} dias.
+              {intel.weakest.pct === 0
+                ? " Nenhum registro — considere ajustar horário ou orientação."
+                : " Considere explorar barreiras ou simplificar esta refeição."}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
