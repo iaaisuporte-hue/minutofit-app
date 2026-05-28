@@ -601,94 +601,101 @@ function AdherenceTab({ patientId }: { patientId: number }) {
 
       {/* ── Heatmap grid ── */}
       <div className="card cardPad" style={{ overflowX: "auto" }}>
-        <div style={{ minWidth: 480 }}>
-          {/* Date header */}
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: `120px repeat(${dates.length}, 1fr)`,
-              gap: 2,
-              marginBottom: 4,
-            }}
-          >
-            <div />
-            {dates.map((d) => (
-              <div
-                key={d}
-                style={{
-                  fontSize: 9,
-                  color: COLORS.muted,
-                  textAlign: "center",
-                  fontWeight: 600,
-                }}
-              >
-                {new Date(d + "T12:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}
-              </div>
-            ))}
-          </div>
+        {(() => {
+          const today = new Date().toISOString().slice(0, 10);
+          const COL_NAME = 128;
+          const COL_CELL = 36;
+          const CELL_H = 28;
+          const cols = `${COL_NAME}px repeat(${dates.length}, ${COL_CELL}px)`;
+          const DOW = ["D","S","T","Q","Q","S","S"];
 
-          {/* Meal rows */}
-          {heatmap.meals.map((meal) => (
-            <div
-              key={meal.id}
-              style={{
-                display: "grid",
-                gridTemplateColumns: `120px repeat(${dates.length}, 1fr)`,
-                gap: 2,
-                marginBottom: 2,
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 11,
-                  fontWeight: 600,
-                  color: COLORS.text,
-                  alignSelf: "center",
-                  whiteSpace: "nowrap",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  paddingRight: 8,
-                }}
-                title={meal.meal_time ? `${meal.name} · ${meal.meal_time.slice(0, 5)}` : meal.name}
-              >
-                {meal.name}
-                {meal.meal_time && (
-                  <span style={{ fontWeight: 400, color: COLORS.muted, marginLeft: 4 }}>
-                    {meal.meal_time.slice(0, 5)}
-                  </span>
-                )}
+          return (
+            <div style={{ minWidth: COL_NAME + dates.length * (COL_CELL + 3) }}>
+              {/* Date header */}
+              <div style={{ display: "grid", gridTemplateColumns: cols, gap: 3, marginBottom: 6 }}>
+                <div />
+                {dates.map((d) => {
+                  const isT = d === today;
+                  const dt = new Date(d + "T12:00");
+                  return (
+                    <div
+                      key={d}
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        gap: 1,
+                        padding: "3px 0 4px",
+                        borderRadius: 6,
+                        background: isT ? `${COLORS.primary}18` : "transparent",
+                      }}
+                    >
+                      <span style={{ fontSize: 9, fontWeight: 600, color: isT ? COLORS.primary : COLORS.muted }}>
+                        {DOW[dt.getDay()]}
+                      </span>
+                      <span style={{ fontSize: 9, fontWeight: isT ? 800 : 500, color: isT ? COLORS.primary : COLORS.muted }}>
+                        {dt.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
-              {dates.map((d) => {
-                const status = checkinMap.get(`${meal.id}:${d}`) ?? "none";
-                const isToday = d === new Date().toISOString().slice(0, 10);
-                return (
-                  <div
-                    key={d}
-                    title={`${meal.name} · ${d} · ${status}`}
-                    style={{
-                      height: 24,
-                      borderRadius: 4,
-                      background: HEATMAP_COLORS[status],
-                      opacity: status === "none" ? 0.3 : 1,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontSize: 9,
-                      color: "#fff",
-                      fontWeight: 700,
-                      outline: isToday ? `2px solid ${COLORS.primary}` : "none",
-                    }}
-                  >
-                    {HEATMAP_ABBR[status]}
+
+              {/* Meal rows */}
+              {heatmap.meals.map((meal) => (
+                <div
+                  key={meal.id}
+                  style={{ display: "grid", gridTemplateColumns: cols, gap: 3, marginBottom: 3, alignItems: "center" }}
+                >
+                  {/* Meal label — 2 lines */}
+                  <div style={{ paddingRight: 8 }}>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: COLORS.text, lineHeight: 1.3, wordBreak: "break-word" }}>
+                      {meal.name}
+                    </div>
+                    {meal.meal_time && (
+                      <div style={{ fontSize: 10, color: COLORS.muted, marginTop: 1 }}>
+                        {meal.meal_time.slice(0, 5)}
+                      </div>
+                    )}
                   </div>
-                );
-              })}
+
+                  {/* Cells */}
+                  {dates.map((d) => {
+                    const status = checkinMap.get(`${meal.id}:${d}`) ?? "none";
+                    const isT = d === today;
+                    const hasDatum = status !== "none";
+
+                    return (
+                      <div
+                        key={d}
+                        title={`${meal.name} · ${new Date(d + "T12:00").toLocaleDateString("pt-BR")} · ${status}`}
+                        style={{
+                          height: CELL_H,
+                          borderRadius: 6,
+                          background: hasDatum ? HEATMAP_COLORS[status] : isT ? `${COLORS.primary}14` : "var(--color-surface-raised)",
+                          border: isT && !hasDatum ? `1.5px dashed ${COLORS.primary}` : hasDatum ? "none" : "1px solid var(--color-border)",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: 11,
+                          fontWeight: 700,
+                          color: hasDatum ? "#fff" : isT ? COLORS.primary : "transparent",
+                          transition: "transform 0.1s",
+                          cursor: "default",
+                        }}
+                      >
+                        {hasDatum ? HEATMAP_ABBR[status] : ""}
+                      </div>
+                    );
+                  })}
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+          );
+        })()}
 
         {/* Legend */}
-        <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 12, fontSize: 11, color: COLORS.muted }}>
+        <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 14, paddingTop: 12, borderTop: "1px solid var(--color-border)", fontSize: 11, color: COLORS.muted }}>
           {(
             [
               ["done", "Seguiu"],
@@ -699,7 +706,7 @@ function AdherenceTab({ patientId }: { patientId: number }) {
             ] as Array<[MealCheckinStatus | "none", string]>
           ).map(([s, l]) => (
             <span key={s} style={{ display: "flex", alignItems: "center", gap: 4 }}>
-              <span style={{ display: "inline-block", width: 12, height: 12, borderRadius: 2, background: HEATMAP_COLORS[s], opacity: s === "none" ? 0.3 : 1 }} />
+              <span style={{ display: "inline-block", width: 12, height: 12, borderRadius: 3, background: HEATMAP_COLORS[s], opacity: s === "none" ? 0.35 : 1, border: s === "none" ? "1px solid var(--color-border)" : "none" }} />
               {l}
             </span>
           ))}
