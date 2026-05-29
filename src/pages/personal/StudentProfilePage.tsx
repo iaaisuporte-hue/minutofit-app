@@ -6,6 +6,7 @@ import { Toast } from "../../features/team/Toast";
 import { EmptyState } from "../../components/EmptyState";
 import { ApplyFromLibraryDrawer } from "../../features/personalRetention/ApplyFromLibraryDrawer";
 import { DuplicatePlanMenu } from "../../features/personalRetention/DuplicatePlanMenu";
+import { StudentFightIntelCard } from "../../features/sport/components/StudentFightIntelCard";
 import "./personalPremium.css";
 
 type TabKey = "overview" | "workouts";
@@ -102,12 +103,15 @@ export default function StudentProfilePage() {
       </div>
 
       {tab === "overview" ? (
-        <StudentProfileModal
-          studentId={studentId}
-          studentName="Aluno"
-          variant="inline"
-          onClose={() => navigate(-1)}
-        />
+        <>
+          <StudentProfileModal
+            studentId={studentId}
+            studentName="Aluno"
+            variant="inline"
+            onClose={() => navigate(-1)}
+          />
+          <StudentFightIntelCard studentId={parseInt(studentId, 10)} />
+        </>
       ) : (
         <section className="pp-panel">
           <div className="pp-panel__header">

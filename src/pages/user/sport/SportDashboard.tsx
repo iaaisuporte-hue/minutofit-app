@@ -1,9 +1,13 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useSportDashboard } from '../../../features/sport/hooks/useSportDashboard';
+import { useSportFatigue } from '../../../features/sport/hooks/useSportFatigue';
 import { SportReadinessCard } from '../../../features/sport/components/SportReadinessCard';
 import { CampModeBanner } from '../../../features/sport/components/CampModeBanner';
 import { PreWorkoutCheckinSheet } from '../../../features/sport/components/PreWorkoutCheckinSheet';
+import { PostWorkoutCheckinSheet } from '../../../features/sport/components/PostWorkoutCheckinSheet';
+import { RecoveryGapBadge } from '../../../features/sport/components/RecoveryGapBadge';
+import { SportFatigueIndicator } from '../../../features/sport/components/SportFatigueIndicator';
 import { getRegisteredSports } from '../../../features/sport/engine';
 
 const BASE = '/app/user/sport';
@@ -43,7 +47,9 @@ function MiniCheckinRow({ checkin }: { checkin: { checkin_date?: string; created
 
 export function SportDashboard() {
   const { dashboard, isLoading, reload } = useSportDashboard();
+  const { fatigue, reload: reloadFatigue } = useSportFatigue();
   const [showCheckin, setShowCheckin] = useState(false);
+  const [showPostCheckin, setShowPostCheckin] = useState(false);
 
   const sports = getRegisteredSports();
 
@@ -55,6 +61,11 @@ export function SportDashboard() {
   const sportLabel = sports.find((s) => s.key === profile.primary_sport)?.labelPt ?? profile.primary_sport;
   const hasCheckinToday = readiness_today?.has_checkin_today ?? false;
 
+  const fatigue7d = fatigue?.fatigue_7d ?? dashboard.fatigue_7d ?? null;
+  const fatigueLevel = fatigue?.level ?? dashboard.fatigue_level ?? null;
+  const sessions7d = fatigue?.sessions_7d ?? 0;
+  const lastRecoveryGap = dashboard.last_recovery_gap ?? null;
+
   return (
     <div style={{ display: 'grid', gap: 'var(--space-5)' }}>
       {/* Header */}
@@ -65,9 +76,14 @@ export function SportDashboard() {
           </h1>
           {sportLabel && <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)', marginTop: 4 }}>{sportLabel}</p>}
         </div>
-        <button type="button" className="btn btn-primary" style={{ fontSize: 'var(--text-sm)' }} onClick={() => setShowCheckin(true)}>
-          {hasCheckinToday ? 'Atualizar check-in' : 'Check-in pré-treino'}
-        </button>
+        <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+          <button type="button" className="btn btn-ghost" style={{ fontSize: 'var(--text-sm)' }} onClick={() => setShowPostCheckin(true)}>
+            Check-in pós-treino
+          </button>
+          <button type="button" className="btn btn-primary" style={{ fontSize: 'var(--text-sm)' }} onClick={() => setShowCheckin(true)}>
+            {hasCheckinToday ? 'Atualizar check-in' : 'Check-in pré-treino'}
+          </button>
+        </div>
       </div>
 
       {/* Camp banner */}
@@ -76,6 +92,19 @@ export function SportDashboard() {
       {/* Readiness card */}
       <div style={{ border: '1px solid var(--color-border)', borderRadius: 'var(--radius-card)', padding: 'var(--space-5)', background: 'var(--color-surface)' }}>
         <SportReadinessCard />
+      </div>
+
+      {/* Fatigue + Recovery row */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
+        <div style={{ border: '1px solid var(--color-border)', borderRadius: 'var(--radius-card)', padding: 'var(--space-4)', background: 'var(--color-surface)' }}>
+          <SportFatigueIndicator fatigue7d={fatigue7d} level={fatigueLevel} sessions7d={sessions7d} />
+        </div>
+        <div style={{ border: '1px solid var(--color-border)', borderRadius: 'var(--radius-card)', padding: 'var(--space-4)', background: 'var(--color-surface)', display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+          <span style={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--font-medium)', color: 'var(--color-text)' }}>
+            Último recovery gap
+          </span>
+          <RecoveryGapBadge gap={lastRecoveryGap} />
+        </div>
       </div>
 
       {/* Recent check-ins */}
@@ -109,7 +138,7 @@ export function SportDashboard() {
         </div>
       )}
 
-      {/* Check-in sheet overlay */}
+      {/* Pre-workout check-in sheet overlay */}
       {showCheckin && (
         <div
           style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', padding: 'var(--space-4)' }}
@@ -119,6 +148,21 @@ export function SportDashboard() {
             <PreWorkoutCheckinSheet
               onClose={() => setShowCheckin(false)}
               onSuccess={async () => { setShowCheckin(false); await reload(); }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Post-workout check-in sheet overlay */}
+      {showPostCheckin && (
+        <div
+          style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', padding: 'var(--space-4)' }}
+          onClick={(e) => { if (e.target === e.currentTarget) setShowPostCheckin(false); }}
+        >
+          <div style={{ background: 'var(--color-surface)', borderRadius: 'var(--radius-card) var(--radius-card) 0 0', padding: 'var(--space-6)', width: '100%', maxWidth: 480, maxHeight: '90vh', overflowY: 'auto' }}>
+            <PostWorkoutCheckinSheet
+              onClose={() => setShowPostCheckin(false)}
+              onSuccess={async () => { setShowPostCheckin(false); await Promise.all([reload(), reloadFatigue()]); }}
             />
           </div>
         </div>

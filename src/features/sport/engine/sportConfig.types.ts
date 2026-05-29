@@ -111,9 +111,39 @@ export interface CampWithDerived extends CompetitionCamp {
   current_weight_kg?: number | null;
 }
 
+export type WorkoutType = 'sparring' | 'technical' | 'physical' | 'competition' | 'other';
+export type FatigueLevel = 'low' | 'moderate' | 'high';
+
+export interface PostWorkoutCheckinData {
+  duration_min: number;
+  workout_type: WorkoutType;
+  rpe: number;
+  muscle_soreness_post: number;
+  joint_soreness_post: number;
+}
+
+export interface PostWorkoutCheckin extends PostWorkoutCheckinData {
+  id: number;
+  user_id: number;
+  checkin_date: string;
+  estimated_load: number | null;
+  recovery_gap: number | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Fatigue7dResult {
+  fatigue_7d: number | null;
+  level: FatigueLevel | null;
+  sessions_7d: number;
+}
+
 export interface SportDashboard {
   profile: SportProfile;
   readiness_today: ReadinessSnapshot | null;
   recent_checkins: (PreWorkoutCheckinData & { checkin_date: string; readiness_snapshot?: Partial<ReadinessSnapshot> })[];
   active_camp: CampWithDerived | null;
+  fatigue_7d: number | null;
+  fatigue_level: FatigueLevel | null;
+  last_recovery_gap: number | null;
 }

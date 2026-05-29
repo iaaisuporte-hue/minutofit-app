@@ -9,7 +9,8 @@ export type ConsentScope =
   | 'nutrition'
   | 'parq_anamnese'
   | 'activity_logs'
-  | 'chat_history';
+  | 'chat_history'
+  | 'sports';
 
 export type ProfessionalRole = 'personal' | 'nutri';
 export type RequestStatus = 'pending' | 'accepted' | 'rejected' | 'cancelled' | 'expired';
@@ -27,6 +28,7 @@ export const SCOPE_LABELS: Record<ConsentScope, string> = {
   parq_anamnese: 'Anamnese e PAR-Q',
   activity_logs: 'Atividades físicas',
   chat_history: 'Histórico de mensagens',
+  sports: 'Dados esportivos',
 };
 
 export const DEFAULT_SCOPES_PERSONAL: ConsentScope[] = ['profile', 'workouts', 'daily_checkins'];

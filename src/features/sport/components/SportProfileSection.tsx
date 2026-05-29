@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSportProfile } from '../hooks/useSportProfile';
+import { useSportHasPersonal } from '../hooks/useSportHasPersonal';
 import { getRegisteredSports } from '../engine';
 import type { SportLevel, SportGoal } from '../engine/sportConfig.types';
+import { SportConsentPromptModal } from './SportConsentPromptModal';
 
 const LEVELS: { value: SportLevel; label: string }[] = [
   { value: 'beginner', label: 'Iniciante' },
@@ -23,11 +25,20 @@ const GOALS: { value: SportGoal; label: string }[] = [
 
 export function SportProfileSection() {
   const { profile, loading, isSportActive, save, deactivate } = useSportProfile();
+  const { hasPersonal, personalId, loading: personalLoading } = useSportHasPersonal();
   const navigate = useNavigate();
   const sports = getRegisteredSports();
 
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [showConsentModal, setShowConsentModal] = useState(false);
+
+  useEffect(() => {
+    if (loading || personalLoading) return;
+    if (isSportActive && hasPersonal && personalId !== null) {
+      setShowConsentModal(true);
+    }
+  }, [loading, personalLoading, isSportActive, hasPersonal, personalId]);
   const [primarySport, setPrimarySport] = useState('jiu_jitsu');
   const [sportLevel, setSportLevel] = useState<SportLevel>('intermediate');
   const [graduationRank, setGraduationRank] = useState('');
@@ -59,6 +70,9 @@ export function SportProfileSection() {
         primary_goal: primaryGoal,
       });
       setEditing(false);
+      if (hasPersonal && personalId !== null) {
+        setShowConsentModal(true);
+      }
     } finally {
       setSaving(false);
     }
@@ -76,6 +90,13 @@ export function SportProfileSection() {
 
   return (
     <div style={{ display: 'grid', gap: 'var(--space-4)' }}>
+      {showConsentModal && personalId !== null && (
+        <SportConsentPromptModal
+          personalId={personalId}
+          onAccept={() => setShowConsentModal(false)}
+          onDecline={() => setShowConsentModal(false)}
+        />
+      )}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-3)' }}>
         <div>
           <div style={{ fontSize: 'var(--text-xl)', fontWeight: 'var(--font-bold)', color: 'var(--color-text)' }}>
