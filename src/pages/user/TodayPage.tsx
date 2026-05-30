@@ -58,10 +58,6 @@ import { NutritionCheckinCard } from "../../features/nutrition/NutritionCheckinC
 import { NutriVoiceCard } from "../../features/nutrition/NutriVoiceCard";
 import { useNutriVoiceNote } from "../../features/nutrition/useNutriVoiceNote";
 import "./todayPage.css";
-import { useSportProfile } from "../../features/sport/hooks/useSportProfile";
-import { SportReadinessCard } from "../../features/sport/components/SportReadinessCard";
-import { CampModeBanner } from "../../features/sport/components/CampModeBanner";
-import { useCamp } from "../../features/sport/hooks/useCamp";
 
 const GROUP_LABEL: Record<MuscleGroup, string> = {
   chest: "Peito",
@@ -167,8 +163,6 @@ export default function TodayPage() {
   const { data: workoutHistoryData } = useWorkoutHistory(30);
   const todayState = useTodayUserState();
   const { note: nutriVoiceNote } = useNutriVoiceNote();
-  const { isSportActive } = useSportProfile();
-  const { activeCamp } = useCamp();
   const showPersonalWorkout = todayState.hasActivePersonal && todayState.hasActiveWorkoutPlan;
   const showPersonalEmpty = todayState.hasActivePersonal && !todayState.hasActiveWorkoutPlan;
   const showSuggestedWorkout =
@@ -456,23 +450,7 @@ export default function TodayPage() {
         )}
       </motion.div>
 
-      {/* 2.3. Fight Intelligence — card de prontidão esportiva (só quando ativo) */}
-      {isSportActive && (
-        <motion.div variants={sectionRevealVariants}>
-          <div style={{ border: '1px solid var(--color-border)', borderRadius: 'var(--radius-card)', background: 'var(--color-surface)', boxShadow: 'var(--shadow-sm)', padding: 'var(--space-5)' }}>
-            <SportReadinessCard />
-          </div>
-        </motion.div>
-      )}
-
-      {/* 2.4. Camp Mode banner — só com camp ativo */}
-      {isSportActive && activeCamp && (
-        <motion.div variants={sectionRevealVariants}>
-          <CampModeBanner camp={activeCamp} />
-        </motion.div>
-      )}
-
-      {/* 2.5. Voz do profissional — só com observação real (sem placeholder genérico). */}
+      {/* 2.3. Voz do profissional — só com observação real (sem placeholder genérico). */}
       {showProfessionalVoice && (
         <motion.div variants={sectionRevealVariants}>
           <ProfessionalVoiceCard
