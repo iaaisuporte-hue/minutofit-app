@@ -44,6 +44,14 @@ export interface AuthUser {
   parqSignedAt?: string;
   parqFormVersion?: string;
   parqAnyYes?: boolean;
+  parqExpiresAt?: string;
+  parqSignatureLevel?: number;
+  physicalActivityClearance?: {
+    valid: boolean;
+    signedAt: string | null;
+    expiresAt: string | null;
+    reason: 'ok' | 'never_signed' | 'expired' | 'incomplete_health_flags' | 'not_applicable';
+  };
   studentComplianceComplete?: boolean;
   mustChangePassword?: boolean;
 }

@@ -2,6 +2,7 @@ import { useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext";
+import { usePhysicalActivityClearance } from "../../auth/usePhysicalActivityClearance";
 import { useFeatureFlags } from "../../auth/FeatureFlagsContext";
 import { useIsMobile } from "../../hooks/useIsMobile";
 import { persistGamificationCheckin, persistWellbeingCheckin } from "../../services/gamificationApi";
@@ -106,11 +107,13 @@ function ActionButton({
   onClick,
   variant = "primary",
   fullWidth = false,
+  locked = false,
 }: {
   children: React.ReactNode;
   onClick: () => void;
   variant?: "primary" | "secondary" | "ghost";
   fullWidth?: boolean;
+  locked?: boolean;
 }) {
   const styles =
     variant === "primary"
@@ -142,9 +145,15 @@ function ActionButton({
       whileTap={{ scale: 0.985 }}
       transition={{ type: "spring", stiffness: 340, damping: 24 }}
       className={`today-action-button today-action-button-${variant}`}
-      style={{ width: fullWidth ? "100%" : "fit-content", ...styles }}
+      style={{ width: fullWidth ? "100%" : "fit-content", ...styles, opacity: locked ? 0.7 : 1 }}
+      title={locked ? "Assine o PAR-Q para liberar treinos" : undefined}
     >
-      {children}
+      {locked ? (
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          {children}
+        </span>
+      ) : children}
     </motion.button>
   );
 }
@@ -152,6 +161,8 @@ function ActionButton({
 export default function TodayPage() {
   const navigate = useNavigate();
   const { id, user } = useAuth();
+  const clearance = usePhysicalActivityClearance();
+  const parqLocked = !clearance.valid;
   const { hasFeature } = useFeatureFlags();
   const canMessages = hasFeature("messages");
   const isMobile = useIsMobile(720);
@@ -546,8 +557,9 @@ export default function TodayPage() {
 
               <ActionButton
                 variant="primary"
-                onClick={() => navigate("/app/user/suggested-training")}
+                onClick={() => navigate(parqLocked ? "/app/user/parq?returnTo=%2Fapp%2Fuser%2Fsuggested-training" : "/app/user/suggested-training")}
                 fullWidth={isMobile}
+                locked={parqLocked}
               >
                 Ver o treino inteiro →
               </ActionButton>
@@ -679,7 +691,14 @@ export default function TodayPage() {
                   ))}
                 </div>
 
-                <ActionButton onClick={() => navigate(getWorkoutRoute(workoutMode))} fullWidth={isMobile}>
+                <ActionButton
+                  onClick={() => {
+                    const dest = getWorkoutRoute(workoutMode);
+                    navigate(parqLocked ? `/app/user/parq?returnTo=${encodeURIComponent(dest)}` : dest);
+                  }}
+                  fullWidth={isMobile}
+                  locked={parqLocked}
+                >
                   Ver o treino inteiro →
                 </ActionButton>
               </div>

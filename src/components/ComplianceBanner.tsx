@@ -1,15 +1,26 @@
 import { Link } from "react-router-dom";
 import { motion, useReducedMotion } from "framer-motion";
 import { useAuth } from "../auth/AuthContext";
+import { usePhysicalActivityClearance } from "../auth/usePhysicalActivityClearance";
 
 const MotionLink = motion(Link);
 
 export default function ComplianceBanner() {
   const { user, role } = useAuth();
+  const clearance = usePhysicalActivityClearance();
   const shouldReduceMotion = useReducedMotion();
 
   if (role !== "user" || !user?.id) return null;
-  if (user.studentComplianceComplete) return null;
+
+  // Nada a mostrar: já assinado e válido
+  if (clearance.valid) return null;
+
+  const isExpired = clearance.reason === "expired";
+
+  const borderColor = isExpired ? "var(--color-danger-border, #fca5a5)" : "var(--color-warn-border)";
+  const bgColor = isExpired ? "var(--color-danger-soft, #fef2f2)" : "var(--color-warn-soft)";
+  const textStrong = isExpired ? "var(--color-danger, #dc2626)" : "var(--color-warn-text)";
+  const textBody = isExpired ? "var(--color-danger-text-strong, #991b1b)" : "var(--color-warn-text-strong)";
 
   return (
     <motion.div
@@ -21,9 +32,9 @@ export default function ComplianceBanner() {
         margin: "0 0 var(--space-4)",
         padding: "var(--space-3) var(--space-4)",
         borderRadius: "var(--radius-lg)",
-        border: "1px solid var(--color-warn-border)",
-        background: "var(--color-warn-soft)",
-        color: "var(--color-warn-text-strong)",
+        border: `1px solid ${borderColor}`,
+        background: bgColor,
+        color: textBody,
         fontSize: "var(--text-base)",
         lineHeight: 1.5,
         display: "flex",
@@ -34,12 +45,21 @@ export default function ComplianceBanner() {
       }}
     >
       <span style={{ minWidth: 0 }}>
-        <b style={{ color: "var(--color-warn-text)" }}>Antes de começar:</b> reserve cerca de{" "}
-        <strong>2 minutos</strong> para personalizar seu treino com segurança. Complete sua
-        triagem de saúde, preferências e PAR-Q em <strong>Configurações</strong>.
+        {isExpired ? (
+          <>
+            <b style={{ color: textStrong }}>Liberação PAR-Q expirada:</b> sua assinatura de saúde e aptidão física venceu.
+            Reassine para retomar os treinos.
+          </>
+        ) : (
+          <>
+            <b style={{ color: textStrong }}>Antes de começar:</b> reserve cerca de{" "}
+            <strong>2 minutos</strong> para personalizar seu treino com segurança. Complete sua
+            triagem de saúde, preferências e PAR-Q.
+          </>
+        )}
       </span>
       <MotionLink
-        to="/app/user/settings?focus=compliance#compliance"
+        to="/app/user/parq"
         className="compliance-banner-cta btn btn-primary"
         whileHover={shouldReduceMotion ? undefined : { scale: 1.02 }}
         whileTap={shouldReduceMotion ? undefined : { scale: 0.98 }}
@@ -53,9 +73,10 @@ export default function ComplianceBanner() {
           display: "inline-flex",
           alignItems: "center",
           fontSize: "var(--text-sm)",
+          background: isExpired ? "var(--color-danger, #dc2626)" : undefined,
         }}
       >
-        Completar agora →
+        {isExpired ? "Reassinar PAR-Q →" : "Assinar PAR-Q →"}
       </MotionLink>
     </motion.div>
   );

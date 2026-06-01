@@ -33,6 +33,8 @@ import NutritionPlanViewPage from "./user/NutritionPlanViewPage";
 import MeuPlanoPage from "./user/MeuPlanoPage";
 import SportHomePage from "./user/sport/SportHomePage";
 import { useSportProfile } from "../features/sport/hooks/useSportProfile";
+import RequireClearance from "../auth/RequireClearance";
+import ParqSigningPage from "./user/studentCompliance/ParqSigningPage";
 
 const USER_BASE = "/app/user" as const;
 const USER_DEFAULT = "/app/user/today" as const;
@@ -227,7 +229,9 @@ export default function UserApp() {
                 path="activities"
                 element={
                   <LimitedUserOnly allowed={showTracker}>
-                    <ActivityTrackerPage />
+                    <RequireClearance>
+                      <ActivityTrackerPage />
+                    </RequireClearance>
                   </LimitedUserOnly>
                 }
               />
@@ -253,10 +257,15 @@ export default function UserApp() {
                 path="movement-lab"
                 element={
                   <LimitedUserOnly allowed={showTrainingAi}>
-                    <MovementLabPage />
+                    <RequireClearance>
+                      <MovementLabPage />
+                    </RequireClearance>
                   </LimitedUserOnly>
                 }
               />
+
+              {/* ✅ PAR-Q — assinatura obrigatória, sempre acessível (é o destino do gate) */}
+              <Route path="parq" element={<ParqSigningPage />} />
 
               {/* ✅ ONBOARDING (blindado: relativa + absoluta) — acessível a todos os alunos */}
               <Route path="onboarding" element={<OnboardingPage />} />
@@ -268,16 +277,29 @@ export default function UserApp() {
                 path="ficha"
                 element={
                   <LimitedUserOnly allowed={!loading}>
-                    <MeuPlanoPage />
+                    <RequireClearance>
+                      <MeuPlanoPage />
+                    </RequireClearance>
                   </LimitedUserOnly>
                 }
               />
-              <Route path="treinos/em-casa" element={<LimitedUserOnly allowed={canHomeWorkouts}><HomeWorkoutsPage /></LimitedUserOnly>} />
+              <Route
+                path="treinos/em-casa"
+                element={
+                  <LimitedUserOnly allowed={canHomeWorkouts}>
+                    <RequireClearance>
+                      <HomeWorkoutsPage />
+                    </RequireClearance>
+                  </LimitedUserOnly>
+                }
+              />
               <Route
                 path="treinos/player/:workoutId"
                 element={
                   <LimitedUserOnly allowed={canWorkouts || canHomeWorkouts}>
-                    <WorkoutPlayerPage />
+                    <RequireClearance>
+                      <WorkoutPlayerPage />
+                    </RequireClearance>
                   </LimitedUserOnly>
                 }
               />
@@ -296,7 +318,9 @@ export default function UserApp() {
                 path="suggested-training"
                 element={
                   <LimitedUserOnly allowed={canSuggestedTraining}>
-                    <SuggestedTrainingPage />
+                    <RequireClearance>
+                      <SuggestedTrainingPage />
+                    </RequireClearance>
                   </LimitedUserOnly>
                 }
               />
@@ -309,7 +333,9 @@ export default function UserApp() {
                 path="espelho"
                 element={
                   <LimitedUserOnly allowed={showTrainingAi}>
-                    <MovementLabPage />
+                    <RequireClearance>
+                      <MovementLabPage />
+                    </RequireClearance>
                   </LimitedUserOnly>
                 }
               />
@@ -323,8 +349,8 @@ export default function UserApp() {
                 }
               />
 
-              {/* ✅ FIGHT INTELLIGENCE — gated por sport_profile.active */}
-              <Route path="sport/*" element={<SportHomePage />} />
+              {/* ✅ FIGHT INTELLIGENCE — gated por sport_profile.active + clearance PAR-Q */}
+              <Route path="sport/*" element={<RequireClearance><SportHomePage /></RequireClearance>} />
 
               {/* ✅ MINHA EQUIPE — destino próprio (Onda 1.5) + alias */}
               <Route path="equipe" element={<MinhaEquipePage />} />
