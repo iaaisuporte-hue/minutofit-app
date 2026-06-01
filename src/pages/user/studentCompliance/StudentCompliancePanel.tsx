@@ -96,9 +96,7 @@ function SelectGroup<T extends string | number>({
         gap: 10,
         flexWrap: "wrap",
         maxWidth: "100%",
-        overflowX: "auto",
         paddingBottom: 2,
-        WebkitOverflowScrolling: "touch",
       }}
     >
       {options.map((option) => {
@@ -114,6 +112,7 @@ function SelectGroup<T extends string | number>({
               ...pillStyle(selected, neon),
               opacity: disabled ? 0.55 : 1,
               cursor: disabled ? "not-allowed" : "pointer",
+              touchAction: "manipulation",
             }}
           >
             {selected ? "✓ " : ""}
@@ -137,11 +136,15 @@ function SignatureCanvas({
   const ref = useRef<HTMLCanvasElement>(null);
   const drawing = useRef(false);
   const last = useRef<{ x: number; y: number } | null>(null);
+  const disabledRef = useRef(disabled);
+  useEffect(() => { disabledRef.current = disabled; }, [disabled]);
 
   const setupCanvas = useCallback(() => {
     const canvas = ref.current;
     if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
+    // Aguarda layout — o ResizeObserver rechamará quando a largura estiver disponível
+    if (rect.width === 0) return;
     const dpr = window.devicePixelRatio || 1;
     canvas.width = Math.floor(rect.width * dpr);
     canvas.height = Math.floor(160 * dpr);
@@ -161,24 +164,75 @@ function SignatureCanvas({
     return () => ro.disconnect();
   }, [setupCanvas]);
 
-  function pos(e: React.MouseEvent | React.TouchEvent) {
+  // Listeners non-passive no DOM — bypass do sistema passivo do React 17+
+  // sem isso, e.preventDefault() dentro dos handlers sintéticos é ignorado
+  // e o scroll do parent compete com o desenho no celular.
+  useEffect(() => {
+    const canvas = ref.current;
+    if (!canvas) return;
+
+    function posFromTouch(touch: Touch): { x: number; y: number } {
+      const r = canvas!.getBoundingClientRect();
+      return { x: touch.clientX - r.left, y: touch.clientY - r.top };
+    }
+
+    function onTouchStart(e: TouchEvent) {
+      if (disabledRef.current) return;
+      e.preventDefault();
+      const t = e.touches[0];
+      if (!t) return;
+      drawing.current = true;
+      last.current = posFromTouch(t);
+      onStrokeChange(true);
+    }
+
+    function onTouchMove(e: TouchEvent) {
+      if (!drawing.current || disabledRef.current) return;
+      e.preventDefault();
+      const t = e.touches[0];
+      if (!t) return;
+      const ctx = canvas!.getContext("2d");
+      if (!ctx || !last.current) return;
+      const p = posFromTouch(t);
+      ctx.beginPath();
+      ctx.moveTo(last.current.x, last.current.y);
+      ctx.lineTo(p.x, p.y);
+      ctx.stroke();
+      last.current = p;
+    }
+
+    function onTouchEnd() {
+      drawing.current = false;
+      last.current = null;
+    }
+
+    canvas.addEventListener("touchstart", onTouchStart, { passive: false });
+    canvas.addEventListener("touchmove", onTouchMove, { passive: false });
+    canvas.addEventListener("touchend", onTouchEnd);
+    canvas.addEventListener("touchcancel", onTouchEnd);
+
+    return () => {
+      canvas.removeEventListener("touchstart", onTouchStart);
+      canvas.removeEventListener("touchmove", onTouchMove);
+      canvas.removeEventListener("touchend", onTouchEnd);
+      canvas.removeEventListener("touchcancel", onTouchEnd);
+    };
+  }, [onStrokeChange]);
+
+  function pos(e: React.MouseEvent) {
     const canvas = ref.current!;
     const r = canvas.getBoundingClientRect();
-    if ("touches" in e && e.touches[0]) {
-      return { x: e.touches[0].clientX - r.left, y: e.touches[0].clientY - r.top };
-    }
-    const me = e as React.MouseEvent;
-    return { x: me.clientX - r.left, y: me.clientY - r.top };
+    return { x: e.clientX - r.left, y: e.clientY - r.top };
   }
 
-  function start(e: React.MouseEvent | React.TouchEvent) {
+  function startMouse(e: React.MouseEvent) {
     if (disabled) return;
     drawing.current = true;
     last.current = pos(e);
     onStrokeChange(true);
   }
 
-  function draw(e: React.MouseEvent | React.TouchEvent) {
+  function drawMouse(e: React.MouseEvent) {
     if (!drawing.current || disabled) return;
     const canvas = ref.current;
     const ctx = canvas?.getContext("2d");
@@ -191,7 +245,7 @@ function SignatureCanvas({
     last.current = p;
   }
 
-  function end() {
+  function endMouse() {
     drawing.current = false;
     last.current = null;
   }
@@ -202,6 +256,7 @@ function SignatureCanvas({
       role="img"
       aria-label="Área de assinatura"
       style={{
+        display: "block",
         width: "100%",
         height: 160,
         borderRadius: 12,
@@ -211,19 +266,10 @@ function SignatureCanvas({
         opacity: disabled ? 0.5 : 1,
         cursor: disabled ? "not-allowed" : "crosshair",
       }}
-      onMouseDown={start}
-      onMouseMove={draw}
-      onMouseUp={end}
-      onMouseLeave={end}
-      onTouchStart={(e) => {
-        e.preventDefault();
-        start(e);
-      }}
-      onTouchMove={(e) => {
-        e.preventDefault();
-        draw(e);
-      }}
-      onTouchEnd={end}
+      onMouseDown={startMouse}
+      onMouseMove={drawMouse}
+      onMouseUp={endMouse}
+      onMouseLeave={endMouse}
     />
   );
 }
@@ -605,9 +651,7 @@ export default function StudentCompliancePanel() {
                 gap: 8,
                 flexWrap: "wrap",
                 maxWidth: "100%",
-                overflowX: "auto",
                 paddingBottom: 2,
-                WebkitOverflowScrolling: "touch",
               }}
             >
               {injuryOptions.map((option) => {
@@ -619,7 +663,7 @@ export default function StudentCompliancePanel() {
                     disabled={saving || locked}
                     aria-pressed={selected}
                     onClick={() => toggleInjury(option.value)}
-                    style={pillStyle(selected, neon)}
+                    style={{ ...pillStyle(selected, neon), touchAction: "manipulation" }}
                   >
                     {selected ? "✓ " : ""}
                     {option.label}
@@ -667,7 +711,7 @@ export default function StudentCompliancePanel() {
                   disabled={saving || locked}
                   aria-pressed={parq[q.id] === false}
                   onClick={() => setParq((p) => ({ ...p, [q.id]: false }))}
-                  style={pillStyle(parq[q.id] === false, neon)}
+                  style={{ ...pillStyle(parq[q.id] === false, neon), touchAction: "manipulation" }}
                 >
                   {parq[q.id] === false ? "✓ " : ""}Não
                 </button>
@@ -676,7 +720,7 @@ export default function StudentCompliancePanel() {
                   disabled={saving || locked}
                   aria-pressed={parq[q.id] === true}
                   onClick={() => setParq((p) => ({ ...p, [q.id]: true }))}
-                  style={pillStyle(parq[q.id] === true, neon)}
+                  style={{ ...pillStyle(parq[q.id] === true, neon), touchAction: "manipulation" }}
                 >
                   {parq[q.id] === true ? "✓ " : ""}Sim
                 </button>
