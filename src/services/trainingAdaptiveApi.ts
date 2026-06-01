@@ -1,4 +1,5 @@
-import { apiClient } from './apiClient';
+import { API_URL, parseJson } from './apiBase';
+import { authFetch } from './apiClient';
 
 export type ReadinessLevel = 'green' | 'yellow' | 'red';
 
@@ -76,28 +77,32 @@ export async function fetchAdaptiveToday(
   const qs = new URLSearchParams();
   if (params?.planId) qs.set('planId', String(params.planId));
   if (params?.dayIndex) qs.set('dayIndex', String(params.dayIndex));
-  const url = `/training/today${qs.toString() ? `?${qs}` : ''}`;
-  const res = await apiClient.get<{ success: boolean; data: AdaptiveTodayResponse; error?: string }>(url);
-  if (!res.data.success) return null;
-  return res.data.data;
+  const url = `${API_URL}/training/today${qs.toString() ? `?${qs}` : ''}`;
+  const res = await authFetch(url);
+  const data = await parseJson(res);
+  if (!res.ok || !data?.success) return null;
+  return data.data as AdaptiveTodayResponse;
 }
 
 export async function fetchAdaptationPolicy(studentId: number): Promise<AdaptationPolicy> {
-  const res = await apiClient.get<{ success: boolean; data: AdaptationPolicy }>(
-    `/personal/students/${studentId}/adaptation-policy`,
-  );
-  return res.data.data;
+  const res = await authFetch(`${API_URL}/personal/students/${studentId}/adaptation-policy`);
+  const data = await parseJson(res);
+  if (!res.ok) throw new Error(data?.error || 'Falha ao carregar política de adaptação.');
+  return data.data as AdaptationPolicy;
 }
 
 export async function patchAdaptationPolicy(
   studentId: number,
   patch: Partial<AdaptationPolicy>,
 ): Promise<AdaptationPolicy> {
-  const res = await apiClient.patch<{ success: boolean; data: AdaptationPolicy }>(
-    `/personal/students/${studentId}/adaptation-policy`,
-    patch,
-  );
-  return res.data.data;
+  const res = await authFetch(`${API_URL}/personal/students/${studentId}/adaptation-policy`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(patch),
+  });
+  const data = await parseJson(res);
+  if (!res.ok) throw new Error(data?.error || 'Falha ao salvar política de adaptação.');
+  return data.data as AdaptationPolicy;
 }
 
 export async function fetchAdaptationLog(studentId: number, params?: { from?: string; to?: string; limit?: number }) {
@@ -105,8 +110,10 @@ export async function fetchAdaptationLog(studentId: number, params?: { from?: st
   if (params?.from) qs.set('from', params.from);
   if (params?.to) qs.set('to', params.to);
   if (params?.limit) qs.set('limit', String(params.limit));
-  const res = await apiClient.get<{ success: boolean; data: unknown[] }>(
-    `/personal/students/${studentId}/adaptation-log${qs.toString() ? `?${qs}` : ''}`,
+  const res = await authFetch(
+    `${API_URL}/personal/students/${studentId}/adaptation-log${qs.toString() ? `?${qs}` : ''}`,
   );
-  return res.data.data;
+  const data = await parseJson(res);
+  if (!res.ok) throw new Error(data?.error || 'Falha ao carregar histórico de adaptação.');
+  return (data.data || []) as unknown[];
 }

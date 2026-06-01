@@ -513,11 +513,11 @@ export default function TodayPage() {
               )}
             />
           )}
+          {/* O card mostra a ficha prescrita; o AdaptationBanner acima já
+              comunica o diff (original × hoje) quando há ajuste. */}
           <PersonalWorkoutCard
             personal={todayState.personal}
-            plan={adaptive.data?.adaptationEnabled && adaptive.data.changes.length > 0
-              ? { ...todayState.activePlan, adaptedDay: adaptive.data.adaptedPlanDay }
-              : todayState.activePlan}
+            plan={todayState.activePlan}
             isMobile={isMobile}
           />
         </motion.div>
