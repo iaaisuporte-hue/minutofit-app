@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext";
-import InteractiveSurfaceCard from "../../components/InteractiveSurfaceCard";
 import { useIsMobile } from "../../hooks/useIsMobile";
 import { formatCpf, formatPhone } from "../../utils/validators";
 import StudentCompliancePanel from "./studentCompliance/StudentCompliancePanel";
@@ -165,7 +164,7 @@ export default function AccountSettingsPage() {
   const { user, accessProfile, getUser } = useAuth();
   const location = useLocation();
   const isMobile = useIsMobile(720);
-  const { shouldReduceMotion, shouldUseTilt } = useSettingsMotionSafe({ isMobile });
+  const { shouldReduceMotion } = useSettingsMotionSafe({ isMobile });
   const isLimitedProfile = accessProfile === "clientes_sb";
   const toast = useToast();
 
@@ -313,20 +312,11 @@ export default function AccountSettingsPage() {
             viewport={{ once: true, amount: 0.08 }}
             style={{ minWidth: 0 }}
           >
-            <InteractiveSurfaceCard
-              enableTilt={shouldUseTilt}
-              whileHover={shouldReduceMotion ? undefined : settingsSubtleHover}
-              whileTap={shouldReduceMotion ? undefined : settingsSubtleTap}
-              style={{
-                borderRadius: 16,
-                padding: 0,
-                background: "transparent",
-                boxShadow: "none",
-                overflow: "visible",
-              }}
-            >
-              <StudentCompliancePanel />
-            </InteractiveSurfaceCard>
+            {/* Formulário de compliance renderizado direto, SEM card interativo
+                (tilt/whileTap/preserve-3d capturavam o toque do bloco inteiro no
+                mobile, deixando botões/checkboxes/assinatura não-clicáveis). O
+                painel já tem borda, fundo e padding próprios. */}
+            <StudentCompliancePanel />
           </motion.div>
         </motion.div>
       ) : null}

@@ -13,6 +13,7 @@ import { submitStudentCompliance } from "../../../services/authApi";
 import { PARQ_FORM_VERSION } from "../../../services/complianceConstants";
 import { PARQ_ITEMS } from "./parqQuestions";
 import { useNeonTheme, type NeonTheme } from "../../../theme/minutofitNeonTheme";
+import { usePhysicalActivityClearance } from "../../../auth/usePhysicalActivityClearance";
 
 type HealthField =
   | "sem_historico_hipertensao"
@@ -288,7 +289,12 @@ export default function StudentCompliancePanel() {
   const { planName } = useFeatureFlags();
   const isFreePlan = (planName || "").toLowerCase() === "free";
   const { user, getUser } = useAuth();
-  const locked = Boolean(user?.studentComplianceComplete);
+  const clearance = usePhysicalActivityClearance();
+  // Travar (somente leitura) APENAS quando a clearance está realmente válida
+  // (PAR-Q assinado + não expirado). Não usar studentComplianceComplete: um
+  // aluno do fluxo antigo tem essa flag true mas ainda precisa assinar o PAR-Q —
+  // se travasse por ela, ficaria preso sem conseguir cumprir a obrigatoriedade.
+  const locked = clearance.valid;
   const canvasWrapRef = useRef<HTMLDivElement>(null);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
