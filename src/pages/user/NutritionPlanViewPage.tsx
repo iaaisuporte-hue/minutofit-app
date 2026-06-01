@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { COLORS } from "../../styles/colors";
+import { usePushSubscription } from "../../features/nutrition/usePushSubscription";
 import {
   fetchMealTimeline,
   recordMealCheckin,
@@ -94,9 +95,16 @@ function MealDrawer({
   const [note, setNote] = useState(meal.checkin?.note ?? "");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedAltId, setSelectedAltId] = useState<number | null>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
 
-  async function handleCheckin(status: MealCheckinStatus) {
+  // For 'substituted' with alternatives: first click selects status and shows picker;
+  // second action (via confirm button) submits with chosen alternative.
+  async function handleCheckin(status: MealCheckinStatus, altId?: number | null) {
+    if (status === "substituted" && meal.alternatives.length > 0 && altId === undefined) {
+      setSelected(status);
+      return;
+    }
     setSelected(status);
     setSubmitting(true);
     setError(null);
@@ -104,6 +112,7 @@ function MealDrawer({
       await recordMealCheckin(meal.id, {
         status,
         note: note.trim() || null,
+        substitutedAlternativeId: altId ?? null,
       });
       onCheckin(meal.id, status);
       onClose();
@@ -368,6 +377,63 @@ function MealDrawer({
                 </button>
               ))}
             </div>
+
+            {/* Alternative picker — shown when 'substituí' is selected and alternatives exist */}
+            {selected === "substituted" && meal.alternatives.length > 0 && (
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: COLORS.muted, marginBottom: 8 }}>
+                  Qual substituição você usou?
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  {meal.alternatives.map((alt) => (
+                    <button
+                      key={alt.id}
+                      type="button"
+                      onClick={() => setSelectedAltId(selectedAltId === alt.id ? null : alt.id)}
+                      style={{
+                        textAlign: "left",
+                        padding: "10px 14px",
+                        borderRadius: 10,
+                        border: selectedAltId === alt.id
+                          ? `2px solid ${COLORS.primary}`
+                          : "1.5px solid var(--color-border)",
+                        background: selectedAltId === alt.id
+                          ? "var(--color-primary-soft)"
+                          : "var(--color-surface)",
+                        color: selectedAltId === alt.id ? COLORS.primary : COLORS.text,
+                        fontWeight: selectedAltId === alt.id ? 700 : 400,
+                        fontSize: 13,
+                        cursor: "pointer",
+                        lineHeight: 1.45,
+                      }}
+                    >
+                      {alt.description}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  disabled={submitting}
+                  onClick={() => void handleCheckin("substituted", selectedAltId)}
+                  style={{
+                    marginTop: 10,
+                    width: "100%",
+                    padding: "11px",
+                    borderRadius: 10,
+                    border: "none",
+                    background: COLORS.primary,
+                    color: "#fff",
+                    fontWeight: 700,
+                    fontSize: 14,
+                    cursor: submitting ? "not-allowed" : "pointer",
+                    opacity: submitting ? 0.7 : 1,
+                  }}
+                >
+                  {submitting ? "Registrando..." : "Confirmar substituição"}
+                </button>
+              </div>
+            )}
+
             <textarea
               value={note}
               onChange={(e) => setNote(e.target.value)}
@@ -430,9 +496,11 @@ function MealDrawer({
 
 function MealCard({
   meal,
+  workoutToday,
   onOpen,
 }: {
   meal: MealTimelineEntry;
+  workoutToday: { title: string; muscleGroups: string[] } | null;
   onOpen: () => void;
 }) {
   const isDueNow = meal.status === "due_now";
@@ -584,6 +652,14 @@ function MealCard({
                   {meal.alternatives.length > 1 ? "eis" : ""}
                 </div>
               )}
+              {workoutToday && meal.workout_relation && meal.workout_relation !== "none" && (
+                <div style={{
+                  marginTop: 5, fontSize: 11, fontWeight: 700,
+                  color: COLORS.primary,
+                }}>
+                  {meal.workout_relation === "pre" ? "Pré-treino" : "Pós-treino"} · treino hoje registrado
+                </div>
+              )}
             </div>
             {isDueNow && !isChecked && (
               <button
@@ -620,6 +696,8 @@ function MealCard({
 // ---------------------------------------------------------------------------
 
 export default function NutritionPlanViewPage() {
+  usePushSubscription();
+
   const [timeline, setTimeline] = useState<MealTimeline | null | undefined>(
     undefined
   );
@@ -761,6 +839,31 @@ export default function NutritionPlanViewPage() {
             </div>
           </div>
         )}
+        {/* Streak + workout context strip */}
+        {(timeline.streak > 0 || timeline.workoutToday) && (
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 10 }}>
+            {timeline.streak > 0 && (
+              <span style={{
+                fontSize: 12, fontWeight: 700,
+                padding: "3px 10px", borderRadius: 99,
+                background: "var(--color-success-soft, rgba(34,197,94,.1))",
+                color: "var(--color-success, #22C55E)",
+              }}>
+                {timeline.streak} {timeline.streak === 1 ? "dia em sequência" : "dias em sequência"}
+              </span>
+            )}
+            {timeline.workoutToday && (
+              <span style={{
+                fontSize: 12, fontWeight: 600,
+                padding: "3px 10px", borderRadius: 99,
+                background: "var(--color-primary-soft)",
+                color: COLORS.primary,
+              }}>
+                Treino hoje: {timeline.workoutToday.title}
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Timeline */}
@@ -770,6 +873,7 @@ export default function NutritionPlanViewPage() {
             <MealCard
               key={meal.id}
               meal={meal}
+              workoutToday={timeline.workoutToday}
               onOpen={() => setOpenMeal(meal)}
             />
           ))}

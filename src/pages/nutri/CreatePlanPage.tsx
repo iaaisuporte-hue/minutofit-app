@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { COLORS } from "../../styles/colors";
 import {
   createNutritionPlan,
@@ -10,7 +10,22 @@ import {
   type MetabolicGoal,
   type WorkoutRelation,
   type MealPayload,
+  type NutritionPlan,
 } from "../../services/nutriApi";
+
+function planToDrafts(plan: NutritionPlan): MealDraft[] {
+  return plan.meals.map((m) => ({
+    name: m.name,
+    orientation: m.orientation,
+    meal_time: m.meal_time ?? "",
+    tolerance_minutes: m.tolerance_minutes != null ? String(m.tolerance_minutes) : "",
+    metabolic_goal: (m.metabolic_goal ?? "") as MetabolicGoal | "",
+    workout_relation: (m.workout_relation ?? "") as WorkoutRelation | "",
+    hydration_note: m.hydration_note ?? "",
+    supplement_note: m.supplement_note ?? "",
+    alternatives: m.alternatives.map((a) => a.description),
+  }));
+}
 
 const OBJECTIVES = Object.entries(OBJECTIVE_LABELS) as Array<[NutriObjective, string]>;
 const MAX_MEALS = 6;
@@ -327,11 +342,15 @@ function MealRow({
 export default function CreatePlanPage() {
   const { patientId } = useParams<{ patientId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
+  const duplicate = (location.state as { duplicateFrom?: NutritionPlan } | null)?.duplicateFrom;
 
-  const [title, setTitle] = useState("");
-  const [objective, setObjective] = useState<NutriObjective | "">("");
-  const [generalNotes, setGeneralNotes] = useState("");
-  const [meals, setMeals] = useState<MealDraft[]>([emptyMeal()]);
+  const [title, setTitle] = useState(duplicate ? `Cópia — ${duplicate.title}` : "");
+  const [objective, setObjective] = useState<NutriObjective | "">(duplicate?.objective ?? "");
+  const [generalNotes, setGeneralNotes] = useState(duplicate?.general_notes ?? "");
+  const [meals, setMeals] = useState<MealDraft[]>(
+    duplicate?.meals.length ? planToDrafts(duplicate) : [emptyMeal()]
+  );
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

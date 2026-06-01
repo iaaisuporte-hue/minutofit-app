@@ -328,6 +328,8 @@ export interface MealTimeline {
   nutri_name: string;
   today: string;
   meals: MealTimelineEntry[];
+  workoutToday: { title: string; muscleGroups: string[] } | null;
+  streak: number;
 }
 
 export async function fetchMealTimeline(): Promise<MealTimeline | null> {
@@ -344,6 +346,7 @@ export async function recordMealCheckin(
     hunger?: number | null;
     energy?: number | null;
     note?: string | null;
+    substitutedAlternativeId?: number | null;
   }
 ): Promise<MealCheckinRecord> {
   const res = await authFetch(`${API_URL}/user/meals/${mealId}/checkins`, {

@@ -302,6 +302,16 @@ function PlanTab({ patientId }: { patientId: number }) {
               <button type="button" className="btn btn-ghost btn-sm" onClick={() => openEdit(active)}>Editar plano</button>
               <button
                 type="button"
+                onClick={() => navigate(
+                  `/app/nutri/pacientes/${patientId}/plano/novo`,
+                  { state: { duplicateFrom: active } }
+                )}
+                className="btn btn-ghost btn-sm"
+              >
+                Duplicar
+              </button>
+              <button
+                type="button"
                 onClick={() => navigate(`/app/nutri/pacientes/${patientId}/plano/novo`)}
                 style={{
                   padding: "9px 18px",
@@ -500,15 +510,24 @@ function buildDateRange(days: number): string[] {
 }
 
 function AdherenceTab({ patientId }: { patientId: number }) {
-  const DAYS = 14;
   const [heatmap, setHeatmap] = useState<MealHeatmapData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 640);
 
   useEffect(() => {
-    fetchMealHeatmap(patientId, DAYS)
+    const onResize = () => setIsMobile(window.innerWidth < 640);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
+  // Always fetch 14 days — display window narrows on mobile without extra requests
+  useEffect(() => {
+    fetchMealHeatmap(patientId, 14)
       .then(setHeatmap)
       .finally(() => setLoading(false));
   }, [patientId]);
+
+  const DAYS = isMobile ? 7 : 14;
 
   if (loading) return <div style={{ color: COLORS.muted, fontSize: 14 }}>Carregando...</div>;
 
@@ -601,12 +620,12 @@ function AdherenceTab({ patientId }: { patientId: number }) {
       </div>
 
       {/* ── Heatmap grid ── */}
-      <div className="card cardPad" style={{ overflowX: "auto" }}>
+      <div className="card cardPad" style={{ overflowX: isMobile ? "hidden" : "auto" }}>
         {(() => {
           const today = new Date().toISOString().slice(0, 10);
-          const COL_NAME = 128;
-          const COL_CELL = 36;
-          const CELL_H = 28;
+          const COL_NAME = isMobile ? 96 : 128;
+          const COL_CELL = isMobile ? 32 : 36;
+          const CELL_H   = isMobile ? 26 : 28;
           const cols = `${COL_NAME}px repeat(${dates.length}, ${COL_CELL}px)`;
           const DOW = ["D","S","T","Q","Q","S","S"];
 
