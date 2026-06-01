@@ -58,6 +58,9 @@ import {
 import { NutritionCheckinCard } from "../../features/nutrition/NutritionCheckinCard";
 import { NutriVoiceCard } from "../../features/nutrition/NutriVoiceCard";
 import { useNutriVoiceNote } from "../../features/nutrition/useNutriVoiceNote";
+import { useAdaptiveTraining } from "../../features/training/adaptive/useAdaptiveTraining";
+import { ReadinessPill } from "../../features/training/adaptive/ReadinessPill";
+import { AdaptationBanner } from "../../features/training/adaptive/AdaptationBanner";
 import "./todayPage.css";
 
 const GROUP_LABEL: Record<MuscleGroup, string> = {
@@ -175,6 +178,7 @@ export default function TodayPage() {
   const todayState = useTodayUserState();
   const { note: nutriVoiceNote } = useNutriVoiceNote();
   const showPersonalWorkout = todayState.hasActivePersonal && todayState.hasActiveWorkoutPlan;
+  const adaptive = useAdaptiveTraining(showPersonalWorkout);
   const showPersonalEmpty = todayState.hasActivePersonal && !todayState.hasActiveWorkoutPlan;
   const showSuggestedWorkout =
     todayState.hasAppAccess && !todayState.hasActiveWorkoutPlan && todayState.trainingMode === "self_guided";
@@ -488,9 +492,32 @@ export default function TodayPage() {
       {/* 5a. Treino do personal — quando há ficha ativa prescrita */}
       {showPersonalWorkout && todayState.personal && todayState.activePlan && (
         <motion.div variants={sectionRevealVariants}>
+          {/* Readiness pill — prontidão do dia (verde/amarelo/vermelho) */}
+          {adaptive.data?.readiness && (
+            <div style={{ marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <ReadinessPill readiness={adaptive.data.readiness} />
+              {adaptive.data.readiness.level !== 'green' && (
+                <span style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>
+                  {adaptive.data.readiness.microcopy}
+                </span>
+              )}
+            </div>
+          )}
+          {/* Diff banner — só quando há adaptações */}
+          {adaptive.data?.adaptationEnabled && adaptive.data.changes.length > 0 && (
+            <AdaptationBanner
+              changes={adaptive.data.changes}
+              recoverySuggestion={adaptive.data.recoverySuggestion}
+              exerciseNames={Object.fromEntries(
+                (adaptive.data.adaptedPlanDay?.items ?? []).map(i => [i.exerciseId, i.name])
+              )}
+            />
+          )}
           <PersonalWorkoutCard
             personal={todayState.personal}
-            plan={todayState.activePlan}
+            plan={adaptive.data?.adaptationEnabled && adaptive.data.changes.length > 0
+              ? { ...todayState.activePlan, adaptedDay: adaptive.data.adaptedPlanDay }
+              : todayState.activePlan}
             isMobile={isMobile}
           />
         </motion.div>
