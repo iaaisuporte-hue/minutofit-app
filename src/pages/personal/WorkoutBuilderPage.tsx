@@ -12,8 +12,7 @@ import {
 } from "../../services/workoutProtocolsApi";
 import {
   FeedbackBanner,
-  IconArrowDown,
-  IconArrowUp,
+  IconGrip,
   pillStyle,
   WbButton,
   WbCard,
@@ -443,11 +442,14 @@ export default function WorkoutBuilderPage() {
   const {
     addExercise,
     removeExercise,
-    moveExercise,
+    reorderExercise,
     updateItem,
     setItemTechnique,
     pairBiSet,
   } = useWorkoutBuilderExerciseOps({ selectedDayIdx, setDaysItems });
+  const [dragEnabledIdx, setDragEnabledIdx] = useState<number | null>(null);
+  const [dragIdx, setDragIdx] = useState<number | null>(null);
+  const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
 
   function onStudentSelect(id: string) {
     setSelectedStudentId(id);
@@ -1085,13 +1087,38 @@ export default function WorkoutBuilderPage() {
                   {items.map((it, idx) => (
                     <div
                       key={`row-${selectedDayIdx}-${idx}`}
+                      draggable={dragEnabledIdx === idx}
+                      onDragStart={(e) => {
+                        e.dataTransfer.effectAllowed = "move";
+                        setDragIdx(idx);
+                      }}
+                      onDragOver={(e) => {
+                        if (dragIdx === null || dragIdx === idx) return;
+                        e.preventDefault();
+                        e.dataTransfer.dropEffect = "move";
+                        if (dragOverIdx !== idx) setDragOverIdx(idx);
+                      }}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        if (dragIdx !== null && dragIdx !== idx) reorderExercise(dragIdx, idx);
+                        setDragIdx(null);
+                        setDragOverIdx(null);
+                        setDragEnabledIdx(null);
+                      }}
+                      onDragEnd={() => {
+                        setDragIdx(null);
+                        setDragOverIdx(null);
+                        setDragEnabledIdx(null);
+                      }}
                       style={{
-                        border: `1px solid ${WB.border}`,
+                        border: `1px solid ${dragOverIdx === idx ? WB.primaryBorder : WB.border}`,
                         borderRadius: 9,
                         background: "#FFFFFF",
                         padding: "10px 11px",
                         display: "grid",
                         gap: 7,
+                        opacity: dragIdx === idx ? 0.5 : 1,
+                        boxShadow: dragOverIdx === idx ? `0 0 0 2px ${WB.primarySoft}` : undefined,
                       }}
                     >
                       {/* Row header */}
@@ -1105,21 +1132,13 @@ export default function WorkoutBuilderPage() {
                         <div style={{ display: "flex", gap: 3, flexShrink: 0 }}>
                           <button
                             type="button"
-                            disabled={idx === 0}
-                            onClick={() => moveExercise(idx, -1)}
-                            style={iconBtn(idx === 0)}
-                            title="Mover para cima"
+                            onMouseDown={() => setDragEnabledIdx(idx)}
+                            onMouseUp={() => setDragEnabledIdx(null)}
+                            style={{ ...iconBtn(false), cursor: "grab" }}
+                            title="Arraste para reordenar"
+                            aria-label="Arraste para reordenar"
                           >
-                            <IconArrowUp />
-                          </button>
-                          <button
-                            type="button"
-                            disabled={idx >= items.length - 1}
-                            onClick={() => moveExercise(idx, 1)}
-                            style={iconBtn(idx >= items.length - 1)}
-                            title="Mover para baixo"
-                          >
-                            <IconArrowDown />
+                            <IconGrip />
                           </button>
                           <button
                             type="button"

@@ -74,6 +74,25 @@ export function useWorkoutBuilderExerciseOps({ selectedDayIdx, setDaysItems }: A
     [selectedDayIdx, setDaysItems],
   );
 
+  const reorderExercise = useCallback(
+    (from: number, to: number) => {
+      setDaysItems((prev) => {
+        const dayItems = [...(prev[selectedDayIdx] ?? [])];
+        if (
+          from < 0 || from >= dayItems.length ||
+          to < 0 || to >= dayItems.length ||
+          from === to
+        ) {
+          return prev;
+        }
+        const [moved] = dayItems.splice(from, 1);
+        dayItems.splice(to, 0, moved);
+        return { ...prev, [selectedDayIdx]: dayItems };
+      });
+    },
+    [selectedDayIdx, setDaysItems],
+  );
+
   const updateItem = useCallback(
     (exerciseId: string, patch: Partial<WorkoutExercise>) => {
       setDaysItems((prev) => ({
@@ -162,5 +181,5 @@ export function useWorkoutBuilderExerciseOps({ selectedDayIdx, setDaysItems }: A
     [selectedDayIdx, setDaysItems],
   );
 
-  return { addExercise, removeExercise, moveExercise, updateItem, setItemTechnique, pairBiSet };
+  return { addExercise, removeExercise, moveExercise, reorderExercise, updateItem, setItemTechnique, pairBiSet };
 }
