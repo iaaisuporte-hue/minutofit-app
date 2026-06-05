@@ -15,6 +15,15 @@ function formatDate(value: string) {
   return new Date(value).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" });
 }
 
+/** Traduz códigos de erro da API em mensagens legíveis para o personal. */
+function plansErrorMessage(e: unknown): string {
+  const raw = e instanceof Error ? e.message : "";
+  if (raw === "consent_required") {
+    return "Este aluno ainda não autorizou (ou revogou) o acesso às fichas. Ele controla isso em “Minha equipe” no app dele.";
+  }
+  return raw || "Nao foi possivel carregar as fichas.";
+}
+
 export default function StudentProfilePage() {
   const { studentId } = useParams();
   const navigate = useNavigate();
@@ -36,7 +45,7 @@ export default function StudentProfilePage() {
       setPlansError(null);
     } catch (e) {
       setPlans([]);
-      setPlansError(e instanceof Error ? e.message : "Nao foi possivel carregar as fichas.");
+      setPlansError(plansErrorMessage(e));
     } finally {
       setPlansLoading(false);
     }
@@ -73,7 +82,7 @@ export default function StudentProfilePage() {
       } catch (e) {
         if (!cancelled) {
           setPlans([]);
-          setPlansError(e instanceof Error ? e.message : "Nao foi possivel carregar as fichas.");
+          setPlansError(plansErrorMessage(e));
         }
       } finally {
         if (!cancelled) setPlansLoading(false);

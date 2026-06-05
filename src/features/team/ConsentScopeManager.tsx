@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { COLORS } from '../../styles/colors';
 import type { ConsentEntry, ConsentScope, ProfessionalRole } from './types';
 import { SCOPE_LABELS } from './types';
-import { listConsents, revokeConsent } from './api';
+import { listConsents, revokeConsent, grantConsent } from './api';
 import { Toast } from './Toast';
 
 interface Props {
@@ -42,13 +42,21 @@ export function ConsentScopeManager({
   useEffect(() => { void load(); }, [load]);
 
   const handleToggle = async (scope: ConsentScope, currentStatus: string) => {
-    if (currentStatus !== 'granted') return; // só pode revogar
+    if (togglingScope !== null) return;
+    const granting = currentStatus !== 'granted';
     setTogglingScope(scope);
     try {
-      await revokeConsent(professionalId, professionalRole, scope);
-      setConsents((prev) =>
-        prev.map((c) => (c.scope === scope ? { ...c, status: 'revoked', revokedAt: new Date().toISOString() } : c))
-      );
+      if (granting) {
+        await grantConsent(professionalId, professionalRole, scope);
+        setConsents((prev) =>
+          prev.map((c) => (c.scope === scope ? { ...c, status: 'granted', revokedAt: null } : c))
+        );
+      } else {
+        await revokeConsent(professionalId, professionalRole, scope);
+        setConsents((prev) =>
+          prev.map((c) => (c.scope === scope ? { ...c, status: 'revoked', revokedAt: new Date().toISOString() } : c))
+        );
+      }
     } catch {
       setErrorMsg('Não foi possível alterar a permissão.');
     } finally {
@@ -145,16 +153,16 @@ export function ConsentScopeManager({
                 {/* Toggle visual (sem library — só um checkbox estilizado) */}
                 <button
                   type="button"
-                  disabled={c.status !== 'granted' || togglingScope !== null}
+                  disabled={togglingScope !== null}
                   onClick={() => void handleToggle(c.scope, c.status)}
-                  aria-label={c.status === 'granted' ? `Revogar ${SCOPE_LABELS[c.scope]}` : `${SCOPE_LABELS[c.scope]} bloqueado`}
+                  aria-label={c.status === 'granted' ? `Revogar ${SCOPE_LABELS[c.scope]}` : `Reativar ${SCOPE_LABELS[c.scope]}`}
                   style={{
                     width: 38,
                     height: 22,
                     borderRadius: 11,
                     background: c.status === 'granted' ? COLORS.primary : COLORS.borderStrong,
                     border: 'none',
-                    cursor: c.status === 'granted' ? 'pointer' : 'default',
+                    cursor: togglingScope !== null ? 'wait' : 'pointer',
                     position: 'relative',
                     transition: 'background 0.2s',
                     flexShrink: 0,

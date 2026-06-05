@@ -101,6 +101,19 @@ export async function revokeConsent(
   if (!res.ok) throw new Error('revoke_consent_failed');
 }
 
+export async function grantConsent(
+  professionalId: number,
+  role: ProfessionalRole,
+  scope: ConsentScope
+): Promise<void> {
+  const res = await authFetch(`${BASE}/consents/grant`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ professionalId, role, scope }),
+  });
+  if (!res.ok) throw new Error('grant_consent_failed');
+}
+
 export async function listIncomingRequests(role: ProfessionalRole): Promise<ProfessionalRequest[]> {
   const res = await authFetch(`${BASE}/incoming-requests/${role}`);
   const payload = await parseJson(res);
