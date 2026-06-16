@@ -61,6 +61,7 @@ import { useNutriVoiceNote } from "../../features/nutrition/useNutriVoiceNote";
 import { useAdaptiveTraining } from "../../features/training/adaptive/useAdaptiveTraining";
 import { ReadinessPill } from "../../features/training/adaptive/ReadinessPill";
 import { AdaptationBanner } from "../../features/training/adaptive/AdaptationBanner";
+import { usePushSubscription } from "../../features/nutrition/usePushSubscription";
 import "./todayPage.css";
 
 const GROUP_LABEL: Record<MuscleGroup, string> = {
@@ -194,6 +195,7 @@ export default function TodayPage() {
   const hasWeeklyLoopInsights = useHasWeeklyLoopInsights(dailyCondition);
   const { conversation: incomingMessage, dismissLocally: dismissIncomingMessage } =
     useLatestUnreadFromProfessional({ enabled: canMessages });
+  usePushSubscription();
 
   const onboarding = useMemo(() => (userId ? loadAnswers(userId) : null), [userId]);
   const yesterdayMuscleGroups = getYesterdayMuscleGroups();
