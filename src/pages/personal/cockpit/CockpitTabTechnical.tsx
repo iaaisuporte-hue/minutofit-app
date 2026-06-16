@@ -11,7 +11,7 @@ type Props = {
 type SubTab = "notes" | "adaptation";
 
 export function CockpitTabTechnical({ studentId, highlights, onSaved }: Props) {
-  const [subTab, setSubTab] = useState<SubTab>("notes");
+  const [subTab, setSubTab] = useState<SubTab>("adaptation");
 
   return (
     <div>

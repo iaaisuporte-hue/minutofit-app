@@ -9,7 +9,6 @@ import {
   deriveMetabolicForecast,
 } from "../../../features/metabolism/metabolismDerivations";
 import type {
-  PersonalStudentActivity,
   PersonalStudentSnapshot,
 } from "../../../services/personalDashboardApi";
 import { suggestCockpitAction, type CockpitTabId } from "../lib/cockpitActions";
@@ -23,11 +22,29 @@ import {
 
 type Props = {
   data: PersonalStudentSnapshot;
-  activities: PersonalStudentActivity[];
   onTabChange: (tab: CockpitTabId) => void;
 };
 
-export function CockpitTabToday({ data, activities, onTabChange }: Props) {
+type ReadinessLevel = "green" | "yellow" | "red" | "unknown";
+
+function deriveReadinessFromWellbeing(
+  wellbeing: PersonalStudentSnapshot["today"]["wellbeing"]
+): ReadinessLevel {
+  if (!wellbeing) return "unknown";
+  if (wellbeing.inPain === true) return "red";
+  if (wellbeing.feeling === "tired" && wellbeing.sleptWell === false) return "red";
+  if (wellbeing.sleptWell === false || wellbeing.feeling === "tired" || wellbeing.stressed === true) return "yellow";
+  return "green";
+}
+
+const READINESS_CONFIG: Record<ReadinessLevel, { label: string; color: string; bg: string }> = {
+  green:   { label: "Pronto para treinar",    color: "var(--color-success-text)", bg: "var(--color-success-soft, #e8f9ef)" },
+  yellow:  { label: "Dia de ajuste de carga", color: "var(--color-warn, #b35a00)", bg: "var(--color-warn-soft, #fff8e1)" },
+  red:     { label: "Recuperação indicada",   color: "var(--color-danger, #c00)", bg: "var(--color-danger-soft, #fff0f0)" },
+  unknown: { label: "Sem check-in hoje",      color: COLORS.muted,                bg: "transparent" },
+};
+
+export function CockpitTabToday({ data, onTabChange }: Props) {
   const workoutsThisWeek = useMemo(
     () => data.week.days.filter((d) => d.workedOut).length,
     [data.week.days]
@@ -61,6 +78,12 @@ export function CockpitTabToday({ data, activities, onTabChange }: Props) {
 
   const derivedEnergy = useMemo(() => deriveEnergyStatus(metabolicData), [metabolicData]);
 
+  const readinessLevel = useMemo(
+    () => deriveReadinessFromWellbeing(data.today.wellbeing),
+    [data.today.wellbeing]
+  );
+  const readinessCfg = READINESS_CONFIG[readinessLevel];
+
   return (
     <>
       {metabolicData ? (
@@ -92,6 +115,78 @@ export function CockpitTabToday({ data, activities, onTabChange }: Props) {
         </div>
       )}
 
+      {/* Prontidão derivada dos sinais de bem-estar do check-in */}
+      <Surface>
+        <div style={{ display: "grid", gap: 10 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
+            <div style={{ fontWeight: 650, color: COLORS.text }}>Prontidão de hoje</div>
+            {readinessLevel !== "unknown" && (
+              <span
+                style={{
+                  padding: "3px 10px",
+                  borderRadius: 20,
+                  fontSize: 12,
+                  fontWeight: 600,
+                  color: readinessCfg.color,
+                  background: readinessCfg.bg,
+                  border: `1px solid ${readinessCfg.color}33`,
+                }}
+              >
+                {readinessCfg.label}
+              </span>
+            )}
+          </div>
+
+          {data.today.wellbeing ? (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              {data.today.wellbeing.feeling ? (
+                <span className="pp-meta-chip">
+                  Humor:{" "}
+                  {data.today.wellbeing.feeling === "energized"
+                    ? "Disposto"
+                    : data.today.wellbeing.feeling === "tired"
+                      ? "Cansado"
+                      : "Normal"}
+                </span>
+              ) : null}
+              {data.today.wellbeing.sleptWell != null ? (
+                <span className="pp-meta-chip">
+                  Sono: {data.today.wellbeing.sleptWell ? "ok" : "ruim"}
+                </span>
+              ) : null}
+              {data.today.wellbeing.inPain != null ? (
+                <span className={`pp-meta-chip${data.today.wellbeing.inPain ? " pp-badge--danger" : ""}`}>
+                  Dor: {data.today.wellbeing.inPain ? "sim" : "não"}
+                </span>
+              ) : null}
+              {data.today.wellbeing.stressed != null ? (
+                <span className="pp-meta-chip">
+                  Estresse: {data.today.wellbeing.stressed ? "sim" : "não"}
+                </span>
+              ) : null}
+            </div>
+          ) : (
+            <div style={{ fontSize: 12, color: COLORS.muted }}>
+              {data.today.checkedInToday
+                ? "Check-in sem sinais de bem-estar registrados."
+                : "Aluno ainda não fez check-in hoje."}
+            </div>
+          )}
+
+          {/* CTA para configurar adaptação automática */}
+          {(readinessLevel === "yellow" || readinessLevel === "red") && (
+            <button
+              type="button"
+              className="pp-btn pp-btn--ghost pp-btn--sm"
+              style={{ alignSelf: "flex-start", marginTop: 4 }}
+              onClick={() => onTabChange("technical")}
+            >
+              Ajustar adaptação automática
+            </button>
+          )}
+        </div>
+      </Surface>
+
       {cockpitSuggestion ? (
         <Surface>
           <div className="pp-kicker">Próxima ação sugerida</div>
@@ -108,9 +203,7 @@ export function CockpitTabToday({ data, activities, onTabChange }: Props) {
               ? "Ir para Técnica"
               : cockpitSuggestion.tab === "week"
                 ? "Ir para Semana"
-                : cockpitSuggestion.tab === "history"
-                  ? "Ir para Histórico"
-                  : "Ir para Hoje"}
+                : "Ir para Hoje"}
           </button>
         </Surface>
       ) : null}
@@ -185,89 +278,8 @@ export function CockpitTabToday({ data, activities, onTabChange }: Props) {
               }
             />
           </div>
-          {data.today.wellbeing ? (
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 10 }}>
-              {data.today.wellbeing.feeling ? (
-                <span className="badge badge-accent" style={{ fontSize: 11 }}>
-                  Humor:{" "}
-                  {data.today.wellbeing.feeling === "energized"
-                    ? "Disposto"
-                    : data.today.wellbeing.feeling === "tired"
-                      ? "Cansado"
-                      : "Normal"}
-                </span>
-              ) : null}
-              {data.today.wellbeing.sleptWell != null ? (
-                <span className="badge" style={{ fontSize: 11 }}>
-                  Sono: {data.today.wellbeing.sleptWell ? "ok" : "ruim"}
-                </span>
-              ) : null}
-              {data.today.wellbeing.inPain != null ? (
-                <span className="badge" style={{ fontSize: 11 }}>
-                  Dor: {data.today.wellbeing.inPain ? "sim" : "não"}
-                </span>
-              ) : null}
-              {data.today.wellbeing.stressed != null ? (
-                <span className="badge" style={{ fontSize: 11 }}>
-                  Estresse: {data.today.wellbeing.stressed ? "sim" : "não"}
-                </span>
-              ) : null}
-            </div>
-          ) : (
-            <div style={{ fontSize: 12, color: COLORS.muted, marginTop: 8 }}>
-              Sem sinais de humor ou recuperação no último check-in.
-            </div>
-          )}
         </div>
       </Surface>
-
-      {data.today.latestActivity ? (
-        <Surface>
-          <div style={{ display: "grid", gap: 6 }}>
-            <div style={{ fontWeight: 650, color: COLORS.text }}>Atividade mais recente (GPS)</div>
-            <div style={{ fontWeight: 700 }}>{data.today.latestActivity.type}</div>
-            <div style={{ color: COLORS.muted, fontSize: 13 }}>
-              {data.today.latestActivity.distanceKm.toFixed(2)} km ·{" "}
-              {data.today.latestActivity.durationMinutes} min
-              {data.today.latestActivity.score != null
-                ? ` · score ${data.today.latestActivity.score}`
-                : ""}
-              {data.today.latestActivity.caloriesEstimated != null
-                ? ` · ~${data.today.latestActivity.caloriesEstimated} kcal`
-                : ""}
-              {data.today.latestActivity.validationFlag ? " · validada" : ""}
-              {" · "}
-              {formatDateTime(data.today.latestActivity.createdAt)}
-            </div>
-          </div>
-        </Surface>
-      ) : null}
-
-      {activities.length > 0 ? (
-        <Surface>
-          <div style={{ fontWeight: 650, color: COLORS.text, marginBottom: 8 }}>Últimas sessões GPS</div>
-          <div style={{ display: "grid", gap: 8 }}>
-            {activities.slice(0, 5).map((a) => (
-              <div
-                key={a.id}
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  gap: 8,
-                  fontSize: 13,
-                  color: COLORS.muted,
-                }}
-              >
-                <span style={{ fontWeight: 600, color: COLORS.text }}>{a.activityType}</span>
-                <span>
-                  {a.distanceKm.toFixed(1)} km · {Math.round(a.durationSeconds / 60)} min
-                  {a.score != null ? ` · ${a.score}` : ""}
-                </span>
-              </div>
-            ))}
-          </div>
-        </Surface>
-      ) : null}
     </>
   );
 }

@@ -4,18 +4,15 @@ import { COLORS } from "../../styles/colors";
 import { Skeleton } from "../../components/feedback/Skeleton";
 import { DrawerShell } from "../../components/overlay/DrawerShell";
 import {
-  fetchPersonalStudentActivities,
   fetchPersonalStudentSnapshot,
   type PersonalDashboardEngagementStatus,
   type PersonalDashboardPlan,
   type PersonalDashboardRisk,
-  type PersonalStudentActivity,
   type PersonalStudentSnapshot,
 } from "../../services/personalDashboardApi";
 import type { CockpitTabId } from "./lib/cockpitActions";
 import { CockpitTabToday } from "./cockpit/CockpitTabToday";
 import { CockpitTabWeek } from "./cockpit/CockpitTabWeek";
-import { CockpitTabHistory } from "./cockpit/CockpitTabHistory";
 import { CockpitTabTechnical } from "./cockpit/CockpitTabTechnical";
 import { CockpitTabRelationship } from "./cockpit/CockpitTabRelationship";
 import "./personalPremium.css";
@@ -78,7 +75,6 @@ export default function StudentProfileModal({
   const [data, setData] = useState<PersonalStudentSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activities, setActivities] = useState<PersonalStudentActivity[]>([]);
 
   const loadSnapshot = useCallback(async () => {
     try {
@@ -110,19 +106,6 @@ export default function StudentProfileModal({
     return undefined;
   }, [onClose, variant]);
 
-  useEffect(() => {
-    let active = true;
-    void (async () => {
-      try {
-        const rows = await fetchPersonalStudentActivities(studentId, 10);
-        if (!active) return;
-        setActivities(rows ?? []);
-      } catch {
-        if (active) setActivities([]);
-      }
-    })();
-    return () => { active = false; };
-  }, [studentId]);
 
   const drawerInner = (
     <>
@@ -190,17 +173,14 @@ export default function StudentProfileModal({
           <button type="button" className="pp-tab" aria-selected={tab === "today"} onClick={() => setTab("today")}>
             Hoje
           </button>
-          <button type="button" className="pp-tab" aria-selected={tab === "week"} onClick={() => setTab("week")}>
-            Semana
-          </button>
-          <button type="button" className="pp-tab" aria-selected={tab === "history"} onClick={() => setTab("history")}>
-            Histórico
-          </button>
           <button type="button" className="pp-tab" aria-selected={tab === "technical"} onClick={() => setTab("technical")}>
             Técnica
           </button>
           <button type="button" className="pp-tab" aria-selected={tab === "relationship"} onClick={() => setTab("relationship")}>
             Relacionamento
+          </button>
+          <button type="button" className="pp-tab" aria-selected={tab === "week"} onClick={() => setTab("week")}>
+            Semana
           </button>
         </div>
       ) : null}
@@ -226,15 +206,11 @@ export default function StudentProfileModal({
       ) : null}
 
       {!loading && !error && data && tab === "today" ? (
-        <CockpitTabToday data={data} activities={activities} onTabChange={setTab} />
+        <CockpitTabToday data={data} onTabChange={setTab} />
       ) : null}
 
       {!loading && !error && data && tab === "week" ? (
         <CockpitTabWeek data={data} />
-      ) : null}
-
-      {!loading && !error && data && tab === "history" ? (
-        <CockpitTabHistory data={data} />
       ) : null}
 
       {!loading && !error && data && tab === "technical" ? (
