@@ -10,6 +10,10 @@ import { ConfirmModal } from "../../features/team/ConfirmModal";
 import { Toast } from "../../features/team/Toast";
 import { persistGamificationCheckin } from "../../services/gamificationApi";
 import { addWorkoutHistoryEntry, type MuscleGroup } from "../user/workoutHistory";
+import { useAdaptiveTraining } from "../../features/training/adaptive/useAdaptiveTraining";
+import type { AdaptiveTodayResponse } from "../../services/trainingAdaptiveApi";
+import { ReadinessPill } from "../../features/training/adaptive/ReadinessPill";
+import { AdaptationBanner } from "../../features/training/adaptive/AdaptationBanner";
 
 function formatDate(value: string) {
   try {
@@ -431,9 +435,10 @@ type PlanCardProps = {
   isOpen: boolean;
   onToggle: () => void;
   onAbandon: () => void;
+  adaptiveData?: AdaptiveTodayResponse | null;
 };
 
-function PlanCard({ plan, isOpen, onToggle, onAbandon }: PlanCardProps) {
+function PlanCard({ plan, isOpen, onToggle, onAbandon, adaptiveData }: PlanCardProps) {
   const [activeDayIdx, setActiveDayIdx] = useState(0);
   const [isRegistering, setIsRegistering] = useState(false);
   const [registeredToday, setRegisteredToday] = useState(false);
@@ -466,6 +471,14 @@ function PlanCard({ plan, isOpen, onToggle, onAbandon }: PlanCardProps) {
 
   const activeDay = days[activeDayIdx] ?? days[0];
   const hasExercises = (activeDay?.items?.length ?? 0) > 0;
+
+  // Inject adapted items when this day matches what the engine adapted today
+  const displayDay = useMemo<UserWorkoutPlanDay>(() => {
+    if (!adaptiveData?.adaptationEnabled || !adaptiveData.changes.length) return activeDay;
+    if (activeDay?.index !== adaptiveData.adaptedPlanDay.index) return activeDay;
+    return { ...activeDay, items: adaptiveData.adaptedPlanDay.items as UserWorkoutPlanItem[] };
+  }, [activeDay, adaptiveData]);
+  const isAdaptedDay = displayDay !== activeDay;
 
   async function handleCompleteSession() {
     if (isRegistering || registeredToday) return;
@@ -580,9 +593,24 @@ function PlanCard({ plan, isOpen, onToggle, onAbandon }: PlanCardProps) {
             </div>
           ) : null}
 
+          {isAdaptedDay && adaptiveData?.readiness && (
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ marginBottom: 6 }}>
+                <ReadinessPill readiness={adaptiveData.readiness} />
+              </div>
+              <AdaptationBanner
+                changes={adaptiveData.changes}
+                recoverySuggestion={adaptiveData.recoverySuggestion}
+                exerciseNames={Object.fromEntries(
+                  adaptiveData.adaptedPlanDay.items.map(i => [i.exerciseId, i.name])
+                )}
+              />
+            </div>
+          )}
+
           <PlanDayExerciseList
             key={`${plan.id}-day-${activeDayIdx}`}
-            day={days[activeDayIdx] ?? days[0]}
+            day={displayDay}
             planId={plan.id}
           />
 
@@ -710,6 +738,7 @@ export default function MyWorkoutPlansPage() {
   const [abandonTarget, setAbandonTarget] = useState<UserWorkoutPlan | null>(null);
   const [abandoning, setAbandoning] = useState(false);
   const [toast, setToast] = useState<{ message: string; kind: "success" | "error" } | null>(null);
+  const adaptive = useAdaptiveTraining(!loading && plans.length > 0);
 
   const handleAbandonConfirmed = useCallback(async () => {
     if (!abandonTarget) return;
@@ -814,13 +843,14 @@ export default function MyWorkoutPlansPage() {
         </div>
       ) : null}
 
-      {plans.map((plan) => (
+      {plans.map((plan, idx) => (
         <PlanCard
           key={plan.id}
           plan={plan}
           isOpen={openPlanId === plan.id}
           onToggle={() => togglePlan(plan.id)}
           onAbandon={() => setAbandonTarget(plan)}
+          adaptiveData={idx === 0 ? adaptive.data : undefined}
         />
       ))}
 
