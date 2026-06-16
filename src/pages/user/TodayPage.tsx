@@ -198,6 +198,18 @@ export default function TodayPage() {
   const onboarding = useMemo(() => (userId ? loadAnswers(userId) : null), [userId]);
   const yesterdayMuscleGroups = getYesterdayMuscleGroups();
 
+  // When adaptation is active, patch the plan days to show adapted items so the card
+  // reflects the values the student should actually execute today.
+  const planForCard = useMemo(() => {
+    const plan = todayState.activePlan;
+    if (!plan || !adaptive.data?.adaptationEnabled || adaptive.data.changes.length === 0) return plan;
+    const adaptedDay = adaptive.data.adaptedPlanDay;
+    const days = plan.days.map(d =>
+      d.index === adaptedDay.index ? { ...d, items: adaptedDay.items as typeof d.items } : d
+    );
+    return { ...plan, days };
+  }, [todayState.activePlan, adaptive.data]);
+
   const streak = gamification?.streak ?? 0;
   const todayCheckedIn = gamification?.todayCheckedIn ?? false;
 
@@ -468,7 +480,7 @@ export default function TodayPage() {
               comunica o diff (original × hoje) quando há ajuste. */}
           <PersonalWorkoutCard
             personal={todayState.personal}
-            plan={todayState.activePlan}
+            plan={planForCard ?? todayState.activePlan}
             isMobile={isMobile}
           />
         </motion.div>
