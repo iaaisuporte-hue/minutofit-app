@@ -272,35 +272,28 @@ export default function DashboardPage() {
         </div>
 
         <div
-          className="pp-actions"
           style={{
             alignSelf: "flex-start",
-            display: "grid",
-            gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+            display: "flex",
+            flexDirection: "column",
             gap: 8,
-            minWidth: 280,
+            minWidth: 220,
           }}
         >
           <button type="button" className="pp-btn pp-btn--primary" onClick={() => navigate(routes.messages())}>
             Abrir mensagens
           </button>
-          <button type="button" className="pp-btn pp-btn--ghost" onClick={() => navigate(routes.students())}>
-            Ver alunos
-          </button>
-          <button type="button" className="pp-btn pp-btn--ghost" onClick={() => navigate(routes.students() + "?action=invite")}>
-            Convidar por link
-          </button>
-          <button type="button" className="pp-btn pp-btn--primary" onClick={() => navigate(routes.students() + "?action=register")}>
-            Cadastrar aluno
-          </button>
-          <button
-            type="button"
-            className="pp-btn pp-btn--ghost"
-            onClick={() => navigate(routes.review())}
-            style={{ gridColumn: "1 / -1" }}
-          >
-            Revisões
-          </button>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <button type="button" className="pp-btn pp-btn--ghost pp-btn--sm" onClick={() => navigate(routes.students())}>
+              Ver alunos
+            </button>
+            <button type="button" className="pp-btn pp-btn--ghost pp-btn--sm" onClick={() => navigate(routes.students() + "?action=register")}>
+              Cadastrar
+            </button>
+            <button type="button" className="pp-btn pp-btn--ghost pp-btn--sm" onClick={() => navigate(routes.review())}>
+              Revisões
+            </button>
+          </div>
         </div>
       </div>
 
