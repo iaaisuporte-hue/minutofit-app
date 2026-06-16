@@ -3,8 +3,10 @@ import { Link } from "react-router-dom";
 import {
   fetchAdminDashboardMetrics,
   fetchAdminPlatformHealth,
+  fetchAdminLoopMetrics,
   type AdminDashboardMetrics,
   type AdminPlatformHealth,
+  type AdminLoopMetrics,
 } from "../../services/adminApi";
 
 // ── Helpers ───────────────────────────────────────────────────────
@@ -89,6 +91,7 @@ function MetabolismBar({
 export default function AdminDashboardPage() {
   const [metricsData, setMetricsData] = useState<AdminDashboardMetrics | null>(null);
   const [healthData, setHealthData]   = useState<AdminPlatformHealth | null>(null);
+  const [loopData, setLoopData]       = useState<AdminLoopMetrics | null>(null);
   const [loading, setLoading]         = useState(true);
   const [error, setError]             = useState<string | null>(null);
   const [alertFilter, setAlertFilter] = useState<"all" | "critical" | "attention">("all");
@@ -97,12 +100,14 @@ export default function AdminDashboardPage() {
     setLoading(true);
     setError(null);
     try {
-      const [metrics, health] = await Promise.all([
+      const [metrics, health, loop] = await Promise.all([
         fetchAdminDashboardMetrics(),
         fetchAdminPlatformHealth().catch(() => null),
+        fetchAdminLoopMetrics(30).catch(() => null),
       ]);
       setMetricsData(metrics);
       setHealthData(health);
+      setLoopData(loop);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Falha ao carregar dashboard.");
     } finally {
@@ -310,6 +315,84 @@ export default function AdminDashboardPage() {
               <div className="dash-section-sub" style={{ marginTop: "var(--space-2)" }}>
                 Sinais metabólicos em formação. Os indicadores de aderência, atividade e score
                 serão calculados após os primeiros check-ins e sessões dos alunos.
+              </div>
+            </div>
+          )}
+
+          {/* ── Bloco 1b: Loop adaptativo — KPIs de retenção ─────── */}
+          {loopData && (
+            <div className="dash-operational-block">
+              <div className="dash-operational-header">
+                <span className="dash-eyebrow" style={{ marginBottom: 0 }}>Loop adaptativo</span>
+                <span className="dash-operational-title">últimos {loopData.windowDays} dias</span>
+              </div>
+              <div className="dash-kpi-grid">
+                <div className="dash-kpi-item">
+                  <div className="dash-kpi-item-label">Check-in D7</div>
+                  <div className={`dash-kpi-item-value${
+                    loopData.checkinD7.d7_retention_pct !== null && loopData.checkinD7.d7_retention_pct >= 50
+                      ? " dash-kpi-item-value--ok"
+                      : loopData.checkinD7.d7_retention_pct !== null
+                        ? " dash-kpi-item-value--warn"
+                        : ""
+                  }`}>
+                    {loopData.checkinD7.d7_retention_pct !== null
+                      ? `${loopData.checkinD7.d7_retention_pct}%`
+                      : "—"}
+                  </div>
+                  <div className="dash-kpi-item-note">
+                    {loopData.checkinD7.retained}/{loopData.checkinD7.cohort_size} retidos no D7
+                  </div>
+                </div>
+
+                <div className="dash-kpi-item">
+                  <div className="dash-kpi-item-label">Treinos adaptados</div>
+                  <div className={`dash-kpi-item-value${
+                    loopData.adaptationRate.pct_adapted !== null && loopData.adaptationRate.pct_adapted > 0
+                      ? " dash-kpi-item-value--ok"
+                      : ""
+                  }`}>
+                    {loopData.adaptationRate.pct_adapted !== null
+                      ? `${loopData.adaptationRate.pct_adapted}%`
+                      : "—"}
+                  </div>
+                  <div className="dash-kpi-item-note">
+                    {loopData.adaptationRate.with_changes}/{loopData.adaptationRate.total_logs} com ajuste
+                  </div>
+                </div>
+
+                <div className="dash-kpi-item">
+                  <div className="dash-kpi-item-label">Viu o diff</div>
+                  <div className={`dash-kpi-item-value${
+                    loopData.bannerEngagement.pct_banner_viewed !== null && loopData.bannerEngagement.pct_banner_viewed >= 30
+                      ? " dash-kpi-item-value--ok"
+                      : loopData.bannerEngagement.pct_banner_viewed !== null
+                        ? " dash-kpi-item-value--warn"
+                        : ""
+                  }`}>
+                    {loopData.bannerEngagement.pct_banner_viewed !== null
+                      ? `${loopData.bannerEngagement.pct_banner_viewed}%`
+                      : "—"}
+                  </div>
+                  <div className="dash-kpi-item-note">
+                    {loopData.bannerEngagement.banner_views} expansões do banner
+                  </div>
+                </div>
+
+                <div className="dash-kpi-item">
+                  <div className="dash-kpi-item-label">Prontidão hoje</div>
+                  <div className="dash-kpi-item-value">
+                    {(() => {
+                      const dist = loopData.readinessDistribution;
+                      const g = dist.find(d => d.readiness_level === "green")?.count ?? 0;
+                      const y = dist.find(d => d.readiness_level === "yellow")?.count ?? 0;
+                      const r = dist.find(d => d.readiness_level === "red")?.count ?? 0;
+                      if (g + y + r === 0) return "—";
+                      return `${g}v ${y}a ${r}vm`;
+                    })()}
+                  </div>
+                  <div className="dash-kpi-item-note">verde · amarelo · vermelho</div>
+                </div>
               </div>
             </div>
           )}

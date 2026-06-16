@@ -24,6 +24,7 @@ import {
 import { InsightsStrip } from "../../features/personalRetention/InsightsStrip";
 import { IncomingRequestsPanel } from "../../features/team";
 import { FinancePanel } from "../../features/personalRetention/FinancePanel";
+import { PersonalWelcomeCard } from "./PersonalWelcomeCard";
 import { QuickMessageModal } from "../../features/personalRetention/QuickMessageModal";
 import "./personalPremium.css";
 
@@ -301,6 +302,13 @@ export default function DashboardPage() {
       <div style={{ marginTop: 12 }}>
         <IncomingRequestsPanel role="personal" />
       </div>
+
+      {!loading && !error && (
+        <PersonalWelcomeCard
+          firstName={user?.name?.split(" ")[0] ?? "personal"}
+          hasStudents={students.length > 0}
+        />
+      )}
 
       {/* Estado da carteira: distribuição + filtros + KPI strip — fora do hero, em camadas claras */}
       {students.length > 0 ? (

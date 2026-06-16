@@ -288,6 +288,35 @@ export async function updateAdminPlatformProtocol(
   return data?.data as WorkoutProtocol;
 }
 
+export interface AdminLoopMetrics {
+  windowDays: number;
+  checkinD7: {
+    cohort_size: number;
+    retained: number;
+    d7_retention_pct: number | null;
+  };
+  adaptationRate: {
+    total_logs: number;
+    with_changes: number;
+    pct_adapted: number | null;
+  };
+  readinessDistribution: Array<{ readiness_level: string; count: number }>;
+  bannerEngagement: {
+    adapted_with_changes: number;
+    banner_views: number;
+    pct_banner_viewed: number | null;
+  };
+  dailyCheckinUsers: Array<{ day: string; users: number }>;
+}
+
+export async function fetchAdminLoopMetrics(days = 30): Promise<AdminLoopMetrics | null> {
+  if (!getAccessToken()) return null;
+  const response = await authFetch(`${API_URL}/admin/dashboard/loop-metrics?days=${days}`);
+  if (!response.ok) return null;
+  const data = await parseJson(response);
+  return data?.data as AdminLoopMetrics ?? null;
+}
+
 export async function deleteAdminUser(userId: string) {
   const response = await authFetch(`${API_URL}/admin/users/${userId}`, {
     method: "DELETE",
