@@ -435,61 +435,12 @@ export default function TodayPage() {
         />
       </motion.div>
 
-      {/* 1.5. Plano alimentar — check-in diário (silencioso: não renderiza se sem plano) */}
-      <motion.div variants={sectionRevealVariants}>
-        <NutritionCheckinCard />
-      </motion.div>
+      {/* ESPINHA DO LOOP — check-in (gatilho) → treino adaptado (payoff), coladas.
+          O treino do personal vem logo após o check-in; score/gráfico (progresso)
+          são combustível e ficam abaixo. Cards de nutri/academia/sugerido se
+          auto-escondem para o aluno do personal (condições próprias). */}
 
-      {/* 1.6. Voz da nutricionista — nota publicada nas últimas 72h */}
-      {nutriVoiceNote && (
-        <motion.div variants={sectionRevealVariants}>
-          <NutriVoiceCard note={nutriVoiceNote} />
-        </motion.div>
-      )}
-
-      {/* 2. Âncora metabólica — empty state quando sem dados; card completo quando há histórico */}
-      <motion.div variants={sectionRevealVariants}>
-        {!metabolismLoading && !metabolism ? (
-          <EmptyMetabolismHero />
-        ) : (
-          <MetabolicScoreCard
-            data={metabolism}
-            loading={metabolismLoading}
-            error={metabolismError}
-            derivedStatus={adjustedEnergy}
-            forecast={forecast}
-            conditionContext={conditionSignals.length > 0 ? { signals: conditionSignals } : null}
-            trendStrip={{ records: metabolicCheckins, loading: metabolicCheckinsLoading }}
-            nudge={{ state: metabolicNudge, onOpen: () => setShowMetabolicCheckin(true) }}
-          />
-        )}
-      </motion.div>
-
-      {/* 2.3. Voz do profissional — só com observação real (sem placeholder genérico). */}
-      {showProfessionalVoice && (
-        <motion.div variants={sectionRevealVariants}>
-          <ProfessionalVoiceCard
-            personal={todayState.personal}
-            nutri={todayState.nutri}
-            criticalSignals={criticalSignals}
-          />
-        </motion.div>
-      )}
-
-      {/* 3. Histórico metabólico + loop de sinais semanais (agrupados visualmente) */}
-      <motion.div variants={sectionRevealVariants} style={{ display: 'grid', gap: 12 }}>
-        <MetabolicChart
-          data={metabolismHistory}
-          loading={historyLoading}
-          forecast={forecast}
-          markers={markers}
-          days={historyDays}
-          onDaysChange={setHistoryDays}
-        />
-        {hasWeeklyLoopInsights && <WeeklyLoopCard condition={dailyCondition} />}
-      </motion.div>
-
-      {/* 5a. Treino do personal — quando há ficha ativa prescrita */}
+      {/* 2 (payoff). Treino do personal — quando há ficha ativa prescrita */}
       {showPersonalWorkout && todayState.personal && todayState.activePlan && (
         <motion.div variants={sectionRevealVariants}>
           {/* Readiness pill — prontidão do dia (verde/amarelo/vermelho) */}
@@ -523,7 +474,7 @@ export default function TodayPage() {
         </motion.div>
       )}
 
-      {/* 5b. Personal vinculado, ainda sem ficha — estado vazio com ação */}
+      {/* 2b. Personal vinculado, ainda sem ficha — estado vazio com ação */}
       {showPersonalEmpty && todayState.personal && (
         <motion.div variants={sectionRevealVariants}>
           <PersonalEmptyState
@@ -531,6 +482,60 @@ export default function TodayPage() {
             isMobile={isMobile}
             fallbackWorkout={homeWorkout}
           />
+        </motion.div>
+      )}
+
+      {/* 3. Voz do profissional — presença, logo após o treino */}
+      {showProfessionalVoice && (
+        <motion.div variants={sectionRevealVariants}>
+          <ProfessionalVoiceCard
+            personal={todayState.personal}
+            nutri={todayState.nutri}
+            criticalSignals={criticalSignals}
+          />
+        </motion.div>
+      )}
+
+      {/* 4. Progresso — âncora metabólica (combustível, não manchete: abaixo do treino) */}
+      <motion.div variants={sectionRevealVariants}>
+        {!metabolismLoading && !metabolism ? (
+          <EmptyMetabolismHero />
+        ) : (
+          <MetabolicScoreCard
+            data={metabolism}
+            loading={metabolismLoading}
+            error={metabolismError}
+            derivedStatus={adjustedEnergy}
+            forecast={forecast}
+            conditionContext={conditionSignals.length > 0 ? { signals: conditionSignals } : null}
+            trendStrip={{ records: metabolicCheckins, loading: metabolicCheckinsLoading }}
+            nudge={{ state: metabolicNudge, onOpen: () => setShowMetabolicCheckin(true) }}
+          />
+        )}
+      </motion.div>
+
+      {/* 5. Progresso — histórico metabólico + loop de sinais semanais */}
+      <motion.div variants={sectionRevealVariants} style={{ display: 'grid', gap: 12 }}>
+        <MetabolicChart
+          data={metabolismHistory}
+          loading={historyLoading}
+          forecast={forecast}
+          markers={markers}
+          days={historyDays}
+          onDaysChange={setHistoryDays}
+        />
+        {hasWeeklyLoopInsights && <WeeklyLoopCard condition={dailyCondition} />}
+      </motion.div>
+
+      {/* 6. Plano alimentar — só renderiza para quem tem nutri (silencioso caso contrário) */}
+      <motion.div variants={sectionRevealVariants}>
+        <NutritionCheckinCard />
+      </motion.div>
+
+      {/* 6.1. Voz da nutricionista — nota publicada nas últimas 72h */}
+      {nutriVoiceNote && (
+        <motion.div variants={sectionRevealVariants}>
+          <NutriVoiceCard note={nutriVoiceNote} />
         </motion.div>
       )}
 
