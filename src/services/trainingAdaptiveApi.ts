@@ -105,6 +105,18 @@ export async function patchAdaptationPolicy(
   return data.data as AdaptationPolicy;
 }
 
+export async function trackAdaptationBannerViewed(payload?: Record<string, unknown>): Promise<void> {
+  try {
+    await authFetch(`${API_URL}/training/events`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ eventType: 'training.adaptation.viewed', payload: payload ?? {} }),
+    });
+  } catch {
+    // fire-and-forget; never throws
+  }
+}
+
 export async function fetchAdaptationLog(studentId: number, params?: { from?: string; to?: string; limit?: number }) {
   const qs = new URLSearchParams();
   if (params?.from) qs.set('from', params.from);

@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import type { AdaptationChange, RecoverySuggestion } from '../../../services/trainingAdaptiveApi';
+import { trackAdaptationBannerViewed } from '../../../services/trainingAdaptiveApi';
 
 interface Props {
   changes: AdaptationChange[];
@@ -18,6 +19,7 @@ const FIELD_LABEL: Record<string, string> = {
 
 export function AdaptationBanner({ changes, recoverySuggestion, exerciseNames = {} }: Props) {
   const [expanded, setExpanded] = useState(false);
+  const trackedRef = useRef(false);
 
   if (changes.length === 0 && !recoverySuggestion) return null;
 
@@ -27,6 +29,14 @@ export function AdaptationBanner({ changes, recoverySuggestion, exerciseNames = 
     const list = byExercise.get(c.exerciseId) ?? [];
     list.push(c);
     byExercise.set(c.exerciseId, list);
+  }
+
+  function handleToggle() {
+    if (!expanded && !trackedRef.current) {
+      trackedRef.current = true;
+      void trackAdaptationBannerViewed({ changesCount: changes.length });
+    }
+    setExpanded(v => !v);
   }
 
   return (
@@ -43,7 +53,7 @@ export function AdaptationBanner({ changes, recoverySuggestion, exerciseNames = 
         </span>
         {changes.length > 0 && (
           <button
-            onClick={() => setExpanded(v => !v)}
+            onClick={handleToggle}
             style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: 'var(--color-warn, #b35a00)', padding: 0, fontWeight: 500 }}
           >
             {expanded ? 'Ocultar' : `Ver ${changes.length} ajuste${changes.length > 1 ? 's' : ''}`}
