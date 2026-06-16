@@ -1,9 +1,94 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   fetchAdaptationPolicy,
+  fetchAdaptationLog,
   patchAdaptationPolicy,
   type AdaptationPolicy,
 } from "../../../services/trainingAdaptiveApi";
+
+interface LogEntry {
+  id: number;
+  snapshotDate: string;
+  readinessLevel: string;
+  changes: Array<{ field: string; original: string; adapted: string; reason: string }>;
+}
+
+const LEVEL_DOT: Record<string, string> = {
+  green:  'var(--color-success, #22c55e)',
+  yellow: 'var(--color-warn, #f0a500)',
+  red:    'var(--color-danger, #e53e3e)',
+};
+
+const LEVEL_LABEL: Record<string, string> = {
+  green: 'Verde', yellow: 'Amarelo', red: 'Vermelho',
+};
+
+const FIELD_SHORT: Record<string, string> = {
+  sets: 'séries', reps: 'reps', rest: 'descanso', rpe: 'RPE', technique: 'técnica',
+};
+
+function fmtDate(iso: string) {
+  return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+}
+
+function AdaptationLogSection({ studentId }: { studentId: number }) {
+  const [log, setLog] = useState<LogEntry[] | null>(null);
+  const [expanded, setExpanded] = useState<number | null>(null);
+
+  useEffect(() => {
+    fetchAdaptationLog(studentId, { limit: 10 })
+      .then(rows => setLog(rows as LogEntry[]))
+      .catch(() => setLog([]));
+  }, [studentId]);
+
+  if (log === null) return <p style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>Carregando histórico...</p>;
+  if (log.length === 0) return (
+    <p style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>
+      Nenhuma adaptação registrada ainda. O histórico aparece quando o aluno abre o treino após o check-in.
+    </p>
+  );
+
+  return (
+    <div style={{ display: 'grid', gap: 6 }}>
+      {log.map(entry => {
+        const dot = LEVEL_DOT[entry.readinessLevel] ?? 'var(--color-border)';
+        const isOpen = expanded === entry.id;
+        return (
+          <div key={entry.id} style={{ border: '1px solid var(--color-border)', borderRadius: 8, overflow: 'hidden' }}>
+            <button
+              onClick={() => setExpanded(isOpen ? null : entry.id)}
+              style={{
+                width: '100%', textAlign: 'left', background: 'none', border: 'none',
+                cursor: 'pointer', padding: '8px 12px',
+                display: 'flex', alignItems: 'center', gap: 10,
+              }}
+            >
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: dot, flexShrink: 0 }} />
+              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-text)' }}>{fmtDate(entry.snapshotDate)}</span>
+              <span style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>{LEVEL_LABEL[entry.readinessLevel] ?? entry.readinessLevel}</span>
+              <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--color-text-muted)' }}>
+                {entry.changes.length > 0 ? `${entry.changes.length} ajuste${entry.changes.length > 1 ? 's' : ''}` : 'sem ajustes'}
+              </span>
+              <span style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>{isOpen ? '▲' : '▼'}</span>
+            </button>
+            {isOpen && entry.changes.length > 0 && (
+              <div style={{ padding: '0 12px 10px', display: 'grid', gap: 3 }}>
+                {entry.changes.map((c, i) => (
+                  <div key={i} style={{ fontSize: 11, display: 'flex', gap: 6, flexWrap: 'wrap', color: 'var(--color-text-muted)' }}>
+                    <span style={{ fontWeight: 600 }}>{FIELD_SHORT[c.field] ?? c.field}</span>
+                    <span style={{ textDecoration: 'line-through' }}>{c.original}</span>
+                    <span>→</span>
+                    <span style={{ fontWeight: 600, color: 'var(--color-text)' }}>{c.adapted}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 const DEFAULT_POLICY: AdaptationPolicy = {
   personalId: 0, studentId: 0, academyId: null, version: 0,
@@ -150,6 +235,18 @@ export function AdaptationPolicyPanel({ studentId }: Props) {
 
       {saving && <p style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>Salvando...</p>}
       {error && <p style={{ fontSize: 12, color: 'var(--color-danger)' }}>{error}</p>}
+
+      {policy.masterEnabled && (
+        <>
+          <hr style={{ border: 'none', borderTop: '1px solid var(--color-border)', margin: 0 }} />
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-muted)', marginBottom: 8 }}>
+              Histórico de adaptações
+            </div>
+            <AdaptationLogSection studentId={studentId} />
+          </div>
+        </>
+      )}
     </div>
   );
 }
