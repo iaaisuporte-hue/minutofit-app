@@ -12,7 +12,8 @@ export type ActionType =
   | "light_workout_offered"
   | "gradual_return_offered"
   | "message_sent"
-  | "quick_nudge";
+  | "quick_nudge"
+  | "recognition_sent";
 
 export type RelationshipAction = {
   id: number;

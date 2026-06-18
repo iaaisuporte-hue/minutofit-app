@@ -145,7 +145,7 @@ export default function WorkoutPlayerPage() {
     );
     if (workoutId && workout) {
       try {
-        await persistGamificationCheckin({
+        const result = await persistGamificationCheckin({
           source: "workout",
           xp: 30,
           workout: {
@@ -154,6 +154,9 @@ export default function WorkoutPlayerPage() {
             muscleGroups: [workout.muscleGroup],
           },
         });
+        if (result?.rewardMicrocopy) {
+          setRewardMessage(result.rewardMicrocopy);
+        }
       } catch (error) {
         console.error("Failed to persist workout gamification:", error);
       }

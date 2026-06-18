@@ -32,7 +32,6 @@ import MinhaEquipePage from "./user/MinhaEquipePage";
 import NutritionPlanViewPage from "./user/NutritionPlanViewPage";
 import MeuPlanoPage from "./user/MeuPlanoPage";
 import SportHomePage from "./user/sport/SportHomePage";
-import { useSportProfile } from "../features/sport/hooks/useSportProfile";
 import RequireClearance from "../auth/RequireClearance";
 import ParqSigningPage from "./user/studentCompliance/ParqSigningPage";
 
@@ -138,7 +137,6 @@ export default function UserApp() {
   const { hasFeature, loading } = useFeatureFlags();
   const canMessages = hasFeature("messages");
   const canProfile = hasFeature("profile");
-  const canTrainingAi = hasFeature("training_ai");
   const showTracker = true;
   const showTrainingAi = true;
   const canSuggestedTraining = hasFeature("suggested_training");
@@ -149,8 +147,6 @@ export default function UserApp() {
   const todayUserState = useTodayUserState();
   const isPersonalLed = todayUserState.hasActivePersonal;
   const showSuggestedTrainingNav = canSuggestedTraining && !isPersonalLed;
-
-  const { isSportActive } = useSportProfile();
 
   function handleLogout() {
     logout();
@@ -164,7 +160,7 @@ export default function UserApp() {
             baseUrl={USER_BASE}
             showFicha={true}
             showMessages={canMessages}
-            showLab={canTrainingAi}
+            showLab={false}
             showTracker={showTracker}
             showProfile={canProfile}
             onLogout={handleLogout}
@@ -181,10 +177,8 @@ export default function UserApp() {
               <MenuLink to={`${USER_BASE}/today`} label="Hoje" iconKey="home" />
               <MenuLink to={`${USER_BASE}/estado-metabolico`} label="Minha evolução" iconKey="tracker" />
               <MenuLink to={`${USER_BASE}/ficha`} label="Meu plano" iconKey="clipboard" />
-              {canTrainingAi && <MenuLink to={`${USER_BASE}/movement-lab`} label="Espelho" iconKey="lab" />}
               {showSuggestedTrainingNav && <MenuLink to={`${USER_BASE}/suggested-training`} label="Treino do dia" iconKey="target" />}
               {showTracker && <MenuLink to={`${USER_BASE}/activities`} label="Atividades" iconKey="tracker" />}
-              {isSportActive && <MenuLink to={`${USER_BASE}/sport`} label="Esporte" iconKey="sport" />}
               {canMessages && <MenuLink to={`${USER_BASE}/messages`} label="Mensagens" iconKey="messages" />}
               {canProfile && <MenuLink to={`${USER_BASE}/profile`} label="Perfil" iconKey="profile" />}
               <MenuLink to={`${USER_BASE}/equipe`} label="Minha equipe" iconKey="team" />

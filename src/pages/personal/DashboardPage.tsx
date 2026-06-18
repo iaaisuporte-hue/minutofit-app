@@ -6,7 +6,9 @@ import {
   type PersonalDashboardEngagementStatus,
   type PersonalDashboardResponse,
   type PersonalDashboardStudent,
+  type RecognitionMilestone,
 } from "../../services/personalDashboardApi";
+import { createRelationshipAction } from "../../services/personalRetentionApi";
 import { COLORS } from "../../styles/colors";
 import { useAdaptivePolling } from "../../hooks/useAdaptivePolling";
 import { useAuth } from "../../auth/AuthContext";
@@ -22,6 +24,7 @@ import {
   type StudentNarrativeTone,
 } from "./lib/studentNarrative";
 import { InsightsStrip } from "../../features/personalRetention/InsightsStrip";
+import { RecognitionCard } from "../../features/personalRetention/RecognitionCard";
 import { IncomingRequestsPanel } from "../../features/team";
 import { FinancePanel } from "../../features/personalRetention/FinancePanel";
 import { PersonalWelcomeCard } from "./PersonalWelcomeCard";
@@ -141,6 +144,7 @@ export default function DashboardPage() {
   const [selectedStudent, setSelectedStudent] = useState<{ id: string; name: string } | null>(null);
   const [pulseFilter, setPulseFilter] = useState<"all" | "healthy" | "attention" | "risk">("all");
   const [quickMsgStudent, setQuickMsgStudent] = useState<PersonalDashboardStudent | null>(null);
+  const [recognizingMilestone, setRecognizingMilestone] = useState<RecognitionMilestone | null>(null);
   const activeTab = searchParams.get("tab") === "financeiro" ? "financeiro" : "carteira";
 
   const loadDashboard = useCallback(async () => {
@@ -179,6 +183,7 @@ export default function DashboardPage() {
   const summary = response?.summary;
   const alerts: PersonalDashboardAlert[] = summary?.intelligentAlerts ?? [];
   const insights = summary?.insights ?? [];
+  const recognitionMilestones: RecognitionMilestone[] = summary?.needsRecognitionTop ?? [];
 
   const headline = useMemo(() => {
     if (!summary) return "";
@@ -437,6 +442,14 @@ export default function DashboardPage() {
         />
       ) : null}
 
+      {!loading && !error && recognitionMilestones.length > 0 ? (
+        <RecognitionCard
+          milestones={recognitionMilestones}
+          onCongratulate={(milestone) => setRecognizingMilestone(milestone)}
+          onOpenProfile={(id, name) => openStudent(id, name)}
+        />
+      ) : null}
+
       {!loading && !error && students.length > 0 ? (
         <>
           {/*
@@ -577,6 +590,24 @@ export default function DashboardPage() {
           studentName={quickMsgStudent.name}
           engagementStatus={quickMsgStudent.engagementStatus}
           onClose={() => setQuickMsgStudent(null)}
+        />
+      ) : null}
+
+      {recognizingMilestone ? (
+        <QuickMessageModal
+          studentId={recognizingMilestone.studentId}
+          studentName={recognizingMilestone.studentName}
+          engagementStatus="evolving"
+          onClose={() => setRecognizingMilestone(null)}
+          onSent={() => {
+            const milestoneKey = recognizingMilestone.milestoneKey;
+            const studentId = recognizingMilestone.studentId;
+            createRelationshipAction(studentId, {
+              actionType: "recognition_sent",
+              payloadJson: { milestone_key: milestoneKey },
+            }).catch(() => undefined);
+            setRecognizingMilestone(null);
+          }}
         />
       ) : null}
     </div>

@@ -32,6 +32,7 @@ import { ProfessionalVoiceCard } from "../../features/professionalVoice";
 import { WeeklyLoopCard, useHasWeeklyLoopInsights } from "../../features/loopVisibility";
 import { IncomingMessageBanner, useLatestUnreadFromProfessional } from "../../features/incomingMessage";
 import { DailyCheckin, type DailyCheckinHandle } from "../../features/dailyCheckin/DailyCheckin";
+import { useToast } from "../../components/Toast";
 import {
   computeNudgeState,
   MetabolicCheckinModal,
@@ -165,6 +166,7 @@ function ActionButton({
 export default function TodayPage() {
   const navigate = useNavigate();
   const { id, user } = useAuth();
+  const toast = useToast();
   const clearance = usePhysicalActivityClearance();
   const parqLocked = !clearance.valid;
   const { hasFeature } = useFeatureFlags();
@@ -427,7 +429,7 @@ export default function TodayPage() {
           clearCondition={clearDailyCondition}
           onConditionSaved={async ({ feeling, details: d }) => {
             try {
-              await persistWellbeingCheckin({
+              const result = await persistWellbeingCheckin({
                 feeling,
                 sleptWell: d.sleptWell,
                 inPain: d.inPain,
@@ -436,6 +438,9 @@ export default function TodayPage() {
                 nutritionLevel: d.nutritionLevel,
                 mentalLoadLevel: d.mentalLoadLevel,
               });
+              if (result?.rewardMicrocopy) {
+                toast.success(result.rewardMicrocopy);
+              }
               refetchGamification();
               refetchMetabolism();
               if (userId) {

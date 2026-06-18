@@ -317,6 +317,41 @@ export async function fetchAdminLoopMetrics(days = 30): Promise<AdminLoopMetrics
   return data?.data as AdminLoopMetrics ?? null;
 }
 
+export interface AdminPmfMetrics {
+  h1_personal_billing: {
+    active_subs: number;
+    pending_subs: number;
+    personals_with_plan: number;
+    mrr_cents: number;
+  };
+  h2_adaptive_adherence: {
+    adapted_n: number;
+    adapted_checkin_pct: number | null;
+    control_n: number;
+    control_checkin_pct: number | null;
+  };
+  h3_platform_counts: {
+    metacore_app_active: number;
+    personal_billing_active: number;
+    academies_active: number;
+  };
+  h4_checkin_sustainability: {
+    cohort_size: number;
+    high_compliance: number;
+    mid_compliance: number;
+    low_compliance: number;
+    pct_high: number | null;
+  };
+}
+
+export async function fetchAdminPmfMetrics(): Promise<AdminPmfMetrics | null> {
+  if (!getAccessToken()) return null;
+  const response = await authFetch(`${API_URL}/admin/dashboard/pmf-metrics`);
+  if (!response.ok) return null;
+  const data = await parseJson(response);
+  return data?.data as AdminPmfMetrics ?? null;
+}
+
 export async function deleteAdminUser(userId: string) {
   const response = await authFetch(`${API_URL}/admin/users/${userId}`, {
     method: "DELETE",

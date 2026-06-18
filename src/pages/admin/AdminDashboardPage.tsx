@@ -4,9 +4,11 @@ import {
   fetchAdminDashboardMetrics,
   fetchAdminPlatformHealth,
   fetchAdminLoopMetrics,
+  fetchAdminPmfMetrics,
   type AdminDashboardMetrics,
   type AdminPlatformHealth,
   type AdminLoopMetrics,
+  type AdminPmfMetrics,
 } from "../../services/adminApi";
 
 // ── Helpers ───────────────────────────────────────────────────────
@@ -92,6 +94,7 @@ export default function AdminDashboardPage() {
   const [metricsData, setMetricsData] = useState<AdminDashboardMetrics | null>(null);
   const [healthData, setHealthData]   = useState<AdminPlatformHealth | null>(null);
   const [loopData, setLoopData]       = useState<AdminLoopMetrics | null>(null);
+  const [pmfData, setPmfData]         = useState<AdminPmfMetrics | null>(null);
   const [loading, setLoading]         = useState(true);
   const [error, setError]             = useState<string | null>(null);
   const [alertFilter, setAlertFilter] = useState<"all" | "critical" | "attention">("all");
@@ -100,14 +103,16 @@ export default function AdminDashboardPage() {
     setLoading(true);
     setError(null);
     try {
-      const [metrics, health, loop] = await Promise.all([
+      const [metrics, health, loop, pmf] = await Promise.all([
         fetchAdminDashboardMetrics(),
         fetchAdminPlatformHealth().catch(() => null),
         fetchAdminLoopMetrics(30).catch(() => null),
+        fetchAdminPmfMetrics().catch(() => null),
       ]);
       setMetricsData(metrics);
       setHealthData(health);
       setLoopData(loop);
+      setPmfData(pmf);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Falha ao carregar dashboard.");
     } finally {
@@ -392,6 +397,74 @@ export default function AdminDashboardPage() {
                     })()}
                   </div>
                   <div className="dash-kpi-item-note">verde · amarelo · vermelho</div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── Bloco 1c: Validação PMF ───────────────────────────── */}
+          {pmfData && (
+            <div className="dash-operational-block">
+              <div className="dash-operational-header">
+                <span className="dash-eyebrow" style={{ marginBottom: 0 }}>Validação de hipóteses</span>
+                <span className="dash-operational-title">PMF — evidências mensuráveis</span>
+              </div>
+              <div className="dash-kpi-grid">
+                {/* H1: Personal paga? */}
+                <div className="dash-kpi-item">
+                  <div className="dash-kpi-item-label">H1 · Personal paga mensal</div>
+                  <div className={`dash-kpi-item-value${pmfData.h1_personal_billing.active_subs > 0 ? " dash-kpi-item-value--ok" : ""}`}>
+                    {pmfData.h1_personal_billing.active_subs} ativas
+                  </div>
+                  <div className="dash-kpi-item-note">
+                    {pmfData.h1_personal_billing.pending_subs} pend. · {pmfData.h1_personal_billing.personals_with_plan} personais · {formatCurrency(pmfData.h1_personal_billing.mrr_cents / 100)} MRR
+                  </div>
+                </div>
+
+                {/* H2: Adaptive melhora aderência? */}
+                <div className="dash-kpi-item">
+                  <div className="dash-kpi-item-label">H2 · Adaptativo vs. estático (30d)</div>
+                  <div className={`dash-kpi-item-value${
+                    pmfData.h2_adaptive_adherence.adapted_checkin_pct !== null &&
+                    pmfData.h2_adaptive_adherence.control_checkin_pct !== null &&
+                    pmfData.h2_adaptive_adherence.adapted_checkin_pct > pmfData.h2_adaptive_adherence.control_checkin_pct
+                      ? " dash-kpi-item-value--ok" : ""}`}>
+                    {pmfData.h2_adaptive_adherence.adapted_checkin_pct !== null
+                      ? `${pmfData.h2_adaptive_adherence.adapted_checkin_pct}%` : "—"} ON
+                  </div>
+                  <div className="dash-kpi-item-note">
+                    {pmfData.h2_adaptive_adherence.control_checkin_pct !== null
+                      ? `${pmfData.h2_adaptive_adherence.control_checkin_pct}%` : "—"} OFF · {pmfData.h2_adaptive_adherence.adapted_n}v{pmfData.h2_adaptive_adherence.control_n} usuários
+                  </div>
+                </div>
+
+                {/* H3: Plataforma ativa */}
+                <div className="dash-kpi-item">
+                  <div className="dash-kpi-item-label">H3 · Plataforma ativa</div>
+                  <div className="dash-kpi-item-value">
+                    {pmfData.h3_platform_counts.metacore_app_active}
+                  </div>
+                  <div className="dash-kpi-item-note">
+                    app ativos · {pmfData.h3_platform_counts.personal_billing_active} billing personal · {pmfData.h3_platform_counts.academies_active} academias
+                  </div>
+                </div>
+
+                {/* H4: Check-in sustentável? */}
+                <div className="dash-kpi-item">
+                  <div className="dash-kpi-item-label">H4 · Check-in pós-30d</div>
+                  <div className={`dash-kpi-item-value${
+                    pmfData.h4_checkin_sustainability.pct_high !== null &&
+                    pmfData.h4_checkin_sustainability.pct_high >= 40
+                      ? " dash-kpi-item-value--ok"
+                      : pmfData.h4_checkin_sustainability.pct_high !== null &&
+                        pmfData.h4_checkin_sustainability.pct_high < 20
+                      ? " dash-kpi-item-value--warn" : ""}`}>
+                    {pmfData.h4_checkin_sustainability.pct_high !== null
+                      ? `${pmfData.h4_checkin_sustainability.pct_high}%` : "—"}
+                  </div>
+                  <div className="dash-kpi-item-note">
+                    ≥20 check-ins/mês · coorte {pmfData.h4_checkin_sustainability.cohort_size} usuários ≥30d
+                  </div>
                 </div>
               </div>
             </div>

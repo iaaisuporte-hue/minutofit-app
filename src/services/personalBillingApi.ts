@@ -125,6 +125,15 @@ export async function deactivateBillingPlan(id: number): Promise<void> {
 // Subscriptions
 // ---------------------------------------------------------------------------
 
+export async function fetchStudentSubscription(
+  studentId: string
+): Promise<StudentSubscription | null> {
+  const res = await authFetch(`${API_URL}/personal/students/${studentId}/subscription`);
+  const json = await res.json();
+  if (!json.success) throw new Error(json.error || "Failed to fetch subscription");
+  return json.data;
+}
+
 export async function subscribeStudent(
   studentId: string,
   input: {

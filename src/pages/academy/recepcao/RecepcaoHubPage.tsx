@@ -798,7 +798,7 @@ export default function RecepcaoHubPage() {
                 <>
                   <span className="rec-metacore-dot">·</span>
                   <span className="badge badge-success" style={{ fontSize: 10 }}>
-                    MaaS ativo
+                    MetaCore ativo
                   </span>
                 </>
               )}

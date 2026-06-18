@@ -333,9 +333,9 @@ export default function SuggestedTrainingPage() {
       ) : null}
       <Card style={{ background: COLORS.panelDeep, borderColor: COLORS.borderStrong }}>
         <SectionTitle
-          eyebrow="Metabolismo como Serviço"
+          eyebrow="Treino que entende seu dia"
           title="Seu treino de hoje começa com leitura do estado do corpo."
-          subtitle="O plano Black transforma sinais do dia em decisão. Aqui a IA não só escolhe um treino: ela decide se hoje vale acelerar, reduzir, recuperar ou pausar com segurança."
+          subtitle="O MetaCore transforma sinais do dia em decisão. Aqui o sistema não só escolhe um treino: ele decide se hoje vale acelerar, reduzir, recuperar ou pausar com segurança."
         />
       </Card>
 

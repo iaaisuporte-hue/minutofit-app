@@ -45,6 +45,20 @@ export type RetentionInsight = {
   studentId: string | null;
 };
 
+export type RecognitionMilestone = {
+  studentId: string;
+  studentName: string;
+  milestoneKey: string;
+  milestoneLabel: string;
+  milestoneDetail: string;
+  streakDays: number;
+  workouts7d: number;
+  workouts30d: number;
+  adherencePct: number;
+  engagementStatus: PersonalDashboardEngagementStatus;
+  lastWorkoutISO: string | null;
+};
+
 export type PersonalDashboardResponse = {
   summary: {
     totalStudents: number;
@@ -62,6 +76,7 @@ export type PersonalDashboardResponse = {
     metabolismDistribution: { low: number; moderate: number; high: number; unknown: number };
     atRiskTop: PersonalDashboardStudent[];
     insights: RetentionInsight[];
+    needsRecognitionTop: RecognitionMilestone[];
   };
   students: PersonalDashboardStudent[];
   generatedAt: string;
@@ -303,6 +318,29 @@ export type AddStudentDirectResult = {
   tempPassword?: string;
   mustChangePassword?: boolean;
 };
+
+export type StudentAiSummaryResult = {
+  summary: string;
+  disclaimer: string;
+};
+
+export async function fetchStudentAiSummary(studentId: string): Promise<StudentAiSummaryResult | null> {
+  if (!getAccessToken()) return null;
+
+  const response = await authFetch(`${API_URL}/personal/students/${studentId}/ai-summary`);
+
+  if (response.status === 401) return null;
+
+  const data = await parseJson(response);
+  if (!response.ok) {
+    const err: Error & { code?: string } = new Error(data?.error || "Não foi possível gerar o resumo IA.");
+    if (response.status === 429) err.code = "RATE_LIMITED";
+    if (response.status === 503) err.code = "AI_UNAVAILABLE";
+    throw err;
+  }
+
+  return data?.data ?? null;
+}
 
 export async function removeStudentFromPortfolio(studentId: string): Promise<void> {
   const response = await authFetch(`${API_URL}/personal/students/${studentId}`, {
