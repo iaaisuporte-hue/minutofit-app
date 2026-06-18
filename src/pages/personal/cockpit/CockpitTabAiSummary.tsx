@@ -4,6 +4,7 @@ import {
   fetchStudentAiSummary,
   type StudentAiSummaryResult,
 } from "../../../services/personalDashboardApi";
+import { AiUpgradeCTA } from "../../../features/personalPlan/AiUpgradeCTA";
 
 type Props = {
   studentId: string;
@@ -29,6 +30,7 @@ export function CockpitTabAiSummary({ studentId }: Props) {
 
   return (
     <div style={{ display: "grid", gap: 16, padding: "4px 0" }}>
+      <AiUpgradeCTA />
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
         <div>
           <div style={{ fontSize: 13, fontWeight: 600, color: "var(--color-text-primary)" }}>

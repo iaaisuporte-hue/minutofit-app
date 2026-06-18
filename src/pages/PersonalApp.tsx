@@ -7,6 +7,7 @@ import PersonalMobileBottomNav from "../layout/PersonalMobileBottomNav";
 import MinutoFitLogo from "../components/MinutoFitLogo";
 import { fetchChatConversations } from "../services/messagesApi";
 import "./personal/personalPremium.css";
+import { PlanBadge } from "../features/personalPlan/PlanBadge";
 
 import DashboardPage from "./personal/DashboardPage";
 import StudentsListPage from "./personal/StudentsListPage";
@@ -201,6 +202,9 @@ export default function PersonalApp() {
           <div style={{ flex: 1 }} />
 
           <div className="sidebar-footer">
+            <div style={{ marginBottom: 6 }}>
+              <PlanBadge />
+            </div>
             <NavLink
               to="/app/personal/meu-perfil"
               className={({ isActive }) => `navLink navLink--sm ${isActive ? "navLinkActive" : ""}`}

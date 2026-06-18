@@ -17,6 +17,7 @@ import StudentProfileModal from "./StudentProfileModal";
 import { StudentRegisterDrawer } from "./students/StudentRegisterDrawer";
 import { StudentInviteDrawer } from "./students/StudentInviteDrawer";
 import "./personalPremium.css";
+import { StudentLimitBanner } from "../../features/personalPlan/StudentLimitBanner";
 
 type Plan = PersonalDashboardStudent["plan"];
 type Student = PersonalDashboardStudent;
@@ -311,6 +312,8 @@ export default function StudentsListPage() {
           </div>
         </div>
       </div>
+
+      <StudentLimitBanner studentCount={students.length} />
 
       <div className="pp-panel">
         <div className="pp-panel__body" style={{ display: "grid", gap: 12 }}>
