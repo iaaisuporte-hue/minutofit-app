@@ -18,6 +18,19 @@ type Props = {
   onSent?: () => void;
 };
 
+const CHECKIN_NUDGE_TEMPLATE: MessageTemplate = {
+  id: -1,
+  personalId: null,
+  academyId: null,
+  scope: "metacore",
+  category: "cobra_checkin",
+  title: "Cobra check-in",
+  body: "Oi [nome]! Vi que você está sem check-in há alguns dias. Manda um update rapidinho? Me ajuda a ajustar seu treino.",
+  isDefault: false,
+  createdAt: "",
+  updatedAt: "",
+};
+
 export function QuickMessageModal({ studentId, studentName, engagementStatus, onClose, onSent }: Props) {
   const [templates, setTemplates] = useState<MessageTemplate[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<MessageTemplate | null>(null);
@@ -87,6 +100,20 @@ export function QuickMessageModal({ studentId, studentName, engagementStatus, on
         <button onClick={onClose} className="pp-btn pp-btn--icon pp-btn--ghost">
           <X size={18} />
         </button>
+      </div>
+
+      <div>
+        <p style={{ fontSize: 11, color: "var(--color-text-tertiary)", margin: "0 0 6px" }}>
+          Ação rápida
+        </p>
+        <div className="pp-template-chips">
+          <button
+            className={`pp-template-chip${selectedTemplate?.id === CHECKIN_NUDGE_TEMPLATE.id ? " active" : ""}`}
+            onClick={() => selectTemplate(CHECKIN_NUDGE_TEMPLATE)}
+          >
+            {CHECKIN_NUDGE_TEMPLATE.title}
+          </button>
+        </div>
       </div>
 
       {suggested.length > 0 && (

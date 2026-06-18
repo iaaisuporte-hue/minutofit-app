@@ -190,19 +190,23 @@ export default function PersonalApp() {
             </NavLink>
           </div>
 
-          {/* destinos principais */}
+          {/* destinos principais — regra 4+1: apenas os 4 destinos de topo */}
           <div className="navStack">
             <MenuLink to="/app/personal/dashboard" label="Hoje" />
             <MenuLink to="/app/personal/students" label="Alunos" />
             <MenuLink to="/app/personal/review" label="Revisões" />
-            <MenuLink to="/app/personal/library" label="Protocolos" />
-            <MenuLink to="/app/personal/builder" label="Builder" />
-            <MenuLink to="/app/personal/meu-perfil" label="Meu perfil" />
+            <MenuLink to="/app/personal/library" label="Programas" />
           </div>
 
           <div style={{ flex: 1 }} />
 
           <div className="sidebar-footer">
+            <NavLink
+              to="/app/personal/meu-perfil"
+              className={({ isActive }) => `navLink navLink--sm ${isActive ? "navLinkActive" : ""}`}
+            >
+              Meu perfil
+            </NavLink>
             <button type="button" onClick={handleLogout} className="logoutButton">
               Sair da conta
             </button>

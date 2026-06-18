@@ -123,6 +123,18 @@ function signalChipLabel(student: PersonalDashboardStudent): string | null {
   return null;
 }
 
+function daysSince(iso: string | null | undefined): number {
+  if (!iso) return 999;
+  return Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
+}
+
+function checkinAbsenceBadge(student: PersonalDashboardStudent): string | null {
+  const days = daysSince(student.lastCheckinISO);
+  if (days < 3) return null;
+  if (days >= 999) return "Sem check-in ainda";
+  return `Sem check-in há ${days}d`;
+}
+
 function technicalNoteReminder(student: PersonalDashboardStudent): string | null {
   const iso = student.lastTechnicalNoteAt;
   if (iso == null || iso === "") {
@@ -133,6 +145,47 @@ function technicalNoteReminder(student: PersonalDashboardStudent): string | null
   const weeks = Math.floor(days / 7);
   return weeks >= 2 ? `Sem nota técnica há ${weeks} sem.` : "Sem nota técnica há 2+ sem.";
 }
+
+function daysAgoISO(days: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() - days);
+  return d.toISOString();
+}
+
+const DEMO_STUDENT: PersonalDashboardStudent = {
+  id: "demo-student-1",
+  name: "João Silva",
+  plan: "silver",
+  workouts7d: 0,
+  workouts30d: 5,
+  streakDays: 0,
+  lastWorkoutISO: daysAgoISO(9),
+  adherencePct: 32,
+  adherenceScore: 32,
+  engagementScore: 28,
+  riskScore: 78,
+  risk: "critico",
+  goal: "emagrecimento",
+  notes: null,
+  engagementStatus: "at_risk",
+  lastCheckinISO: daysAgoISO(6),
+  checkins7d: 0,
+  metabolismScore: 54,
+  metabolismBand: "moderate",
+  metabolismTrend: "down",
+  metabolismDelta7d: -14,
+  latestSleptWell: false,
+  lastTechnicalNoteAt: null,
+  assignedAtISO: daysAgoISO(45),
+};
+
+const DEMO_ALERT: PersonalDashboardAlert = {
+  type: "silent_disappear",
+  title: "João sumiu silenciosamente",
+  description: "Sem treino há 9 dias. Histórico recente era regular — merece um contato hoje.",
+  studentId: "demo-student-1",
+  studentName: "João Silva",
+};
 
 export default function DashboardPage() {
   const navigate = useNavigate();
@@ -145,6 +198,8 @@ export default function DashboardPage() {
   const [pulseFilter, setPulseFilter] = useState<"all" | "healthy" | "attention" | "risk">("all");
   const [quickMsgStudent, setQuickMsgStudent] = useState<PersonalDashboardStudent | null>(null);
   const [recognizingMilestone, setRecognizingMilestone] = useState<RecognitionMilestone | null>(null);
+  const [isDemoMode, setIsDemoMode] = useState(false);
+  const [demoCTAOpen, setDemoCTAOpen] = useState(false);
   const activeTab = searchParams.get("tab") === "financeiro" ? "financeiro" : "carteira";
 
   const loadDashboard = useCallback(async () => {
@@ -179,16 +234,20 @@ export default function DashboardPage() {
     { activeIntervalMs: 30000, idleIntervalMs: 60000, hiddenIntervalMs: 120000 }
   );
 
-  const students = response?.students ?? [];
+  const realStudents = response?.students ?? [];
+  const students = isDemoMode && realStudents.length === 0 ? [DEMO_STUDENT] : realStudents;
   const summary = response?.summary;
-  const alerts: PersonalDashboardAlert[] = summary?.intelligentAlerts ?? [];
+  const alerts: PersonalDashboardAlert[] = isDemoMode && realStudents.length === 0
+    ? [DEMO_ALERT]
+    : (summary?.intelligentAlerts ?? []);
   const insights = summary?.insights ?? [];
   const recognitionMilestones: RecognitionMilestone[] = summary?.needsRecognitionTop ?? [];
 
   const headline = useMemo(() => {
+    if (isDemoMode && realStudents.length === 0) return "veja o produto em ação";
     if (!summary) return "";
     return buildPortfolioHeadline(summary, students);
-  }, [summary, students]);
+  }, [summary, students, isDemoMode, realStudents.length]);
 
   const attentionList: StudentNarrative[] = useMemo(() => {
     return buildAttentionList(students, 12);
@@ -258,7 +317,7 @@ export default function DashboardPage() {
 
   return (
     <div className="pp-page">
-      {/* Hero compacto: identidade + título + ações */}
+      {/* Hero compacto: identidade + título */}
       <div className="pp-hero" style={{ alignItems: "flex-start" }}>
         <div style={{ display: "grid", gap: 8, flex: "1 1 320px", minWidth: 0 }}>
           <div className="pp-kicker">Personal · Hoje</div>
@@ -276,31 +335,6 @@ export default function DashboardPage() {
             </div>
           ) : null}
         </div>
-
-        <div
-          style={{
-            alignSelf: "flex-start",
-            display: "flex",
-            flexDirection: "column",
-            gap: 8,
-            minWidth: 220,
-          }}
-        >
-          <button type="button" className="pp-btn pp-btn--primary" onClick={() => navigate(routes.messages())}>
-            Abrir mensagens
-          </button>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <button type="button" className="pp-btn pp-btn--ghost pp-btn--sm" onClick={() => navigate(routes.students())}>
-              Ver alunos
-            </button>
-            <button type="button" className="pp-btn pp-btn--ghost pp-btn--sm" onClick={() => navigate(routes.students() + "?action=register")}>
-              Cadastrar
-            </button>
-            <button type="button" className="pp-btn pp-btn--ghost pp-btn--sm" onClick={() => navigate(routes.review())}>
-              Revisões
-            </button>
-          </div>
-        </div>
       </div>
 
       {/* Solicitações de vínculo de alunos (iniciadas pelo aluno) */}
@@ -308,10 +342,42 @@ export default function DashboardPage() {
         <IncomingRequestsPanel role="personal" />
       </div>
 
+      {isDemoMode && realStudents.length === 0 ? (
+        <div
+          style={{
+            padding: "10px 14px",
+            borderRadius: 10,
+            background: "rgba(234,179,8,0.10)",
+            border: "1px solid rgba(234,179,8,0.30)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 12,
+            flexWrap: "wrap",
+            fontSize: 13,
+            color: "var(--color-text-muted)",
+            marginBottom: 4,
+          }}
+        >
+          <span>
+            <b style={{ color: "var(--color-text)" }}>Dados de exemplo.</b>{" "}
+            Convide um aluno real para ver seus sinais aqui.
+          </span>
+          <button
+            type="button"
+            className="pp-btn pp-btn--ghost pp-btn--sm"
+            onClick={() => setIsDemoMode(false)}
+          >
+            Fechar exemplo
+          </button>
+        </div>
+      ) : null}
+
       {!loading && !error && (
         <PersonalWelcomeCard
           firstName={user?.name?.split(" ")[0] ?? "personal"}
-          hasStudents={students.length > 0}
+          hasStudents={realStudents.length > 0}
+          onShowDemo={realStudents.length === 0 ? () => setIsDemoMode(true) : undefined}
         />
       )}
 
@@ -383,24 +449,20 @@ export default function DashboardPage() {
         </div>
       ) : null}
 
-      {/* Tab strip: Carteira | Financeiro */}
-      <div className="pp-dash-tabs">
-        <button
-          className={`pp-dash-tab${activeTab === "carteira" ? " active" : ""}`}
-          onClick={() => setSearchParams({})}
-        >
-          Carteira
-        </button>
-        <button
-          className={`pp-dash-tab${activeTab === "financeiro" ? " active" : ""}`}
-          onClick={() => setSearchParams({ tab: "financeiro" })}
-        >
-          Financeiro
-        </button>
-      </div>
-
       {activeTab === "financeiro" ? (
-        <FinancePanel />
+        <>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
+            <button
+              type="button"
+              className="pp-btn pp-btn--ghost pp-btn--sm"
+              onClick={() => setSearchParams({})}
+              style={{ paddingLeft: 0 }}
+            >
+              ← Voltar para a carteira
+            </button>
+          </div>
+          <FinancePanel />
+        </>
       ) : (
         <>
 
@@ -501,15 +563,16 @@ export default function DashboardPage() {
               {filteredAttention.map((item) => {
                 const student = students.find((s) => s.id === item.studentId);
                 if (!student) return null;
+                const isDemo = item.studentId === "demo-student-1";
                 const isRisk = item.tone === "risk";
                 const primaryAction = isRisk
                   ? {
                       label: "Mensagem rápida",
-                      onClick: () => setQuickMsgStudent(student),
+                      onClick: () => isDemo ? setDemoCTAOpen(true) : setQuickMsgStudent(student),
                     }
                   : {
                       label: "Ajustar treino",
-                      onClick: () => navigate(routes.workoutBuilder(item.studentId)),
+                      onClick: () => isDemo ? setDemoCTAOpen(true) : navigate(routes.workoutBuilder(item.studentId)),
                     };
                 return (
                   <div key={item.studentId} className="pp-student-row">
@@ -530,6 +593,10 @@ export default function DashboardPage() {
                           const sig = signalChipLabel(student);
                           return sig ? <span className="pp-badge pp-badge--warn">{sig}</span> : null;
                         })()}
+                        {(() => {
+                          const ci = checkinAbsenceBadge(student);
+                          return ci ? <span className="pp-badge pp-badge--danger">{ci}</span> : null;
+                        })()}
                         <MetabolismChip student={student} />
                         {(() => {
                           const t = technicalNoteReminder(student);
@@ -544,7 +611,7 @@ export default function DashboardPage() {
                       <button
                         type="button"
                         className="pp-btn pp-btn--ghost pp-btn--sm"
-                        onClick={() => openStudent(item.studentId, item.studentName)}
+                        onClick={() => isDemo ? setDemoCTAOpen(true) : openStudent(item.studentId, item.studentName)}
                       >
                         Ver aluno
                       </button>
@@ -573,6 +640,20 @@ export default function DashboardPage() {
         </>
       ) : null}
 
+      {/* Financeiro: acesso discreto, fora do fluxo principal */}
+      {students.length > 0 ? (
+        <div style={{ textAlign: "right", marginTop: 4 }}>
+          <button
+            type="button"
+            className="pp-btn pp-btn--ghost pp-btn--sm"
+            onClick={() => setSearchParams({ tab: "financeiro" })}
+            style={{ opacity: 0.5, fontSize: 12 }}
+          >
+            Ver financeiro →
+          </button>
+        </div>
+      ) : null}
+
         </> /* close activeTab === "carteira" else */
       )}
 
@@ -591,6 +672,51 @@ export default function DashboardPage() {
           engagementStatus={quickMsgStudent.engagementStatus}
           onClose={() => setQuickMsgStudent(null)}
         />
+      ) : null}
+
+      {demoCTAOpen ? (
+        <div
+          style={{
+            position: "fixed", inset: 0, zIndex: 9000,
+            background: "rgba(0,0,0,0.45)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            padding: 20,
+          }}
+          onClick={() => setDemoCTAOpen(false)}
+        >
+          <div
+            style={{
+              background: "var(--color-surface)", borderRadius: 16,
+              padding: "28px 24px", maxWidth: 360, width: "100%",
+              boxShadow: "var(--shadow-xl)", display: "grid", gap: 16,
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ fontSize: 16, fontWeight: 700, color: "var(--color-text)" }}>
+              Pronto para começar?
+            </div>
+            <div style={{ fontSize: 13, color: "var(--color-text-muted)", lineHeight: 1.6 }}>
+              No modo de exemplo você vê como o produto funciona. Convide um aluno real para
+              enviar mensagens, ver o cockpit e acompanhar a evolução.
+            </div>
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+              <button
+                type="button"
+                className="pp-btn pp-btn--primary"
+                onClick={() => { setDemoCTAOpen(false); navigate("/app/personal/students?action=invite"); }}
+              >
+                Convidar primeiro aluno
+              </button>
+              <button
+                type="button"
+                className="pp-btn pp-btn--ghost"
+                onClick={() => setDemoCTAOpen(false)}
+              >
+                Continuar explorando
+              </button>
+            </div>
+          </div>
+        </div>
       ) : null}
 
       {recognizingMilestone ? (

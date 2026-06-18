@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 interface Props {
   firstName: string;
   hasStudents: boolean;
+  onShowDemo?: () => void;
 }
 
 type Step = {
@@ -13,7 +14,7 @@ type Step = {
   onClick: () => void;
 };
 
-export function PersonalWelcomeCard({ firstName, hasStudents }: Props) {
+export function PersonalWelcomeCard({ firstName, hasStudents, onShowDemo }: Props) {
   const navigate = useNavigate();
 
   // Card desaparece após os 2 marcos concluídos — a 2ª é subjetiva,
@@ -52,16 +53,28 @@ export function PersonalWelcomeCard({ firstName, hasStudents }: Props) {
     >
       <div style={{ height: 3, background: "var(--gradient-primary, linear-gradient(90deg,#22c55e,#06b6d4))" }} />
       <div style={{ padding: 20, display: "grid", gap: 16 }}>
-        <div style={{ display: "grid", gap: 4 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: "var(--color-text-muted)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
-            Primeiros passos · {done}/{steps.length}
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+          <div style={{ display: "grid", gap: 4 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "var(--color-text-muted)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+              Primeiros passos · {done}/{steps.length}
+            </div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: "var(--color-text)" }}>
+              Bem-vindo, {firstName}
+            </div>
+            <div style={{ fontSize: 13, color: "var(--color-text-muted)", lineHeight: 1.5 }}>
+              Em 2 passos você tem o loop completo funcionando: check-in do aluno → treino adaptado → você acompanha no cockpit.
+            </div>
           </div>
-          <div style={{ fontSize: 16, fontWeight: 700, color: "var(--color-text)" }}>
-            Bem-vindo, {firstName}
-          </div>
-          <div style={{ fontSize: 13, color: "var(--color-text-muted)", lineHeight: 1.5 }}>
-            Em 2 passos você tem o loop completo funcionando: check-in do aluno → treino adaptado → você acompanha no cockpit.
-          </div>
+          {onShowDemo ? (
+            <button
+              type="button"
+              className="pp-btn pp-btn--ghost pp-btn--sm"
+              onClick={onShowDemo}
+              style={{ flexShrink: 0, alignSelf: "flex-start" }}
+            >
+              Ver exemplo
+            </button>
+          ) : null}
         </div>
 
         <div style={{ display: "grid", gap: 8 }}>

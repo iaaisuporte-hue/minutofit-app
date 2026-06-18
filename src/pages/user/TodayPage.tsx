@@ -473,6 +473,26 @@ export default function TodayPage() {
               )}
             </div>
           )}
+          {/* Presença do personal — aparece quando o treino foi adaptado */}
+          {adaptive.data?.adaptationEnabled && adaptive.data.changes.length > 0 && (
+            <div
+              style={{
+                padding: "8px 12px",
+                borderRadius: 8,
+                background: "rgba(34,197,94,0.07)",
+                border: "1px solid rgba(34,197,94,0.18)",
+                fontSize: 12,
+                color: "var(--color-text-muted)",
+                marginBottom: 8,
+                lineHeight: 1.5,
+              }}
+            >
+              Treino ajustado para como você está hoje
+              {todayState.personal?.name
+                ? ` — ${todayState.personal.name.split(" ")[0]} está de olho na sua evolução.`
+                : "."}
+            </div>
+          )}
           {/* Diff banner — só quando há adaptações */}
           {adaptive.data?.adaptationEnabled && adaptive.data.changes.length > 0 && (
             <AdaptationBanner
