@@ -575,9 +575,12 @@ export default function DashboardPage() {
                       label: "Ajustar treino",
                       onClick: () => isDemo ? setDemoCTAOpen(true) : navigate(routes.workoutBuilder(item.studentId)),
                     };
+                const signalChip = signalChipLabel(student);
+                const checkinChip = checkinAbsenceBadge(student);
                 return (
-                  <div key={item.studentId} className="pp-student-row">
-                    <div className="pp-student-main">
+                  <div key={item.studentId} className="pp-student-row" style={{ flexDirection: "column", alignItems: "stretch", gap: 0 }}>
+                    {/* Header: nome + badge de status + "Ver aluno" */}
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
                       <div className="pp-inline">
                         <button
                           type="button"
@@ -588,35 +591,6 @@ export default function DashboardPage() {
                         </button>
                         <Badge tone={narrativeTone(item.tone)}>{statusLabel(student.engagementStatus)}</Badge>
                       </div>
-                      <div className="pp-narrative">{item.headline}</div>
-                      <div className="pp-meta" style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                        {(() => {
-                          const sig = signalChipLabel(student);
-                          return sig ? <span className="pp-badge pp-badge--warn">{sig}</span> : null;
-                        })()}
-                        {(() => {
-                          const ci = checkinAbsenceBadge(student);
-                          return ci ? <span className="pp-badge pp-badge--danger">{ci}</span> : null;
-                        })()}
-                        <MetabolismChip student={student} />
-                        {(() => {
-                          const t = technicalNoteReminder(student);
-                          return t ? <span className="pp-meta-chip">{t}</span> : null;
-                        })()}
-                        <span>
-                          Último treino <b>{fmtDate(student.lastWorkoutISO)}</b>
-                        </span>
-                      </div>
-                    </div>
-                    {!isDemo && (
-                      <div style={{ marginTop: 6 }}>
-                        <SessionQuickLog
-                          studentId={item.studentId}
-                          studentName={item.studentName}
-                        />
-                      </div>
-                    )}
-                    <div className="pp-actions">
                       <button
                         type="button"
                         className="pp-btn pp-btn--ghost pp-btn--sm"
@@ -624,9 +598,36 @@ export default function DashboardPage() {
                       >
                         Ver aluno
                       </button>
+                    </div>
+
+                    {/* Narrativa */}
+                    <div className="pp-narrative" style={{ marginTop: 5 }}>{item.headline}</div>
+
+                    {/* Chips de sinais: até 3 + data do último treino */}
+                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center", marginTop: 7 }}>
+                      {signalChip ? <span className="pp-badge pp-badge--warn">{signalChip}</span> : null}
+                      {checkinChip ? <span className="pp-badge pp-badge--danger">{checkinChip}</span> : null}
+                      <MetabolismChip student={student} />
+                      <span className="pp-meta">Último treino <b>{fmtDate(student.lastWorkoutISO)}</b></span>
+                    </div>
+
+                    {/* Footer: registrar sessão (esq) + ação principal (dir) */}
+                    <div style={{
+                      display: "flex",
+                      alignItems: "flex-start",
+                      justifyContent: "space-between",
+                      gap: 8,
+                      marginTop: 10,
+                      paddingTop: 9,
+                      borderTop: "1px solid var(--color-border)",
+                    }}>
+                      {!isDemo
+                        ? <SessionQuickLog studentId={item.studentId} studentName={item.studentName} />
+                        : <div />}
                       <button
                         type="button"
                         className="pp-btn pp-btn--primary pp-btn--sm"
+                        style={{ flexShrink: 0 }}
                         onClick={primaryAction.onClick}
                       >
                         {primaryAction.label}
