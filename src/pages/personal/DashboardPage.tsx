@@ -29,6 +29,7 @@ import { IncomingRequestsPanel } from "../../features/team";
 import { FinancePanel } from "../../features/personalRetention/FinancePanel";
 import { PersonalWelcomeCard } from "./PersonalWelcomeCard";
 import { QuickMessageModal } from "../../features/personalRetention/QuickMessageModal";
+import { SessionQuickLog } from "../../features/personalRetention/SessionQuickLog";
 import "./personalPremium.css";
 
 const PERSONAL_BASE = "/app/personal" as const;
@@ -607,6 +608,14 @@ export default function DashboardPage() {
                         </span>
                       </div>
                     </div>
+                    {!isDemo && (
+                      <div style={{ marginTop: 6 }}>
+                        <SessionQuickLog
+                          studentId={item.studentId}
+                          studentName={item.studentName}
+                        />
+                      </div>
+                    )}
                     <div className="pp-actions">
                       <button
                         type="button"
