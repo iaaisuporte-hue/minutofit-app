@@ -7,6 +7,8 @@ export interface ProfessionalSummary {
   name: string;
   photo: string | null;
   lastObservation: { text: string; createdAt: string } | null;
+  /** Última sessão registrada pelo personal (Veio/Parcial) nos últimos 7 dias. */
+  lastSession?: { status: 'present' | 'partial'; at: string } | null;
 }
 
 export interface ProfessionalContext {

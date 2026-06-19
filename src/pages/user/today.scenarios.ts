@@ -30,6 +30,16 @@ const personalAnaWithNote = {
   },
 };
 
+// Personal sem observação escrita, mas que registrou a presença na sessão de hoje:
+// mostra o loop fechando no lado do aluno mesmo sem nota (item #1 do parecer).
+const personalAnaWithSession = {
+  ...personalAna,
+  lastSession: {
+    status: "present" as const,
+    at: new Date(Date.now() - 1000 * 60 * 60 * 3).toISOString(),
+  },
+};
+
 const samplePlan: UserWorkoutPlan = {
   id: 9101,
   personal_id: personalAna.id,
@@ -68,7 +78,7 @@ export const TODAY_SCENARIOS: Record<ScenarioKey, TodayScenarioFixture> = {
     products: ["app", "personal"],
   },
   personal_sem_ficha: {
-    professionalContext: { personal: personalAna, nutri: null },
+    professionalContext: { personal: personalAnaWithSession, nutri: null },
     activePlan: null,
     products: ["app", "personal"],
   },

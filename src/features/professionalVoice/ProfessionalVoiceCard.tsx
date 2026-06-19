@@ -26,10 +26,13 @@ export function ProfessionalVoiceCard({ personal, nutri, criticalSignals = [] }:
   const canOpenChat = hasFeature('messages');
   if (!personal && !nutri) return null;
 
-  // Prioriza o profissional com observação recente; senão mostra o personal primeiro
-  const primary = personal?.lastObservation
+  // "Tem sinal" = observação escrita OU sessão registrada (Veio/Parcial). Ambos provam
+  // ao aluno que o profissional o notou. Prioriza quem tem sinal; senão, o personal.
+  const hasSignal = (p: ProfessionalSummary | null) =>
+    Boolean(p && (p.lastObservation || p.lastSession));
+  const primary = hasSignal(personal)
     ? personal
-    : nutri?.lastObservation
+    : hasSignal(nutri)
       ? nutri
       : (personal ?? nutri);
 
@@ -117,6 +120,26 @@ export function ProfessionalVoiceCard({ personal, nutri, criticalSignals = [] }:
             }}
           >
             — {formatRelativeDate(primary.lastObservation.createdAt)}
+          </span>
+        </p>
+      ) : primary.lastSession ? (
+        // Sem observação escrita, mas o profissional registrou uma sessão: fecha o loop
+        // no lado do aluno — ele vê que foi notado. (item #1 do parecer de viabilidade)
+        <p style={{ margin: 0, fontSize: 14, lineHeight: 1.5, color: 'var(--color-text)' }}>
+          {firstName}{' '}
+          {primary.lastSession.status === 'partial'
+            ? 'registrou uma sessão parcial sua'
+            : 'registrou sua presença no treino'}{' '}
+          <b>{formatRelativeDate(primary.lastSession.at)}</b>.
+          <span
+            style={{
+              display: 'block',
+              marginTop: 4,
+              fontSize: 12,
+              color: 'var(--color-text-muted)',
+            }}
+          >
+            Seu acompanhamento está em dia.
           </span>
         </p>
       ) : (
