@@ -512,8 +512,18 @@ export default function DashboardPage() {
             priorizado por risco. Ver plans/plano_review_personal_2026-05-19_1.md
             (Top 10 #1) e PR-C do plano UI/UX 6→8.
           */}
+          {alerts.length > 0 ? (
+            <Card title="Sinais do dia">
+              <IntelligentAlerts
+                alerts={alerts}
+                onOpenStudent={(id) => openStudent(id)}
+                onOpenStudents={() => navigate(routes.students())}
+              />
+            </Card>
+          ) : null}
+
           <Card
-            title="Hoje"
+            title="Alunos em atenção"
             subtitle={
               filteredAttention.length === 0
                 ? "Carteira estável — nenhum aluno pedindo atenção neste filtro."
@@ -529,16 +539,6 @@ export default function DashboardPage() {
               </button>
             }
           >
-            {alerts.length > 0 ? (
-              <div style={{ marginBottom: 12 }}>
-                <IntelligentAlerts
-                  alerts={alerts}
-                  onOpenStudent={(id) => openStudent(id)}
-                  onOpenStudents={() => navigate(routes.students())}
-                />
-              </div>
-            ) : null}
-
             <div style={{ display: "grid" }}>
               {filteredAttention.length === 0 ? (
                 <div style={{ padding: "8px 0" }}>
