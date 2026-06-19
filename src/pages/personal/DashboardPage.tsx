@@ -136,16 +136,6 @@ function checkinAbsenceBadge(student: PersonalDashboardStudent): string | null {
   return `Sem check-in há ${days}d`;
 }
 
-function technicalNoteReminder(student: PersonalDashboardStudent): string | null {
-  const iso = student.lastTechnicalNoteAt;
-  if (iso == null || iso === "") {
-    return "Sem nota técnica ainda";
-  }
-  const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
-  if (days < 14) return null;
-  const weeks = Math.floor(days / 7);
-  return weeks >= 2 ? `Sem nota técnica há ${weeks} sem.` : "Sem nota técnica há 2+ sem.";
-}
 
 function daysAgoISO(days: number): string {
   const d = new Date();
