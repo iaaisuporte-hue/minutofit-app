@@ -1,8 +1,9 @@
 {
+  "id": "/",
   "name": "MetaCore",
   "short_name": "MetaCore",
   "description": "Metabolismo, treino e acompanhamento — experiência aluno e equipe.",
-  "start_url": "/",
+  "start_url": "/?source=pwa",
   "scope": "/",
   "display": "standalone",
   "background_color": "#121212",
@@ -11,6 +12,24 @@
   "dir": "ltr",
   "categories": ["health", "lifestyle", "fitness"],
   "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
     {
       "src": "/minutofit-icon.svg",
       "sizes": "any",

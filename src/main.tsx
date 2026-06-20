@@ -27,3 +27,13 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
     </BrowserRouter>
   </React.StrictMode>,
 );
+
+// PWA — registra o service worker no boot (instalável + offline shell),
+// independente do push. O fluxo de push (usePushSubscription) reusa o mesmo SW.
+if ("serviceWorker" in navigator && import.meta.env.PROD) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js", { scope: "/" }).catch(() => {
+      /* registro best-effort — não bloqueia o app */
+    });
+  });
+}
