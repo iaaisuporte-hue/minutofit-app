@@ -1,5 +1,8 @@
+import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useFeatureFlags } from '../../auth/FeatureFlagsContext';
+import { API_URL } from '../../services/apiBase';
+import { authFetch } from '../../services/apiClient';
 import type { ProfessionalSummary } from './useProfessionalContext';
 
 interface Props {
@@ -24,7 +27,6 @@ export function ProfessionalVoiceCard({ personal, nutri, criticalSignals = [] }:
   // pra default). Esconde o CTA — o card segue informacional, mantendo a presença do
   // profissional visível (Skill aluno_signal_loop_review).
   const canOpenChat = hasFeature('messages');
-  if (!personal && !nutri) return null;
 
   // "Tem sinal" = observação escrita OU sessão registrada (Veio/Parcial). Ambos provam
   // ao aluno que o profissional o notou. Prioriza quem tem sinal; senão, o personal.
@@ -36,6 +38,30 @@ export function ProfessionalVoiceCard({ personal, nutri, criticalSignals = [] }:
       ? nutri
       : (personal ?? nutri);
 
+  // Instrumenta percepção real do aluno: dispara 1x por sessão distinta quando o card
+  // mostra o toque de sessão (sem observação escrita). Mede se o loop é PERCEBIDO,
+  // não só entregue — pré-requisito para validar a tese (item #1 do parecer).
+  const showingSession = Boolean(primary && !primary.lastObservation && primary.lastSession);
+  const reportKey = showingSession ? `${primary!.id}:${primary!.lastSession!.at}` : null;
+  const reportedRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!reportKey || reportedRef.current === reportKey) return;
+    reportedRef.current = reportKey;
+    void authFetch(`${API_URL}/user/events`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        eventType: 'student.session_touchpoint.viewed',
+        payload: {
+          personalId: primary!.id,
+          status: primary!.lastSession!.status,
+          sessionAt: primary!.lastSession!.at,
+        },
+      }),
+    }).catch(() => {});
+  }, [reportKey]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (!personal && !nutri) return null;
   if (!primary) return null;
   const role = primary === personal ? 'personal' : 'nutricionista';
   const firstName = primary.name.split(' ')[0] ?? primary.name;
