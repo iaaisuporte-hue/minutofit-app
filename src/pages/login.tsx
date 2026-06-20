@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth, type Role, type AcademyForUser } from "../auth/AuthContext";
 import type { AccessProfile } from "../auth/accessControl";
+import { GoogleSignInButton } from "../auth/GoogleSignInButton";
 import MinutoFitLogo from "../components/MinutoFitLogo";
 import { extractTenantSlug, fetchBranding, type AcademyBrandingPublic } from "../services/tenantHost";
 
@@ -44,7 +45,7 @@ function nextPathByRole(
 
 export default function LoginPage() {
   const nav = useNavigate();
-  const { login, isAuthenticated, role, academies, activeAcademyId, accessProfile } = useAuth();
+  const { login, loginWithOAuth, isAuthenticated, role, academies, activeAcademyId, accessProfile } = useAuth();
 
 
   const [email, setEmail]             = useState("");
@@ -82,6 +83,19 @@ export default function LoginPage() {
       return;
     }
 
+    setIsLoading(false);
+  }
+
+  async function onGoogleCredential(idToken: string) {
+    setError(null);
+    setIsLoading(true);
+    const res = await loginWithOAuth("google", idToken);
+    if (!res.ok) {
+      setError(res.message || "Falha no login com Google.");
+      setIsLoading(false);
+      return;
+    }
+    // Redirecionamento é tratado pelo useEffect (isAuthenticated) + ProtectedRoute.
     setIsLoading(false);
   }
 
@@ -126,7 +140,9 @@ export default function LoginPage() {
         <h1 className="auth-title">{welcomeTitle}</h1>
         <p className="auth-subtitle">{welcomeSub}</p>
 
-        <div className="auth-divider"><span>entre com e-mail</span></div>
+        <GoogleSignInButton onCredential={onGoogleCredential} text="continue_with" />
+
+        <div className="auth-divider"><span>ou entre com e-mail</span></div>
 
         {error && (
           <div className="auth-error" role="alert">
