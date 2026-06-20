@@ -37,6 +37,13 @@ html, body, #root {
   min-height: 100%;
 }
 
+/* ── Blindagem mobile: mídia raster nunca estoura o container ──────── */
+/* Escopo proposital sem `svg` — ícones (lucide) e logos são dimensionados
+   explicitamente; `height:auto` global neles poderia distorcer. */
+img, video, canvas, picture {
+  max-width: 100%;
+}
+
 a {
   font-weight: var(--font-medium);
   color: var(--color-text);

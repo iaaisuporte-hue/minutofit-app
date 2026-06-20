@@ -75,7 +75,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
           display: "grid",
           gap: 10,
           maxWidth: 360,
-          width: "calc(100vw - 40px)",
+          width: "calc(100% - 40px)",
           pointerEvents: "none",
         }}
       >

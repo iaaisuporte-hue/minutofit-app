@@ -29,6 +29,7 @@ import {
 } from "../../features/metabolism/metabolismDerivations";
 import { useGamificationSummary } from "../../features/gamification/useGamificationSummary";
 import { ProfessionalVoiceCard } from "../../features/professionalVoice";
+import { InstallPrompt } from "../../features/pwa/InstallPrompt";
 import { WeeklyLoopCard, useHasWeeklyLoopInsights } from "../../features/loopVisibility";
 import { IncomingMessageBanner, useLatestUnreadFromProfessional } from "../../features/incomingMessage";
 import { DailyCheckin, type DailyCheckinHandle } from "../../features/dailyCheckin/DailyCheckin";
@@ -397,6 +398,9 @@ export default function TodayPage() {
       initial={shouldReduceMotion ? false : "hidden"}
       animate="show"
     >
+      {/* 0. Faixa de instalar o app (PWA) — Android beforeinstallprompt / dica iOS */}
+      <InstallPrompt />
+
       {/* 0. Banner de mensagem nova (apenas quando há mensagem não lida do profissional) */}
       {incomingMessage && (
         <IncomingMessageBanner

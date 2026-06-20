@@ -110,7 +110,7 @@ export function InfoHint({ termo, resumo, impacto, saibaMaisHref }: Props) {
             transform: position.placement === "top" ? "translateY(-100%)" : undefined,
             zIndex: 9999,
             width: 280,
-            maxWidth: "calc(100vw - 24px)",
+            maxWidth: "calc(100% - 24px)",
             background: "var(--color-surface)",
             border: "1px solid var(--color-border-strong)",
             borderRadius: 10,
