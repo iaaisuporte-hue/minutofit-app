@@ -1,5 +1,6 @@
 import { Sparkles } from "lucide-react";
 import { usePlan } from "./usePlan";
+import { UpgradeToProButton } from "./UpgradeToProButton";
 
 export function AiUpgradeCTA() {
   const plan = usePlan();
@@ -43,24 +44,10 @@ export function AiUpgradeCTA() {
       </div>
       <div style={{ fontSize: 12, color: "var(--color-text-muted)", lineHeight: 1.5 }}>
         Síntese contextual da evolução do aluno — gerada sob demanda com base em aderência,
-        metabolismo e histórico de treinos.
+        metabolismo e histórico de treinos. Alunos ilimitados + adaptação automática
+        por <b>R$ 89/mês</b>.
       </div>
-      <a
-        href="mailto:suporte@minutofit.com.br?subject=Upgrade%20para%20Pro"
-        style={{
-          display: "inline-block",
-          alignSelf: "center",
-          padding: "8px 18px",
-          borderRadius: 8,
-          background: "rgb(99,102,241)",
-          color: "#fff",
-          fontSize: 13,
-          fontWeight: 600,
-          textDecoration: "none",
-        }}
-      >
-        Ver planos
-      </a>
+      <UpgradeToProButton label="Assinar Pro" />
     </div>
   );
 }

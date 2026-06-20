@@ -1,4 +1,5 @@
 import { usePlan } from "./usePlan";
+import { UpgradeToProButton } from "./UpgradeToProButton";
 
 interface Props {
   studentCount: number;
@@ -35,19 +36,7 @@ export function StudentLimitBanner({ studentCount }: Props) {
           ? `Limite atingido: ${studentCount} de ${plan.studentLimit} alunos no plano ${plan.plan === "free" ? "Free" : "Starter"}.`
           : `Você está usando ${studentCount} de ${plan.studentLimit} alunos no plano ${plan.plan === "free" ? "Free" : "Starter"}.`}
       </span>
-      <a
-        href="mailto:suporte@minutofit.com.br?subject=Upgrade%20de%20plano"
-        style={{
-          fontSize: 12,
-          fontWeight: 600,
-          color: "inherit",
-          textDecoration: "underline",
-          whiteSpace: "nowrap",
-          flexShrink: 0,
-        }}
-      >
-        Fazer upgrade
-      </a>
+      <UpgradeToProButton variant="link" label="Fazer upgrade" />
     </div>
   );
 }

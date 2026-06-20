@@ -2,7 +2,7 @@ import { API_URL } from "./apiBase";
 import { authFetch } from "./apiClient";
 
 export type PersonalPlan = "free" | "starter" | "pro";
-export type PersonalPlanStatus = "active" | "trial" | "expired" | "cancelled";
+export type PersonalPlanStatus = "active" | "trial" | "expired" | "cancelled" | "pending";
 
 export interface PersonalPlanConfig {
   plan: PersonalPlan;
@@ -29,4 +29,21 @@ export async function fetchPersonalPlan(): Promise<PersonalPlanConfig> {
   } catch {
     return FREE_DEFAULT;
   }
+}
+
+/**
+ * Inicia o checkout self-serve do plano pago. Retorna a URL do Mercado Pago
+ * (init_point) para redirecionar o personal. Lança em caso de falha.
+ */
+export async function startPersonalCheckout(plan: "pro" | "starter" = "pro"): Promise<string> {
+  const res = await authFetch(`${API_URL}/personal/plan/checkout`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ plan }),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok || !json?.data?.initPoint) {
+    throw new Error(json?.error || "Não foi possível iniciar o pagamento");
+  }
+  return json.data.initPoint as string;
 }

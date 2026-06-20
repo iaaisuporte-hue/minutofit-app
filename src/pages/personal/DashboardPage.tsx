@@ -328,6 +328,36 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      {/* Retorno do checkout Mercado Pago — confirma recebimento (ativação é assíncrona via webhook) */}
+      {searchParams.get("upgrade") === "ok" ? (
+        <div
+          style={{
+            marginTop: 12,
+            padding: "10px 14px",
+            borderRadius: 10,
+            background: "rgba(99,102,241,0.07)",
+            border: "1px solid rgba(99,102,241,0.3)",
+            fontSize: 13,
+            color: "var(--color-text)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 12,
+          }}
+        >
+          <span>
+            <b>Pagamento recebido.</b> Seu plano Pro é ativado assim que o Mercado Pago confirmar — em instantes.
+          </span>
+          <button
+            type="button"
+            className="pp-btn pp-btn--ghost pp-btn--sm"
+            onClick={() => setSearchParams({})}
+          >
+            Ok
+          </button>
+        </div>
+      ) : null}
+
       {/* Solicitações de vínculo de alunos (iniciadas pelo aluno) */}
       <div style={{ marginTop: 12 }}>
         <IncomingRequestsPanel role="personal" />
