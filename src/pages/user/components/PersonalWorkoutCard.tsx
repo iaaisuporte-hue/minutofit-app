@@ -88,30 +88,24 @@ export function PersonalWorkoutCard({
       }}
     >
       <div style={{ display: "grid", gap: 16 }}>
-        {/* Header — quem prescreveu */}
+        {/* Header — o treino a fazer ("Treino B") em destaque. O personal segue
+            presente pelo avatar + nome discreto, sem o eyebrow verboso anterior. */}
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <Avatar photo={personal.photo} name={personal.name} />
-          <div style={{ display: "grid", gap: 2 }}>
-            <div className="today-eyebrow">Treino de hoje · definido por {personal.name}</div>
-            <div style={{ fontSize: isMobile ? 16 : 18, fontWeight: 700, color: SURFACE.text }}>
-              {plan.title}
+          <div style={{ display: "grid", gap: 2, minWidth: 0 }}>
+            <div style={{ fontSize: isMobile ? 20 : 24, fontWeight: 800, color: SURFACE.text, lineHeight: 1.15 }}>
+              {today?.name ?? plan.title}
+            </div>
+            {today?.focus ? (
+              <div style={{ fontSize: 13, color: SURFACE.muted, lineHeight: 1.4 }}>
+                {today.focus}
+              </div>
+            ) : null}
+            <div style={{ fontSize: 12, color: SURFACE.muted }}>
+              {personal.name}
             </div>
           </div>
         </div>
-
-        {/* Foco do dia */}
-        {today && (
-          <div style={{ display: "grid", gap: 6 }}>
-            <div style={{ fontSize: 13, fontWeight: 600, color: SURFACE.text }}>
-              {today.name}
-            </div>
-            {today.focus && (
-              <div style={{ fontSize: 13, color: SURFACE.muted, lineHeight: 1.5 }}>
-                {today.focus}
-              </div>
-            )}
-          </div>
-        )}
 
         {/* Chips: duração, exercícios, status */}
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>

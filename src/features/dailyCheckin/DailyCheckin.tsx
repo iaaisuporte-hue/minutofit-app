@@ -218,20 +218,20 @@ export const DailyCheckin = forwardRef<DailyCheckinHandle, Props>(function Daily
           background: 'var(--color-surface)',
           border: '1px solid var(--color-border)',
           borderRadius: 20,
-          padding: '18px 20px',
+          padding: isMobile ? '12px 14px' : '18px 20px',
           boxShadow: 'var(--shadow-md)',
           display: 'grid',
-          gap: 14,
+          gap: isMobile ? 10 : 14,
         }}
       >
-        <div style={{ display: 'grid', gap: 3 }}>
-          <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-text-subtle)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+        <div style={{ display: 'grid', gap: isMobile ? 1 : 3 }}>
+          <span style={{ fontSize: isMobile ? 10 : 11, fontWeight: 700, color: 'var(--color-text-subtle)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
             Check-in diário
           </span>
-          <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--color-text)' }}>
+          <span style={{ fontSize: isMobile ? 14 : 16, fontWeight: 700, color: 'var(--color-text)' }}>
             Como está seu corpo hoje?
           </span>
-          <span style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>
+          <span style={{ fontSize: isMobile ? 12 : 13, color: 'var(--color-text-muted)' }}>
             Esses sinais alimentam toda a sua leitura de hoje
           </span>
         </div>
@@ -246,7 +246,7 @@ export const DailyCheckin = forwardRef<DailyCheckinHandle, Props>(function Daily
                 onClick={() => openSheet(feeling)}
                 whileTap={{ scale: 0.96 }}
                 style={{
-                  padding: '12px 8px', borderRadius: 14,
+                  padding: isMobile ? '9px 6px' : '12px 8px', borderRadius: 14,
                   border: '1.5px solid var(--color-border)',
                   background: 'transparent',
                   color: 'var(--color-text-muted)',
