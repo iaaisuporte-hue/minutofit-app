@@ -14,6 +14,8 @@ type Props = {
   studentId: string;
   studentName: string;
   engagementStatus?: PersonalDashboardEngagementStatus | null;
+  /** Abre o modal já com o template "Cobra check-in" selecionado e preenchido. */
+  prefillCheckinNudge?: boolean;
   onClose: () => void;
   onSent?: () => void;
 };
@@ -31,7 +33,7 @@ const CHECKIN_NUDGE_TEMPLATE: MessageTemplate = {
   updatedAt: "",
 };
 
-export function QuickMessageModal({ studentId, studentName, engagementStatus, onClose, onSent }: Props) {
+export function QuickMessageModal({ studentId, studentName, engagementStatus, prefillCheckinNudge, onClose, onSent }: Props) {
   const [templates, setTemplates] = useState<MessageTemplate[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<MessageTemplate | null>(null);
   const [body, setBody] = useState("");
@@ -50,6 +52,13 @@ export function QuickMessageModal({ studentId, studentName, engagementStatus, on
     setSelectedTemplate(t);
     setBody(t.body.replace(/\[nome\]/gi, studentName));
   }
+
+  // Abertura contextual: quando o personal toca "Lembrar check-in" na linha do
+  // aluno, o modal já vem com o nudge de check-in pronto para enviar (1 toque + Enviar).
+  useEffect(() => {
+    if (prefillCheckinNudge) selectTemplate(CHECKIN_NUDGE_TEMPLATE);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function handleSend() {
     const text = body.trim();

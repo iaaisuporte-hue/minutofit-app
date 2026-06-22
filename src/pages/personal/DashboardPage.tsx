@@ -19,10 +19,12 @@ import StudentProfileModal from "./StudentProfileModal";
 import PersonalQuickSearch from "./PersonalQuickSearch";
 import {
   buildAttentionList,
+  buildStudentNarrative,
   buildPortfolioHeadline,
   type StudentNarrative,
   type StudentNarrativeTone,
 } from "./lib/studentNarrative";
+import { Bell } from "lucide-react";
 import { InsightsStrip } from "../../features/personalRetention/InsightsStrip";
 import { RecognitionCard } from "../../features/personalRetention/RecognitionCard";
 import { IncomingRequestsPanel } from "../../features/team";
@@ -186,8 +188,9 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedStudent, setSelectedStudent] = useState<{ id: string; name: string } | null>(null);
-  const [pulseFilter, setPulseFilter] = useState<"all" | "healthy" | "attention" | "risk">("all");
+  const [pulseFilter, setPulseFilter] = useState<"all" | "healthy" | "attention" | "risk" | "no_checkin">("all");
   const [quickMsgStudent, setQuickMsgStudent] = useState<PersonalDashboardStudent | null>(null);
+  const [quickMsgPrefillCheckin, setQuickMsgPrefillCheckin] = useState(false);
   const [recognizingMilestone, setRecognizingMilestone] = useState<RecognitionMilestone | null>(null);
   const [isDemoMode, setIsDemoMode] = useState(false);
   const [demoCTAOpen, setDemoCTAOpen] = useState(false);
@@ -244,7 +247,20 @@ export default function DashboardPage() {
     return buildAttentionList(students, 12);
   }, [students]);
 
+  // "Sem check-in" opera sobre a carteira INTEIRA (não só os 12 da lista de atenção):
+  // um aluno saudável que apenas faltou check-in há 3–4d não entraria no top-12 por tom,
+  // mas é exatamente o sinal precoce que o personal precisa ver para fechar o passo 2.
+  const noCheckinStudents = useMemo(
+    () => students.filter((s) => checkinAbsenceBadge(s) !== null),
+    [students]
+  );
+
   const filteredAttention = useMemo(() => {
+    if (pulseFilter === "no_checkin") {
+      return [...noCheckinStudents]
+        .sort((a, b) => daysSince(b.lastCheckinISO) - daysSince(a.lastCheckinISO))
+        .map(buildStudentNarrative);
+    }
     if (pulseFilter === "all") return attentionList;
     return attentionList.filter((item) => {
       const st = students.find((s) => s.id === item.studentId);
@@ -253,7 +269,7 @@ export default function DashboardPage() {
       if (pulseFilter === "attention") return st.engagementStatus === "attention";
       return st.engagementStatus === "fading" || st.engagementStatus === "at_risk";
     });
-  }, [attentionList, pulseFilter, students]);
+  }, [attentionList, pulseFilter, students, noCheckinStudents]);
 
   const aggregates = useMemo(() => {
     if (!students.length) {
@@ -450,6 +466,16 @@ export default function DashboardPage() {
               >
                 Risco ({aggregates.fading + aggregates.atRisk})
               </button>
+              {noCheckinStudents.length > 0 ? (
+                <button
+                  type="button"
+                  className="pp-pulse-chip"
+                  aria-pressed={pulseFilter === "no_checkin"}
+                  onClick={() => setPulseFilter("no_checkin")}
+                >
+                  Sem check-in ({noCheckinStudents.length})
+                </button>
+              ) : null}
             </div>
 
             <PersonalQuickSearch students={students} onSelect={(id, name) => openStudent(id, name)} />
@@ -589,7 +615,11 @@ export default function DashboardPage() {
                 const primaryAction = isRisk
                   ? {
                       label: "Mensagem rápida",
-                      onClick: () => isDemo ? setDemoCTAOpen(true) : setQuickMsgStudent(student),
+                      onClick: () => {
+                        if (isDemo) { setDemoCTAOpen(true); return; }
+                        setQuickMsgPrefillCheckin(false);
+                        setQuickMsgStudent(student);
+                      },
                     }
                   : {
                       label: "Ajustar treino",
@@ -644,14 +674,30 @@ export default function DashboardPage() {
                       {!isDemo
                         ? <SessionQuickLog studentId={item.studentId} studentName={item.studentName} />
                         : <div />}
-                      <button
-                        type="button"
-                        className="pp-btn pp-btn--primary pp-btn--sm"
-                        style={{ flexShrink: 0 }}
-                        onClick={primaryAction.onClick}
-                      >
-                        {primaryAction.label}
-                      </button>
+                      <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+                        {!isDemo && checkinChip ? (
+                          <button
+                            type="button"
+                            className="pp-btn pp-btn--ghost pp-btn--sm"
+                            style={{ display: "inline-flex", alignItems: "center", gap: 5 }}
+                            title="Enviar lembrete de check-in"
+                            onClick={() => {
+                              setQuickMsgPrefillCheckin(true);
+                              setQuickMsgStudent(student);
+                            }}
+                          >
+                            <Bell size={13} />
+                            Lembrar check-in
+                          </button>
+                        ) : null}
+                        <button
+                          type="button"
+                          className="pp-btn pp-btn--primary pp-btn--sm"
+                          onClick={primaryAction.onClick}
+                        >
+                          {primaryAction.label}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 );
@@ -700,7 +746,8 @@ export default function DashboardPage() {
           studentId={quickMsgStudent.id}
           studentName={quickMsgStudent.name}
           engagementStatus={quickMsgStudent.engagementStatus}
-          onClose={() => setQuickMsgStudent(null)}
+          prefillCheckinNudge={quickMsgPrefillCheckin}
+          onClose={() => { setQuickMsgStudent(null); setQuickMsgPrefillCheckin(false); }}
         />
       ) : null}
 
