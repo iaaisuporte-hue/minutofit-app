@@ -67,13 +67,13 @@ Implementar a Rede de Profissionais como uma experiência premium, curada e orie
 - Segurança implementada:
   - política de academia padrão `block`;
   - política só alterada com `academy.professionals.write` no tenant ativo;
-  - admin MetaCore valida publicação/credencial;
+  - admin CoreFit valida publicação/credencial;
   - profissional edita apenas seu próprio perfil;
   - dados sensíveis continuam protegidos por consentimentos existentes;
   - revogação continua encerrando acesso via fluxo existente.
 - Checks executados:
-  - `npm run build` em `minutofit-backend`;
-  - `npx tsc --noEmit` em `minutofit-app`.
+  - `npm run build` em `corefit-backend`;
+  - `npx tsc --noEmit` em `corefit-app`.
 
 ## Assunções Fechadas
 

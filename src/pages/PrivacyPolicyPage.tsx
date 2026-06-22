@@ -10,14 +10,14 @@ export default function PrivacyPolicyPage() {
         Privacidade e cookies
       </h1>
       <p className="auth-subtitle" style={{ textAlign: "left", marginBottom: 24 }}>
-        MetaCore — transparência sobre dados pessoais e tecnologias no seu navegador, em linha com a Lei Geral de
+        CoreFit — transparência sobre dados pessoais e tecnologias no seu navegador, em linha com a Lei Geral de
         Proteção de Dados (Lei nº 13.709/2018).
       </p>
 
       <section style={{ display: "grid", gap: 12, marginBottom: 20 }}>
         <h2 style={{ fontSize: 16, margin: 0 }}>1. Controlador</h2>
         <p style={{ margin: 0, fontSize: 14, lineHeight: 1.55, color: "var(--color-text-muted)" }}>
-          O tratamento de dados vinculado a esta aplicação web segue as regras do produto MetaCore e, quando aplicável,
+          O tratamento de dados vinculado a esta aplicação web segue as regras do produto CoreFit e, quando aplicável,
           da academia ou parceiro que disponibiliza o acesso. Dúvidas sobre privacidade podem ser encaminhadas ao canal
           indicado no contrato ou no suporte da sua organização.
         </p>
@@ -66,7 +66,7 @@ export default function PrivacyPolicyPage() {
         <p style={{ margin: 0, fontSize: 14, lineHeight: 1.55, color: "var(--color-text-muted)" }}>
           Conforme a LGPD, você pode solicitar confirmação de tratamento, acesso, correção, anonimização, portabilidade,
           eliminação de dados desnecessários, informação sobre compartilhamentos e revogação de consentimento, quando
-          aplicável. O canal prático depende do contexto (conta MetaCore, academia ou empregador) — use o suporte
+          aplicável. O canal prático depende do contexto (conta CoreFit, academia ou empregador) — use o suporte
           indicado no seu contrato ou na área logada.
         </p>
       </section>

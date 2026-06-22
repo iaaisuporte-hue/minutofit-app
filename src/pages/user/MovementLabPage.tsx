@@ -87,7 +87,7 @@ const MEDIAPIPE_SCRIPTS = [
   `${MEDIAPIPE_BASE_LOCAL}/pose/pose.js`,
 ];
 
-const STORAGE_KEY = "minutofit:movement:sessions";
+const STORAGE_KEY = "corefit:movement:sessions";
 
 // Skeleton colors by form score range (must be literal values, not CSS vars)
 const SKELETON_COLOR_HIGH = "#22C55E";

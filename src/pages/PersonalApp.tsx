@@ -4,7 +4,7 @@ import { NavLink, Navigate, Route, Routes, useNavigate, useParams } from "react-
 import { useAuth } from "../auth/AuthContext";
 import AppShell from "../layout/AppShell";
 import PersonalMobileBottomNav from "../layout/PersonalMobileBottomNav";
-import MinutoFitLogo from "../components/MinutoFitLogo";
+import CoreFitLogo from "../components/CoreFitLogo";
 import { fetchChatConversations } from "../services/messagesApi";
 import "./personal/personalPremium.css";
 import { PlanBadge } from "../features/personalPlan/PlanBadge";
@@ -148,7 +148,7 @@ export default function PersonalApp() {
           {/* Cabeçalho da sidebar: logo + ícone de mensagens */}
           <div style={{ padding: "8px 4px 16px", display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
             <div>
-              <MinutoFitLogo width={148} />
+              <CoreFitLogo width={148} />
               <div className="shellSubtitle" style={{ marginTop: 8 }}>Personal</div>
             </div>
 

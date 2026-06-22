@@ -946,7 +946,7 @@
   justify-content: flex-end;
 }
 
-/* ── MetaCore band (check-in card) ───────────────────────────── */
+/* ── CoreFit band (check-in card) ───────────────────────────── */
 .rec-welcome-context {
   font-size: var(--text-sm);
   font-weight: var(--font-medium);
@@ -954,7 +954,7 @@
   margin: 0 0 var(--space-1);
 }
 
-.rec-metacore-band {
+.rec-corefit-band {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -967,12 +967,12 @@
   color: var(--color-text-muted);
 }
 
-.rec-metacore-metric {
+.rec-corefit-metric {
   font-weight: var(--font-medium);
   color: var(--color-text);
 }
 
-.rec-metacore-dot {
+.rec-corefit-dot {
   opacity: 0.45;
 }
 

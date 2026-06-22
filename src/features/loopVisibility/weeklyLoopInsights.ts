@@ -16,7 +16,7 @@ export interface LoopInsight {
 }
 
 const TRACKER_KEY = 'activities';
-const MOVEMENT_KEY = 'minutofit:movement:sessions';
+const MOVEMENT_KEY = 'corefit:movement:sessions';
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 
 function readActivitiesLast7d(): { totalMinutes: number; cardioSessions: number } {

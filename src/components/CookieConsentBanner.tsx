@@ -21,10 +21,10 @@ export default function CookieConsentBanner() {
   useEffect(() => {
     sync();
     const onChange = () => sync();
-    window.addEventListener("metacore:cookie-consent-changed", onChange);
+    window.addEventListener("corefit:cookie-consent-changed", onChange);
     window.addEventListener("storage", onChange);
     return () => {
-      window.removeEventListener("metacore:cookie-consent-changed", onChange);
+      window.removeEventListener("corefit:cookie-consent-changed", onChange);
       window.removeEventListener("storage", onChange);
     };
   }, [sync]);

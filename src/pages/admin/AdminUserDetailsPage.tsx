@@ -853,7 +853,7 @@ export default function AdminUserDetailsPage() {
         >
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <div style={{ fontSize: 18, fontWeight: 700 }}>Produtos</div>
-            <div style={{ color: COLORS.muted, fontSize: 12 }}>Concedidos pelo MetaCore</div>
+            <div style={{ color: COLORS.muted, fontSize: 12 }}>Concedidos pelo CoreFit</div>
           </div>
 
           {productError && (

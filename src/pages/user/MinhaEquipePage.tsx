@@ -45,7 +45,7 @@ export default function MinhaEquipePage() {
             letterSpacing: "0.08em",
           }}
         >
-          Minha Equipe MetaCore
+          Minha Equipe CoreFit
         </div>
         <h1
           style={{

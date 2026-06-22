@@ -12,7 +12,7 @@ import { Download, X } from "lucide-react";
  * Some quando já instalado (standalone) ou já dispensado (localStorage).
  */
 
-const DISMISS_KEY = "metacore:pwa:install-dismissed";
+const DISMISS_KEY = "corefit:pwa:install-dismissed";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -100,7 +100,7 @@ export function InstallPrompt() {
       </div>
 
       <div style={{ flex: 1, minWidth: 0, lineHeight: 1.45 }}>
-        <b>Instale o MetaCore</b> na tela inicial — acesso rápido e lembretes de check-in.
+        <b>Instale o CoreFit</b> na tela inicial — acesso rápido e lembretes de check-in.
       </div>
 
       <button

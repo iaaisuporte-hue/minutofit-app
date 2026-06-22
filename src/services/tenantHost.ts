@@ -11,7 +11,7 @@
 
 import { API_URL } from './apiBase';
 
-const SUBDOMAIN_REGEX = /^([a-z0-9][a-z0-9-]{1,61}[a-z0-9])\.minutofit\.com\.br$/i;
+const SUBDOMAIN_REGEX = /^([a-z0-9][a-z0-9-]{1,61}[a-z0-9])\.corefit\.com\.br$/i;
 const RESERVED = new Set(['app', 'www', 'api', 'admin', 'cdn', 'static', 'assets', 'mail', 'dev', 'staging', 'test', 'localhost']);
 const STYLE_ELEMENT_ID = 'academy-branding';
 

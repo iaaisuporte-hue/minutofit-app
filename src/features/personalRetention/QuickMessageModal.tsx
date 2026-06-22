@@ -24,7 +24,7 @@ const CHECKIN_NUDGE_TEMPLATE: MessageTemplate = {
   id: -1,
   personalId: null,
   academyId: null,
-  scope: "metacore",
+  scope: "corefit",
   category: "cobra_checkin",
   title: "Cobra check-in",
   body: "Oi [nome]! Vi que você está sem check-in há alguns dias. Manda um update rapidinho? Me ajuda a ajustar seu treino.",

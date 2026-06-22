@@ -58,7 +58,7 @@ Para **persistir dados no banco de dados**:
 
 1. **Inicie o servidor backend:**
    ```bash
-   cd minutofit-backend
+   cd corefit-backend
    npm run dev
    ```
 
@@ -73,14 +73,14 @@ Para **persistir dados no banco de dados**:
 
 3. **Crie o arquivo `.env` com:**
    ```
-   DATABASE_URL=postgresql://minutofit:password@localhost:5432/minutofitdb
+   DATABASE_URL=postgresql://corefit:password@localhost:5432/corefitdb
    JWT_SECRET=seu_secret_aqui
    PORT=3000
    ```
 
 4. **Inicialize o banco:**
    ```bash
-   psql -U minutofit -d minutofitdb -f docs/DATABASE_SCHEMA.sql
+   psql -U corefit -d corefitdb -f docs/DATABASE_SCHEMA.sql
    ```
 
 5. **Recarregue a aplicação frontend**

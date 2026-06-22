@@ -5,7 +5,7 @@ import { useAuth, type Role } from "../auth/AuthContext";
 import { API_URL, parseJson } from "../services/apiBase";
 import { authFetch } from "../services/apiClient";
 import { getAccessToken } from "../services/authTokens";
-import { useNeonTheme } from "../theme/minutofitNeonTheme";
+import { useNeonTheme } from "../theme/corefitNeonTheme";
 
 const EXPERIENCE_LEVELS = ["Iniciante", "Intermediário", "Avançado"];
 const FITNESS_GOALS = ["Perda de Peso", "Ganho de Massa", "Manutenção", "Flexibilidade"];
@@ -217,7 +217,7 @@ export default function ProfileCompletionPage() {
               marginRight: "auto",
             }}
           >
-            Esses dados ajudam o MetaCore a interpretar seus sinais e adaptar
+            Esses dados ajudam o CoreFit a interpretar seus sinais e adaptar
             sua rotina. Você pode atualizar tudo depois.
           </p>
         </div>

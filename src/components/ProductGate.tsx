@@ -10,7 +10,7 @@ interface Props {
 
 /**
  * Renderiza `children` apenas se o usuário possuir o produto ativo.
- * Admin (MetaCore) sempre passa.
+ * Admin (CoreFit) sempre passa.
  *
  * Uso:
  *   <ProductGate productKey="personal">

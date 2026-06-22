@@ -55,7 +55,7 @@ export type MessageTemplate = {
   id: number;
   personalId: number | null;
   academyId: number | null;
-  scope: "personal" | "academy" | "metacore";
+  scope: "personal" | "academy" | "corefit";
   category: string;
   title: string;
   body: string;

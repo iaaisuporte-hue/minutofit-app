@@ -1,7 +1,7 @@
 import { NavLink, Navigate, Route, Routes, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import AppShell from "../layout/AppShell";
-import MinutoFitLogo from "../components/MinutoFitLogo";
+import CoreFitLogo from "../components/CoreFitLogo";
 import AdminDashboardPage from "./admin/AdminDashboardPage";
 import AdminUsersPage from "./admin/AdminUsersPage";
 import AdminUserDetailsPage from "./admin/AdminUserDetailsPage";
@@ -84,7 +84,7 @@ export default function AdminApp() {
       sidebar={
         <>
           <div style={{ padding: "8px 4px 16px" }}>
-            <MinutoFitLogo width={148} />
+            <CoreFitLogo width={148} />
           </div>
 
           <div className="navStack" style={{ gap: "var(--space-4)" }}>

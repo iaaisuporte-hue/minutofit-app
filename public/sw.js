@@ -1,7 +1,7 @@
-// MetaCore — Service Worker (push + PWA offline shell)
+// CoreFit — Service Worker (push + PWA offline shell)
 // Push: notificações de lembrete. PWA: shell offline mínimo para navegações.
 
-const SHELL_CACHE = 'metacore-shell-v1';
+const SHELL_CACHE = 'corefit-shell-v1';
 
 // Pré-cacheia o shell (index) para fallback offline em navegações.
 self.addEventListener('install', (event) => {
@@ -44,17 +44,17 @@ self.addEventListener('push', (event) => {
   try {
     payload = event.data.json();
   } catch {
-    payload = { title: 'MetaCore', body: event.data.text() };
+    payload = { title: 'CoreFit', body: event.data.text() };
   }
 
-  const { title = 'MetaCore', body = '', tag } = payload;
+  const { title = 'CoreFit', body = '', tag } = payload;
 
   event.waitUntil(
     self.registration.showNotification(title, {
       body,
       tag,
-      icon: '/minutofit-icon.svg',
-      badge: '/minutofit-icon.svg',
+      icon: '/corefit-icon.svg',
+      badge: '/corefit-icon.svg',
       renotify: true,
     })
   );

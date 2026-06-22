@@ -1,4 +1,4 @@
-/** Workout builder tokens aligned with `src/styles/theme.css` (MetaCore shell). */
+/** Workout builder tokens aligned with `src/styles/theme.css` (CoreFit shell). */
 export const WB = {
   text: "var(--color-text-primary)",
   muted: "var(--color-text-secondary)",

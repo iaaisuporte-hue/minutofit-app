@@ -24,7 +24,7 @@ export function MetabolicTrendStrip({ records, loading = false, compact = false 
     return compact ? null : (
       <div className="metabolic-trend-strip" style={{ display: 'grid', gap: 'var(--space-2)' }}>
         <div className="metabolic-eyebrow">Tendências em formação</div>
-        <p className="metabolic-section-copy">Depois de duas atualizações, o MetaCore passa a mostrar mudanças de peso, cintura e outros sinais ao longo do tempo.</p>
+        <p className="metabolic-section-copy">Depois de duas atualizações, o CoreFit passa a mostrar mudanças de peso, cintura e outros sinais ao longo do tempo.</p>
       </div>
     );
   }

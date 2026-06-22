@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
-import MinutoFitLogo from "../components/MinutoFitLogo";
+import CoreFitLogo from "../components/CoreFitLogo";
 import { changePassword } from "../services/authApi";
 
 export default function ForcePasswordChangePage() {
@@ -44,7 +44,7 @@ export default function ForcePasswordChangePage() {
     <main className="auth-page">
       <form className="auth-card" onSubmit={onSubmit} noValidate>
         <div className="auth-logo">
-          <MinutoFitLogo width={140} />
+          <CoreFitLogo width={140} />
         </div>
 
         <h1 className="auth-title">Troque sua senha temporária</h1>

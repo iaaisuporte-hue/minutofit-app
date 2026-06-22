@@ -73,7 +73,7 @@ export function MetabolicCheckinModal({ open, onClose, onSave }: Props) {
         <div style={{ display: 'grid', gap: 'var(--space-2)' }}>
           <div className="metabolic-eyebrow">Check-in metabólico</div>
           <h2 id="metabolic-checkin-title" className="metabolic-section-title">Atualize só o que você tem hoje</h2>
-          <p className="metabolic-section-copy">Pode preencher um único campo. O MetaCore usa esses sinais para enxergar tendência ao longo do tempo.</p>
+          <p className="metabolic-section-copy">Pode preencher um único campo. O CoreFit usa esses sinais para enxergar tendência ao longo do tempo.</p>
         </div>
 
         {error && <div className="badge badge-warn" role="alert">{error}</div>}

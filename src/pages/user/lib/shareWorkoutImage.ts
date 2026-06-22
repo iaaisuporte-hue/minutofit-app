@@ -6,7 +6,7 @@
 // Separados de propósito: o share() precisa de gesto do usuário e é chamado a
 // partir do botão "Compartilhar" do preview. Restrito ao mobile por capacidade.
 
-const BRAND = "MinutoFit"; // marca pública do app (domínio minutofit.com.br)
+const BRAND = "CoreFit"; // marca pública do app (domínio corefit.com.br)
 
 type ShareableNavigator = Navigator & {
   canShare?: (data?: ShareData) => boolean;
@@ -65,6 +65,18 @@ function drawCover(ctx: CanvasRenderingContext2D, img: HTMLImageElement, w: numb
     dy = (h - dh) / 2;
   }
   ctx.drawImage(img, dx, dy, dw, dh);
+}
+
+async function loadSvgLogo(): Promise<HTMLImageElement | null> {
+  try {
+    const img = new Image();
+    img.src = "/corefit-logo-light.svg";
+    if (img.decode) await img.decode();
+    else await new Promise<void>((res, rej) => { img.onload = () => res(); img.onerror = rej; });
+    return img;
+  } catch {
+    return null;
+  }
 }
 
 async function loadImage(file: File | Blob): Promise<HTMLImageElement> {
@@ -156,15 +168,23 @@ export async function composeWorkoutImage({ focus, dayName, backgroundFile }: Co
   ctx.font = "500 32px Inter, system-ui, sans-serif";
   ctx.fillText(meta, padX, size - 148);
 
-  // Marca + ponto accent
-  ctx.fillStyle = "#ffffff";
-  ctx.font = "800 52px Inter, system-ui, sans-serif";
-  ctx.fillText(BRAND, padX, size - 80);
-  const brandWidth = ctx.measureText(BRAND).width;
-  ctx.fillStyle = primary;
-  ctx.beginPath();
-  ctx.arc(padX + brandWidth + 18, size - 98, 8, 0, Math.PI * 2);
-  ctx.fill();
+  // Logo CoreFit (SVG claro para fundo escuro) — fallback para texto se SVG não carregar
+  const logoImg = await loadSvgLogo();
+  if (logoImg) {
+    // viewBox 264×56 → renderizado em ~220×47 px no canvas 1080²
+    const logoW = 220;
+    const logoH = Math.round(logoW * (56 / 264));
+    ctx.drawImage(logoImg, padX, size - 80 - logoH, logoW, logoH);
+  } else {
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "800 52px Inter, system-ui, sans-serif";
+    ctx.fillText(BRAND, padX, size - 80);
+    const brandWidth = ctx.measureText(BRAND).width;
+    ctx.fillStyle = primary;
+    ctx.beginPath();
+    ctx.arc(padX + brandWidth + 18, size - 98, 8, 0, Math.PI * 2);
+    ctx.fill();
+  }
 
   const blob = await new Promise<Blob | null>((res) => canvas.toBlob(res, "image/jpeg", 0.9));
   if (!blob) throw new Error("falha ao gerar imagem");

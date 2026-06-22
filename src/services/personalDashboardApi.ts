@@ -3,7 +3,7 @@ import { authFetch } from "./apiClient";
 import { getAccessToken } from "./authTokens";
 
 // Tipos canônicos vêm de src/shared/types/personal-dashboard.ts
-// (espelha minutofit-backend/src/shared/types/personal-dashboard.ts).
+// (espelha corefit-backend/src/shared/types/personal-dashboard.ts).
 // Source-of-truth: /shared/contract-personal-dashboard.md no monorepo parent.
 import type {
   PersonalDashboardPlan,

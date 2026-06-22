@@ -1,8 +1,8 @@
 {
-  "name": "minutofit-app",
+  "name": "corefit-app",
   "private": true,
   "version": "0.1.0",
-  "description": "Frontend web MetaCore (React + Vite) — aluno, login e cadastro.",
+  "description": "Frontend web CoreFit (React + Vite) — aluno, login e cadastro.",
   "type": "module",
   "engines": {
     "node": ">=20.19.0"

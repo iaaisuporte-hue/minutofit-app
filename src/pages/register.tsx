@@ -13,7 +13,7 @@ import {
   normalizePhone,
   getStrongPasswordError,
 } from "../utils/validators";
-import MinutoFitLogo from "../components/MinutoFitLogo";
+import CoreFitLogo from "../components/CoreFitLogo";
 
 type RegisterForm = {
   name: string;
@@ -124,7 +124,7 @@ export default function RegisterPage() {
         if (emailTaken) {
           setEmailAlreadyRegistered(true);
         } else if (cpfTaken) {
-          setError("Este CPF já possui conta no MetaCore. Faça login ou use outro CPF.");
+          setError("Este CPF já possui conta no CoreFit. Faça login ou use outro CPF.");
         } else {
           setError(result.message);
         }
@@ -162,7 +162,7 @@ export default function RegisterPage() {
         noValidate
       >
         <div className="auth-logo">
-          <MinutoFitLogo width={140} />
+          <CoreFitLogo width={140} />
         </div>
 
         <h1 className="auth-title">Criar conta</h1>
@@ -181,7 +181,7 @@ export default function RegisterPage() {
 
         {emailAlreadyRegistered && (
           <div className="auth-error" role="alert" style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            <span>Este email já tem conta no MetaCore.</span>
+            <span>Este email já tem conta no CoreFit.</span>
             <Link to="/login" className="btn btn-sm btn-primary" style={{ alignSelf: "flex-start" }}>
               Fazer login
             </Link>

@@ -1,10 +1,10 @@
-# OAuth Setup Guide for MinutoFit
+# OAuth Setup Guide for CoreFit
 
-This guide walks you through setting up OAuth authentication with Google and Apple for the MinutoFit frontend.
+This guide walks you through setting up OAuth authentication with Google and Apple for the CoreFit frontend.
 
 ## Overview
 
-MinutoFit now supports OAuth login via:
+CoreFit now supports OAuth login via:
 - **Google Sign-In** 
 - **Apple Sign-In**
 
@@ -14,7 +14,7 @@ Both providers supplement the existing email/password authentication. New OAuth 
 
 ## Environment Variables
 
-Create a `.env` file in the frontend root (`minutofit-app/.env`) with these variables:
+Create a `.env` file in the frontend root (`corefit-app/.env`) with these variables:
 
 ```env
 # API Configuration
@@ -37,7 +37,7 @@ VITE_APPLE_KEY_ID=your_apple_key_id_here
 
 1. Go to [Google Cloud Console](https://console.cloud.google.com/)
 2. Click **Select a Project** → **New Project**
-3. Name it "MinutoFit" and click **Create**
+3. Name it "CoreFit" and click **Create**
 4. Wait for the project to be created
 
 ### 2. Enable Google Sign-In API
@@ -51,7 +51,7 @@ VITE_APPLE_KEY_ID=your_apple_key_id_here
 1. Go to **APIs & Services** → **OAuth consent screen**
 2. Select **External** user type
 3. Fill in the form:
-   - **App name**: MinutoFit
+   - **App name**: CoreFit
    - **User support email**: your-email@gmail.com
    - **Developer contact**: your-email@gmail.com
 4. Add scopes:
@@ -100,7 +100,7 @@ Add this script tag to `public/index.html`, before the closing `</head>` tag:
 2. Click **Identifiers** → **+** (Add)
 3. Select **App IDs** and click **Continue**
 4. Configure:
-   - **Bundle ID**: `com.minutofitapp` (or similar)
+   - **Bundle ID**: `com.corefitapp` (or similar)
    - Under **Capabilities**, enable **Sign in with Apple**
 5. Click **Continue** → **Register**
 
@@ -109,7 +109,7 @@ Add this script tag to `public/index.html`, before the closing `</head>` tag:
 1. Go to **Identifiers** → **+** (Add)
 2. Select **Service IDs** and click **Continue**
 3. Configure:
-   - **Bundle ID**: `com.minutofitapp.service` (or similar)
+   - **Bundle ID**: `com.corefitapp.service` (or similar)
    - **Primary App ID**: Select the App ID you created above
    - Enable **Sign in with Apple**
 4. Click **Continue** → **Register**
@@ -129,7 +129,7 @@ Add this script tag to `public/index.html`, before the closing `</head>` tag:
 
 1. Go to **Keys** → **+** (Add)
 2. Configure:
-   - **Key Name**: MinutoFit Apple Sign-In
+   - **Key Name**: CoreFit Apple Sign-In
    - Enable **Sign in with Apple**
 3. Click **Configure**
 4. Select your App ID and click **Save**
@@ -254,7 +254,7 @@ The backend supports OAuth via these endpoints:
 - `POST /auth/oauth/apple/callback` - Apple token validation
 - `PATCH /auth/complete-profile` - Complete user profile after OAuth
 
-See `minutofit-backend/README.md` for backend OAuth setup and credentials.
+See `corefit-backend/README.md` for backend OAuth setup and credentials.
 
 ---
 
@@ -262,4 +262,4 @@ See `minutofit-backend/README.md` for backend OAuth setup and credentials.
 
 - [Google Sign-In Documentation](https://developers.google.com/identity/sign-in/web)
 - [Apple Sign in with Apple Documentation](https://developer.apple.com/sign-in-with-apple/)
-- [MinutoFit Backend README](../minutofit-backend/README.md)
+- [CoreFit Backend README](../corefit-backend/README.md)

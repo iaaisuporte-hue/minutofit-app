@@ -9,17 +9,17 @@ type Props = {
 };
 
 /**
- * Logomarca MetaCore — assets em /minutofit-logo.svg e /minutofit-icon.svg (nomes legados de arquivo).
+ * Logomarca CoreFit — assets em /corefit-logo.svg e /corefit-icon.svg (nomes legados de arquivo).
  */
-export default function MinutoFitLogo({ width = 200, variant = "horizontal", className, style }: Props) {
-  const src = variant === "mark" ? "/minutofit-icon.svg" : "/minutofit-logo.svg";
+export default function CoreFitLogo({ width = 200, variant = "horizontal", className, style }: Props) {
+  const src = variant === "mark" ? "/corefit-icon.svg" : "/corefit-logo.svg";
   const aspect = variant === "mark" ? 1 : 280 / 56;
   const h = Math.round(width / aspect);
 
   return (
     <img
       src={src}
-      alt="MetaCore"
+      alt="CoreFit"
       width={width}
       height={h}
       className={className}

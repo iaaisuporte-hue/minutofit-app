@@ -27,7 +27,7 @@ export function WelcomeCard({ firstName, state, onGoToCheckin }: Props) {
   const marcos: Marco[] = [
     {
       label: "Conte como você está hoje",
-      descricao: "O check-in diário é o primeiro sinal que o MetaCore usa para adaptar tudo.",
+      descricao: "O check-in diário é o primeiro sinal que o CoreFit usa para adaptar tudo.",
       done: state.checkinDone,
       cta: "Fazer check-in",
       onClick: onGoToCheckin,
@@ -69,7 +69,7 @@ export function WelcomeCard({ firstName, state, onGoToCheckin }: Props) {
             Bem-vindo, {firstName}
           </div>
           <div style={{ fontSize: 13, color: "var(--color-text-muted)", lineHeight: 1.5 }}>
-            O MetaCore aprende com você. A cada check-in, ele entende melhor seu
+            O CoreFit aprende com você. A cada check-in, ele entende melhor seu
             corpo e ajusta o que vem pela frente.
           </div>
         </div>

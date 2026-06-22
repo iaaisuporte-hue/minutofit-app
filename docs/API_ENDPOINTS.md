@@ -1,4 +1,4 @@
-# MinutoFit API Endpoints Documentation
+# CoreFit API Endpoints Documentation
 
 ## Base URL
 ```

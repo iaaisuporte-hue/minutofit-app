@@ -40,7 +40,7 @@ function senderLabel(role: ChatSenderRole, fallback: string): string {
   if (role === "user") return "Você";
   if (role === "personal") return fallback;
   if (role === "nutri") return "Nutricionista";
-  if (role === "admin") return "Equipe MetaCore";
+  if (role === "admin") return "Equipe CoreFit";
   return fallback;
 }
 

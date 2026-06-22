@@ -5,8 +5,8 @@
  * Source-of-truth: `/shared/contract-personal-dashboard.md` no monorepo parent.
  *
  * Espelhos:
- * - `minutofit-backend/src/shared/types/personal-dashboard.ts` (produtor)
- * - `minutofit-app/src/shared/types/personal-dashboard.ts` (este arquivo, consumidor)
+ * - `corefit-backend/src/shared/types/personal-dashboard.ts` (produtor)
+ * - `corefit-app/src/shared/types/personal-dashboard.ts` (este arquivo, consumidor)
  *
  * Mudanças neste arquivo SEM atualizar o backend e o markdown causam drift
  * silencioso. Workflow detalhado no contrato.

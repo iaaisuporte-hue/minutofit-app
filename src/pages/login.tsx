@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth, type Role, type AcademyForUser } from "../auth/AuthContext";
 import type { AccessProfile } from "../auth/accessControl";
 import { GoogleSignInButton } from "../auth/GoogleSignInButton";
-import MinutoFitLogo from "../components/MinutoFitLogo";
+import CoreFitLogo from "../components/CoreFitLogo";
 import { extractTenantSlug, fetchBranding, type AcademyBrandingPublic } from "../services/tenantHost";
 
 const ACADEMY_PROFILES: AccessProfile[] = [
@@ -64,7 +64,7 @@ export default function LoginPage() {
   }, []);
 
   // Redirect after login — sempre tem activeAcademyId resolvido (default
-  // MinutoFit Direto quando o login geral retorna múltiplas academias).
+  // CoreFit Direto quando o login geral retorna múltiplas academias).
   useEffect(() => {
     if (isAuthenticated && role) {
       nav(nextPathByRole(role, accessProfile, academies, activeAcademyId), { replace: true });
@@ -133,7 +133,7 @@ export default function LoginPage() {
               style={{ height: 48, maxWidth: 200, objectFit: "contain" }}
             />
           ) : (
-            <MinutoFitLogo width={140} />
+            <CoreFitLogo width={140} />
           )}
         </div>
 

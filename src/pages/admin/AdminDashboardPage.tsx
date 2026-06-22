@@ -442,7 +442,7 @@ export default function AdminDashboardPage() {
                 <div className="dash-kpi-item">
                   <div className="dash-kpi-item-label">H3 · Plataforma ativa</div>
                   <div className="dash-kpi-item-value">
-                    {pmfData.h3_platform_counts.metacore_app_active}
+                    {pmfData.h3_platform_counts.corefit_app_active}
                   </div>
                   <div className="dash-kpi-item-note">
                     app ativos · {pmfData.h3_platform_counts.personal_billing_active} billing personal · {pmfData.h3_platform_counts.academies_active} academias

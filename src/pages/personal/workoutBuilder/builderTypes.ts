@@ -17,7 +17,7 @@ export type Exercise = {
   name: string;
   group: MuscleGroup;
   videoUrl?: string;
-  source: "seed" | "video" | "metacore";
+  source: "seed" | "video" | "corefit";
   bodyPart?: string;
   equipment?: string;
   primaryMediaUrl?: string | null;
@@ -59,7 +59,7 @@ export function catalogEntryToExercise(e: ReturnType<typeof exerciseSummaryToCat
     name: e.name,
     group,
     videoUrl: e.videoUrl ?? undefined,
-    source: "metacore",
+    source: "corefit",
     bodyPart: e.bodyPart,
     equipment: e.equipment,
     primaryMediaUrl: e.primaryMediaUrl,

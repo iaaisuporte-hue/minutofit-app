@@ -1,8 +1,8 @@
-# MinutoFit - Backend Setup Guide
+# CoreFit - Backend Setup Guide
 
 ## Overview
 
-This guide explains how to set up the backend infrastructure for MinutoFit's video management system using Node.js/Express and PostgreSQL.
+This guide explains how to set up the backend infrastructure for CoreFit's video management system using Node.js/Express and PostgreSQL.
 
 ## Prerequisites
 
@@ -20,13 +20,13 @@ This guide explains how to set up the backend infrastructure for MinutoFit's vid
 psql -U postgres
 
 # Create database
-CREATE DATABASE minutofitdb;
-CREATE USER minutofit WITH PASSWORD 'your_secure_password';
-ALTER ROLE minutofit SET client_encoding TO 'utf8';
-ALTER ROLE minutofit SET default_transaction_isolation TO 'read committed';
-ALTER ROLE minutofit SET default_transaction_deferrable TO on;
-ALTER ROLE minutofit SET default_transaction_deferrable TO on;
-GRANT ALL PRIVILEGES ON DATABASE minutofitdb TO minutofit;
+CREATE DATABASE corefitdb;
+CREATE USER corefit WITH PASSWORD 'your_secure_password';
+ALTER ROLE corefit SET client_encoding TO 'utf8';
+ALTER ROLE corefit SET default_transaction_isolation TO 'read committed';
+ALTER ROLE corefit SET default_transaction_deferrable TO on;
+ALTER ROLE corefit SET default_transaction_deferrable TO on;
+GRANT ALL PRIVILEGES ON DATABASE corefitdb TO corefit;
 \q
 ```
 
@@ -34,7 +34,7 @@ GRANT ALL PRIVILEGES ON DATABASE minutofitdb TO minutofit;
 
 ```bash
 # Connect to the database
-psql -U minutofit -d minutofitdb -f docs/DATABASE_SCHEMA.sql
+psql -U corefit -d corefitdb -f docs/DATABASE_SCHEMA.sql
 ```
 
 ## Backend Setup (Express + TypeScript)
@@ -42,8 +42,8 @@ psql -U minutofit -d minutofitdb -f docs/DATABASE_SCHEMA.sql
 ### 1. Create Backend Project
 
 ```bash
-mkdir minutofit-backend
-cd minutofit-backend
+mkdir corefit-backend
+cd corefit-backend
 npm init -y
 ```
 
@@ -59,7 +59,7 @@ npm install --save-dev tsc-watch
 Create `.env`:
 ```
 PORT=3000
-DATABASE_URL=postgresql://minutofit:your_secure_password@localhost:5432/minutofitdb
+DATABASE_URL=postgresql://corefit:your_secure_password@localhost:5432/corefitdb
 JWT_SECRET=your_jwt_secret_key_here
 STORAGE_BUCKET=your-aws-bucket-name
 AWS_ACCESS_KEY_ID=your_aws_key
@@ -261,13 +261,13 @@ const response = await fetch(`${apiUrl}/videos/search?${url}`, {
 
 ### Terminal 1: Backend
 ```bash
-cd minutofit-backend
+cd corefit-backend
 npm run dev
 ```
 
 ### Terminal 2: Frontend
 ```bash
-cd minutofit-app
+cd corefit-app
 npm run dev
 ```
 
@@ -304,7 +304,7 @@ curl -X POST "http://localhost:3000/api/videos/upload" \
 
 Example Heroku deployment:
 ```bash
-heroku create minutofit-backend
+heroku create corefit-backend
 heroku addons:create heroku-postgresql:standard-0
 heroku config:set JWT_SECRET=your_production_secret
 git push heroku main

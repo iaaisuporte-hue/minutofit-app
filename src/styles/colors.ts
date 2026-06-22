@@ -1,5 +1,5 @@
 /**
- * MetaCore shared color palette.
+ * CoreFit shared color palette.
  * Every value is a CSS custom-property reference so it automatically
  * picks up the daltonic-mode override without any JavaScript.
  *

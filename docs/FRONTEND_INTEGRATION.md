@@ -1,4 +1,4 @@
-# MinutoFit - Frontend API Integration Guide
+# CoreFit - Frontend API Integration Guide
 
 ## Quick Reference
 

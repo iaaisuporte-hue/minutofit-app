@@ -784,25 +784,25 @@ export default function RecepcaoHubPage() {
             )}
           </div>
 
-          {studentCtxLoading && <div className="small muted">Carregando contexto MetaCore…</div>}
+          {studentCtxLoading && <div className="small muted">Carregando contexto CoreFit…</div>}
           {studentCtx && !studentCtxLoading && (
-            <div className="rec-metacore-band">
-              <span className="rec-metacore-metric">Aderência {studentCtx.adherence7dPct}%</span>
-              <span className="rec-metacore-dot">·</span>
-              <span className="rec-metacore-metric">Streak {studentCtx.streakDays}d</span>
-              <span className="rec-metacore-dot">·</span>
-              <span className="rec-metacore-metric">
+            <div className="rec-corefit-band">
+              <span className="rec-corefit-metric">Aderência {studentCtx.adherence7dPct}%</span>
+              <span className="rec-corefit-dot">·</span>
+              <span className="rec-corefit-metric">Streak {studentCtx.streakDays}d</span>
+              <span className="rec-corefit-dot">·</span>
+              <span className="rec-corefit-metric">
                 Último treino {lastWorkoutLabel ?? "—"}
               </span>
               {studentCtx.productMaaSActive && (
                 <>
-                  <span className="rec-metacore-dot">·</span>
+                  <span className="rec-corefit-dot">·</span>
                   <span className="badge badge-success" style={{ fontSize: 10 }}>
-                    MetaCore ativo
+                    CoreFit ativo
                   </span>
                 </>
               )}
-              <span className="rec-metacore-dot">·</span>
+              <span className="rec-corefit-dot">·</span>
               <button type="button" className="btn btn-sm btn-ghost" onClick={() => setNotesOpen(true)}>
                 Recados ({studentCtx.unreadStaffMessageCount})
               </button>

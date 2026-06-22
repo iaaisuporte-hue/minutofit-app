@@ -1,7 +1,7 @@
 {
   "id": "/",
-  "name": "MetaCore",
-  "short_name": "MetaCore",
+  "name": "CoreFit",
+  "short_name": "CoreFit",
   "description": "Metabolismo, treino e acompanhamento — experiência aluno e equipe.",
   "start_url": "/?source=pwa",
   "scope": "/",
@@ -31,7 +31,7 @@
       "purpose": "maskable"
     },
     {
-      "src": "/minutofit-icon.svg",
+      "src": "/corefit-icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any"

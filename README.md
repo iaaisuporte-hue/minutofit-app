@@ -19,7 +19,7 @@ No deploy na **Vercel**, a versão do Node segue o campo `engines` em [`package.
 ### Aluno: Tracker e Lab de Movimento (web)
 
 * **Activity Tracker (GPS)** — `src/pages/user/ActivityTrackerPage.tsx`, estilos `activityTracker.css` (prefixo `tr-`), tokens em `src/styles/tokens.css`. Mapa, histórico de sessões, métricas e validação heurística de velocidade.
-* **Lab de Movimento** — `src/pages/user/MovementLabPage.tsx`, `movementLab.css` (prefixo `ml-`), regras em `src/pages/user/lib/` (exercícios, analytics, contexto). Webcam + MediaPipe via CDN; dados de sessão opcionais em `localStorage` (`minutofit:movement:sessions`).
+* **Lab de Movimento** — `src/pages/user/MovementLabPage.tsx`, `movementLab.css` (prefixo `ml-`), regras em `src/pages/user/lib/` (exercícios, analytics, contexto). Webcam + MediaPipe via CDN; dados de sessão opcionais em `localStorage` (`corefit:movement:sessions`).
 
 ---
 

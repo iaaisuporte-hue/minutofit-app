@@ -481,7 +481,7 @@ export default function DashboardPage() {
             <PersonalQuickSearch students={students} onSelect={(id, name) => openStudent(id, name)} />
 
             {summary ? (
-              <div className="pp-metacore-strip">
+              <div className="pp-corefit-strip">
                 <span>Aderência média <b>{avgAdherence}%</b></span>
                 <span>Streak médio <b>{avgStreak}d</b></span>
                 <span>Alunos <b>{students.length}</b></span>

@@ -1,7 +1,7 @@
 import { NavLink, Navigate, Route, Routes } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import AppShell from "../layout/AppShell";
-import MinutoFitLogo from "../components/MinutoFitLogo";
+import CoreFitLogo from "../components/CoreFitLogo";
 import { IncomingRequestsPanel } from "../features/team";
 import NutritionPatientsPage from "./nutri/NutritionPatientsPage";
 import PatientDetailNutriPage from "./nutri/PatientDetailNutriPage";
@@ -27,7 +27,7 @@ export default function NutriApp() {
       sidebar={
         <>
           <div style={{ padding: "8px 4px 16px" }}>
-            <MinutoFitLogo width={148} />
+            <CoreFitLogo width={148} />
             <div className="shellSubtitle" style={{ marginTop: 8 }}>Nutrição</div>
           </div>
 

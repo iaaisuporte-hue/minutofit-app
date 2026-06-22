@@ -182,7 +182,7 @@ export const PRODUCT_KEYS = ['app', 'personal', 'nutri', 'academia', 'metabolism
 export type ProductKey = (typeof PRODUCT_KEYS)[number];
 
 export const PRODUCT_LABELS: Record<ProductKey, string> = {
-  app: "App MetaCore",
+  app: "App CoreFit",
   personal: 'Personal',
   nutri: 'Nutricionista',
   academia: 'Academia',
@@ -331,7 +331,7 @@ export interface AdminPmfMetrics {
     control_checkin_pct: number | null;
   };
   h3_platform_counts: {
-    metacore_app_active: number;
+    corefit_app_active: number;
     personal_billing_active: number;
     academies_active: number;
   };

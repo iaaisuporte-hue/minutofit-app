@@ -1,5 +1,5 @@
 /** Preferências de cookies (LGPD). Não alterar a chave sem migração — afeta reexibição do banner. */
-export const COOKIE_CONSENT_STORAGE_KEY = "metacore_cookie_consent_v1";
+export const COOKIE_CONSENT_STORAGE_KEY = "corefit_cookie_consent_v1";
 
 export const COOKIE_CONSENT_VERSION = 1 as const;
 
@@ -38,13 +38,13 @@ export function writeCookieConsent(analytics: boolean): CookieConsentRecord {
     analytics,
   };
   localStorage.setItem(COOKIE_CONSENT_STORAGE_KEY, JSON.stringify(record));
-  window.dispatchEvent(new CustomEvent("metacore:cookie-consent-changed", { detail: record }));
+  window.dispatchEvent(new CustomEvent("corefit:cookie-consent-changed", { detail: record }));
   return record;
 }
 
 export function clearCookieConsent(): void {
   localStorage.removeItem(COOKIE_CONSENT_STORAGE_KEY);
-  window.dispatchEvent(new CustomEvent("metacore:cookie-consent-changed"));
+  window.dispatchEvent(new CustomEvent("corefit:cookie-consent-changed"));
 }
 
 /** Para futuros scripts de analytics — só carregar se o titular aceitou. */

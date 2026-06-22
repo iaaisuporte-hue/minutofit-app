@@ -3,7 +3,7 @@ import { useAuth } from "../auth/AuthContext";
 import AppShell from "../layout/AppShell";
 import MobileBottomNav from "../layout/MobileBottomNav";
 import { useFeatureFlags } from "../auth/FeatureFlagsContext";
-import MinutoFitLogo from "../components/MinutoFitLogo";
+import CoreFitLogo from "../components/CoreFitLogo";
 
 import { useTodayUserState } from "./user/hooks/useTodayUserState";
 import AccountSettingsPage from "./user/AccountSettingsPage";
@@ -169,7 +169,7 @@ export default function UserApp() {
         sidebar={
           <>
             <div style={{ padding: "8px 4px 16px" }}>
-              <MinutoFitLogo width={148} />
+              <CoreFitLogo width={148} />
               <div className="shellSubtitle" style={{ marginTop: 8 }}>{firstName}</div>
             </div>
 

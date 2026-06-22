@@ -104,12 +104,12 @@ function normalizeEmail(email: string) {
 /**
  * Picks the active academy from the list.
  * On a tenant subdomain, finds the academy whose slug matches the hostname.
- * Em login geral (app.minutofit.com.br) com >1 academia: prioriza a
- * "MinutoFit Direto" (slug `minutofit-direto`) — é a área pessoal do aluno
+ * Em login geral (app.corefit.com.br) com >1 academia: prioriza a
+ * "CoreFit Direto" (slug `corefit-direto`) — é a área pessoal do aluno
  * MaaS. Para entrar como dono/equipe de outra academia, usar o subdomínio
- * próprio (ex: phgym.minutofit.com.br).
+ * próprio (ex: phgym.corefit.com.br).
  */
-const DEFAULT_ACADEMY_SLUG = "minutofit-direto";
+const DEFAULT_ACADEMY_SLUG = "corefit-direto";
 
 function resolveActiveAcademyId(academies: AcademyForUser[]): number | null {
   if (academies.length === 0) return null;
@@ -271,7 +271,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           permission
         ),
       hasProduct: (productKey: string) => {
-        if (state.role === 'admin') return true; // MetaCore admin bypasses all product gates
+        if (state.role === 'admin') return true; // CoreFit admin bypasses all product gates
         // Academy staff profiles implicitly hold the 'academia' product even if
         // user_products was not yet seeded (e.g. seed missing in production).
         if (
@@ -293,10 +293,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // FE-1.7.3: hard redirect to the academy's subdomain so browser storage is isolated.
           // In dev (no subdomain routing), fall back to SPA navigation.
           const slug = data.activeAcademy?.slug;
-          const isProd = window.location.hostname.endsWith('.minutofit.com.br') ||
-                         window.location.hostname === 'minutofit.com.br';
+          const isProd = window.location.hostname.endsWith('.corefit.com.br') ||
+                         window.location.hostname === 'corefit.com.br';
           if (slug && isProd) {
-            window.location.href = `https://${slug}.minutofit.com.br/app/academy/dashboard`;
+            window.location.href = `https://${slug}.corefit.com.br/app/academy/dashboard`;
             return { ok: true as const };
           }
 

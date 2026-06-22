@@ -1,5 +1,5 @@
-export const TOKEN_KEY = "minutofit_token";
-export const REFRESH_TOKEN_KEY = "minutofit_refresh_token";
+export const TOKEN_KEY = "corefit_token";
+export const REFRESH_TOKEN_KEY = "corefit_refresh_token";
 export const LEGACY_TOKEN_KEY = "token";
 
 export function getAccessToken(): string | null {

@@ -2,7 +2,7 @@ import React from "react";
 import { NavLink, Navigate, Outlet, Route, Routes, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import AppShell from "../layout/AppShell";
-import MinutoFitLogo from "../components/MinutoFitLogo";
+import CoreFitLogo from "../components/CoreFitLogo";
 import { ProductGate } from "../components/ProductGate";
 import { EmptyState } from "../components/EmptyState";
 import type { AppPermission } from "../auth/accessControl";
@@ -131,7 +131,7 @@ export default function AcademyApp() {
           )
         ) : (
           <>
-            <MinutoFitLogo />
+            <CoreFitLogo />
             <div className="shellSubtitle" title={academyLabel} style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "100%" }}>{academyLabel}</div>
           </>
         )}
@@ -157,7 +157,7 @@ export default function AcademyApp() {
       <div className="sidebar-footer" style={{ padding: "var(--space-3) var(--space-2)" }}>
         <button className="logoutButton" onClick={handleLogout}>Sair</button>
         {isTenantSubdomain && (
-          <div className="powered-by">powered by MetaCore</div>
+          <div className="powered-by">powered by CoreFit</div>
         )}
       </div>
     </div>
@@ -171,7 +171,7 @@ export default function AcademyApp() {
           <EmptyState
             eyebrow="Acesso à academia"
             title="Produto Academia não ativo"
-            description="Sua conta ainda não inclui o módulo de gestão da academia. Entre em contato com o administrador da sua unidade ou com o suporte MetaCore para habilitar o acesso."
+            description="Sua conta ainda não inclui o módulo de gestão da academia. Entre em contato com o administrador da sua unidade ou com o suporte CoreFit para habilitar o acesso."
           />
         </div>
       }

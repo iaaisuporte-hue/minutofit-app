@@ -4,7 +4,7 @@ import { addWorkoutHistoryEntry, wasMuscleGroupTrainedYesterday, type MuscleGrou
 import { getStreak, registerDailyCheckin } from "./gamification";
 import { persistGamificationCheckin } from "../../services/gamificationApi";
 import { homeWorkoutCatalog, type HomeWorkoutAccessibility } from "./homeWorkoutCatalog";
-import { useNeonTheme } from "../../theme/minutofitNeonTheme";
+import { useNeonTheme } from "../../theme/corefitNeonTheme";
 
 
 type Step = {

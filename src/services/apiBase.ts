@@ -4,7 +4,7 @@ export const API_URL =
   configuredApiUrl ||
   (import.meta.env.DEV ? "http://localhost:3000/api" : `${window.location.origin}/api`);
 
-export const SESSION_EXPIRED_EVENT = "minutofit:session-expired";
+export const SESSION_EXPIRED_EVENT = "corefit:session-expired";
 
 export function notifySessionExpired() {
   if (typeof window === "undefined") return;

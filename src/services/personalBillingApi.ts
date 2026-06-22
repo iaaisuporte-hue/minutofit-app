@@ -11,7 +11,7 @@ export type BillingSettings = {
   personalId: number;
   defaultTicketCents: number | null;
   defaultPeriod: BillingPeriod;
-  metacoreFeeBps: number;
+  corefitFeeBps: number;
 };
 
 export type BillingPlan = {
@@ -62,7 +62,7 @@ export async function fetchBillingSettings(): Promise<BillingSettings | null> {
 }
 
 export async function updateBillingSettings(
-  input: Partial<Pick<BillingSettings, "defaultTicketCents" | "defaultPeriod" | "metacoreFeeBps">>
+  input: Partial<Pick<BillingSettings, "defaultTicketCents" | "defaultPeriod" | "corefitFeeBps">>
 ): Promise<BillingSettings> {
   const res = await authFetch(`${API_URL}/personal/billing/settings`, {
     method: "PATCH",

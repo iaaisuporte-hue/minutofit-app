@@ -1,5 +1,5 @@
 /**
- * API client para a biblioteca global de exercícios MetaCore.
+ * API client para a biblioteca global de exercícios CoreFit.
  * Substitui/complementa o exerciseCatalogApi (legado).
  */
 

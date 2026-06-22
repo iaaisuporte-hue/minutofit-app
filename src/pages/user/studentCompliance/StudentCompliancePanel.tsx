@@ -12,7 +12,7 @@ import {
 import { submitStudentCompliance } from "../../../services/authApi";
 import { PARQ_FORM_VERSION } from "../../../services/complianceConstants";
 import { PARQ_ITEMS } from "./parqQuestions";
-import { useNeonTheme, type NeonTheme } from "../../../theme/minutofitNeonTheme";
+import { useNeonTheme, type NeonTheme } from "../../../theme/corefitNeonTheme";
 import { usePhysicalActivityClearance } from "../../../auth/usePhysicalActivityClearance";
 
 type HealthField =

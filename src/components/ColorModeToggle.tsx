@@ -1,7 +1,7 @@
 import { useLayoutEffect, useState } from "react";
 
 /** Mantido em sync com o script inline em index.html */
-export const STORAGE_KEY = "minutofit_color_mode";
+export const STORAGE_KEY = "corefit_color_mode";
 const DALTONIC = "daltonic";
 const DEFAULT = "default";
 

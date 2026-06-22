@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import MinutoFitLogo from "../components/MinutoFitLogo";
+import CoreFitLogo from "../components/CoreFitLogo";
 import { Banner } from "../components/Banner";
 
 export default function ForgotPasswordPage() {
@@ -7,7 +7,7 @@ export default function ForgotPasswordPage() {
     <main className="auth-page">
       <div className="auth-card">
         <div className="auth-logo">
-          <MinutoFitLogo width={140} />
+          <CoreFitLogo width={140} />
         </div>
 
         <h1 className="auth-title">Recuperar acesso</h1>
@@ -21,8 +21,8 @@ export default function ForgotPasswordPage() {
           description={
             <>
               Por enquanto, solicite a redefinição diretamente ao administrador da sua academia — ele consegue gerar uma nova senha pelo painel. Ou entre em contato com o suporte:{" "}
-              <a href="mailto:suporte@metacore.com.br" style={{ fontWeight: 600, color: "inherit" }}>
-                suporte@metacore.com.br
+              <a href="mailto:suporte@corefit.com.br" style={{ fontWeight: 600, color: "inherit" }}>
+                suporte@corefit.com.br
               </a>
             </>
           }

@@ -113,7 +113,7 @@ export function computeNudgeState(records: MetabolicCheckinRecord[], today = new
       shouldShow: true,
       reason: 'first',
       title: 'Hora do seu check-in metabólico',
-      description: 'Leva menos de 2 minutos e ajuda o MetaCore a adaptar sua experiência.',
+      description: 'Leva menos de 2 minutos e ajuda o CoreFit a adaptar sua experiência.',
     };
   }
 
