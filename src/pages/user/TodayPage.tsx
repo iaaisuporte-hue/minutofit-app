@@ -491,10 +491,26 @@ export default function TodayPage() {
                 lineHeight: 1.5,
               }}
             >
-              Treino ajustado para como você está hoje
-              {todayState.personal?.name
-                ? ` — ${todayState.personal.name.split(" ")[0]} está de olho na sua evolução.`
-                : "."}
+              {(() => {
+                // Vínculo causal explícito: o ajuste SÓ existe porque houve check-in hoje
+                // (sem check-in → readiness null → este bloco não renderiza). Listar os
+                // fatores reportados fecha o loop "eu fiz check-in → meu treino mudou".
+                const reasons = (adaptive.data.readiness?.factors ?? [])
+                  .filter((f) => f.severity !== "info")
+                  .map((f) => f.label);
+                const firstName = todayState.personal?.name?.split(" ")[0];
+                return (
+                  <>
+                    Ajustamos seu treino com base no seu check-in de hoje
+                    {reasons.length > 0 ? (
+                      <>: <strong style={{ fontWeight: 600 }}>{reasons.join(" · ")}</strong>.</>
+                    ) : (
+                      "."
+                    )}
+                    {firstName ? ` ${firstName} está de olho na sua evolução.` : ""}
+                  </>
+                );
+              })()}
             </div>
           )}
           {/* Diff banner — só quando há adaptações */}
