@@ -1,7 +1,10 @@
-// Compartilhamento da conquista do treino como imagem-card de marca.
-// Gera um PNG no canvas (foco do treino + marca do app) e abre o menu nativo
-// de compartilhar do celular via Web Share API com arquivo. Restrito ao mobile
-// por capacidade: navegadores desktop não compartilham arquivos por share().
+// Compartilhamento da conquista do treino como imagem-card de marca, no estilo
+// GymRats/Strava: a foto do aluno (tirada ou da galeria) vira o FUNDO e os dados
+// do treino + marca ficam sobrepostos com um scrim escuro para legibilidade.
+//
+// Fluxo: compose (gera blob + preview) → share (Web Share API com arquivo).
+// Separados de propósito: o share() precisa de gesto do usuário e é chamado a
+// partir do botão "Compartilhar" do preview. Restrito ao mobile por capacidade.
 
 const BRAND = "MinutoFit"; // marca pública do app (domínio minutofit.com.br)
 
@@ -45,93 +48,148 @@ function wrap(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): st
   return lines;
 }
 
-export type ShareWorkoutInput = {
+/** Desenha a imagem cobrindo o canvas (object-fit: cover, centralizada). */
+function drawCover(ctx: CanvasRenderingContext2D, img: HTMLImageElement, w: number, h: number) {
+  const ir = img.width / img.height;
+  const cr = w / h;
+  let dw: number, dh: number, dx: number, dy: number;
+  if (ir > cr) {
+    dh = h;
+    dw = h * ir;
+    dx = (w - dw) / 2;
+    dy = 0;
+  } else {
+    dw = w;
+    dh = w / ir;
+    dx = 0;
+    dy = (h - dh) / 2;
+  }
+  ctx.drawImage(img, dx, dy, dw, dh);
+}
+
+async function loadImage(file: File | Blob): Promise<HTMLImageElement> {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = new Image();
+    img.src = url;
+    if (img.decode) await img.decode();
+    else await new Promise((res, rej) => { img.onload = res; img.onerror = rej; });
+    return img;
+  } finally {
+    // revoga após o draw — adiado para o caller não perder a imagem; aqui é seguro
+    // pois decode() já carregou os pixels.
+    URL.revokeObjectURL(url);
+  }
+}
+
+export type ComposeWorkoutInput = {
   /** Foco do treino exibido em destaque, ex.: "Superiores". */
   focus: string;
   /** Nome do dia, ex.: "Treino B" — omitido se igual ao foco. */
   dayName?: string;
+  /** Foto de fundo opcional (tirada ou da galeria). Sem ela, usa um fundo gradiente. */
+  backgroundFile?: File | Blob | null;
 };
 
-/**
- * Gera o card-imagem e dispara o compartilhamento nativo.
- * Retorna true se compartilhado, false se cancelado/indisponível.
- */
-export async function shareWorkoutImage({ focus, dayName }: ShareWorkoutInput): Promise<boolean> {
-  if (typeof document === "undefined") return false;
+export type ComposedImage = { blob: Blob; dataUrl: string; focus: string };
+
+/** Monta o card-imagem 1080² e devolve blob (para share) + dataUrl (para preview). */
+export async function composeWorkoutImage({ focus, dayName, backgroundFile }: ComposeWorkoutInput): Promise<ComposedImage> {
   const size = 1080;
   const canvas = document.createElement("canvas");
   canvas.width = size;
   canvas.height = size;
   const ctx = canvas.getContext("2d");
-  if (!ctx) return false;
+  if (!ctx) throw new Error("canvas indisponível");
 
   const primary = cssVar("--color-primary", "#16a34a");
   const accent = cssVar("--color-accent", "#06b6d4");
 
-  // Fundo
-  const grad = ctx.createLinearGradient(0, 0, size, size);
-  grad.addColorStop(0, "#0b1220");
-  grad.addColorStop(1, "#0f2a24");
-  ctx.fillStyle = grad;
+  // 1) Fundo: foto (cover) ou gradiente
+  if (backgroundFile) {
+    const img = await loadImage(backgroundFile);
+    drawCover(ctx, img, size, size);
+  } else {
+    const grad = ctx.createLinearGradient(0, 0, size, size);
+    grad.addColorStop(0, "#0b1220");
+    grad.addColorStop(1, "#0f2a24");
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, size, size);
+  }
+
+  // 2) Scrim escuro de baixo p/ cima — legibilidade do texto sobre qualquer foto
+  const scrim = ctx.createLinearGradient(0, size * 0.32, 0, size);
+  scrim.addColorStop(0, "rgba(7,12,18,0)");
+  scrim.addColorStop(1, "rgba(7,12,18,0.82)");
+  ctx.fillStyle = scrim;
   ctx.fillRect(0, 0, size, size);
 
-  // Faixa de marca (accent) no topo
+  // 3) Faixa de marca (accent) no topo
   ctx.fillStyle = accent;
   ctx.fillRect(0, 0, size, 14);
 
+  // 4) Texto ancorado no rodapé
   const padX = 96;
   ctx.textAlign = "left";
 
-  // Eyebrow
-  ctx.fillStyle = "rgba(255,255,255,0.62)";
-  ctx.font = "700 34px Inter, system-ui, sans-serif";
-  ctx.fillText("TREINO CONCLUÍDO", padX, 210);
+  ctx.font = "800 110px Inter, system-ui, sans-serif";
+  const focusLines = wrap(ctx, focus, size - padX * 2).slice(0, 2);
+  const lineH = 122;
+  const focusBottom = size - 234;
 
-  // Foco em destaque (até 2 linhas)
   ctx.fillStyle = "#ffffff";
-  ctx.font = "800 116px Inter, system-ui, sans-serif";
-  const lines = wrap(ctx, focus, size - padX * 2).slice(0, 2);
-  let y = 372;
-  for (const line of lines) {
-    ctx.fillText(line, padX, y);
-    y += 128;
-  }
+  focusLines.forEach((line, i) => {
+    const yy = focusBottom - (focusLines.length - 1 - i) * lineH;
+    ctx.fillText(line, padX, yy);
+  });
 
-  // Nome do dia (se diferente do foco)
-  if (dayName && dayName.trim() && dayName.trim() !== focus.trim()) {
-    ctx.fillStyle = primary;
-    ctx.font = "700 44px Inter, system-ui, sans-serif";
-    ctx.fillText(dayName.trim(), padX, y + 16);
-    y += 70;
-  }
+  const focusTop = focusBottom - (focusLines.length - 1) * lineH - 92;
+  ctx.fillStyle = "rgba(255,255,255,0.78)";
+  ctx.font = "700 32px Inter, system-ui, sans-serif";
+  ctx.fillText("TREINO CONCLUÍDO", padX, focusTop - 6);
 
-  // Data
   const dateStr = new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" });
-  ctx.fillStyle = "rgba(255,255,255,0.5)";
-  ctx.font = "500 34px Inter, system-ui, sans-serif";
-  ctx.fillText(dateStr, padX, y + 64);
+  const meta = dayName && dayName.trim() && dayName.trim() !== focus.trim()
+    ? `${dayName.trim()} · ${dateStr}`
+    : dateStr;
+  ctx.fillStyle = "rgba(255,255,255,0.72)";
+  ctx.font = "500 32px Inter, system-ui, sans-serif";
+  ctx.fillText(meta, padX, size - 148);
 
-  // Marca no rodapé
+  // Marca + ponto accent
   ctx.fillStyle = "#ffffff";
-  ctx.font = "800 56px Inter, system-ui, sans-serif";
-  ctx.fillText(BRAND, padX, size - 110);
+  ctx.font = "800 52px Inter, system-ui, sans-serif";
+  ctx.fillText(BRAND, padX, size - 80);
+  const brandWidth = ctx.measureText(BRAND).width;
+  ctx.fillStyle = primary;
+  ctx.beginPath();
+  ctx.arc(padX + brandWidth + 18, size - 98, 8, 0, Math.PI * 2);
+  ctx.fill();
 
-  const blob = await new Promise<Blob | null>((res) => canvas.toBlob(res, "image/png", 0.92));
-  if (!blob) return false;
-  const file = new File([blob], "treino.png", { type: "image/png" });
+  const blob = await new Promise<Blob | null>((res) => canvas.toBlob(res, "image/jpeg", 0.9));
+  if (!blob) throw new Error("falha ao gerar imagem");
+  const dataUrl = canvas.toDataURL("image/jpeg", 0.9);
+  return { blob, dataUrl, focus };
+}
 
+/**
+ * Abre o menu nativo de compartilhar com a imagem já composta.
+ * Deve ser chamado a partir de um gesto do usuário. Retorna true se compartilhado.
+ */
+export async function shareImageBlob(image: ComposedImage): Promise<boolean> {
+  const file = new File([image.blob], "treino.jpg", { type: image.blob.type || "image/jpeg" });
   const nav = navigator as ShareableNavigator;
+  if (typeof nav.share !== "function") return false;
   if (typeof nav.canShare === "function" && !nav.canShare({ files: [file] })) return false;
-
   try {
     await navigator.share({
       files: [file],
       title: `${BRAND} — treino concluído`,
-      text: `Treino de ${focus} concluído. 💪 ${BRAND}`,
+      text: `Treino de ${image.focus} concluído. 💪 ${BRAND}`,
     });
     return true;
   } catch {
-    // AbortError (usuário cancelou) ou falha — não é erro a propagar.
+    // AbortError (cancelado) ou falha — não é erro a propagar.
     return false;
   }
 }

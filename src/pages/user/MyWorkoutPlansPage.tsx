@@ -10,7 +10,8 @@ import { ConfirmModal } from "../../features/team/ConfirmModal";
 import { Toast } from "../../features/team/Toast";
 import { persistGamificationCheckin } from "../../services/gamificationApi";
 import { addWorkoutHistoryEntry, type MuscleGroup } from "../user/workoutHistory";
-import { shareWorkoutImage, canShareWorkoutImage } from "./lib/shareWorkoutImage";
+import { canShareWorkoutImage } from "./lib/shareWorkoutImage";
+import { ShareWorkoutModal } from "./components/ShareWorkoutModal";
 import { useAdaptiveTraining } from "../../features/training/adaptive/useAdaptiveTraining";
 import type { AdaptiveTodayResponse } from "../../services/trainingAdaptiveApi";
 import { ReadinessPill } from "../../features/training/adaptive/ReadinessPill";
@@ -446,7 +447,7 @@ function PlanCard({ plan, isOpen, onToggle, onAbandon, adaptiveData }: PlanCardP
   const [registrationStreak, setRegistrationStreak] = useState<number | null>(null);
   const [registrationError, setRegistrationError] = useState<string | null>(null);
   const [successToast, setSuccessToast] = useState<string | null>(null);
-  const [sharing, setSharing] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
   // Capacidade de compartilhar imagem = ≈ mobile (desktop não compartilha arquivo).
   const canShare = useMemo(() => canShareWorkoutImage(), []);
 
@@ -659,22 +660,11 @@ function PlanCard({ plan, isOpen, onToggle, onAbandon, adaptiveData }: PlanCardP
                 }
               </button>
 
-              {/* Compartilhar a conquista (mobile): gera card-imagem com foco + marca */}
+              {/* Compartilhar a conquista (mobile): foto de fundo + foco + marca */}
               {registeredToday && canShare && (
                 <button
                   type="button"
-                  disabled={sharing}
-                  onClick={async () => {
-                    setSharing(true);
-                    try {
-                      await shareWorkoutImage({
-                        focus: displayDay.focus?.trim() || displayDay.name,
-                        dayName: displayDay.name,
-                      });
-                    } finally {
-                      setSharing(false);
-                    }
-                  }}
+                  onClick={() => setShareOpen(true)}
                   style={{
                     width: '100%',
                     marginTop: 8,
@@ -686,7 +676,7 @@ function PlanCard({ plan, isOpen, onToggle, onAbandon, adaptiveData }: PlanCardP
                     color: COLORS.text,
                     fontWeight: 700,
                     fontSize: 14,
-                    cursor: sharing ? 'not-allowed' : 'pointer',
+                    cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -697,8 +687,16 @@ function PlanCard({ plan, isOpen, onToggle, onAbandon, adaptiveData }: PlanCardP
                     <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
                     <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
                   </svg>
-                  {sharing ? 'Gerando imagem…' : 'Compartilhar treino'}
+                  Compartilhar treino
                 </button>
+              )}
+
+              {shareOpen && (
+                <ShareWorkoutModal
+                  focus={displayDay.focus?.trim() || displayDay.name}
+                  dayName={displayDay.name}
+                  onClose={() => setShareOpen(false)}
+                />
               )}
 
               {registrationError && (
