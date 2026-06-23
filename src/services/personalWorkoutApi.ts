@@ -39,6 +39,33 @@ export type PersonalWorkoutPlanRow = {
   abandoned_at?: string | null;
 };
 
+export interface StudentTrainingSummary {
+  adherencePct: number | null;
+  last7d: number;
+  total: number;
+  sessions: {
+    id: number;
+    date: string;
+    status: string;
+    source: string;
+    readinessLevel: string | null;
+    setsDone: number;
+    prescribedSets: number;
+  }[];
+}
+
+/** Resumo de execução do aluno p/ o cockpit (Spec 010). null se sem acesso/erro. */
+export async function fetchStudentTrainingSummary(studentId: string): Promise<StudentTrainingSummary | null> {
+  try {
+    const response = await authFetch(`${API_URL}/personal/students/${studentId}/training-summary`);
+    if (!response.ok) return null;
+    const data = await parseJson(response);
+    return (data?.data as StudentTrainingSummary) ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export async function fetchPersonalWorkoutPlans(studentId: string, limit = 50) {
   const response = await authFetch(`${API_URL}/personal/students/${studentId}/workout-plans?limit=${limit}`);
   const data = await parseJson(response);

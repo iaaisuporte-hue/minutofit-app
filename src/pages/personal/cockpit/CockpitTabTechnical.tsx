@@ -1,6 +1,7 @@
 import { useState } from "react";
 import StudentTechnicalNotes, { type TechnicalNoteHighlight } from "../StudentTechnicalNotes";
 import { AdaptationPolicyPanel } from "./AdaptationPolicyPanel";
+import { StudentExecutionCard } from "./StudentExecutionCard";
 
 type Props = {
   studentId: string;
@@ -15,6 +16,9 @@ export function CockpitTabTechnical({ studentId, highlights, onSaved }: Props) {
 
   return (
     <div>
+      {/* Execução real do treino — aderência + frequência (Spec 010) */}
+      <StudentExecutionCard studentId={studentId} />
+
       {/* Sub-navigation */}
       <div style={{ display: 'flex', gap: 0, borderBottom: '1px solid var(--color-border)', marginBottom: 16 }}>
         {([["notes", "Notas técnicas"], ["adaptation", "Adaptação automática"]] as [SubTab, string][]).map(([id, label]) => (
