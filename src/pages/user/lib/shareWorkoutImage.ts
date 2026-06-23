@@ -178,23 +178,25 @@ export async function composeWorkoutImage({ focus, dayName, backgroundFile, form
     : dateStr;
   ctx.fillStyle = "rgba(255,255,255,0.72)";
   ctx.font = "500 36px Inter, system-ui, sans-serif";
-  ctx.fillText(meta, padX, H - 148 - lift);
+  // Story: data sobe para abrir espaço visual antes do logo
+  ctx.fillText(meta, padX, H - (format === "story" ? 195 : 148) - lift);
 
-  // Logo CoreFit (SVG claro para fundo escuro) — fallback para texto se SVG não carregar
+  // Logo S2Core (SVG claro para fundo escuro) — fallback para texto se SVG não carregar
+  // Story: logo maior e colado na base da safe-zone para redistribuir o rodapé
   const logoImg = await loadSvgLogo();
   if (logoImg) {
-    // viewBox 264×56 → story: 400px (~37% da largura), square: 220px
-    const logoW = format === "story" ? 400 : 220;
+    const logoW = format === "story" ? 460 : 220;
     const logoH = Math.round(logoW * (56 / 264));
-    ctx.drawImage(logoImg, padX, H - 80 - lift - logoH, logoW, logoH);
+    // gap de 20px entre logo e base da safe-zone (era 80px — encolhia o espaço antes da data)
+    ctx.drawImage(logoImg, padX, H - 20 - lift - logoH, logoW, logoH);
   } else {
     ctx.fillStyle = "#ffffff";
     ctx.font = "800 52px Inter, system-ui, sans-serif";
-    ctx.fillText(BRAND, padX, H - 80 - lift);
+    ctx.fillText(BRAND, padX, H - 20 - lift);
     const brandWidth = ctx.measureText(BRAND).width;
     ctx.fillStyle = primary;
     ctx.beginPath();
-    ctx.arc(padX + brandWidth + 18, H - 98 - lift, 8, 0, Math.PI * 2);
+    ctx.arc(padX + brandWidth + 18, H - 38 - lift, 8, 0, Math.PI * 2);
     ctx.fill();
   }
 
