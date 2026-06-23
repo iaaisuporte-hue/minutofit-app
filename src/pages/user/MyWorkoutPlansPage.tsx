@@ -9,6 +9,7 @@ import { InfoHint } from "../../components/InfoHint";
 import { ConfirmModal } from "../../features/team/ConfirmModal";
 import { Toast } from "../../features/team/Toast";
 import { persistGamificationCheckin } from "../../services/gamificationApi";
+import { createWorkoutSession } from "../../services/workoutSessionApi";
 import { addWorkoutHistoryEntry, type MuscleGroup } from "../user/workoutHistory";
 import { canShareWorkoutImage } from "./lib/shareWorkoutImage";
 import { ShareWorkoutModal } from "./components/ShareWorkoutModal";
@@ -500,6 +501,23 @@ function PlanCard({ plan, isOpen, onToggle, onAbandon, adaptiveData }: PlanCardP
       title,
       muscleGroups,
       date: new Date().toISOString(),
+    });
+
+    // Execução estruturada (Spec 010) — histórico confiável, linkado a plano/dia
+    // /adaptação/readiness. Fire-and-forget: nunca bloqueia a conclusão.
+    void createWorkoutSession({
+      source: 'personal',
+      status: 'completed',
+      title,
+      planId: plan.id,
+      dayIndex: activeDay?.index ?? null,
+      prescribed: (displayDay.items ?? []).map((it) => ({
+        exerciseId: it.exerciseId ?? null,
+        name: it.name,
+        sets: it.sets,
+        reps: it.reps,
+        rest: it.rest,
+      })),
     });
 
     try {
