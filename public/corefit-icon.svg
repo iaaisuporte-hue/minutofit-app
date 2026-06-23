@@ -1,9 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="S2Core">
-  <rect width="64" height="64" rx="14" fill="#080d08"/>
-  <rect width="64" height="4" rx="2" fill="#c4ff00"/>
+  <rect width="64" height="64" rx="14" fill="#0a1a0e"/>
+  <rect width="64" height="4" rx="2" fill="#22C55E"/>
   <text x="32" y="45" text-anchor="middle"
     font-family="system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif"
     font-size="26" font-weight="900" letter-spacing="-0.02em">
-    <tspan fill="#ffffff">S2</tspan><tspan fill="#c4ff00">C</tspan>
+    <tspan fill="#ffffff">S2</tspan><tspan fill="#22C55E">C</tspan>
   </text>
 </svg>
