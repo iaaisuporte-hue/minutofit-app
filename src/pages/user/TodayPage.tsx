@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext";
@@ -16,21 +16,17 @@ import {
 } from "./todayPageMotion";
 import { addWorkoutHistoryEntry, getYesterdayMuscleGroups, type MuscleGroup } from "./workoutHistory";
 import {
-  MetabolicChart,
   MetabolicScoreCard,
   useMetabolism,
-  useMetabolismHistory,
 } from "../../features/metabolism";
 import { estimateCheckinImpact } from "../../features/metabolism/estimateImpact";
 import {
   deriveEnergyStatus,
-  deriveHistoryMarkers,
   deriveMetabolicForecast,
 } from "../../features/metabolism/metabolismDerivations";
 import { useGamificationSummary } from "../../features/gamification/useGamificationSummary";
 import { ProfessionalVoiceCard } from "../../features/professionalVoice";
 import { InstallPrompt } from "../../features/pwa/InstallPrompt";
-import { WeeklyLoopCard, useHasWeeklyLoopInsights } from "../../features/loopVisibility";
 import { IncomingMessageBanner, useLatestUnreadFromProfessional } from "../../features/incomingMessage";
 import { DailyCheckin, type DailyCheckinHandle } from "../../features/dailyCheckin/DailyCheckin";
 import { useToast } from "../../components/Toast";
@@ -51,6 +47,8 @@ import { PersonalWorkoutCard } from "./components/PersonalWorkoutCard";
 import { PersonalEmptyState } from "./components/PersonalEmptyState";
 import { EmptyMetabolismHero } from "./components/EmptyMetabolismHero";
 import { WelcomeCard } from "./components/WelcomeCard";
+import { TodayHero } from "./components/TodayHero";
+import { resolveTodayPrimary, type TodayCtaAction } from "./lib/resolveTodayPrimary";
 import {
   getFirstRunState,
   isFirstRunComplete,
@@ -61,8 +59,8 @@ import { NutritionCheckinCard } from "../../features/nutrition/NutritionCheckinC
 import { NutriVoiceCard } from "../../features/nutrition/NutriVoiceCard";
 import { useNutriVoiceNote } from "../../features/nutrition/useNutriVoiceNote";
 import { useAdaptiveTraining } from "../../features/training/adaptive/useAdaptiveTraining";
-import { ReadinessPill } from "../../features/training/adaptive/ReadinessPill";
 import { AdaptationBanner } from "../../features/training/adaptive/AdaptationBanner";
+import { WorkoutStateChip } from "./components/WorkoutStateChip";
 import { usePushSubscription } from "../../features/nutrition/usePushSubscription";
 import "./todayPage.css";
 
@@ -176,8 +174,6 @@ export default function TodayPage() {
   const userId = (id ?? "").trim().toLowerCase();
   const { data: gamification, loading: gamificationLoading, refetch: refetchGamification } = useGamificationSummary();
   const { data: metabolism, loading: metabolismLoading, error: metabolismError, refetch: refetchMetabolism } = useMetabolism();
-  const [historyDays, setHistoryDays] = useState<number>(14);
-  const { data: metabolismHistory, loading: historyLoading } = useMetabolismHistory(historyDays);
   const { data: workoutHistoryData } = useWorkoutHistory(30);
   const todayState = useTodayUserState();
   const { note: nutriVoiceNote } = useNutriVoiceNote();
@@ -195,7 +191,6 @@ export default function TodayPage() {
     saveCheckin: saveMetabolicCheckin,
   } = useMetabolicCheckins();
   const { condition: dailyCondition, setCondition: setDailyCondition, clearCondition: clearDailyCondition } = useDailyCondition();
-  const hasWeeklyLoopInsights = useHasWeeklyLoopInsights(dailyCondition);
   const { conversation: incomingMessage, dismissLocally: dismissIncomingMessage } =
     useLatestUnreadFromProfessional({ enabled: canMessages });
   usePushSubscription();
@@ -273,15 +268,67 @@ export default function TodayPage() {
     () => deriveMetabolicForecast(metabolism, { streak, todayCheckedIn, activityImpact: defaultImpact }),
     [defaultImpact, metabolism, streak, todayCheckedIn]
   );
-  const markers = useMemo(
-    () => deriveHistoryMarkers(metabolismHistory, {
-      todayCheckedIn,
-      condition: dailyCondition,
-      workoutDates: workoutHistoryData.map((e) => e.date),
-    }),
-    [metabolismHistory, todayCheckedIn, dailyCondition, workoutHistoryData]
-  );
   const conditionSignals = useMemo(() => deriveConditionSignals(dailyCondition), [dailyCondition]);
+
+  // ── Hero "Seu dia": a ÚNICA ação primária por estado (passo 2 do redesign) ──
+  const trainedToday = useMemo(() => {
+    const completedAt = gamification?.lastWorkout?.completedAt;
+    if (!completedAt) return false;
+    const d = new Date(completedAt);
+    const now = new Date();
+    return (
+      d.getFullYear() === now.getFullYear() &&
+      d.getMonth() === now.getMonth() &&
+      d.getDate() === now.getDate()
+    );
+  }, [gamification?.lastWorkout?.completedAt]);
+
+  const heroReadingLine = useMemo(() => {
+    const readiness = adaptive.data?.readiness?.level;
+    const readinessLabel =
+      readiness === "green" ? "Prontidão alta" :
+      readiness === "yellow" ? "Prontidão ajustada" :
+      readiness === "red" ? "Recuperação" : null;
+    const stateLabel = dailyCondition && adjustedEnergy?.metabolicState ? `estado ${adjustedEnergy.metabolicState}` : null;
+    return [readinessLabel, stateLabel].filter(Boolean).join(" · ") || null;
+  }, [adaptive.data?.readiness?.level, dailyCondition, adjustedEnergy]);
+
+  const heroPrimary = useMemo(
+    () => resolveTodayPrimary({
+      firstRunComplete: userId ? isFirstRunComplete(userId) : true,
+      checkedInToday: dailyCondition != null,
+      trainedToday,
+      readinessLevel: adaptive.data?.readiness?.level ?? null,
+      recoveryByCondition: conditionState.messagingTone === "recovery",
+      hasSession: showPersonalWorkout || showAcademyWorkout || showSuggestedWorkout,
+      adapted: Boolean(adaptive.data?.adaptationEnabled && (adaptive.data?.changes?.length ?? 0) > 0),
+      personalNoPlan: showPersonalEmpty,
+      firstName: user?.name?.split(" ")[0] || "",
+      personalName: todayState.personal?.name ?? null,
+    }),
+    [userId, dailyCondition, trainedToday, adaptive.data, conditionState.messagingTone, showPersonalWorkout, showAcademyWorkout, showSuggestedWorkout, showPersonalEmpty, user?.name, todayState.personal?.name]
+  );
+
+  const handleHeroAction = useCallback((action: TodayCtaAction) => {
+    switch (action) {
+      case "open_checkin": {
+        const el = document.querySelector("[data-daily-checkin]");
+        el?.scrollIntoView({ behavior: "smooth", block: "center" });
+        checkinRef.current?.openSheet();
+        break;
+      }
+      case "scroll_workout":
+        document.getElementById("today-workout")?.scrollIntoView({ behavior: "smooth", block: "start" });
+        break;
+      case "go_evolution":
+        navigate("/app/user/estado-metabolico");
+        break;
+      case "go_chat":
+        navigate("/app/user/messages");
+        break;
+    }
+  }, [navigate]);
+
   const criticalSignals = useMemo(() => {
     if (!dailyCondition?.details) return [];
     const d = dailyCondition.details;
@@ -410,7 +457,7 @@ export default function TodayPage() {
       )}
 
       {/* 0.5 Card de boas-vindas — primeiro acesso (desaparece após 3 marcos concluídos) */}
-      {showWelcome && (
+      {showWelcome ? (
         <motion.div variants={sectionRevealVariants}>
           <WelcomeCard
             firstName={user?.name?.split(" ")[0] || ""}
@@ -421,6 +468,10 @@ export default function TodayPage() {
               checkinRef.current?.openSheet();
             }}
           />
+        </motion.div>
+      ) : (
+        <motion.div variants={sectionRevealVariants}>
+          <TodayHero primary={heroPrimary} readingLine={heroReadingLine} onAction={handleHeroAction} />
         </motion.div>
       )}
 
@@ -463,20 +514,16 @@ export default function TodayPage() {
           são combustível e ficam abaixo. Cards de nutri/academia/sugerido se
           auto-escondem para o aluno do personal (condições próprias). */}
 
-      {/* 2 (payoff). Treino do personal — quando há ficha ativa prescrita */}
+      {/* 2 (payoff). Treino do personal — quando há ficha ativa prescrita.
+          Âncora do CTA "Começar a sessão" do hero (scroll_workout). */}
       {showPersonalWorkout && todayState.personal && todayState.activePlan && (
-        <motion.div variants={sectionRevealVariants}>
-          {/* Readiness pill — prontidão do dia (verde/amarelo/vermelho) */}
-          {adaptive.data?.readiness && (
-            <div style={{ marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
-              <ReadinessPill readiness={adaptive.data.readiness} />
-              {adaptive.data.readiness.level !== 'green' && (
-                <span style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>
-                  {adaptive.data.readiness.microcopy}
-                </span>
-              )}
-            </div>
-          )}
+        <motion.div id="today-workout" variants={sectionRevealVariants}>
+          {/* Header unificado: identidade "Treino de hoje" + estado (chip).
+              A prontidão (readiness) agora vive no hero — não repetimos a pill. */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
+            <SectionEyebrow>Treino de hoje</SectionEyebrow>
+            <WorkoutStateChip state={(adaptive.data?.adaptationEnabled && adaptive.data.changes.length > 0) ? 'adapted' : 'personal_base'} />
+          </div>
           {/* Presença do personal — aparece quando o treino foi adaptado */}
           {adaptive.data?.adaptationEnabled && adaptive.data.changes.length > 0 && (
             <div
@@ -573,18 +620,9 @@ export default function TodayPage() {
         )}
       </motion.div>
 
-      {/* 5. Progresso — histórico metabólico + loop de sinais semanais */}
-      <motion.div variants={sectionRevealVariants} style={{ display: 'grid', gap: 12 }}>
-        <MetabolicChart
-          data={metabolismHistory}
-          loading={historyLoading}
-          forecast={forecast}
-          markers={markers}
-          days={historyDays}
-          onDaysChange={setHistoryDays}
-        />
-        {hasWeeklyLoopInsights && <WeeklyLoopCard condition={dailyCondition} />}
-      </motion.div>
+      {/* Histórico metabólico + sinais da semana movidos para a página de
+          Evolução (/estado-metabolico). A Today foca no "hoje"; a tendência
+          mora na Evolução. Acesso via "Ver sua evolução" no card de score. */}
 
       {/* 6. Plano alimentar — só renderiza para quem tem nutri (silencioso caso contrário) */}
       <motion.div variants={sectionRevealVariants}>
@@ -600,7 +638,7 @@ export default function TodayPage() {
 
       {/* 5d. Academy-led — aluno de academia sem personal: treino sugerido com viés gym */}
       {showAcademyWorkout && (
-        <motion.div variants={sectionRevealVariants}>
+        <motion.div id="today-workout" variants={sectionRevealVariants}>
           <div
             className="today-card"
             style={{ borderColor: SURFACE.border, boxShadow: SURFACE.shadow, padding: isMobile ? 18 : 22 }}
@@ -661,7 +699,7 @@ export default function TodayPage() {
 
       {/* 5c. Treino sugerido pela IA — self-guided sem ficha do personal */}
       {showSuggestedWorkout && (
-      <motion.div variants={sectionRevealVariants}>
+      <motion.div id="today-workout" variants={sectionRevealVariants}>
         <div
           className="today-card"
           style={{ borderColor: SURFACE.border, boxShadow: SURFACE.shadow, padding: isMobile ? 18 : 22 }}
@@ -683,7 +721,10 @@ export default function TodayPage() {
             {/* Header + toggle */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
               <div style={{ display: "grid", gap: 3 }}>
-                <SectionEyebrow>Treino de hoje</SectionEyebrow>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                  <SectionEyebrow>Treino de hoje</SectionEyebrow>
+                  <WorkoutStateChip state="suggested" />
+                </div>
                 <div style={{ fontSize: isMobile ? 16 : 18, fontWeight: 700, color: SURFACE.text }}>
                   {currentWorkout?.title ?? "Treino recomendado"}
                 </div>
