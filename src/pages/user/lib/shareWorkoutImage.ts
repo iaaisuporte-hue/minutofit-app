@@ -94,6 +94,9 @@ async function loadImage(file: File | Blob): Promise<HTMLImageElement> {
   }
 }
 
+/** Proporção do card: "story" = 1080×1920 (9:16, Stories) · "square" = 1080×1080 (feed). */
+export type WorkoutShareFormat = "story" | "square";
+
 export type ComposeWorkoutInput = {
   /** Foco do treino exibido em destaque, ex.: "Superiores". */
   focus: string;
@@ -101,16 +104,22 @@ export type ComposeWorkoutInput = {
   dayName?: string;
   /** Foto de fundo opcional (tirada ou da galeria). Sem ela, usa um fundo gradiente. */
   backgroundFile?: File | Blob | null;
+  /** Proporção do card. Padrão: "story". */
+  format?: WorkoutShareFormat;
 };
 
-export type ComposedImage = { blob: Blob; dataUrl: string; focus: string };
+export type ComposedImage = { blob: Blob; dataUrl: string; focus: string; format: WorkoutShareFormat };
 
-/** Monta o card-imagem 1080² e devolve blob (para share) + dataUrl (para preview). */
-export async function composeWorkoutImage({ focus, dayName, backgroundFile }: ComposeWorkoutInput): Promise<ComposedImage> {
-  const size = 1080;
+/** Monta o card-imagem (story 1080×1920 ou square 1080²) e devolve blob + dataUrl. */
+export async function composeWorkoutImage({ focus, dayName, backgroundFile, format = "story" }: ComposeWorkoutInput): Promise<ComposedImage> {
+  const W = 1080;
+  const H = format === "story" ? 1920 : 1080;
+  // Lift extra no rodapé para Stories — afasta o texto da UI do Instagram (barra inferior).
+  const lift = format === "story" ? 140 : 0;
+
   const canvas = document.createElement("canvas");
-  canvas.width = size;
-  canvas.height = size;
+  canvas.width = W;
+  canvas.height = H;
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("canvas indisponível");
 
@@ -120,34 +129,34 @@ export async function composeWorkoutImage({ focus, dayName, backgroundFile }: Co
   // 1) Fundo: foto (cover) ou gradiente
   if (backgroundFile) {
     const img = await loadImage(backgroundFile);
-    drawCover(ctx, img, size, size);
+    drawCover(ctx, img, W, H);
   } else {
-    const grad = ctx.createLinearGradient(0, 0, size, size);
+    const grad = ctx.createLinearGradient(0, 0, W, H);
     grad.addColorStop(0, "#0b1220");
     grad.addColorStop(1, "#0f2a24");
     ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, size, size);
+    ctx.fillRect(0, 0, W, H);
   }
 
   // 2) Scrim escuro de baixo p/ cima — legibilidade do texto sobre qualquer foto
-  const scrim = ctx.createLinearGradient(0, size * 0.32, 0, size);
+  const scrim = ctx.createLinearGradient(0, H * 0.34, 0, H);
   scrim.addColorStop(0, "rgba(7,12,18,0)");
-  scrim.addColorStop(1, "rgba(7,12,18,0.82)");
+  scrim.addColorStop(1, "rgba(7,12,18,0.84)");
   ctx.fillStyle = scrim;
-  ctx.fillRect(0, 0, size, size);
+  ctx.fillRect(0, 0, W, H);
 
   // 3) Faixa de marca (accent) no topo
   ctx.fillStyle = accent;
-  ctx.fillRect(0, 0, size, 14);
+  ctx.fillRect(0, 0, W, 14);
 
-  // 4) Texto ancorado no rodapé
+  // 4) Texto ancorado no rodapé (com lift extra no formato story)
   const padX = 96;
   ctx.textAlign = "left";
 
   ctx.font = "800 110px Inter, system-ui, sans-serif";
-  const focusLines = wrap(ctx, focus, size - padX * 2).slice(0, 2);
+  const focusLines = wrap(ctx, focus, W - padX * 2).slice(0, 2);
   const lineH = 122;
-  const focusBottom = size - 234;
+  const focusBottom = H - 234 - lift;
 
   ctx.fillStyle = "#ffffff";
   focusLines.forEach((line, i) => {
@@ -166,30 +175,30 @@ export async function composeWorkoutImage({ focus, dayName, backgroundFile }: Co
     : dateStr;
   ctx.fillStyle = "rgba(255,255,255,0.72)";
   ctx.font = "500 32px Inter, system-ui, sans-serif";
-  ctx.fillText(meta, padX, size - 148);
+  ctx.fillText(meta, padX, H - 148 - lift);
 
   // Logo CoreFit (SVG claro para fundo escuro) — fallback para texto se SVG não carregar
   const logoImg = await loadSvgLogo();
   if (logoImg) {
-    // viewBox 264×56 → renderizado em ~220×47 px no canvas 1080²
+    // viewBox 264×56 → renderizado em ~220×47 px
     const logoW = 220;
     const logoH = Math.round(logoW * (56 / 264));
-    ctx.drawImage(logoImg, padX, size - 80 - logoH, logoW, logoH);
+    ctx.drawImage(logoImg, padX, H - 80 - lift - logoH, logoW, logoH);
   } else {
     ctx.fillStyle = "#ffffff";
     ctx.font = "800 52px Inter, system-ui, sans-serif";
-    ctx.fillText(BRAND, padX, size - 80);
+    ctx.fillText(BRAND, padX, H - 80 - lift);
     const brandWidth = ctx.measureText(BRAND).width;
     ctx.fillStyle = primary;
     ctx.beginPath();
-    ctx.arc(padX + brandWidth + 18, size - 98, 8, 0, Math.PI * 2);
+    ctx.arc(padX + brandWidth + 18, H - 98 - lift, 8, 0, Math.PI * 2);
     ctx.fill();
   }
 
   const blob = await new Promise<Blob | null>((res) => canvas.toBlob(res, "image/jpeg", 0.9));
   if (!blob) throw new Error("falha ao gerar imagem");
   const dataUrl = canvas.toDataURL("image/jpeg", 0.9);
-  return { blob, dataUrl, focus };
+  return { blob, dataUrl, focus, format };
 }
 
 /**

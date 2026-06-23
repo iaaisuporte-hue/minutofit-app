@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { composeWorkoutImage, shareImageBlob, type ComposedImage } from "../lib/shareWorkoutImage";
+import { composeWorkoutImage, shareImageBlob, type ComposedImage, type WorkoutShareFormat } from "../lib/shareWorkoutImage";
 
 type Props = {
   focus: string;
@@ -16,17 +16,17 @@ export function ShareWorkoutModal({ focus, dayName, onClose }: Props) {
   const [image, setImage] = useState<ComposedImage | null>(null);
   const [composing, setComposing] = useState(true);
   const [sharing, setSharing] = useState(false);
-  const [hasPhoto, setHasPhoto] = useState(false);
+  const [photo, setPhoto] = useState<File | null>(null);
+  const [format, setFormat] = useState<WorkoutShareFormat>("story");
   const [error, setError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  async function recompose(bg: File | null) {
+  async function recompose(bg: File | null, fmt: WorkoutShareFormat) {
     setComposing(true);
     setError(null);
     try {
-      const img = await composeWorkoutImage({ focus, dayName, backgroundFile: bg });
+      const img = await composeWorkoutImage({ focus, dayName, backgroundFile: bg, format: fmt });
       setImage(img);
-      setHasPhoto(Boolean(bg));
     } catch {
       setError("Não consegui montar a imagem com essa foto. Tente outra.");
     } finally {
@@ -35,15 +35,26 @@ export function ShareWorkoutModal({ focus, dayName, onClose }: Props) {
   }
 
   useEffect(() => {
-    void recompose(null);
+    void recompose(null, "story");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function onPick(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0] ?? null;
-    if (f) void recompose(f);
     e.target.value = ""; // permite reescolher a mesma foto
+    if (f) {
+      setPhoto(f);
+      void recompose(f, format);
+    }
   }
+
+  function onFormat(fmt: WorkoutShareFormat) {
+    if (fmt === format) return;
+    setFormat(fmt);
+    void recompose(photo, fmt);
+  }
+
+  const hasPhoto = photo !== null;
 
   async function onShare() {
     if (!image) return;
@@ -97,28 +108,58 @@ export function ShareWorkoutModal({ focus, dayName, onClose }: Props) {
           </button>
         </div>
 
-        {/* Preview do card 1:1 */}
+        {/* Preview do card (proporção segue o formato escolhido) */}
         <div
           style={{
             position: "relative",
-            width: "100%",
-            aspectRatio: "1 / 1",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            minHeight: 140,
+            padding: 6,
             borderRadius: 12,
-            overflow: "hidden",
             background: "var(--color-surface-strong, rgba(15,23,42,0.06))",
             border: "1px solid var(--color-border)",
-            display: "grid",
-            placeItems: "center",
           }}
         >
           {image ? (
-            <img src={image.dataUrl} alt="Prévia do treino" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+            <img
+              src={image.dataUrl}
+              alt="Prévia do treino"
+              style={{ display: "block", maxWidth: "100%", maxHeight: "56vh", borderRadius: 8 }}
+            />
           ) : null}
           {composing ? (
             <span style={{ position: "absolute", fontSize: 13, color: "var(--color-text-muted)", background: "var(--color-surface)", padding: "4px 10px", borderRadius: 999 }}>
               Gerando…
             </span>
           ) : null}
+        </div>
+
+        {/* Formato do card */}
+        <div style={{ display: "flex", gap: 8 }}>
+          {([["story", "Story 9:16"], ["square", "Feed 1:1"]] as const).map(([fmt, label]) => (
+            <button
+              key={fmt}
+              type="button"
+              onClick={() => onFormat(fmt)}
+              aria-pressed={format === fmt}
+              disabled={composing}
+              style={{
+                flex: 1,
+                padding: "8px 10px",
+                borderRadius: 10,
+                border: `1px solid ${format === fmt ? "var(--color-primary)" : "var(--color-border)"}`,
+                background: format === fmt ? "var(--color-primary-soft, rgba(22,163,74,0.10))" : "transparent",
+                color: "var(--color-text)",
+                fontWeight: 700,
+                fontSize: 13,
+                cursor: composing ? "not-allowed" : "pointer",
+              }}
+            >
+              {label}
+            </button>
+          ))}
         </div>
 
         {error ? (
