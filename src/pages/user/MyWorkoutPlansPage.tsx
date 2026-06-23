@@ -10,7 +10,7 @@ import { ConfirmModal } from "../../features/team/ConfirmModal";
 import { Toast } from "../../features/team/Toast";
 import { persistGamificationCheckin } from "../../services/gamificationApi";
 import { createWorkoutSession } from "../../services/workoutSessionApi";
-import { WorkoutLogSheet } from "./components/WorkoutLogSheet";
+import { WorkoutLogSheet, type SessionStatus } from "./components/WorkoutLogSheet";
 import { addWorkoutHistoryEntry, type MuscleGroup } from "../user/workoutHistory";
 import { canShareWorkoutImage } from "./lib/shareWorkoutImage";
 import { ShareWorkoutModal } from "./components/ShareWorkoutModal";
@@ -488,8 +488,9 @@ function PlanCard({ plan, isOpen, onToggle, onAbandon, adaptiveData }: PlanCardP
   }, [activeDay, adaptiveData]);
   const isAdaptedDay = displayDay !== activeDay;
 
-  // sets opcionais (carga/reps reais) vindos da folha de registro pós-treino.
-  async function registerSession(loggedSets?: unknown[]) {
+  // sets opcionais (carga/reps reais) + status (completed/partial/abandoned)
+  // vindos da folha de registro pós-treino.
+  async function registerSession(loggedSets?: unknown[], status: SessionStatus = 'completed') {
     if (isRegistering || registeredToday) return;
     setIsRegistering(true);
     setRegistrationError(null);
@@ -510,7 +511,7 @@ function PlanCard({ plan, isOpen, onToggle, onAbandon, adaptiveData }: PlanCardP
     // /adaptação/readiness. Fire-and-forget: nunca bloqueia a conclusão.
     void createWorkoutSession({
       source: 'personal',
-      status: 'completed',
+      status,
       title,
       planId: plan.id,
       dayIndex: activeDay?.index ?? null,
@@ -686,7 +687,7 @@ function PlanCard({ plan, isOpen, onToggle, onAbandon, adaptiveData }: PlanCardP
                 <WorkoutLogSheet
                   items={displayDay.items ?? []}
                   onClose={() => setLogSheetOpen(false)}
-                  onConfirm={(sets) => { setLogSheetOpen(false); void registerSession(sets); }}
+                  onConfirm={(sets, status) => { setLogSheetOpen(false); void registerSession(sets, status); }}
                 />
               )}
 

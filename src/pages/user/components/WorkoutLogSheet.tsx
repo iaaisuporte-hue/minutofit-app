@@ -1,9 +1,12 @@
 import { useState, type CSSProperties } from "react";
 import type { UserWorkoutPlanItem } from "../../../services/userWorkoutPlansApi";
 
-// Folha de registro pós-treino (Spec 010, V1.1). Carga é OPCIONAL — o aluno
-// registra em poucos toques (pode confirmar sem digitar nada). O que ele
-// informar vira histórico de carga → progressão por exercício.
+// Folha de registro pós-treino (Spec 010, V1.1). Carga é OPCIONAL e cada
+// exercício pode ser marcado "feito/pulei" → o status da sessão é derivado:
+// tudo feito = completed · alguns pulados = partial · todos pulados = abandoned.
+// Poucos toques: por padrão tudo "feito", basta confirmar.
+
+export type SessionStatus = "completed" | "partial" | "abandoned";
 
 export interface LoggedSet {
   exerciseId?: string | null;
@@ -13,7 +16,7 @@ export interface LoggedSet {
   plannedReps?: string;
   loadDoneKg?: number | null;
   plannedRestS?: number | null;
-  status: "done";
+  status: "done" | "skipped";
 }
 
 function setCount(s?: string): number {
@@ -43,7 +46,7 @@ const rowStyle: CSSProperties = {
   padding: "10px 12px", borderRadius: 10, border: "1px solid var(--color-border, #E5E7EB)",
 };
 const inputStyle: CSSProperties = {
-  width: 72, padding: "8px 10px", borderRadius: 8, border: "1px solid var(--color-border-strong, #D1D5DB)",
+  width: 64, padding: "8px 10px", borderRadius: 8, border: "1px solid var(--color-border-strong, #D1D5DB)",
   fontSize: 14, textAlign: "right",
 };
 const primaryBtn: CSSProperties = {
@@ -58,19 +61,23 @@ const ghostBtn: CSSProperties = {
 
 interface Props {
   items: UserWorkoutPlanItem[];
-  onConfirm: (sets: LoggedSet[]) => void;
+  onConfirm: (sets: LoggedSet[], status: SessionStatus) => void;
   onClose: () => void;
 }
 
 export function WorkoutLogSheet({ items, onConfirm, onClose }: Props) {
   const [loads, setLoads] = useState<Record<number, string>>({});
+  const [skipped, setSkipped] = useState<Record<number, boolean>>({});
 
-  function build(): LoggedSet[] {
+  function build(): { sets: LoggedSet[]; status: SessionStatus } {
     const out: LoggedSet[] = [];
+    let doneCount = 0;
     items.forEach((it, i) => {
+      const isSkipped = !!skipped[i];
+      if (!isSkipped) doneCount += 1;
       const raw = loads[i];
       const parsed = raw != null && raw !== "" ? Number(String(raw).replace(",", ".")) : null;
-      const load = parsed != null && Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
+      const load = !isSkipped && parsed != null && Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
       const n = setCount(it.sets);
       for (let s = 1; s <= n; s++) {
         out.push({
@@ -81,11 +88,12 @@ export function WorkoutLogSheet({ items, onConfirm, onClose }: Props) {
           plannedReps: it.reps,
           loadDoneKg: load,
           plannedRestS: leadingInt(it.rest),
-          status: "done",
+          status: isSkipped ? "skipped" : "done",
         });
       }
     });
-    return out;
+    const status: SessionStatus = doneCount === 0 ? "abandoned" : doneCount === items.length ? "completed" : "partial";
+    return { sets: out, status };
   }
 
   return (
@@ -94,40 +102,54 @@ export function WorkoutLogSheet({ items, onConfirm, onClose }: Props) {
         <div>
           <div style={{ fontWeight: 700, fontSize: 18, color: "var(--color-text, #0A130D)" }}>Como foi o treino?</div>
           <div style={{ fontSize: 13, color: "var(--color-text-muted, #6B7280)" }}>
-            Carga é opcional — registre só o que quiser acompanhar a evolução.
+            Carga é opcional. Marque "pulei" se não fez algum exercício.
           </div>
         </div>
 
         <div style={{ display: "grid", gap: 8, maxHeight: "50vh", overflowY: "auto" }}>
-          {items.map((it, i) => (
-            <div key={`${it.exerciseId}-${i}`} style={rowStyle}>
-              <div style={{ minWidth: 0 }}>
-                <div style={{ fontWeight: 600, fontSize: 14, color: "var(--color-text, #0A130D)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                  {it.name}
+          {items.map((it, i) => {
+            const isSkipped = !!skipped[i];
+            return (
+              <div key={`${it.exerciseId}-${i}`} style={{ ...rowStyle, opacity: isSkipped ? 0.55 : 1 }}>
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div style={{ fontWeight: 600, fontSize: 14, color: "var(--color-text, #0A130D)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    {it.name}
+                  </div>
+                  <div style={{ fontSize: 12, color: "var(--color-text-muted, #6B7280)" }}>{it.sets} × {it.reps}</div>
                 </div>
-                <div style={{ fontSize: 12, color: "var(--color-text-muted, #6B7280)" }}>
-                  {it.sets} × {it.reps}
-                </div>
+                {!isSkipped && (
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+                    <input
+                      type="number" inputMode="decimal" min={0} placeholder="—"
+                      value={loads[i] ?? ""}
+                      onChange={(e) => setLoads((p) => ({ ...p, [i]: e.target.value }))}
+                      style={inputStyle}
+                      aria-label={`Carga em kg para ${it.name}`}
+                    />
+                    <span style={{ fontSize: 12, color: "var(--color-text-muted, #6B7280)" }}>kg</span>
+                  </div>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setSkipped((p) => ({ ...p, [i]: !p[i] }))}
+                  style={{
+                    flexShrink: 0, padding: "5px 10px", borderRadius: 999, fontSize: 12, fontWeight: 600,
+                    cursor: "pointer", border: `1px solid var(--color-border, #E5E7EB)`,
+                    background: isSkipped ? "var(--color-warn, #D97706)" : "transparent",
+                    color: isSkipped ? "#fff" : "var(--color-text-muted, #6B7280)",
+                  }}
+                >
+                  {isSkipped ? "Pulei" : "Feito"}
+                </button>
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  min={0}
-                  placeholder="—"
-                  value={loads[i] ?? ""}
-                  onChange={(e) => setLoads((p) => ({ ...p, [i]: e.target.value }))}
-                  style={inputStyle}
-                  aria-label={`Carga em kg para ${it.name}`}
-                />
-                <span style={{ fontSize: 12, color: "var(--color-text-muted, #6B7280)" }}>kg</span>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         <div style={{ display: "flex", gap: 10 }}>
-          <button type="button" onClick={() => onConfirm(build())} style={primaryBtn}>Registrar treino</button>
+          <button type="button" onClick={() => { const r = build(); onConfirm(r.sets, r.status); }} style={primaryBtn}>
+            Registrar treino
+          </button>
           <button type="button" onClick={onClose} style={ghostBtn}>Cancelar</button>
         </div>
       </div>

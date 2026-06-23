@@ -5,6 +5,7 @@ import { loadAnswers } from "./onboarding/onboardingStorage";
 import { type MuscleGroup, getYesterdayMuscleGroups } from "./workoutHistory";
 import { addXp, registerDailyCheckin } from "./gamification";
 import { persistGamificationCheckin } from "../../services/gamificationApi";
+import { createWorkoutSession } from "../../services/workoutSessionApi";
 import { addWorkoutHistoryEntry } from "./workoutHistory";
 import { COLORS } from "../../styles/colors";
 import { useDailyCondition } from "../../features/dailyCheckin/useDailyCondition";
@@ -299,6 +300,10 @@ export default function SuggestedTrainingPage() {
         ? `Sessão registrada. Sua leitura de amanhã já considera o esforço de hoje.`
         : `Sessão registrada. Sua leitura de amanhã já considera o esforço de hoje.`
     );
+
+    // Execução estruturada (Spec 010) — treino sugerido é não-estruturado
+    // (sem exercise_id), então registramos nível frequência. Best-effort.
+    void createWorkoutSession({ source: "suggested", status: "completed", title: workoutTitle });
 
     try {
       await persistGamificationCheckin({

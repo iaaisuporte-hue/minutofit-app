@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom"
 import { addWorkoutHistoryEntry, wasMuscleGroupTrainedYesterday, type MuscleGroup } from "./workoutHistory";
 import { getStreak, registerDailyCheckin } from "./gamification";
 import { persistGamificationCheckin } from "../../services/gamificationApi";
+import { createWorkoutSession } from "../../services/workoutSessionApi";
 import { homeWorkoutCatalog, type HomeWorkoutAccessibility } from "./homeWorkoutCatalog";
 import { useNeonTheme } from "../../theme/corefitNeonTheme";
 
@@ -143,6 +144,12 @@ export default function WorkoutPlayerPage() {
     setRewardMessage(
       checkin.alreadyCheckedIn ? "Sessão registrada. Sua leitura de hoje já estava valendo." : "Sessão registrada. Sua leitura de amanhã já considera o esforço de hoje."
     );
+
+    // Execução estruturada (Spec 010) — workout do player é não-estruturado;
+    // registra nível frequência. Best-effort.
+    if (workout) {
+      void createWorkoutSession({ source: "suggested", status: "completed", title: workout.title });
+    }
     if (workoutId && workout) {
       try {
         const result = await persistGamificationCheckin({
