@@ -5,7 +5,8 @@ import type { FirstRunState } from "./firstRunStorage";
 interface Props {
   firstName: string;
   state: FirstRunState;
-  onGoToCheckin: () => void;
+  /** Mantido por compatibilidade; o check-in tem card próprio, não duplicamos aqui. */
+  onGoToCheckin?: () => void;
 }
 
 type Marco = {
@@ -16,22 +17,15 @@ type Marco = {
   onClick: () => void;
 };
 
-export function WelcomeCard({ firstName, state, onGoToCheckin }: Props) {
+export function WelcomeCard({ firstName, state }: Props) {
   const navigate = useNavigate();
   const isMobile = useIsMobile(720);
-  const concluidos = [state.checkinDone, state.profileDone].filter(Boolean).length;
 
-  // Todos concluídos → card desaparece (chamador controla isso)
-  if (concluidos === 2) return null;
+  // O check-in tem o próprio card logo abaixo — não duplicamos a chamada aqui.
+  // Este card cuida só do passo não-óbvio (perfil) e some quando ele fica pronto.
+  if (state.profileDone) return null;
 
   const marcos: Marco[] = [
-    {
-      label: "Conte como você está hoje",
-      descricao: "O check-in diário é o primeiro sinal que o S2Core usa para adaptar tudo.",
-      done: state.checkinDone,
-      cta: "Fazer check-in",
-      onClick: onGoToCheckin,
-    },
     {
       label: "Configure seu perfil de treino",
       descricao: "Leva 2 minutos e ajusta as sugestões para a sua rotina real.",
@@ -148,7 +142,7 @@ export function WelcomeCard({ firstName, state, onGoToCheckin }: Props) {
         </div>
 
         <div style={{ fontSize: 12, color: "var(--color-text-subtle)", textAlign: "center" }}>
-          {concluidos}/2 concluídos — esse card desaparece quando você terminar.
+          Leva 2 minutos — depois esse card some.
         </div>
       </div>
     </div>

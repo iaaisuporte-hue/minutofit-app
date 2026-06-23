@@ -472,20 +472,21 @@ export default function TodayPage() {
         />
       )}
 
-      {/* 0.5 Card de boas-vindas — primeiro acesso (desaparece após 3 marcos concluídos) */}
-      {showWelcome ? (
+      {/* 0.5 Boas-vindas (primeiro acesso) — agora só nudge de PERFIL: o check-in
+          tem o card próprio abaixo, então não duplicamos a chamada de check-in. */}
+      {showWelcome && (
         <motion.div variants={sectionRevealVariants}>
           <WelcomeCard
             firstName={user?.name?.split(" ")[0] || ""}
             state={firstRun}
-            onGoToCheckin={() => {
-              const el = document.querySelector("[data-daily-checkin]");
-              el?.scrollIntoView({ behavior: "smooth", block: "center" });
-              checkinRef.current?.openSheet();
-            }}
           />
         </motion.div>
-      ) : (
+      )}
+
+      {/* Hero "Seu dia" — NÃO aparece quando o check-in está pendente: nesse
+          estado o card de Check-in abaixo é o protagonista (evita redundância
+          "faça o check-in" + card de check-in). */}
+      {!showWelcome && heroPrimary.state !== "checkin_pending" && (
         <motion.div variants={sectionRevealVariants}>
           <TodayHero primary={heroPrimary} readingLine={heroReadingLine} onAction={handleHeroAction} />
         </motion.div>
