@@ -215,7 +215,7 @@ export default function AdminAcademyDetailPage() {
           >
             ← Academias
           </button>
-          <div className="dash-eyebrow">CoreFit</div>
+          <div className="dash-eyebrow">S2Core</div>
           <h1 className="page-title">{academy.display_name}</h1>
           <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", marginTop: "var(--space-1)" }}>
             <span className={STATUS_CLASS[academy.status] ?? "badge"}>{STATUS_LABEL[academy.status] ?? academy.status}</span>

@@ -1,19 +1,9 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="CoreFit">
-  <defs>
-    <linearGradient id="cf-ig" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#1DB954"/>
-      <stop offset="100%" stop-color="#7CFF6B"/>
-    </linearGradient>
-    <filter id="cf-isoft" x="-30%" y="-30%" width="160%" height="160%">
-      <feGaussianBlur stdDeviation="0.8" result="b"/>
-      <feMerge>
-        <feMergeNode in="b"/>
-        <feMergeNode in="SourceGraphic"/>
-      </feMerge>
-    </filter>
-  </defs>
-  <rect width="64" height="64" rx="16" fill="#0a120e"/>
-  <circle cx="32" cy="32" r="24" fill="none" stroke="url(#cf-ig)" stroke-width="3" stroke-dasharray="120 32" stroke-linecap="round" transform="rotate(-88 32 32)" filter="url(#cf-isoft)"/>
-  <circle cx="32" cy="14" r="3" fill="#7CFF6B"/>
-  <path d="M16 40 L22 28 L28 34 L34 20 L40 34 L48 40" fill="none" stroke="#f4fff8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="S2Core">
+  <rect width="64" height="64" rx="14" fill="#080d08"/>
+  <rect width="64" height="4" rx="2" fill="#c4ff00"/>
+  <text x="32" y="45" text-anchor="middle"
+    font-family="system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif"
+    font-size="26" font-weight="900" letter-spacing="-0.02em">
+    <tspan fill="#ffffff">S2</tspan><tspan fill="#c4ff00">C</tspan>
+  </text>
 </svg>

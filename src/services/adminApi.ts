@@ -182,7 +182,7 @@ export const PRODUCT_KEYS = ['app', 'personal', 'nutri', 'academia', 'metabolism
 export type ProductKey = (typeof PRODUCT_KEYS)[number];
 
 export const PRODUCT_LABELS: Record<ProductKey, string> = {
-  app: "App CoreFit",
+  app: "App S2Core",
   personal: 'Personal',
   nutri: 'Nutricionista',
   academia: 'Academia',

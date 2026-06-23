@@ -351,7 +351,7 @@ export default function AdminAcademiesPage() {
     <div className="page-container">
       <div className="page-header">
         <div>
-          <div className="dash-eyebrow">CoreFit</div>
+          <div className="dash-eyebrow">S2Core</div>
           <h1 className="page-title">Academias</h1>
           <p className="page-subtitle">Gerencie os tenants da plataforma.</p>
         </div>

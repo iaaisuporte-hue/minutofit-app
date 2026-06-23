@@ -198,7 +198,7 @@ function CommercialSignalsPanel({ signals, studentsCount }: { signals: AcademyCo
           >
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontWeight: 600, fontSize: "0.875rem" }}>
-                {signals.upgradeCandidates} aluno{signals.upgradeCandidates !== 1 ? "s" : ""} sem App CoreFit
+                {signals.upgradeCandidates} aluno{signals.upgradeCandidates !== 1 ? "s" : ""} sem App S2Core
               </div>
               <div style={{ fontSize: "0.75rem", color: "var(--color-text-2)", marginTop: 1 }}>
                 Aderência ativa nos últimos 30 dias — candidatos ao upgrade premium

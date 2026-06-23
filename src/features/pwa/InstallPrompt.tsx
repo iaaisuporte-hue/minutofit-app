@@ -100,7 +100,7 @@ export function InstallPrompt() {
       </div>
 
       <div style={{ flex: 1, minWidth: 0, lineHeight: 1.45 }}>
-        <b>Instale o CoreFit</b> na tela inicial — acesso rápido e lembretes de check-in.
+        <b>Instale o S2Core</b> na tela inicial — acesso rápido e lembretes de check-in.
       </div>
 
       <button

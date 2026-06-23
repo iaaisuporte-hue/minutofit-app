@@ -350,7 +350,7 @@ export default function AcademyBrandingSettingsPage() {
                       borderRadius: "var(--radius-md)", color: "#fff",
                       fontSize: "var(--text-sm)", fontWeight: 700,
                     }}>
-                      {form.displayName || "CoreFit Academia"}
+                      {form.displayName || "S2Core Academia"}
                     </div>
                   )}
                   {form.welcomeMessage && (

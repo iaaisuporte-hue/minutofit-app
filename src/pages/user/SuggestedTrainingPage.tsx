@@ -335,7 +335,7 @@ export default function SuggestedTrainingPage() {
         <SectionTitle
           eyebrow="Treino que entende seu dia"
           title="Seu treino de hoje começa com leitura do estado do corpo."
-          subtitle="O CoreFit transforma sinais do dia em decisão. Aqui o sistema não só escolhe um treino: ele decide se hoje vale acelerar, reduzir, recuperar ou pausar com segurança."
+          subtitle="O S2Core transforma sinais do dia em decisão. Aqui o sistema não só escolhe um treino: ele decide se hoje vale acelerar, reduzir, recuperar ou pausar com segurança."
         />
       </Card>
 

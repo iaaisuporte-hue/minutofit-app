@@ -125,7 +125,7 @@ export default function AdminWorkoutProtocolsPage() {
       <header>
         <h1 style={{ margin: "0 0 8px", fontSize: 22, color: COLORS.text }}>Protocolos da plataforma</h1>
         <p style={{ margin: 0, fontSize: 14, color: COLORS.muted, maxWidth: 720, lineHeight: 1.5 }}>
-          Modelos CoreFit visiveis a todos os personais (escopo plataforma). Itens seguem o mesmo formato da ficha:
+          Modelos S2Core visiveis a todos os personais (escopo plataforma). Itens seguem o mesmo formato da ficha:
           exerciseId, name, sets, reps, rest e campos opcionais (rpe, cadence, restPause, notes).
         </p>
       </header>

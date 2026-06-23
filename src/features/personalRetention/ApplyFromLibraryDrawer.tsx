@@ -29,7 +29,7 @@ type ListItem = {
 };
 
 function scopeLabel(scope: WorkoutProtocol["scope"]): string {
-  if (scope === "platform") return "CoreFit";
+  if (scope === "platform") return "S2Core";
   if (scope === "academy") return "Academia";
   return "Sua biblioteca";
 }

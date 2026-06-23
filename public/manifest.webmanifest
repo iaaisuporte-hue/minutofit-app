@@ -1,7 +1,7 @@
 {
   "id": "/",
-  "name": "CoreFit",
-  "short_name": "CoreFit",
+  "name": "S2Core",
+  "short_name": "S2Core",
   "description": "Metabolismo, treino e acompanhamento — experiência aluno e equipe.",
   "start_url": "/?source=pwa",
   "scope": "/",

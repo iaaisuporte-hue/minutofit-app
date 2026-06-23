@@ -784,7 +784,7 @@ export default function RecepcaoHubPage() {
             )}
           </div>
 
-          {studentCtxLoading && <div className="small muted">Carregando contexto CoreFit…</div>}
+          {studentCtxLoading && <div className="small muted">Carregando contexto S2Core…</div>}
           {studentCtx && !studentCtxLoading && (
             <div className="rec-corefit-band">
               <span className="rec-corefit-metric">Aderência {studentCtx.adherence7dPct}%</span>
@@ -798,7 +798,7 @@ export default function RecepcaoHubPage() {
                 <>
                   <span className="rec-corefit-dot">·</span>
                   <span className="badge badge-success" style={{ fontSize: 10 }}>
-                    CoreFit ativo
+                    S2Core ativo
                   </span>
                 </>
               )}

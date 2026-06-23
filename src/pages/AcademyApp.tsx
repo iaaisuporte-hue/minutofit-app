@@ -157,7 +157,7 @@ export default function AcademyApp() {
       <div className="sidebar-footer" style={{ padding: "var(--space-3) var(--space-2)" }}>
         <button className="logoutButton" onClick={handleLogout}>Sair</button>
         {isTenantSubdomain && (
-          <div className="powered-by">powered by CoreFit</div>
+          <div className="powered-by">powered by S2Core</div>
         )}
       </div>
     </div>
@@ -171,7 +171,7 @@ export default function AcademyApp() {
           <EmptyState
             eyebrow="Acesso à academia"
             title="Produto Academia não ativo"
-            description="Sua conta ainda não inclui o módulo de gestão da academia. Entre em contato com o administrador da sua unidade ou com o suporte CoreFit para habilitar o acesso."
+            description="Sua conta ainda não inclui o módulo de gestão da academia. Entre em contato com o administrador da sua unidade ou com o suporte S2Core para habilitar o acesso."
           />
         </div>
       }

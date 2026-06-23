@@ -19,7 +19,7 @@ export default function CoreFitLogo({ width = 200, variant = "horizontal", class
   return (
     <img
       src={src}
-      alt="CoreFit"
+      alt="S2Core"
       width={width}
       height={h}
       className={className}

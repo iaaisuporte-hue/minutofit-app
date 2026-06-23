@@ -134,7 +134,7 @@ export function AcademyCard({ academies, activeAcademyId, branding }: Props) {
                 Você não está vinculado a uma academia.
               </div>
               <div style={{ fontSize: 12, color: COLORS.muted, lineHeight: 1.5 }}>
-                Academias parceiras CoreFit chegam em breve à sua cidade. Enquanto isso, seu acompanhamento metabólico continua direto no app.
+                Academias parceiras S2Core chegam em breve à sua cidade. Enquanto isso, seu acompanhamento metabólico continua direto no app.
               </div>
             </div>
           </div>

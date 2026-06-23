@@ -238,7 +238,7 @@ export default function RecepcaoNovoAlunoPage() {
                     <label style={{ display: "flex", gap: "var(--space-3)", alignItems: "flex-start" }}>
                       <input type="checkbox" checked={form.giveAppBonus} onChange={(event) => setField("giveAppBonus", event.target.checked)} />
                       <span className="small">
-                        Conceder acesso ao App CoreFit como bônus (recomendado). Se a academia cancelar o vínculo, o aluno mantém o App por 30 dias para optar pela assinatura standalone.
+                        Conceder acesso ao App S2Core como bônus (recomendado). Se a academia cancelar o vínculo, o aluno mantém o App por 30 dias para optar pela assinatura standalone.
                       </span>
                     </label>
                   </div>

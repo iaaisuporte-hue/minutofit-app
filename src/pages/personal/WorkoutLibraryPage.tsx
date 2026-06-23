@@ -22,7 +22,7 @@ import "./personalPremium.css";
 const BUILDER_BASE = "/app/personal/students";
 
 function scopeLabel(s: ProtocolScope) {
-  if (s === "platform") return "CoreFit";
+  if (s === "platform") return "S2Core";
   if (s === "academy") return "Academia";
   return "Seu";
 }
@@ -234,7 +234,7 @@ export default function WorkoutLibraryPage() {
                 onChange={(e) => setScope(e.target.value as ProtocolScope | "all")}
               >
                 <option value="all">Todos</option>
-                <option value="platform">CoreFit</option>
+                <option value="platform">S2Core</option>
                 <option value="academy">Academia</option>
                 <option value="personal">Meus</option>
               </select>
@@ -264,7 +264,7 @@ export default function WorkoutLibraryPage() {
               variant="info"
               eyebrow="Biblioteca"
               title="Nenhum protocolo encontrado"
-              description="Crie o primeiro protocolo usando o builder ou aguarde a curadoria CoreFit. Protocolos da academia e os seus aparecem aqui quando existirem."
+              description="Crie o primeiro protocolo usando o builder ou aguarde a curadoria S2Core. Protocolos da academia e os seus aparecem aqui quando existirem."
             />
           ) : (
             <div style={{ display: "grid", gap: 12 }}>

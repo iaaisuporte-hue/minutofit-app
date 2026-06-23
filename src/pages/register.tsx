@@ -124,7 +124,7 @@ export default function RegisterPage() {
         if (emailTaken) {
           setEmailAlreadyRegistered(true);
         } else if (cpfTaken) {
-          setError("Este CPF já possui conta no CoreFit. Faça login ou use outro CPF.");
+          setError("Este CPF já possui conta no S2Core. Faça login ou use outro CPF.");
         } else {
           setError(result.message);
         }
@@ -181,7 +181,7 @@ export default function RegisterPage() {
 
         {emailAlreadyRegistered && (
           <div className="auth-error" role="alert" style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            <span>Este email já tem conta no CoreFit.</span>
+            <span>Este email já tem conta no S2Core.</span>
             <Link to="/login" className="btn btn-sm btn-primary" style={{ alignSelf: "flex-start" }}>
               Fazer login
             </Link>

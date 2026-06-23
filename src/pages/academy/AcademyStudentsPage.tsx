@@ -632,7 +632,7 @@ export default function AcademyStudentsPage() {
                       <label style={{ display: "flex", alignItems: "flex-start", gap: "var(--space-3)", cursor: "pointer", padding: "var(--space-3)", background: "var(--color-surface-2, rgba(0,0,0,.04))", borderRadius: "var(--radius-md)", border: "1px solid var(--color-border)" }}>
                         <input type="checkbox" checked={addForm.giveAppBonus} onChange={(e) => setField("giveAppBonus", e.target.checked)} style={{ marginTop: 3, flexShrink: 0, accentColor: "var(--color-primary)", width: 16, height: 16 }} />
                         <span style={{ fontSize: "var(--text-sm)", color: "var(--color-text)" }}>
-                          <strong>Conceder acesso ao App CoreFit como bônus.</strong>
+                          <strong>Conceder acesso ao App S2Core como bônus.</strong>
                           <span className="field-hint" style={{ display: "block", marginTop: 2 }}>Se o vínculo for cancelado, o aluno mantém acesso por 30 dias.</span>
                         </span>
                       </label>

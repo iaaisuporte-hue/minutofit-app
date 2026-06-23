@@ -217,7 +217,7 @@ export default function ProfileCompletionPage() {
               marginRight: "auto",
             }}
           >
-            Esses dados ajudam o CoreFit a interpretar seus sinais e adaptar
+            Esses dados ajudam o S2Core a interpretar seus sinais e adaptar
             sua rotina. Você pode atualizar tudo depois.
           </p>
         </div>

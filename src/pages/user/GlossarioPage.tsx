@@ -27,7 +27,7 @@ export default function GlossarioPage() {
             margin: 0,
           }}
         >
-          Termos do CoreFit
+          Termos do S2Core
         </h1>
         <p style={{ fontSize: 14, color: "var(--color-text-muted)", margin: 0, lineHeight: 1.5 }}>
           Todas as palavras que o app usa, explicadas em linguagem simples.

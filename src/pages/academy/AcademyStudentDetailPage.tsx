@@ -179,7 +179,7 @@ function MaaSStrip({
       {memberships && !memberships.hasApp && !memberships.hasPersonal && !memberships.hasNutri && hasSomeSignal && (
         <div style={{ marginTop: "var(--space-3)", padding: "var(--space-3)", background: "var(--color-surface-2, rgba(0,0,0,.04))", borderRadius: "var(--radius-md)", border: "1px dashed var(--color-border)" }}>
           <span style={{ fontSize: "var(--text-xs)", color: "var(--color-text-muted)" }}>
-            Aluno sem produtos CoreFit ativos — oportunidade de upgrade.
+            Aluno sem produtos S2Core ativos — oportunidade de upgrade.
           </span>
         </div>
       )}

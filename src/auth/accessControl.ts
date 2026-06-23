@@ -160,7 +160,7 @@ export const ACCESS_PROFILE_META: Record<
   { label: string; roleScope: Role | "mixed"; description: string }
 > = {
   corefit_admin: {
-    label: "Admin CoreFit",
+    label: "Admin S2Core",
     roleScope: "admin",
     description: "Admin da plataforma com acesso total a gestão e academias.",
   },
