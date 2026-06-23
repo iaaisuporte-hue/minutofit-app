@@ -48,6 +48,43 @@ function wrap(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): st
   return lines;
 }
 
+type HeroLine = { text: string; connector: boolean };
+
+/**
+ * Quebra o foco do treino em linhas-herói editoriais.
+ * - Foco com "+" (ex.: "Peito + Tríceps + Ombros") → uma linha por grupo, com
+ *   conector "+" verde DELIBERADO no fim de cada linha (nunca órfão por acidente).
+ * - Foco simples (ex.: "Costas e Bíceps") → quebra por palavra.
+ * A fonte encolhe até caber em `maxLines` sem estourar a largura.
+ */
+function buildHeroLines(
+  ctx: CanvasRenderingContext2D,
+  focus: string,
+  maxWidth: number,
+  startSize: number,
+  maxLines: number,
+  weight: number,
+): { lines: HeroLine[]; size: number } {
+  const segments = focus.split(/\s*\+\s*/).map((s) => s.trim()).filter(Boolean);
+  const multi = segments.length > 1;
+  const minSize = Math.round(startSize * 0.6);
+  const asLines = (): HeroLine[] =>
+    multi
+      ? segments.map((s, i) => ({ text: s, connector: i < segments.length - 1 }))
+      : wrap(ctx, focus, maxWidth).map((t) => ({ text: t, connector: false }));
+  const measure = (l: HeroLine) => ctx.measureText(l.text + (l.connector ? " +" : "")).width;
+
+  for (let size = startSize; size >= minSize; size -= 4) {
+    ctx.font = `${weight} ${size}px Inter, system-ui, sans-serif`;
+    const lines = asLines();
+    if (lines.length <= maxLines && lines.every((l) => measure(l) <= maxWidth)) {
+      return { lines, size };
+    }
+  }
+  ctx.font = `${weight} ${minSize}px Inter, system-ui, sans-serif`;
+  return { lines: asLines().slice(0, maxLines), size: minSize };
+}
+
 /** Desenha a imagem cobrindo o canvas (object-fit: cover, centralizada). */
 function drawCover(ctx: CanvasRenderingContext2D, img: HTMLImageElement, w: number, h: number) {
   const ir = img.width / img.height;
@@ -123,8 +160,7 @@ export async function composeWorkoutImage({ focus, dayName, backgroundFile, form
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("canvas indisponível");
 
-  const primary = cssVar("--color-primary", "#16a34a");
-  const accent = cssVar("--color-accent", "#06b6d4");
+  const primary = cssVar("--color-primary", "#22c55e");
 
   // 1) Fundo: foto (cover) ou gradiente
   if (backgroundFile) {
@@ -146,57 +182,83 @@ export async function composeWorkoutImage({ focus, dayName, backgroundFile, form
   ctx.fillStyle = scrim;
   ctx.fillRect(0, 0, W, H);
 
-  // 3) Faixa de marca (accent) no topo
-  ctx.fillStyle = accent;
+  // 3) Faixa de marca no topo — verde primário S2Core (coeso com o logo)
+  ctx.fillStyle = primary;
   ctx.fillRect(0, 0, W, 14);
 
-  // 4) Texto ancorado no rodapé (com lift extra no formato story)
+  // 4) Bloco de rodapé coeso, ancorado de baixo p/ cima com ritmo consistente:
+  //    [eyebrow] · [herói multilinha] · [data] · [logo]
   const padX = 96;
+  const isStory = format === "story";
   ctx.textAlign = "left";
 
-  // Story: fonte maior ocupa melhor os 1920px de altura; square mantém 110px
-  const focusFontSize = format === "story" ? 128 : 110;
-  ctx.font = `800 ${focusFontSize}px Inter, system-ui, sans-serif`;
-  const focusLines = wrap(ctx, focus, W - padX * 2).slice(0, 2);
-  const lineH = focusFontSize + 14;
-  const focusBottom = H - 234 - lift;
+  // Zona segura inferior (no Story, afasta da UI do Instagram)
+  const bottomSafe = lift + (isStory ? 16 : 24);
 
-  ctx.fillStyle = "#ffffff";
-  focusLines.forEach((line, i) => {
-    const yy = focusBottom - (focusLines.length - 1 - i) * lineH;
-    ctx.fillText(line, padX, yy);
+  // — Logo (âncora de marca, base do bloco)
+  const logoImg = await loadSvgLogo();
+  const logoW = isStory ? 470 : 300;
+  const logoH = Math.round(logoW * (56 / 264));
+  const logoTop = H - bottomSafe - logoH;
+
+  // — Tokens de espaçamento vertical (ritmo do rodapé)
+  const gapLogoDate = isStory ? 78 : 58;
+  const gapDateHero = isStory ? 82 : 56;
+  const gapHeroEyebrow = isStory ? 42 : 30;
+
+  // — Data (acima do logo)
+  const dateSize = isStory ? 38 : 34;
+  const dateBaseline = logoTop - gapLogoDate;
+
+  // — Herói (foco do treino): encolhe p/ caber em até 3 linhas, "+" verde deliberado
+  const hero = buildHeroLines(ctx, focus, W - padX * 2, isStory ? 132 : 108, 3, 800);
+  const heroLineH = Math.round(hero.size * 1.06);
+  const heroLastBaseline = dateBaseline - dateSize - gapDateHero;
+
+  hero.lines.forEach((line, i) => {
+    const fromBottom = hero.lines.length - 1 - i;
+    const yy = heroLastBaseline - fromBottom * heroLineH;
+    ctx.font = `800 ${hero.size}px Inter, system-ui, sans-serif`;
+    ctx.fillStyle = "#ffffff";
+    ctx.fillText(line.text, padX, yy);
+    if (line.connector) {
+      const w = ctx.measureText(line.text).width;
+      ctx.fillStyle = primary;
+      ctx.fillText(" +", padX + w, yy);
+    }
   });
 
-  const focusTop = focusBottom - (focusLines.length - 1) * lineH - (focusFontSize - 18);
-  ctx.fillStyle = "rgba(255,255,255,0.78)";
-  ctx.font = "700 38px Inter, system-ui, sans-serif";
-  ctx.fillText("TREINO CONCLUÍDO", padX, focusTop - 8);
+  // — Eyebrow (acima do herói): tracked, branco suave
+  const heroTopBaseline = heroLastBaseline - (hero.lines.length - 1) * heroLineH;
+  const eyebrowSize = isStory ? 40 : 34;
+  const eyebrowBaseline = heroTopBaseline - Math.round(hero.size * 0.72) - gapHeroEyebrow;
+  ctx.font = `700 ${eyebrowSize}px Inter, system-ui, sans-serif`;
+  ctx.fillStyle = "rgba(255,255,255,0.82)";
+  const hasTracking = "letterSpacing" in ctx;
+  if (hasTracking) (ctx as unknown as { letterSpacing: string }).letterSpacing = isStory ? "4px" : "3px";
+  ctx.fillText("TREINO CONCLUÍDO", padX, eyebrowBaseline);
+  if (hasTracking) (ctx as unknown as { letterSpacing: string }).letterSpacing = "0px";
 
+  // — Data
   const dateStr = new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" });
   const meta = dayName && dayName.trim() && dayName.trim() !== focus.trim()
     ? `${dayName.trim()} · ${dateStr}`
     : dateStr;
+  ctx.font = `500 ${dateSize}px Inter, system-ui, sans-serif`;
   ctx.fillStyle = "rgba(255,255,255,0.72)";
-  ctx.font = "500 36px Inter, system-ui, sans-serif";
-  // Story: data sobe para abrir espaço visual antes do logo
-  ctx.fillText(meta, padX, H - (format === "story" ? 195 : 148) - lift);
+  ctx.fillText(meta, padX, dateBaseline);
 
-  // Logo S2Core (SVG claro para fundo escuro) — fallback para texto se SVG não carregar
-  // Story: logo maior e colado na base da safe-zone para redistribuir o rodapé
-  const logoImg = await loadSvgLogo();
+  // — Logo (SVG claro para fundo escuro; fallback p/ texto)
   if (logoImg) {
-    const logoW = format === "story" ? 460 : 220;
-    const logoH = Math.round(logoW * (56 / 264));
-    // gap de 20px entre logo e base da safe-zone (era 80px — encolhia o espaço antes da data)
-    ctx.drawImage(logoImg, padX, H - 20 - lift - logoH, logoW, logoH);
+    ctx.drawImage(logoImg, padX, logoTop, logoW, logoH);
   } else {
+    ctx.font = "800 56px Inter, system-ui, sans-serif";
     ctx.fillStyle = "#ffffff";
-    ctx.font = "800 52px Inter, system-ui, sans-serif";
-    ctx.fillText(BRAND, padX, H - 20 - lift);
+    ctx.fillText(BRAND, padX, logoTop + logoH - 12);
     const brandWidth = ctx.measureText(BRAND).width;
     ctx.fillStyle = primary;
     ctx.beginPath();
-    ctx.arc(padX + brandWidth + 18, H - 38 - lift, 8, 0, Math.PI * 2);
+    ctx.arc(padX + brandWidth + 18, logoTop + logoH - 30, 8, 0, Math.PI * 2);
     ctx.fill();
   }
 
