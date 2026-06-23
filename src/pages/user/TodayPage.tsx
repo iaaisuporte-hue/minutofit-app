@@ -64,7 +64,6 @@ import { useNutriVoiceNote } from "../../features/nutrition/useNutriVoiceNote";
 import { useAdaptiveTraining } from "../../features/training/adaptive/useAdaptiveTraining";
 import { AdaptationBanner } from "../../features/training/adaptive/AdaptationBanner";
 import { WorkoutStateChip } from "./components/WorkoutStateChip";
-import { WeeklyEngagementCard } from "./components/WeeklyEngagementCard";
 import { WeeklyLoopCard, useHasWeeklyLoopInsights } from "../../features/loopVisibility";
 import { usePushSubscription } from "../../features/nutrition/usePushSubscription";
 import "./todayPage.css";
@@ -235,7 +234,6 @@ export default function TodayPage() {
   const [firstRun, setFirstRun] = useState(() =>
     userId ? getFirstRunState(userId) : { checkinDone: true, profileDone: true, workoutDone: true }
   );
-  const showWelcome = userId ? !isFirstRunComplete(userId) : false;
 
   const conditionState = getDailyConditionState(dailyCondition);
 
@@ -472,21 +470,21 @@ export default function TodayPage() {
         />
       )}
 
-      {/* 0.5 Boas-vindas (primeiro acesso) — agora só nudge de PERFIL: o check-in
-          tem o card próprio abaixo, então não duplicamos a chamada de check-in. */}
-      {showWelcome && (
-        <motion.div variants={sectionRevealVariants}>
-          <WelcomeCard
-            firstName={user?.name?.split(" ")[0] || ""}
-            state={firstRun}
-          />
-        </motion.div>
-      )}
+      {/* 0.5 Saudação + engajamento semanal (calibrado pelo dia da semana).
+          Acolhe e reconhece num só card; o passo de perfil aparece só no
+          primeiro acesso. O card de parabéns separado foi mesclado aqui. */}
+      <motion.div variants={sectionRevealVariants}>
+        <WelcomeCard
+          firstName={user?.name?.split(" ")[0] || ""}
+          state={firstRun}
+          workoutsThisWeek={histSummary.workoutsThisWeek}
+        />
+      </motion.div>
 
-      {/* Hero "Seu dia" — NÃO aparece quando o check-in está pendente: nesse
-          estado o card de Check-in abaixo é o protagonista (evita redundância
-          "faça o check-in" + card de check-in). */}
-      {!showWelcome && heroPrimary.state !== "checkin_pending" && (
+      {/* Hero "Seu dia" — só nos estados PÓS check-in (sessão/recuperação/etc).
+          Em first_run e checkin_pending o protagonista é o card de Check-in,
+          evitando redundância de "faça o check-in". */}
+      {heroPrimary.state !== "first_run" && heroPrimary.state !== "checkin_pending" && (
         <motion.div variants={sectionRevealVariants}>
           <TodayHero primary={heroPrimary} readingLine={heroReadingLine} onAction={handleHeroAction} />
         </motion.div>
@@ -641,7 +639,6 @@ export default function TodayPage() {
           (curva subindo). O card de engajamento emoldura o gráfico: "treinou X
           dias" → "veja seu estado subir". */}
       <motion.div variants={sectionRevealVariants} style={{ display: 'grid', gap: 12 }}>
-        <WeeklyEngagementCard workoutsThisWeek={histSummary.workoutsThisWeek} />
         <MetabolicChart
           data={metabolismHistory}
           loading={historyLoading}
