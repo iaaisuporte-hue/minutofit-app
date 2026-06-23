@@ -1,10 +1,10 @@
 import { useState, type CSSProperties } from "react";
 import type { UserWorkoutPlanItem } from "../../../services/userWorkoutPlansApi";
 
-// Folha de registro pós-treino (Spec 010, V1.1). Carga é OPCIONAL e cada
-// exercício pode ser marcado "feito/pulei" → o status da sessão é derivado:
-// tudo feito = completed · alguns pulados = partial · todos pulados = abandoned.
-// Poucos toques: por padrão tudo "feito", basta confirmar.
+// Folha de registro pós-treino (Spec 010, V1.1). Carga opcional por exercício,
+// toggle feito/pulei (status derivado) e, no rodapé, esforço da sessão (RPE) +
+// desconforto — sinais leves que alimentam recovery/readiness. Poucos toques:
+// por padrão tudo "feito", basta confirmar.
 
 export type SessionStatus = "completed" | "partial" | "abandoned";
 
@@ -16,8 +16,23 @@ export interface LoggedSet {
   plannedReps?: string;
   loadDoneKg?: number | null;
   plannedRestS?: number | null;
+  rpe?: number | null;
+  discomfort?: string | null;
   status: "done" | "skipped";
 }
+
+export interface LogResult {
+  sets: LoggedSet[];
+  status: SessionStatus;
+  sessionRpe: number | null;
+}
+
+const RPE_OPTIONS: { label: string; rpe: number }[] = [
+  { label: "Leve", rpe: 3 },
+  { label: "Moderado", rpe: 6 },
+  { label: "Intenso", rpe: 8 },
+  { label: "Máximo", rpe: 10 },
+];
 
 function setCount(s?: string): number {
   if (!s) return 1;
@@ -42,11 +57,11 @@ const sheet: CSSProperties = {
   padding: 18, display: "grid", gap: 12,
 };
 const rowStyle: CSSProperties = {
-  display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12,
+  display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10,
   padding: "10px 12px", borderRadius: 10, border: "1px solid var(--color-border, #E5E7EB)",
 };
 const inputStyle: CSSProperties = {
-  width: 64, padding: "8px 10px", borderRadius: 8, border: "1px solid var(--color-border-strong, #D1D5DB)",
+  width: 60, padding: "8px 10px", borderRadius: 8, border: "1px solid var(--color-border-strong, #D1D5DB)",
   fontSize: 14, textAlign: "right",
 };
 const primaryBtn: CSSProperties = {
@@ -58,18 +73,32 @@ const ghostBtn: CSSProperties = {
   padding: "12px 16px", borderRadius: 12, border: "1px solid var(--color-border, #E5E7EB)",
   background: "transparent", color: "var(--color-text, #0A130D)", fontWeight: 600, cursor: "pointer", minHeight: 44,
 };
+const pill = (active: boolean): CSSProperties => ({
+  flex: 1, padding: "7px 6px", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer",
+  border: `1px solid ${active ? "var(--color-primary, #16A34A)" : "var(--color-border, #E5E7EB)"}`,
+  background: active ? "var(--color-primary-soft, rgba(34,197,94,.12))" : "transparent",
+  color: active ? "var(--color-text, #0A130D)" : "var(--color-text-muted, #6B7280)",
+});
 
 interface Props {
   items: UserWorkoutPlanItem[];
-  onConfirm: (sets: LoggedSet[], status: SessionStatus) => void;
+  onConfirm: (result: LogResult) => void;
   onClose: () => void;
 }
 
 export function WorkoutLogSheet({ items, onConfirm, onClose }: Props) {
   const [loads, setLoads] = useState<Record<number, string>>({});
   const [skipped, setSkipped] = useState<Record<number, boolean>>({});
+  const [sessionRpe, setSessionRpe] = useState<number | null>(null);
+  const [discomfort, setDiscomfort] = useState(false);
 
-  function build(): { sets: LoggedSet[]; status: SessionStatus } {
+  // Sem detalhe (nenhuma carga, nada pulado) → o CTA vira "Fiz todos os
+  // exercícios" (1 toque). Só pede "Registrar treino" quando há ajuste manual.
+  const customized =
+    Object.values(loads).some((v) => v != null && v !== "") ||
+    Object.values(skipped).some(Boolean);
+
+  function build(): LogResult {
     const out: LoggedSet[] = [];
     let doneCount = 0;
     items.forEach((it, i) => {
@@ -88,12 +117,14 @@ export function WorkoutLogSheet({ items, onConfirm, onClose }: Props) {
           plannedReps: it.reps,
           loadDoneKg: load,
           plannedRestS: leadingInt(it.rest),
+          rpe: isSkipped ? null : sessionRpe,
+          discomfort: !isSkipped && discomfort ? "dor/desconforto relatado" : null,
           status: isSkipped ? "skipped" : "done",
         });
       }
     });
     const status: SessionStatus = doneCount === 0 ? "abandoned" : doneCount === items.length ? "completed" : "partial";
-    return { sets: out, status };
+    return { sets: out, status, sessionRpe };
   }
 
   return (
@@ -106,7 +137,7 @@ export function WorkoutLogSheet({ items, onConfirm, onClose }: Props) {
           </div>
         </div>
 
-        <div style={{ display: "grid", gap: 8, maxHeight: "50vh", overflowY: "auto" }}>
+        <div style={{ display: "grid", gap: 8, maxHeight: "42vh", overflowY: "auto" }}>
           {items.map((it, i) => {
             const isSkipped = !!skipped[i];
             return (
@@ -146,9 +177,36 @@ export function WorkoutLogSheet({ items, onConfirm, onClose }: Props) {
           })}
         </div>
 
+        {/* Esforço da sessão (RPE) — opcional */}
+        <div style={{ display: "grid", gap: 6 }}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: "var(--color-text-muted, #6B7280)" }}>Como foi o esforço? (opcional)</div>
+          <div style={{ display: "flex", gap: 6 }}>
+            {RPE_OPTIONS.map((o) => (
+              <button key={o.rpe} type="button" onClick={() => setSessionRpe(sessionRpe === o.rpe ? null : o.rpe)} style={pill(sessionRpe === o.rpe)}>
+                {o.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Desconforto — opcional */}
+        <button
+          type="button"
+          onClick={() => setDiscomfort((v) => !v)}
+          style={{
+            display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 10,
+            border: `1px solid ${discomfort ? "var(--color-warn, #D97706)" : "var(--color-border, #E5E7EB)"}`,
+            background: discomfort ? "rgba(245,158,11,.10)" : "transparent", cursor: "pointer", textAlign: "left",
+            color: "var(--color-text, #0A130D)", fontSize: 13, fontWeight: 600,
+          }}
+        >
+          <span style={{ fontSize: 16 }}>{discomfort ? "⚠️" : "＋"}</span>
+          Senti dor ou desconforto durante o treino
+        </button>
+
         <div style={{ display: "flex", gap: 10 }}>
-          <button type="button" onClick={() => { const r = build(); onConfirm(r.sets, r.status); }} style={primaryBtn}>
-            Registrar treino
+          <button type="button" onClick={() => onConfirm(build())} style={primaryBtn}>
+            {customized ? "Registrar treino" : "Fiz todos os exercícios"}
           </button>
           <button type="button" onClick={onClose} style={ghostBtn}>Cancelar</button>
         </div>

@@ -490,7 +490,7 @@ function PlanCard({ plan, isOpen, onToggle, onAbandon, adaptiveData }: PlanCardP
 
   // sets opcionais (carga/reps reais) + status (completed/partial/abandoned)
   // vindos da folha de registro pós-treino.
-  async function registerSession(loggedSets?: unknown[], status: SessionStatus = 'completed') {
+  async function registerSession(loggedSets?: unknown[], status: SessionStatus = 'completed', sessionRpe: number | null = null) {
     if (isRegistering || registeredToday) return;
     setIsRegistering(true);
     setRegistrationError(null);
@@ -515,6 +515,7 @@ function PlanCard({ plan, isOpen, onToggle, onAbandon, adaptiveData }: PlanCardP
       title,
       planId: plan.id,
       dayIndex: activeDay?.index ?? null,
+      sessionRpe,
       prescribed: (displayDay.items ?? []).map((it) => ({
         exerciseId: it.exerciseId ?? null,
         name: it.name,
@@ -687,7 +688,7 @@ function PlanCard({ plan, isOpen, onToggle, onAbandon, adaptiveData }: PlanCardP
                 <WorkoutLogSheet
                   items={displayDay.items ?? []}
                   onClose={() => setLogSheetOpen(false)}
-                  onConfirm={(sets, status) => { setLogSheetOpen(false); void registerSession(sets, status); }}
+                  onConfirm={(r) => { setLogSheetOpen(false); void registerSession(r.sets, r.status, r.sessionRpe); }}
                 />
               )}
 
