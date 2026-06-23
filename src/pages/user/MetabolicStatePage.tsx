@@ -7,9 +7,6 @@ import {
   type MetabolicCheckinInput,
 } from '../../features/metabolicCheckin';
 import '../../features/metabolicCheckin/metabolicCheckin.css';
-import { MetabolicChart, useMetabolismHistory } from '../../features/metabolism';
-import { WeeklyLoopCard, useHasWeeklyLoopInsights } from '../../features/loopVisibility';
-import { useDailyCondition } from '../../features/dailyCheckin/useDailyCondition';
 
 function formatDate(iso: string) {
   return new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }).format(new Date(iso));
@@ -29,13 +26,6 @@ export default function MetabolicStatePage() {
   const { records, loading, error, saveCheckin } = useMetabolicCheckins(100);
   const [modalOpen, setModalOpen] = useState(false);
 
-  // Histórico do score metabólico + sinais da semana — movidos da Today Page
-  // para cá (Evolução é onde a tendência mora; a Today foca no "hoje").
-  const [historyDays, setHistoryDays] = useState<number>(14);
-  const { data: metabolismHistory, loading: historyLoading } = useMetabolismHistory(historyDays);
-  const { condition: dailyCondition } = useDailyCondition();
-  const hasWeeklyLoopInsights = useHasWeeklyLoopInsights(dailyCondition);
-
   async function handleSave(input: MetabolicCheckinInput) {
     await saveCheckin(input);
   }
@@ -51,22 +41,6 @@ export default function MetabolicStatePage() {
           </div>
           <button type="button" className="btn btn-accent" onClick={() => setModalOpen(true)}>Nova atualização</button>
         </div>
-      </section>
-
-      <section className="metabolic-history-page" style={{ display: 'grid', gap: 'var(--space-3)' }}>
-        <div style={{ display: 'grid', gap: 'var(--space-1)' }}>
-          <div className="metabolic-eyebrow">Tendência do score</div>
-          <h2 className="metabolic-section-title">Evolução do seu estado metabólico</h2>
-        </div>
-        <MetabolicChart
-          data={metabolismHistory}
-          loading={historyLoading}
-          forecast={null}
-          markers={[]}
-          days={historyDays}
-          onDaysChange={setHistoryDays}
-        />
-        {hasWeeklyLoopInsights && <WeeklyLoopCard condition={dailyCondition} />}
       </section>
 
       <MetabolicTrendStrip records={records} loading={loading} />

@@ -16,12 +16,15 @@ import {
 } from "./todayPageMotion";
 import { addWorkoutHistoryEntry, getYesterdayMuscleGroups, type MuscleGroup } from "./workoutHistory";
 import {
+  MetabolicChart,
   MetabolicScoreCard,
   useMetabolism,
+  useMetabolismHistory,
 } from "../../features/metabolism";
 import { estimateCheckinImpact } from "../../features/metabolism/estimateImpact";
 import {
   deriveEnergyStatus,
+  deriveHistoryMarkers,
   deriveMetabolicForecast,
 } from "../../features/metabolism/metabolismDerivations";
 import { useGamificationSummary } from "../../features/gamification/useGamificationSummary";
@@ -61,6 +64,8 @@ import { useNutriVoiceNote } from "../../features/nutrition/useNutriVoiceNote";
 import { useAdaptiveTraining } from "../../features/training/adaptive/useAdaptiveTraining";
 import { AdaptationBanner } from "../../features/training/adaptive/AdaptationBanner";
 import { WorkoutStateChip } from "./components/WorkoutStateChip";
+import { WeeklyEngagementCard } from "./components/WeeklyEngagementCard";
+import { WeeklyLoopCard, useHasWeeklyLoopInsights } from "../../features/loopVisibility";
 import { usePushSubscription } from "../../features/nutrition/usePushSubscription";
 import "./todayPage.css";
 
@@ -174,6 +179,8 @@ export default function TodayPage() {
   const userId = (id ?? "").trim().toLowerCase();
   const { data: gamification, loading: gamificationLoading, refetch: refetchGamification } = useGamificationSummary();
   const { data: metabolism, loading: metabolismLoading, error: metabolismError, refetch: refetchMetabolism } = useMetabolism();
+  const [historyDays, setHistoryDays] = useState<number>(14);
+  const { data: metabolismHistory, loading: historyLoading } = useMetabolismHistory(historyDays);
   const { data: workoutHistoryData } = useWorkoutHistory(30);
   const todayState = useTodayUserState();
   const { note: nutriVoiceNote } = useNutriVoiceNote();
@@ -191,6 +198,7 @@ export default function TodayPage() {
     saveCheckin: saveMetabolicCheckin,
   } = useMetabolicCheckins();
   const { condition: dailyCondition, setCondition: setDailyCondition, clearCondition: clearDailyCondition } = useDailyCondition();
+  const hasWeeklyLoopInsights = useHasWeeklyLoopInsights(dailyCondition);
   const { conversation: incomingMessage, dismissLocally: dismissIncomingMessage } =
     useLatestUnreadFromProfessional({ enabled: canMessages });
   usePushSubscription();
@@ -267,6 +275,14 @@ export default function TodayPage() {
   const forecast = useMemo(
     () => deriveMetabolicForecast(metabolism, { streak, todayCheckedIn, activityImpact: defaultImpact }),
     [defaultImpact, metabolism, streak, todayCheckedIn]
+  );
+  const markers = useMemo(
+    () => deriveHistoryMarkers(metabolismHistory, {
+      todayCheckedIn,
+      condition: dailyCondition,
+      workoutDates: workoutHistoryData.map((e) => e.date),
+    }),
+    [metabolismHistory, todayCheckedIn, dailyCondition, workoutHistoryData]
   );
   const conditionSignals = useMemo(() => deriveConditionSignals(dailyCondition), [dailyCondition]);
 
@@ -620,9 +636,21 @@ export default function TodayPage() {
         )}
       </motion.div>
 
-      {/* Histórico metabólico + sinais da semana movidos para a página de
-          Evolução (/estado-metabolico). A Today foca no "hoje"; a tendência
-          mora na Evolução. Acesso via "Ver sua evolução" no card de score. */}
+      {/* 5. Engajamento + evolução — celebração da consistência colada à prova
+          (curva subindo). O card de engajamento emoldura o gráfico: "treinou X
+          dias" → "veja seu estado subir". */}
+      <motion.div variants={sectionRevealVariants} style={{ display: 'grid', gap: 12 }}>
+        <WeeklyEngagementCard workoutsThisWeek={histSummary.workoutsThisWeek} />
+        <MetabolicChart
+          data={metabolismHistory}
+          loading={historyLoading}
+          forecast={forecast}
+          markers={markers}
+          days={historyDays}
+          onDaysChange={setHistoryDays}
+        />
+        {hasWeeklyLoopInsights && <WeeklyLoopCard condition={dailyCondition} />}
+      </motion.div>
 
       {/* 6. Plano alimentar — só renderiza para quem tem nutri (silencioso caso contrário) */}
       <motion.div variants={sectionRevealVariants}>

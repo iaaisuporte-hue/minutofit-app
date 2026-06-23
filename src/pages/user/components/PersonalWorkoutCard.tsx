@@ -150,36 +150,8 @@ export function PersonalWorkoutCard({
           </span>
         </div>
 
-        {/* Preview exercícios */}
-        {today && itemCount > 0 && (
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-            {today.items.slice(0, 5).map((ex) => (
-              <span
-                key={ex.exerciseId + ex.name}
-                className="today-tag"
-                style={{
-                  borderColor: SURFACE.border,
-                  color: SURFACE.text,
-                  background: SURFACE.card,
-                }}
-              >
-                {ex.name}
-              </span>
-            ))}
-            {itemCount > 5 && (
-              <span
-                className="today-tag"
-                style={{
-                  borderColor: SURFACE.border,
-                  color: SURFACE.muted,
-                  background: SURFACE.card,
-                }}
-              >
-                +{itemCount - 5}
-              </span>
-            )}
-          </div>
-        )}
+        {/* Prévia de exercícios removida — a lista completa aparece ao iniciar
+            o treino. Mantém o card limpo e focado na ação (decisão UX). */}
 
         <ActionButton onClick={() => navigate("/app/user/ficha")} fullWidth={isMobile}>
           Iniciar treino →
