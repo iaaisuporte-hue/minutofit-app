@@ -28,6 +28,34 @@ export interface CreateWorkoutSessionPayload {
   sets?: unknown[];
 }
 
+export interface ExerciseProgression {
+  exerciseId: string;
+  name: string;
+  firstLoadKg: number;
+  lastLoadKg: number;
+  deltaKg: number;
+  points: { date: string; maxLoadKg: number }[];
+}
+
+export interface WorkoutStats {
+  totalSessions: number;
+  thisWeek: number;
+  last30Days: number;
+  exerciseProgression: ExerciseProgression[];
+}
+
+export async function getWorkoutStats(): Promise<WorkoutStats | null> {
+  if (!getAccessToken()) return null;
+  try {
+    const res = await authFetch(`${API_URL}/training/stats`);
+    if (!res.ok) return null;
+    const data = await parseJson(res);
+    return (data?.data as WorkoutStats) ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export async function createWorkoutSession(payload: CreateWorkoutSessionPayload) {
   if (!getAccessToken()) return null;
   try {

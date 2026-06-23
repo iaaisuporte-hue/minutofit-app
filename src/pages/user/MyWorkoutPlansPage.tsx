@@ -10,6 +10,7 @@ import { ConfirmModal } from "../../features/team/ConfirmModal";
 import { Toast } from "../../features/team/Toast";
 import { persistGamificationCheckin } from "../../services/gamificationApi";
 import { createWorkoutSession } from "../../services/workoutSessionApi";
+import { WorkoutLogSheet } from "./components/WorkoutLogSheet";
 import { addWorkoutHistoryEntry, type MuscleGroup } from "../user/workoutHistory";
 import { canShareWorkoutImage } from "./lib/shareWorkoutImage";
 import { ShareWorkoutModal } from "./components/ShareWorkoutModal";
@@ -449,6 +450,7 @@ function PlanCard({ plan, isOpen, onToggle, onAbandon, adaptiveData }: PlanCardP
   const [registrationError, setRegistrationError] = useState<string | null>(null);
   const [successToast, setSuccessToast] = useState<string | null>(null);
   const [shareOpen, setShareOpen] = useState(false);
+  const [logSheetOpen, setLogSheetOpen] = useState(false);
   // Capacidade de compartilhar imagem = ≈ mobile (desktop não compartilha arquivo).
   const canShare = useMemo(() => canShareWorkoutImage(), []);
 
@@ -486,7 +488,8 @@ function PlanCard({ plan, isOpen, onToggle, onAbandon, adaptiveData }: PlanCardP
   }, [activeDay, adaptiveData]);
   const isAdaptedDay = displayDay !== activeDay;
 
-  async function handleCompleteSession() {
+  // sets opcionais (carga/reps reais) vindos da folha de registro pós-treino.
+  async function registerSession(loggedSets?: unknown[]) {
     if (isRegistering || registeredToday) return;
     setIsRegistering(true);
     setRegistrationError(null);
@@ -518,6 +521,7 @@ function PlanCard({ plan, isOpen, onToggle, onAbandon, adaptiveData }: PlanCardP
         reps: it.reps,
         rest: it.rest,
       })),
+      sets: loggedSets && loggedSets.length > 0 ? loggedSets : undefined,
     });
 
     try {
@@ -641,7 +645,7 @@ function PlanCard({ plan, isOpen, onToggle, onAbandon, adaptiveData }: PlanCardP
             <div style={{ marginTop: 16 }}>
               <button
                 type="button"
-                onClick={() => void handleCompleteSession()}
+                onClick={() => setLogSheetOpen(true)}
                 disabled={isRegistering || registeredToday}
                 style={{
                   width: '100%',
@@ -677,6 +681,14 @@ function PlanCard({ plan, isOpen, onToggle, onAbandon, adaptiveData }: PlanCardP
                     : 'Concluir sessão de hoje'
                 }
               </button>
+
+              {logSheetOpen && (
+                <WorkoutLogSheet
+                  items={displayDay.items ?? []}
+                  onClose={() => setLogSheetOpen(false)}
+                  onConfirm={(sets) => { setLogSheetOpen(false); void registerSession(sets); }}
+                />
+              )}
 
               {/* Compartilhar a conquista (mobile): foto de fundo + foco + marca */}
               {registeredToday && canShare && (
@@ -728,7 +740,7 @@ function PlanCard({ plan, isOpen, onToggle, onAbandon, adaptiveData }: PlanCardP
                   </div>
                   <button
                     type="button"
-                    onClick={() => { setRegistrationError(null); void handleCompleteSession(); }}
+                    onClick={() => { setRegistrationError(null); setLogSheetOpen(true); }}
                     style={{
                       marginTop: 6,
                       padding: '5px 12px',

@@ -7,6 +7,7 @@ import {
   type MetabolicCheckinInput,
 } from '../../features/metabolicCheckin';
 import '../../features/metabolicCheckin/metabolicCheckin.css';
+import { WorkoutProgressSection } from './components/WorkoutProgressSection';
 
 function formatDate(iso: string) {
   return new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }).format(new Date(iso));
@@ -42,6 +43,8 @@ export default function MetabolicStatePage() {
           <button type="button" className="btn btn-accent" onClick={() => setModalOpen(true)}>Nova atualização</button>
         </div>
       </section>
+
+      <WorkoutProgressSection />
 
       <MetabolicTrendStrip records={records} loading={loading} />
 
