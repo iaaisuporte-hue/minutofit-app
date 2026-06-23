@@ -114,8 +114,8 @@ export type ComposedImage = { blob: Blob; dataUrl: string; focus: string; format
 export async function composeWorkoutImage({ focus, dayName, backgroundFile, format = "story" }: ComposeWorkoutInput): Promise<ComposedImage> {
   const W = 1080;
   const H = format === "story" ? 1920 : 1080;
-  // Lift extra no rodapé para Stories — afasta o texto da UI do Instagram (barra inferior).
-  const lift = format === "story" ? 140 : 0;
+  // Lift extra no rodapé: Story afasta da UI do Instagram; square dá respiro mínimo.
+  const lift = format === "story" ? 140 : 40;
 
   const canvas = document.createElement("canvas");
   canvas.width = W;
@@ -138,10 +138,11 @@ export async function composeWorkoutImage({ focus, dayName, backgroundFile, form
     ctx.fillRect(0, 0, W, H);
   }
 
-  // 2) Scrim escuro de baixo p/ cima — legibilidade do texto sobre qualquer foto
-  const scrim = ctx.createLinearGradient(0, H * 0.34, 0, H);
+  // 2) Scrim escuro de baixo p/ cima — story precisa de cobertura maior (mais foto exposta)
+  const scrimStart = format === "story" ? H * 0.28 : H * 0.34;
+  const scrim = ctx.createLinearGradient(0, scrimStart, 0, H);
   scrim.addColorStop(0, "rgba(7,12,18,0)");
-  scrim.addColorStop(1, "rgba(7,12,18,0.84)");
+  scrim.addColorStop(1, "rgba(7,12,18,0.88)");
   ctx.fillStyle = scrim;
   ctx.fillRect(0, 0, W, H);
 
@@ -153,9 +154,11 @@ export async function composeWorkoutImage({ focus, dayName, backgroundFile, form
   const padX = 96;
   ctx.textAlign = "left";
 
-  ctx.font = "800 110px Inter, system-ui, sans-serif";
+  // Story: fonte maior ocupa melhor os 1920px de altura; square mantém 110px
+  const focusFontSize = format === "story" ? 128 : 110;
+  ctx.font = `800 ${focusFontSize}px Inter, system-ui, sans-serif`;
   const focusLines = wrap(ctx, focus, W - padX * 2).slice(0, 2);
-  const lineH = 122;
+  const lineH = focusFontSize + 14;
   const focusBottom = H - 234 - lift;
 
   ctx.fillStyle = "#ffffff";
@@ -164,24 +167,24 @@ export async function composeWorkoutImage({ focus, dayName, backgroundFile, form
     ctx.fillText(line, padX, yy);
   });
 
-  const focusTop = focusBottom - (focusLines.length - 1) * lineH - 92;
+  const focusTop = focusBottom - (focusLines.length - 1) * lineH - (focusFontSize - 18);
   ctx.fillStyle = "rgba(255,255,255,0.78)";
-  ctx.font = "700 32px Inter, system-ui, sans-serif";
-  ctx.fillText("TREINO CONCLUÍDO", padX, focusTop - 6);
+  ctx.font = "700 38px Inter, system-ui, sans-serif";
+  ctx.fillText("TREINO CONCLUÍDO", padX, focusTop - 8);
 
   const dateStr = new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" });
   const meta = dayName && dayName.trim() && dayName.trim() !== focus.trim()
     ? `${dayName.trim()} · ${dateStr}`
     : dateStr;
   ctx.fillStyle = "rgba(255,255,255,0.72)";
-  ctx.font = "500 32px Inter, system-ui, sans-serif";
+  ctx.font = "500 36px Inter, system-ui, sans-serif";
   ctx.fillText(meta, padX, H - 148 - lift);
 
   // Logo CoreFit (SVG claro para fundo escuro) — fallback para texto se SVG não carregar
   const logoImg = await loadSvgLogo();
   if (logoImg) {
-    // viewBox 264×56 → renderizado em ~220×47 px
-    const logoW = 220;
+    // viewBox 264×56 → story: 260px, square: 220px
+    const logoW = format === "story" ? 260 : 220;
     const logoH = Math.round(logoW * (56 / 264));
     ctx.drawImage(logoImg, padX, H - 80 - lift - logoH, logoW, logoH);
   } else {
