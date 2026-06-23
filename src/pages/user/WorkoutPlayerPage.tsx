@@ -141,7 +141,7 @@ export default function WorkoutPlayerPage() {
     }
     const checkin = registerDailyCheckin("workout", 30);
     setRewardMessage(
-      checkin.alreadyCheckedIn ? "Treino registrado. O check-in de hoje já estava valendo." : "Treino registrado. +30 XP."
+      checkin.alreadyCheckedIn ? "Sessão registrada. Sua leitura de hoje já estava valendo." : "Sessão registrada. Sua leitura de amanhã já considera o esforço de hoje."
     );
     if (workoutId && workout) {
       try {
@@ -479,10 +479,10 @@ export default function WorkoutPlayerPage() {
                 color: neon.text,
               }}
             >
-              <div style={{ fontWeight: 700, fontSize: 22, marginBottom: 8 }}>Treino concluído</div>
+              <div style={{ fontWeight: 700, fontSize: 22, marginBottom: 8 }}>Leitura atualizada</div>
 
               <div style={{ fontSize: 14, lineHeight: 1.6, color: neon.muted, marginBottom: 12 }}>
-                Sessão registrada. Sua recuperação começa agora. Hidrate-se e observe como o corpo responde nas próximas horas.
+                Registramos sua sessão. Seu estado metabólico de amanhã já reflete o esforço de hoje. Hidrate-se e observe como o corpo responde.
               </div>
 
               <div
@@ -496,7 +496,7 @@ export default function WorkoutPlayerPage() {
                   marginBottom: 8,
                 }}
               >
-                Sequência atual: {streak} dia{streak !== 1 ? "s" : ""} consecutivo{streak !== 1 ? "s" : ""}
+{streak} dia{streak !== 1 ? "s" : ""} seguido{streak !== 1 ? "s" : ""} cuidando do seu corpo
               </div>
               {rewardMessage ? (
                 <div style={{ marginBottom: 12, fontWeight: 600, color: neon.highlight, fontSize: 14 }}>{rewardMessage}</div>
@@ -533,7 +533,7 @@ export default function WorkoutPlayerPage() {
                 ) : null}
 
                 <Link
-                  to="/app/user/treinos"
+                  to="/app/user/estado-metabolico"
                   style={{
                     padding: "10px 14px",
                     borderRadius: 12,
@@ -547,7 +547,7 @@ export default function WorkoutPlayerPage() {
                     alignItems: "center",
                   }}
                 >
-                  Voltar para Treinos
+                  Ver minha evolução
                 </Link>
               </div>
             </div>

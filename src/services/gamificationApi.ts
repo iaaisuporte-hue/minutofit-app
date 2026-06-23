@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/react";
 import { API_URL, parseJson } from "./apiBase";
 import { authFetch } from "./apiClient";
 import { getAccessToken } from "./authTokens";
@@ -28,25 +29,50 @@ export async function persistGamificationCheckin(payload: {
     notes?: string;
   };
 }) {
-  if (!getAccessToken()) return null;
+  if (!getAccessToken()) {
+    // Telemetria: o check-in seria perdido por falta de token. Antes era um
+    // no-op totalmente silencioso — impossível medir a taxa de perda do sinal.
+    Sentry.captureMessage("checkin.dropped.no_token", {
+      level: "warning",
+      tags: { feature: "checkin", source: payload.source },
+    });
+    return null;
+  }
 
-  const response = await authFetch(`${API_URL}/gamification/checkins`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      ...payload,
-      xp: payload.source === "wellbeing" ? 0 : payload.xp ?? 0,
-    }),
-  });
+  let response: Response;
+  try {
+    response = await authFetch(`${API_URL}/gamification/checkins`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        ...payload,
+        xp: payload.source === "wellbeing" ? 0 : payload.xp ?? 0,
+      }),
+    });
+  } catch (err) {
+    // Offline / falha de rede: antes a perda só ia para console.error.
+    Sentry.captureException(err, {
+      tags: { feature: "checkin", source: payload.source, reason: "network" },
+    });
+    throw err;
+  }
 
   if (response.status === 401) {
+    Sentry.captureMessage("checkin.dropped.unauthorized", {
+      level: "warning",
+      tags: { feature: "checkin", source: payload.source },
+    });
     return null;
   }
 
   const data = await parseJson(response);
   if (!response.ok) {
+    Sentry.captureMessage("checkin.failed.http", {
+      level: "error",
+      tags: { feature: "checkin", source: payload.source, status: String(response.status) },
+    });
     throw new Error(data?.error || "Nao foi possivel persistir a gamificacao.");
   }
 

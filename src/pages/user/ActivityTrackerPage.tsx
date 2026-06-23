@@ -579,8 +579,8 @@ export default function ActivityTrackerPage() {
 
     setRewardMessage(
       checkin.alreadyCheckedIn
-        ? `${insightPrefix}${signal.insight}${confirmSuffix} Check-in de hoje já garantido.`
-        : `${insightPrefix}${signal.insight}${confirmSuffix} +${xpEarned} XP e check-in do dia concluído.`
+        ? `${insightPrefix}${signal.insight}${confirmSuffix} Sua leitura de hoje já estava valendo.`
+        : `${insightPrefix}${signal.insight}${confirmSuffix} Registrada na sua leitura do dia.`
     );
 
     try {

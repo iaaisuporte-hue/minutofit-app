@@ -23,7 +23,19 @@ if (import.meta.env.VITE_SENTRY_DSN) {
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <BrowserRouter>
-      <App />
+      <Sentry.ErrorBoundary
+        fallback={
+          <div style={{ padding: 24, fontFamily: "Inter, sans-serif", textAlign: "center", maxWidth: 420, margin: "64px auto" }}>
+            <h2 style={{ marginBottom: 8 }}>Algo saiu do esperado</h2>
+            <p style={{ color: "#6B7280", marginBottom: 16 }}>Recarregue a página para continuar — já fomos avisados.</p>
+            <button type="button" onClick={() => window.location.reload()} style={{ padding: "10px 16px", borderRadius: 10, border: "1px solid #D1D5DB", cursor: "pointer", fontWeight: 600 }}>
+              Recarregar
+            </button>
+          </div>
+        }
+      >
+        <App />
+      </Sentry.ErrorBoundary>
     </BrowserRouter>
   </React.StrictMode>,
 );

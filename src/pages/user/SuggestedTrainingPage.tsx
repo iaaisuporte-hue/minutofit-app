@@ -296,8 +296,8 @@ export default function SuggestedTrainingPage() {
     const checkin = registerDailyCheckin("workout", 0);
     setTrainingMessage(
       checkin.alreadyCheckedIn
-        ? `Treino concluído. ${exerciseXpEarned} XP vieram dos exercícios marcados; o check-in de hoje já estava garantido.`
-        : `Treino concluído. ${exerciseXpEarned} XP vieram dos exercícios marcados e a sequência do dia foi atualizada.`
+        ? `Sessão registrada. Sua leitura de amanhã já considera o esforço de hoje.`
+        : `Sessão registrada. Sua leitura de amanhã já considera o esforço de hoje.`
     );
 
     try {
@@ -481,7 +481,7 @@ export default function SuggestedTrainingPage() {
                     cursor: "pointer",
                   }}
                 >
-                  {primaryAdaptiveWorkout.type === "home" ? `Iniciar treino em casa de ${primaryAdaptiveWorkout.duration} min` : "Ir para sessão na academia"}
+                  {primaryAdaptiveWorkout.type === "home" ? `Começar a sessão de hoje · ${primaryAdaptiveWorkout.duration} min` : "Começar — sessão na academia"}
                 </button>
                 <button
                   type="button"
@@ -1214,7 +1214,7 @@ export default function SuggestedTrainingPage() {
                           <div style={{ lineHeight: 1.6 }}>
                             {exercise}
                             <div style={{ fontSize: 11, color: checked ? COLORS.text : COLORS.mutedSoft, marginTop: 4 }}>
-                              {checked ? "Exercício concluído • +5 XP" : "Marcar como concluído • +5 XP"}
+                              {checked ? "Feito" : "Marcar como feito"}
                             </div>
                             <button
                               type="button"
@@ -1274,7 +1274,7 @@ export default function SuggestedTrainingPage() {
                   Progresso da sessão: {completedExercises.length}/{totalExercises} exercícios
                 </div>
                 <div style={{ color: COLORS.muted, fontSize: 13 }}>
-                  XP acumulado nesta sessão: {exerciseXpEarned}
+                  Marque tudo para registrar como foi — isso atualiza sua leitura.
                 </div>
               </div>
               <button
@@ -1293,7 +1293,7 @@ export default function SuggestedTrainingPage() {
                   cursor: allExercisesCompleted ? "pointer" : "not-allowed",
                 }}
               >
-                Concluir treino do dia
+                Registrar como foi
               </button>
             </div>
           </div>

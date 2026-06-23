@@ -510,9 +510,9 @@ function PlanCard({ plan, isOpen, onToggle, onAbandon, adaptiveData }: PlanCardP
       });
       setRegisteredToday(true);
       setRegistrationStreak(result?.streak ?? null);
-      const streakText = result?.streak ? `${result.streak} dias seguidos` : '';
-      const parts = ['+30 XP', streakText].filter(Boolean);
-      setSuccessToast(`Treino registrado! ${parts.join(' · ')}`);
+      const streakText = result?.streak ? `${result.streak} dias seguidos cuidando do seu corpo` : '';
+      const parts = ['Sessão registrada — sua leitura foi atualizada', streakText].filter(Boolean);
+      setSuccessToast(parts.join(' · '));
     } catch {
       setRegistrationError('Não foi possível registrar.');
     } finally {
