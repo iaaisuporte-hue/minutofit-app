@@ -183,8 +183,8 @@ export async function composeWorkoutImage({ focus, dayName, backgroundFile, form
   // Logo CoreFit (SVG claro para fundo escuro) — fallback para texto se SVG não carregar
   const logoImg = await loadSvgLogo();
   if (logoImg) {
-    // viewBox 264×56 → story: 260px, square: 220px
-    const logoW = format === "story" ? 260 : 220;
+    // viewBox 264×56 → story: 400px (~37% da largura), square: 220px
+    const logoW = format === "story" ? 400 : 220;
     const logoH = Math.round(logoW * (56 / 264));
     ctx.drawImage(logoImg, padX, H - 80 - lift - logoH, logoW, logoH);
   } else {
