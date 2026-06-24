@@ -477,7 +477,7 @@ export interface ReceptionStudent {
   activePlan: { id: number; name: string; monthlyPrice: number } | null;
   lastAccessAt: string | null;
   daysOverdue?: number | null;
-  lastStaffNote?: { from: string; preview: string; sentAt: string } | null;
+  lastStaffNote?: { from: string; sentAt: string } | null;
 }
 
 export interface ReceptionAccessEvent {

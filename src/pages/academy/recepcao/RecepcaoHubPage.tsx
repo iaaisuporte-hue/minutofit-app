@@ -260,9 +260,10 @@ function blockedBannerCopy(sel: ReceptionStudent): string {
   if (sel.daysOverdue != null && sel.daysOverdue > 0) {
     bits.push(`${sel.daysOverdue} dia${sel.daysOverdue > 1 ? "s" : ""} em atraso`);
   }
-  if (sel.lastStaffNote?.preview) {
+  if (sel.lastStaffNote) {
+    // Privacidade: só metadado — a recepção vê QUE houve recado, não o conteúdo.
     bits.push(
-      `Recado de ${sel.lastStaffNote.from} (${relativeStaffPt(sel.lastStaffNote.sentAt)}): ${sel.lastStaffNote.preview}`
+      `Há recado de ${sel.lastStaffNote.from} (${relativeStaffPt(sel.lastStaffNote.sentAt)}) — veja no chat.`
     );
   }
   if (bits.length === 0) {
@@ -811,7 +812,7 @@ export default function RecepcaoHubPage() {
 
           <div
             className={`rec-checkin-banner ${isBlocked ? "rec-checkin-banner--blocked" : "rec-checkin-banner--ok"}`}
-            title={isBlocked && selected.lastStaffNote ? selected.lastStaffNote.preview : undefined}
+            title={isBlocked && selected.lastStaffNote ? `Há recado de ${selected.lastStaffNote.from}` : undefined}
           >
             {isBlocked ? blockedBannerCopy(selected) : "Acesso operacional liberado — clique em Liberar entrada para registrar."}
           </div>

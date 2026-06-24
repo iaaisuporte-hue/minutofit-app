@@ -66,7 +66,7 @@ export default function AcademyFinancePage() {
         <div>
           <div className="dash-hero-eyebrow">Financeiro</div>
           <h1 className="dash-hero-title">Pagamentos da academia</h1>
-          <p className="dash-hero-meta">Visibilidade honesta dos pagamentos — sem DRE, sem conciliação, sem comissões.</p>
+          <p className="dash-hero-meta">Visibilidade honesta dos pagamentos — sem DRE, sem conciliação, sem comissões. A mensalidade é cobrada pela sua academia, fora da plataforma — a CoreFit não processa esse pagamento.</p>
         </div>
       </div>
 
