@@ -785,6 +785,18 @@ export default function NutritionPlanViewPage() {
     <div style={{ maxWidth: 560, margin: "0 auto", padding: "0 16px 40px" }}>
       {/* Header */}
       <div style={{ marginBottom: 20 }}>
+        <div
+          style={{
+            fontSize: 11,
+            fontWeight: 700,
+            color: COLORS.muted,
+            textTransform: "uppercase",
+            letterSpacing: "0.06em",
+            marginBottom: 2,
+          }}
+        >
+          Combustível do seu metabolismo
+        </div>
         <h1
           style={{
             fontSize: 20,
