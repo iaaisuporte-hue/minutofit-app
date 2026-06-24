@@ -5,12 +5,14 @@ import {
   type StudentAiSummaryResult,
 } from "../../../services/personalDashboardApi";
 import { AiUpgradeCTA } from "../../../features/personalPlan/AiUpgradeCTA";
+import { usePlan } from "../../../features/personalPlan/usePlan";
 
 type Props = {
   studentId: string;
 };
 
 export function CockpitTabAiSummary({ studentId }: Props) {
+  const plan = usePlan();
   const [result, setResult] = useState<StudentAiSummaryResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -28,16 +30,24 @@ export function CockpitTabAiSummary({ studentId }: Props) {
     }
   }
 
+  // Sem Pro: mostra só o upsell (sem botão clicável que retornaria 403).
+  if (!plan.aiEnabled) {
+    return (
+      <div style={{ display: "grid", gap: 16, padding: "4px 0" }}>
+        <AiUpgradeCTA />
+      </div>
+    );
+  }
+
   return (
     <div style={{ display: "grid", gap: 16, padding: "4px 0" }}>
-      <AiUpgradeCTA />
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
         <div>
           <div style={{ fontSize: 13, fontWeight: 600, color: "var(--color-text-primary)" }}>
             Resumo IA
           </div>
           <div style={{ fontSize: 12, color: "var(--color-text-secondary)", marginTop: 2 }}>
-            Síntese contextual da evolução do aluno — gerada sob demanda.
+            A IA lê aderência, metabolismo e treinos e te entrega a síntese — você decide a conduta.
           </div>
         </div>
         <button

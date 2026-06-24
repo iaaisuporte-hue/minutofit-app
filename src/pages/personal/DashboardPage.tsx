@@ -414,8 +414,27 @@ export default function DashboardPage() {
         <PersonalWelcomeCard
           firstName={user?.name?.split(" ")[0] ?? "personal"}
           hasStudents={realStudents.length > 0}
+          hasPlan={Boolean(summary?.activationHasPlan)}
+          hasCheckin={Boolean(summary?.activationHasCheckin)}
           onShowDemo={realStudents.length === 0 ? () => setIsDemoMode(true) : undefined}
         />
+      )}
+
+      {/* Prova de valor — adaptação da carteira (acompanhamento + automação) */}
+      {!loading && !error && realStudents.length > 0 && (
+        <div
+          className="pp-panel"
+          style={{ marginTop: 12, display: "flex", alignItems: "center", gap: 12, padding: "12px 14px" }}
+        >
+          <span aria-hidden="true" style={{ fontSize: 20 }}>{(summary?.adaptationsThisWeek ?? 0) > 0 ? "⚡" : "🌱"}</span>
+          <div style={{ fontSize: 13, color: "var(--color-text)", lineHeight: 1.45 }}>
+            {(summary?.adaptationsThisWeek ?? 0) > 0 ? (
+              <>Suas fichas se ajustaram <strong>{summary?.adaptationsThisWeek}×</strong> essa semana ao estado dos seus alunos.</>
+            ) : (
+              <>As fichas se ajustam sozinhas quando seus alunos fazem check-in — ative a adaptação no cockpit do aluno.</>
+            )}
+          </div>
+        </div>
       )}
 
       {/* Estado da carteira: distribuição + filtros + KPI strip — fora do hero, em camadas claras */}

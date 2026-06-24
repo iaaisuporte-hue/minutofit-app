@@ -36,7 +36,7 @@ export function StudentLimitBanner({ studentCount }: Props) {
           ? `Limite atingido: ${studentCount} de ${plan.studentLimit} alunos no plano ${plan.plan === "free" ? "Free" : "Starter"}.`
           : `Você está usando ${studentCount} de ${plan.studentLimit} alunos no plano ${plan.plan === "free" ? "Free" : "Starter"}.`}
       </span>
-      <UpgradeToProButton variant="link" label="Fazer upgrade" />
+      <UpgradeToProButton variant="link" label="Assinar Pro · R$ 89/mês" />
     </div>
   );
 }

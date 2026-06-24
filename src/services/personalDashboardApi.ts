@@ -77,6 +77,9 @@ export type PersonalDashboardResponse = {
     atRiskTop: PersonalDashboardStudent[];
     insights: RetentionInsight[];
     needsRecognitionTop: RecognitionMilestone[];
+    adaptationsThisWeek?: number;
+    activationHasPlan?: boolean;
+    activationHasCheckin?: boolean;
   };
   students: PersonalDashboardStudent[];
   generatedAt: string;

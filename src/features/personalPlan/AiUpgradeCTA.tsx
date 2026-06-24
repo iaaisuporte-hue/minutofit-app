@@ -43,11 +43,10 @@ export function AiUpgradeCTA() {
         Resumo IA disponível no plano Pro
       </div>
       <div style={{ fontSize: 12, color: "var(--color-text-muted)", lineHeight: 1.5 }}>
-        Síntese contextual da evolução do aluno — gerada sob demanda com base em aderência,
-        metabolismo e histórico de treinos. Alunos ilimitados + adaptação automática
-        por <b>R$ 89/mês</b>.
+        A IA lê aderência, metabolismo e treinos e te entrega a síntese — a conduta é sua.
+        Pro: alunos ilimitados, resumo IA e adaptação automática por <b>R$ 89/mês</b> (recorrente).
       </div>
-      <UpgradeToProButton label="Assinar Pro" />
+      <UpgradeToProButton label="Assinar Pro · R$ 89/mês" />
     </div>
   );
 }

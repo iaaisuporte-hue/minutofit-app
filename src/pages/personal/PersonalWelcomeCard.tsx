@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 interface Props {
   firstName: string;
   hasStudents: boolean;
+  hasPlan: boolean;
+  hasCheckin: boolean;
   onShowDemo?: () => void;
 }
 
@@ -14,12 +16,12 @@ type Step = {
   onClick: () => void;
 };
 
-export function PersonalWelcomeCard({ firstName, hasStudents, onShowDemo }: Props) {
+export function PersonalWelcomeCard({ firstName, hasStudents, hasPlan, hasCheckin, onShowDemo }: Props) {
   const navigate = useNavigate();
 
-  // Card desaparece após os 2 marcos concluídos — a 2ª é subjetiva,
-  // então escondemos quando já há alunos (primeiro marco é suficiente).
-  if (hasStudents) return null;
+  // Persiste até o PRIMEIRO LOOP fechar (aluno + ficha + check-in). Só então o
+  // acompanhamento está realmente ligado.
+  if (hasStudents && hasPlan && hasCheckin) return null;
 
   const steps: Step[] = [
     {
@@ -30,10 +32,19 @@ export function PersonalWelcomeCard({ firstName, hasStudents, onShowDemo }: Prop
       onClick: () => navigate("/app/personal/students?action=invite"),
     },
     {
-      label: "Ative a adaptação automática",
-      desc: "No cockpit do aluno → aba Técnica → Adaptação automática. Leva menos de 1 minuto.",
-      done: false,
-      cta: "Ver como",
+      label: "Crie ou gere a primeira ficha",
+      desc: "A IA monta o rascunho a partir de um pedido — você revisa e atribui ao aluno.",
+      done: hasPlan,
+      cta: "Montar ficha",
+      onClick: () => navigate("/app/personal/students"),
+    },
+    {
+      label: "Receba o primeiro check-in do aluno",
+      desc: hasCheckin
+        ? "Pronto — agora a IA adapta o treino dele ao estado do dia, e você acompanha no cockpit."
+        : "É o check-in que liga o acompanhamento. Peça ao aluno pelo chat ou um lembrete.",
+      done: hasCheckin,
+      cta: "Pedir check-in",
       onClick: () => navigate("/app/personal/students"),
     },
   ];
@@ -62,7 +73,7 @@ export function PersonalWelcomeCard({ firstName, hasStudents, onShowDemo }: Prop
               Bem-vindo, {firstName}
             </div>
             <div style={{ fontSize: 13, color: "var(--color-text-muted)", lineHeight: 1.5 }}>
-              Em 2 passos você tem o loop completo funcionando: check-in do aluno → treino adaptado → você acompanha no cockpit.
+              Em 3 passos seu acompanhamento liga: convide um aluno → monte a ficha → receba o check-in. Aí a IA começa a adaptar e você acompanha no cockpit.
             </div>
           </div>
           {onShowDemo ? (

@@ -89,7 +89,7 @@ export function QuickStartCard({
         {activeTab === "ai" ? (
           <div style={{ display: "grid", gap: 10 }}>
             <div style={{ fontSize: 12, color: WB.muted, lineHeight: 1.4 }}>
-              Descreva o treino — a IA monta a ficha semanal completa com base no catálogo de exercícios.
+              Descreva o treino — a IA monta o rascunho da ficha com base no catálogo. Você revisa, ajusta e atribui.
             </div>
 
             <textarea
