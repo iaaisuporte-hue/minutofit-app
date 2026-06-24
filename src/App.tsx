@@ -18,6 +18,7 @@ import AcceptInvitationPage from "./pages/AcceptInvitationPage";
 import DirectInviteAcceptPage from "./pages/DirectInviteAcceptPage";
 import CookieConsentBanner from "./components/CookieConsentBanner";
 import PrivacyPolicyPage from "./pages/PrivacyPolicyPage";
+import WaitlistPage from "./pages/WaitlistPage";
 
 export default function App() {
   return (
@@ -27,6 +28,7 @@ export default function App() {
         <CookieConsentBanner />
         <Routes>
           <Route path="/privacidade" element={<PrivacyPolicyPage />} />
+          <Route path="/lista-de-espera" element={<WaitlistPage />} />
           <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />

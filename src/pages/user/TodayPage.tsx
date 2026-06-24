@@ -48,6 +48,7 @@ import { searchExercises } from "../../services/exercisesApi";
 import { useTodayUserState } from "./hooks/useTodayUserState";
 import { PersonalWorkoutCard } from "./components/PersonalWorkoutCard";
 import { PersonalEmptyState } from "./components/PersonalEmptyState";
+import { RequestProfessionalCard } from "./components/RequestProfessionalCard";
 import { EmptyMetabolismHero } from "./components/EmptyMetabolismHero";
 import { WelcomeCard } from "./components/WelcomeCard";
 import { TodayHero } from "./components/TodayHero";
@@ -191,6 +192,12 @@ export default function TodayPage() {
   const showAcademyWorkout = todayState.trainingMode === "academy_led";
   const showProfessionalVoice =
     (todayState.hasActivePersonal || todayState.hasActiveNutri) && todayState.hasProfessionalObservation;
+  // CTA proativo de vínculo: aluno com app, sem personal nem nutri, fora do first-run.
+  const showRequestProfessional =
+    !todayState.loading &&
+    todayState.hasAppAccess &&
+    !todayState.hasActivePersonal &&
+    !todayState.hasActiveNutri;
   const {
     records: metabolicCheckins,
     loading: metabolicCheckinsLoading,
@@ -614,6 +621,14 @@ export default function TodayPage() {
             nutri={todayState.nutri}
             criticalSignals={criticalSignals}
           />
+        </motion.div>
+      )}
+
+      {/* 3.5 CTA de vínculo — só quando não há personal nem nutri. Preenche o espaço
+          da "voz do profissional" com o convite a ter acompanhamento humano. */}
+      {showRequestProfessional && (
+        <motion.div variants={sectionRevealVariants}>
+          <RequestProfessionalCard isMobile={isMobile} />
         </motion.div>
       )}
 
