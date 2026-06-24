@@ -915,6 +915,25 @@ export default function NutritionPlanViewPage() {
         </div>
       )}
 
+      {/* Disclaimer (regulatório) */}
+      <div
+        style={{
+          marginTop: 16,
+          padding: "10px 12px",
+          borderRadius: 10,
+          background: "var(--color-bg-main, #f9fafb)",
+          border: "1px solid var(--color-border)",
+          fontSize: 11.5,
+          color: COLORS.muted,
+          lineHeight: 1.5,
+        }}
+      >
+        Seu plano alimentar apoia seu acompanhamento metabólico e é elaborado pelo
+        seu nutricionista. Ele <strong>não substitui</strong> avaliação ou
+        acompanhamento nutricional presencial — para condições clínicas, consulte
+        sempre um profissional.
+      </div>
+
       {/* Drawer */}
       {openMeal && (
         <MealDrawer

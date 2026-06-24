@@ -204,6 +204,13 @@ export function NutritionCheckinCard() {
   ).length;
   const totalMeals = timeline?.meals.length ?? 0;
 
+  // Integração MaaS (dieta↔treino): se há treino hoje e a refeição pré-treino
+  // ainda não foi feita, conectamos os dois sinais.
+  const preWorkoutMeal = (timeline?.meals ?? []).find(
+    (m) => m.workout_relation === "pre" && ["upcoming", "due_now", "no_time", "skipped"].includes(m.status)
+  );
+  const showPreWorkoutNudge = Boolean(timeline?.workoutToday && preWorkoutMeal);
+
   return (
     <div
       className="today-card"
@@ -268,6 +275,28 @@ export function NutritionCheckinCard() {
           {checkedCount}/{totalMeals}
         </Link>
       </div>
+
+      {/* Nudge dieta↔treino (MaaS): refeição pré-treino pendente + treino hoje */}
+      {showPreWorkoutNudge && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            padding: "8px 10px",
+            borderRadius: 8,
+            background: "rgba(34,197,94,.08)",
+            border: "1px solid rgba(34,197,94,.2)",
+            fontSize: 12,
+            color: COLORS.text,
+            lineHeight: 1.45,
+            marginBottom: 10,
+          }}
+        >
+          <span aria-hidden="true">⚡</span>
+          <span>Você treina hoje — a refeição <strong>pré-treino</strong> reforça energia e recuperação.</span>
+        </div>
+      )}
 
       {/* Orientation preview */}
       <div
@@ -337,6 +366,11 @@ export function NutritionCheckinCard() {
         >
           Ver plano completo →
         </Link>
+      </div>
+
+      <div style={{ marginTop: 8, fontSize: 11, color: COLORS.muted, lineHeight: 1.4 }}>
+        Sua alimentação alimenta sua leitura de hoje. Este plano apoia seu
+        acompanhamento — não substitui avaliação nutricional presencial.
       </div>
     </div>
   );
