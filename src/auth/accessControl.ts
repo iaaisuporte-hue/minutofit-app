@@ -30,6 +30,8 @@ export type AppPermission =
   | "admin.nutris"
   | "admin.finance"
   | "admin.professionals.create"
+  | "admin.professionals.review"
+  | "admin.audit"
   // Academia-scoped permissions
   | "academy.dashboard"
   | "academy.students.read"
@@ -60,6 +62,8 @@ const ALL_ADMIN_PERMISSIONS: AppPermission[] = [
   "admin.nutris",
   "admin.finance",
   "admin.professionals.create",
+  "admin.professionals.review",
+  "admin.audit",
 ];
 
 const ALL_ACADEMY_OWNER_PERMISSIONS: AppPermission[] = [
@@ -287,6 +291,16 @@ export const APP_PERMISSION_META: Record<AppPermission, { label: string; group: 
     group: "Profissionais",
     description: "Criar novos personals e nutris no admin.",
   },
+  "admin.professionals.review": {
+    label: "Revisão de credenciais",
+    group: "Profissionais",
+    description: "Aprovar ou rejeitar CREF/CRN de profissionais.",
+  },
+  "admin.audit": {
+    label: "Auditoria da plataforma",
+    group: "Admin",
+    description: "Ver trilha de ações sensíveis e acessos a dados.",
+  },
   "academy.dashboard": { label: "Dashboard da academia", group: "Academia", description: "Visão geral da academia." },
   "academy.students.read": { label: "Ver alunos", group: "Academia", description: "Listar e consultar alunos." },
   "academy.students.write": { label: "Editar alunos", group: "Academia", description: "Criar e editar alunos." },
@@ -336,6 +350,8 @@ export const APP_PERMISSION_ORDER: AppPermission[] = [
   "admin.nutris",
   "admin.finance",
   "admin.professionals.create",
+  "admin.professionals.review",
+  "admin.audit",
   "academy.dashboard",
   "academy.students.read",
   "academy.students.write",

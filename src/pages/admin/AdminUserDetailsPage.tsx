@@ -8,11 +8,17 @@ import {
   grantUserProduct,
   revokeUserProduct,
   deleteAdminUser,
+  fetchAdminUserRelationships,
+  fetchAdminUserAuditTrail,
+  revokePersonalAssignment,
   PRODUCT_KEYS,
   PRODUCT_LABELS,
   type AdminUserRow,
   type ProductKey,
   type UserProductEntry,
+  type PersonalAssignment,
+  type NutriAssignment,
+  type AcademyMembership,
 } from "../../services/adminApi";
 import { getPlans, type PlanItem } from "../../services/featureApi";
 import { COLORS } from "../../styles/colors";
@@ -583,6 +589,22 @@ export default function AdminUserDetailsPage() {
   const [productsLoading, setProductsLoading] = useState(false);
   const [productActionKey, setProductActionKey] = useState<ProductKey | null>(null);
   const [productError, setProductError] = useState<string | null>(null);
+  // P0-6: vínculos
+  const [relationships, setRelationships] = useState<{
+    personals: PersonalAssignment[];
+    nutris: NutriAssignment[];
+    academies: AcademyMembership[];
+  } | null>(null);
+  const [relLoading, setRelLoading] = useState(false);
+  const [revoking, setRevoking] = useState<number | null>(null);
+  const [revokeError, setRevokeError] = useState<string | null>(null);
+  // P0-2: auditoria
+  const [auditTrail, setAuditTrail] = useState<Array<{
+    id: string; actorId: number; eventType: string;
+    eventPayload: Record<string, unknown>; createdAt: string;
+  }> | null>(null);
+  const [auditLoading, setAuditLoading] = useState(false);
+  const [showAudit, setShowAudit] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -611,6 +633,16 @@ export default function AdminUserDetailsPage() {
       .then((d) => setProducts(d.allProducts))
       .catch(() => setProducts(PRODUCT_KEYS.map((key) => ({ key, active: false }))))
       .finally(() => setProductsLoading(false));
+  }, [userId]);
+
+  // P0-6: carrega vínculos do usuário
+  useEffect(() => {
+    if (!userId) return;
+    setRelLoading(true);
+    fetchAdminUserRelationships(Number(userId))
+      .then((d) => setRelationships(d))
+      .catch(() => setRelationships(null))
+      .finally(() => setRelLoading(false));
   }, [userId]);
 
   async function handleProductToggle(key: ProductKey, currentlyActive: boolean) {
@@ -898,6 +930,194 @@ export default function AdminUserDetailsPage() {
           <div style={{ color: COLORS.muted, fontSize: 12 }}>
             Clique para ativar ou desativar. Alterações têm efeito no próximo login do usuário.
           </div>
+        </div>
+
+        {/* P0-6: Vínculos */}
+        <div
+          style={{
+            border: `1px solid ${COLORS.border}`,
+            borderRadius: 20,
+            background: COLORS.panel,
+            padding: 18,
+            display: "grid",
+            gap: 12,
+          }}
+        >
+          <div style={{ fontSize: 16, fontWeight: 700 }}>Vínculos</div>
+          {relLoading && <div style={{ color: COLORS.muted, fontSize: 13 }}>Carregando vínculos…</div>}
+          {!relLoading && relationships && (
+            <div style={{ display: "grid", gap: 10 }}>
+              {/* Personais */}
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: COLORS.muted, marginBottom: 6 }}>Personais</div>
+                {relationships.personals.length === 0 ? (
+                  <div style={{ fontSize: 13, color: COLORS.muted }}>Nenhum personal vinculado.</div>
+                ) : (
+                  relationships.personals.map((p) => (
+                    <div key={p.id} style={{
+                      display: "flex", alignItems: "center", justifyContent: "space-between",
+                      gap: 8, padding: "8px 10px", borderRadius: 10,
+                      border: `1px solid ${COLORS.border}`, background: COLORS.panelSoft,
+                      marginBottom: 6,
+                    }}>
+                      <div>
+                        <span style={{ fontWeight: 600, fontSize: 13 }}>{p.personal_name ?? "—"}</span>
+                        <span style={{ color: COLORS.muted, fontSize: 12, marginLeft: 8 }}>{p.personal_email}</span>
+                        <span style={{
+                          marginLeft: 8, fontSize: 11, padding: "2px 6px", borderRadius: 6,
+                          background: p.status === "active" ? "#14532d" : "#7f1d1d",
+                          color: p.status === "active" ? "#86efac" : "#fca5a5",
+                        }}>{p.status}</span>
+                      </div>
+                      {p.status === "active" && (
+                        <button
+                          type="button"
+                          disabled={revoking === p.id}
+                          onClick={async () => {
+                            if (!userId) return;
+                            setRevoking(p.id);
+                            setRevokeError(null);
+                            try {
+                              await revokePersonalAssignment(Number(userId), p.id);
+                              setRelationships((prev) => prev ? {
+                                ...prev,
+                                personals: prev.personals.map((x) => x.id === p.id ? { ...x, status: "revoked" } : x),
+                              } : null);
+                            } catch (e: unknown) {
+                              setRevokeError(e instanceof Error ? e.message : "Erro ao revogar.");
+                            } finally {
+                              setRevoking(null);
+                            }
+                          }}
+                          style={{
+                            padding: "4px 10px", borderRadius: 8, fontSize: 11, fontWeight: 600,
+                            border: `1px solid ${COLORS.redBorder}`, background: COLORS.redSoft,
+                            color: "#EF4444", cursor: "pointer",
+                          }}
+                        >
+                          {revoking === p.id ? "Revogando…" : "Revogar"}
+                        </button>
+                      )}
+                    </div>
+                  ))
+                )}
+                {revokeError && <div style={{ color: "#EF4444", fontSize: 12, marginTop: 4 }}>{revokeError}</div>}
+              </div>
+
+              {/* Nutricionistas */}
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: COLORS.muted, marginBottom: 6 }}>Nutricionistas</div>
+                {relationships.nutris.length === 0 ? (
+                  <div style={{ fontSize: 13, color: COLORS.muted }}>Nenhuma nutricionista vinculada.</div>
+                ) : (
+                  relationships.nutris.map((n) => (
+                    <div key={n.id} style={{
+                      display: "flex", alignItems: "center", gap: 8, padding: "8px 10px",
+                      borderRadius: 10, border: `1px solid ${COLORS.border}`,
+                      background: COLORS.panelSoft, marginBottom: 6,
+                    }}>
+                      <span style={{ fontWeight: 600, fontSize: 13 }}>{n.nutri_name ?? "—"}</span>
+                      <span style={{ color: COLORS.muted, fontSize: 12 }}>{n.nutri_email}</span>
+                      <span style={{
+                        fontSize: 11, padding: "2px 6px", borderRadius: 6,
+                        background: n.status === "active" ? "#14532d" : "#7f1d1d",
+                        color: n.status === "active" ? "#86efac" : "#fca5a5",
+                      }}>{n.status}</span>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Academias */}
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: COLORS.muted, marginBottom: 6 }}>Academias</div>
+                {relationships.academies.length === 0 ? (
+                  <div style={{ fontSize: 13, color: COLORS.muted }}>Nenhuma academia vinculada.</div>
+                ) : (
+                  relationships.academies.map((a) => (
+                    <div key={a.academy_id} style={{
+                      display: "flex", alignItems: "center", gap: 8, padding: "8px 10px",
+                      borderRadius: 10, border: `1px solid ${COLORS.border}`,
+                      background: COLORS.panelSoft, marginBottom: 6,
+                    }}>
+                      <span style={{ fontWeight: 600, fontSize: 13 }}>{a.academy_name}</span>
+                      <span style={{ color: COLORS.muted, fontSize: 12 }}>/{a.slug}</span>
+                      {!a.is_active && (
+                        <span style={{ fontSize: 11, padding: "2px 6px", borderRadius: 6, background: "#7f1d1d", color: "#fca5a5" }}>inativo</span>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* P0-2: Auditoria LGPD */}
+        <div
+          style={{
+            border: `1px solid ${COLORS.border}`,
+            borderRadius: 20,
+            background: COLORS.panel,
+            padding: 18,
+            display: "grid",
+            gap: 10,
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <div style={{ fontSize: 16, fontWeight: 700 }}>Trilha de acesso (LGPD)</div>
+            <button
+              type="button"
+              onClick={async () => {
+                if (!userId) return;
+                if (!showAudit) {
+                  setAuditLoading(true);
+                  setShowAudit(true);
+                  try {
+                    const trail = await fetchAdminUserAuditTrail(Number(userId));
+                    setAuditTrail(trail ?? []);
+                  } catch {
+                    setAuditTrail([]);
+                  } finally {
+                    setAuditLoading(false);
+                  }
+                } else {
+                  setShowAudit(false);
+                }
+              }}
+              style={{
+                padding: "6px 12px", borderRadius: 10, fontSize: 12, fontWeight: 600,
+                border: `1px solid ${COLORS.border}`, background: COLORS.panelSoft,
+                color: COLORS.text, cursor: "pointer",
+              }}
+            >
+              {showAudit ? "Ocultar" : "Ver trilha"}
+            </button>
+          </div>
+          {showAudit && (
+            auditLoading ? (
+              <div style={{ color: COLORS.muted, fontSize: 13 }}>Carregando…</div>
+            ) : (
+              <div style={{ maxHeight: 300, overflowY: "auto", display: "grid", gap: 6 }}>
+                {(!auditTrail || auditTrail.length === 0) ? (
+                  <div style={{ color: COLORS.muted, fontSize: 13 }}>Nenhum acesso registrado.</div>
+                ) : (
+                  auditTrail.map((entry) => (
+                    <div key={entry.id} style={{
+                      padding: "6px 10px", borderRadius: 8,
+                      border: `1px solid ${COLORS.border}`, background: COLORS.panelSoft,
+                      fontSize: 12,
+                    }}>
+                      <span style={{ color: COLORS.muted }}>
+                        {new Date(entry.createdAt).toLocaleString("pt-BR")}
+                      </span>
+                      <span style={{ marginLeft: 8, fontWeight: 600 }}>{entry.eventType}</span>
+                    </div>
+                  ))
+                )}
+              </div>
+            )
+          )}
         </div>
 
         {/* Zona de risco */}

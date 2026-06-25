@@ -1,12 +1,20 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { fetchAdminUserById, type AdminUserRow } from "../../services/adminApi";
+import {
+  fetchAdminUserById,
+  fetchProfessionalStudents,
+  type AdminUserRow,
+} from "../../services/adminApi";
 import { COLORS } from "../../styles/colors";
 
 export default function AdminPersonalDetailsPage() {
   const { personalId } = useParams();
   const [personal, setPersonal] = useState<AdminUserRow | null>(null);
   const [loading, setLoading] = useState(true);
+  const [students, setStudents] = useState<Array<{
+    id: number; student_id: number; student_name: string | null;
+    student_email: string; status: string; created_at: string;
+  }> | null>(null);
 
   useEffect(() => {
     if (!personalId) { setLoading(false); return; }
@@ -14,6 +22,9 @@ export default function AdminPersonalDetailsPage() {
       .then((data) => setPersonal(data))
       .catch(() => setPersonal(null))
       .finally(() => setLoading(false));
+    fetchProfessionalStudents(Number(personalId))
+      .then((data) => setStudents(data?.assignedStudents ?? []))
+      .catch(() => setStudents([]));
   }, [personalId]);
 
   if (loading) {
@@ -89,10 +100,34 @@ export default function AdminPersonalDetailsPage() {
           gap: 12,
         }}
       >
-        <div style={{ fontSize: 18, fontWeight: 700 }}>Alunos vinculados</div>
-        <div style={{ color: COLORS.muted, lineHeight: 1.6 }}>
-          Vínculo personal–aluno disponível em breve via painel de gestão de atribuições.
+        <div style={{ fontSize: 18, fontWeight: 700 }}>
+          Carteira de alunos{students !== null && ` (${students.filter(s => s.status === "active").length} ativos)`}
         </div>
+        {students === null ? (
+          <div style={{ color: COLORS.muted, fontSize: 13 }}>Carregando…</div>
+        ) : students.length === 0 ? (
+          <div style={{ color: COLORS.muted, fontSize: 13 }}>Nenhum aluno vinculado.</div>
+        ) : (
+          <div style={{ display: "grid", gap: 6, maxHeight: 300, overflowY: "auto" }}>
+            {students.map((s) => (
+              <div key={s.id} style={{
+                display: "flex", alignItems: "center", justifyContent: "space-between",
+                padding: "8px 10px", borderRadius: 10,
+                border: `1px solid ${COLORS.border}`, background: COLORS.panelSoft,
+              }}>
+                <div>
+                  <span style={{ fontWeight: 600, fontSize: 13 }}>{s.student_name ?? "—"}</span>
+                  <span style={{ color: COLORS.muted, fontSize: 12, marginLeft: 8 }}>{s.student_email}</span>
+                </div>
+                <span style={{
+                  fontSize: 11, padding: "2px 6px", borderRadius: 6,
+                  background: s.status === "active" ? "#14532d" : "#374151",
+                  color: s.status === "active" ? "#86efac" : COLORS.muted,
+                }}>{s.status}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

@@ -17,6 +17,8 @@ import AdminAcademiesPage from "./admin/AdminAcademiesPage";
 import AdminAcademyDetailPage from "./admin/AdminAcademyDetailPage";
 import AcademyBrandingSettingsPage from "./academy/AcademyBrandingSettingsPage";
 import AdminWorkoutProtocolsPage from "./admin/AdminWorkoutProtocolsPage";
+import AdminAuditPage from "./admin/AdminAuditPage";
+import AdminCredentialQueuePage from "./admin/AdminCredentialQueuePage";
 
 function MenuLink({ to, label }: { to: string; label: string }) {
   return (
@@ -74,6 +76,8 @@ export default function AdminApp() {
   const operationItems: Array<{ to: string; label: string; permission: AppPermission }> = [
     { to: "/app/admin/finance",    label: "Financeiro",  permission: "admin.finance" },
     { to: "/app/admin/academies",  label: "Academias",   permission: "admin.accessProfiles" },
+    { to: "/app/admin/credential-queue", label: "Credenciais",  permission: "admin.personals" },
+    { to: "/app/admin/audit",      label: "Auditoria",   permission: "admin.audit" },
   ];
 
   const visiblePlatform  = platformItems.filter((i) => auth.hasPermission(i.permission));
@@ -235,6 +239,24 @@ export default function AdminApp() {
               element={
                 <AdminPermissionRoute permission="admin.accessProfiles">
                   <AcademyBrandingSettingsPage />
+                </AdminPermissionRoute>
+              }
+            />
+            {/* P0-4: Fila de credenciais pendentes */}
+            <Route
+              path="credential-queue"
+              element={
+                <AdminPermissionRoute permission="admin.personals">
+                  <AdminCredentialQueuePage />
+                </AdminPermissionRoute>
+              }
+            />
+            {/* P0-2: Auditoria da plataforma */}
+            <Route
+              path="audit"
+              element={
+                <AdminPermissionRoute permission="admin.audit">
+                  <AdminAuditPage />
                 </AdminPermissionRoute>
               }
             />

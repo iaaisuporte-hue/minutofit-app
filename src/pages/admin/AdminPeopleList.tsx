@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { fetchAdminUsers, type AdminUserRow } from "../../services/adminApi";
+import { fetchAdminUsersAdvanced, type AdminUserRow } from "../../services/adminApi";
 import { COLORS } from "../../styles/colors";
 import { EmptyState } from "../../components/EmptyState";
 import { Banner } from "../../components/Banner";
@@ -53,6 +53,8 @@ export default function AdminPeopleList({
   const [page, setPage] = useState(0);
   const [search, setSearch] = useState("");
   const [searchApplied, setSearchApplied] = useState("");
+  const [cpf, setCpf] = useState("");
+  const [cpfApplied, setCpfApplied] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
@@ -64,9 +66,10 @@ export default function AdminPeopleList({
     setLoading(true);
     setError(null);
 
-    fetchAdminUsers({
+    fetchAdminUsersAdvanced({
       role,
       search: searchApplied || undefined,
+      cpf: cpfApplied || undefined,
       limit: PAGE_SIZE,
       offset,
     })
@@ -83,12 +86,21 @@ export default function AdminPeopleList({
       });
 
     return () => { cancelled = true; };
-  }, [role, searchApplied, offset]);
+  }, [role, searchApplied, cpfApplied, offset]);
 
   function handleSearchSubmit(e: React.FormEvent) {
     e.preventDefault();
     setPage(0);
     setSearchApplied(search);
+    setCpfApplied(cpf);
+  }
+
+  function handleClear() {
+    setSearch("");
+    setSearchApplied("");
+    setCpf("");
+    setCpfApplied("");
+    setPage(0);
   }
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
@@ -119,18 +131,28 @@ export default function AdminPeopleList({
               ref={searchRef}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar por nome ou e-mail..."
+              placeholder="Nome ou e-mail…"
               className="pp-input"
-              style={{ minWidth: 240 }}
+              style={{ minWidth: 200 }}
             />
+            {role === "user" && (
+              <input
+                value={cpf}
+                onChange={(e) => setCpf(e.target.value)}
+                placeholder="CPF (digits)…"
+                className="pp-input"
+                style={{ minWidth: 140 }}
+                maxLength={14}
+              />
+            )}
             <button type="submit" className="pp-btn pp-btn--primary pp-btn--sm">
               Buscar
             </button>
-            {searchApplied && (
+            {(searchApplied || cpfApplied) && (
               <button
                 type="button"
                 className="pp-btn pp-btn--quiet pp-btn--sm"
-                onClick={() => { setSearch(""); setSearchApplied(""); setPage(0); }}
+                onClick={handleClear}
               >
                 Limpar
               </button>

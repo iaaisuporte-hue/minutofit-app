@@ -2,8 +2,11 @@ import { useEffect, useState } from "react";
 import {
   fetchAdminDashboardMetrics,
   fetchAdminSubscriptionsReport,
+  fetchAdminBillingFailures,
   type AdminDashboardMetrics,
   type AdminSubscriptionsReport,
+  type BillingFailureEntry,
+  type PaymentFailureEntry,
 } from "../../services/adminApi";
 import { COLORS } from "../../styles/colors";
 
@@ -34,6 +37,10 @@ function KpiCard({ label, value, note }: { label: string; value: string; note?: 
 export default function AdminFinancePage() {
   const [metrics, setMetrics] = useState<AdminDashboardMetrics | null>(null);
   const [report, setReport] = useState<AdminSubscriptionsReport | null>(null);
+  const [failures, setFailures] = useState<{
+    billingFailures: BillingFailureEntry[];
+    paymentFailures: PaymentFailureEntry[];
+  } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -43,13 +50,15 @@ export default function AdminFinancePage() {
       setLoading(true);
       setError(null);
       try {
-        const [m, r] = await Promise.all([
+        const [m, r, f] = await Promise.all([
           fetchAdminDashboardMetrics(),
           fetchAdminSubscriptionsReport(),
+          fetchAdminBillingFailures(),
         ]);
         if (!cancelled) {
           setMetrics(m);
           setReport(r);
+          setFailures(f);
         }
       } catch (err: unknown) {
         if (!cancelled) {
@@ -185,6 +194,7 @@ export default function AdminFinancePage() {
             </div>
           )}
 
+          {/* P0-5: Falhas de pagamento */}
           <div
             style={{
               border: `1px solid ${COLORS.border}`,
@@ -196,20 +206,60 @@ export default function AdminFinancePage() {
               gap: 12,
             }}
           >
-            <div style={{ fontSize: 18, fontWeight: 700 }}>Transações</div>
-            <div style={{ color: COLORS.muted, fontSize: 13, lineHeight: 1.5 }}>
-              Listagem de transações individuais estará disponível quando o endpoint de pagamentos for liberado.
+            <div style={{ fontSize: 18, fontWeight: 700 }}>
+              Falhas de pagamento
+              {failures && (failures.billingFailures.length + failures.paymentFailures.length) > 0 && (
+                <span style={{
+                  marginLeft: 8, fontSize: 12, padding: "2px 8px", borderRadius: 8,
+                  background: "#7f1d1d", color: "#fca5a5", fontWeight: 600,
+                }}>
+                  {failures.billingFailures.length + failures.paymentFailures.length}
+                </span>
+              )}
             </div>
-            <div
-              style={{
-                padding: "24px 0",
-                color: COLORS.muted,
-                textAlign: "center",
-                fontSize: 13,
-              }}
-            >
-              Nenhum histórico para exibir agora.
-            </div>
+            {(!failures || (failures.billingFailures.length === 0 && failures.paymentFailures.length === 0)) ? (
+              <div style={{ color: COLORS.muted, fontSize: 13, textAlign: "center", padding: "16px 0" }}>
+                Nenhuma falha de pagamento registrada.
+              </div>
+            ) : (
+              <div style={{ display: "grid", gap: 8 }}>
+                {failures.paymentFailures.map((p) => (
+                  <div key={p.id} style={{
+                    display: "flex", justifyContent: "space-between", alignItems: "center",
+                    padding: "10px 14px", borderRadius: 12,
+                    border: `1px solid ${COLORS.redBorder}`, background: COLORS.redSoft,
+                  }}>
+                    <div>
+                      <div style={{ fontWeight: 600, fontSize: 13 }}>{p.user_name ?? p.user_email}</div>
+                      <div style={{ color: COLORS.muted, fontSize: 12 }}>{p.user_email}</div>
+                    </div>
+                    <div style={{ textAlign: "right" }}>
+                      <div style={{ fontWeight: 700, color: "#EF4444" }}>
+                        {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(p.amount_brl)}
+                      </div>
+                      <div style={{ fontSize: 11, color: COLORS.muted }}>
+                        {p.status} · {new Date(p.created_at).toLocaleDateString("pt-BR")}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {failures.billingFailures.map((b) => (
+                  <div key={b.id} style={{
+                    display: "flex", justifyContent: "space-between", alignItems: "center",
+                    padding: "10px 14px", borderRadius: 12,
+                    border: `1px solid ${COLORS.border}`, background: COLORS.panelSoft,
+                  }}>
+                    <div>
+                      <div style={{ fontWeight: 600, fontSize: 13 }}>{b.personal_name ?? b.personal_email}</div>
+                      <div style={{ color: COLORS.muted, fontSize: 12 }}>{b.event_type}</div>
+                    </div>
+                    <div style={{ fontSize: 11, color: COLORS.muted }}>
+                      {b.occurred_at ? new Date(b.occurred_at).toLocaleDateString("pt-BR") : "—"}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </>
       )}

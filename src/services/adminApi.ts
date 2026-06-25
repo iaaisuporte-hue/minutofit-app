@@ -362,4 +362,235 @@ export async function deleteAdminUser(userId: string) {
   }
 }
 
+// ---------------------------------------------------------------------------
+// P0-8: Busca avançada (CPF, plano, subscriptionStatus)
+// ---------------------------------------------------------------------------
+export async function fetchAdminUsersAdvanced(params: {
+  role?: string;
+  search?: string;
+  cpf?: string;
+  plan?: string;
+  subscriptionStatus?: string;
+  limit?: number;
+  offset?: number;
+}) {
+  if (!getAccessToken()) return null;
+  const q = new URLSearchParams();
+  if (params.role) q.set("role", params.role);
+  if (params.search?.trim()) q.set("search", params.search.trim());
+  if (params.cpf?.trim()) q.set("cpf", params.cpf.trim());
+  if (params.plan?.trim()) q.set("plan", params.plan.trim());
+  if (params.subscriptionStatus) q.set("subscriptionStatus", params.subscriptionStatus);
+  q.set("limit", String(params.limit ?? 20));
+  q.set("offset", String(params.offset ?? 0));
+  const response = await authFetch(`${API_URL}/admin/users?${q.toString()}`);
+  if (response.status === 401) return null;
+  const data = await parseJson(response);
+  if (!response.ok) throw new Error(data?.error || "Não foi possível carregar usuários.");
+  return data?.data as AdminUsersResponse | null;
+}
+
+// ---------------------------------------------------------------------------
+// P0-2: Audit log viewer
+// ---------------------------------------------------------------------------
+export interface AdminAuditEntry {
+  id: number;
+  academy_id: number | null;
+  user_id: number | null;
+  actor_name: string | null;
+  action: string;
+  entity_type: string | null;
+  entity_id: number | null;
+  meta: Record<string, unknown> | null;
+  created_at: string;
+}
+
+export async function fetchAdminAuditLog(params?: {
+  subjectUserId?: number;
+  actorId?: number;
+  action?: string;
+  limit?: number;
+  offset?: number;
+}): Promise<{ entries: AdminAuditEntry[]; pagination: { total: number; limit: number; offset: number } } | null> {
+  if (!getAccessToken()) return null;
+  const q = new URLSearchParams();
+  if (params?.subjectUserId) q.set("subjectUserId", String(params.subjectUserId));
+  if (params?.actorId) q.set("actorId", String(params.actorId));
+  if (params?.action) q.set("action", params.action);
+  q.set("limit", String(params?.limit ?? 50));
+  q.set("offset", String(params?.offset ?? 0));
+  const response = await authFetch(`${API_URL}/admin/audit?${q.toString()}`);
+  if (!response.ok) return null;
+  const data = await parseJson(response);
+  return data?.data ?? null;
+}
+
+export async function fetchAdminUserAuditTrail(userId: number) {
+  if (!getAccessToken()) return null;
+  const response = await authFetch(`${API_URL}/admin/users/${userId}/audit-trail`);
+  if (!response.ok) return null;
+  const data = await parseJson(response);
+  return (data?.data ?? []) as Array<{
+    id: string;
+    actorId: number;
+    eventType: string;
+    eventPayload: Record<string, unknown>;
+    createdAt: string;
+  }>;
+}
+
+// ---------------------------------------------------------------------------
+// P0-5: Falhas de pagamento
+// ---------------------------------------------------------------------------
+export interface BillingFailureEntry {
+  id: number;
+  personal_id?: number;
+  personal_name?: string;
+  personal_email?: string;
+  event_type?: string;
+  payload_json?: Record<string, unknown>;
+  occurred_at?: string;
+}
+
+export interface PaymentFailureEntry {
+  id: number;
+  user_id: number;
+  user_name: string | null;
+  user_email: string;
+  amount_brl: number;
+  status: string;
+  provider_ref: string | null;
+  created_at: string;
+}
+
+export async function fetchAdminBillingFailures(): Promise<{
+  billingFailures: BillingFailureEntry[];
+  paymentFailures: PaymentFailureEntry[];
+} | null> {
+  if (!getAccessToken()) return null;
+  const response = await authFetch(`${API_URL}/admin/billing/failures`);
+  if (!response.ok) return null;
+  const data = await parseJson(response);
+  return data?.data ?? null;
+}
+
+// ---------------------------------------------------------------------------
+// P0-6: Vínculos personal/nutri/academia
+// ---------------------------------------------------------------------------
+export interface PersonalAssignment {
+  id: number;
+  personal_id: number;
+  personal_name: string | null;
+  personal_email: string;
+  status: string;
+  created_at: string;
+  academy_id: number | null;
+}
+
+export interface NutriAssignment {
+  id: number;
+  nutri_id: number;
+  nutri_name: string | null;
+  nutri_email: string;
+  status: string;
+  created_at: string;
+}
+
+export interface AcademyMembership {
+  academy_id: number;
+  academy_name: string;
+  slug: string;
+  is_active: boolean;
+  joined_at: string;
+}
+
+export async function fetchAdminUserRelationships(userId: number): Promise<{
+  personals: PersonalAssignment[];
+  nutris: NutriAssignment[];
+  academies: AcademyMembership[];
+} | null> {
+  if (!getAccessToken()) return null;
+  const response = await authFetch(`${API_URL}/admin/users/${userId}/relationships`);
+  if (!response.ok) return null;
+  const data = await parseJson(response);
+  return data?.data ?? null;
+}
+
+export async function revokePersonalAssignment(userId: number, assignmentId: number) {
+  const response = await authFetch(
+    `${API_URL}/admin/users/${userId}/relationships/personal/${assignmentId}`,
+    { method: "DELETE" }
+  );
+  const data = await parseJson(response);
+  if (!response.ok) throw new Error(data?.error || "Não foi possível revogar o vínculo.");
+}
+
+// ---------------------------------------------------------------------------
+// P0-4: Fila de credenciais pendentes
+// ---------------------------------------------------------------------------
+export interface PendingCredentialRow {
+  professional_id: number;
+  name: string | null;
+  email: string;
+  role: string;
+  credential_code: string | null;
+  credential_status: string;
+  publication_status: string;
+  admin_enabled: boolean;
+  review_notes: string | null;
+  updated_at: string;
+  active_students: number;
+}
+
+export async function fetchPendingCredentials(): Promise<PendingCredentialRow[] | null> {
+  if (!getAccessToken()) return null;
+  const response = await authFetch(`${API_URL}/admin/professionals/pending-review`);
+  if (!response.ok) return null;
+  const data = await parseJson(response);
+  return data?.data ?? null;
+}
+
+// P0-1: Gestão de sub-roles admin
+export async function fetchAdminSubRoles(): Promise<Array<{
+  id: number;
+  name: string | null;
+  email: string;
+  admin_sub_role: string;
+  created_at: string;
+}> | null> {
+  if (!getAccessToken()) return null;
+  const response = await authFetch(`${API_URL}/admin/admin-roles`);
+  if (!response.ok) return null;
+  const data = await parseJson(response);
+  return data?.data ?? null;
+}
+
+export async function fetchProfessionalStudents(professionalId: number): Promise<{
+  assignedStudents: Array<{
+    id: number; student_id: number; student_name: string | null;
+    student_email: string; status: string; created_at: string; academy_id: number | null;
+  }>;
+  assignedPatients: Array<{
+    id: number; student_id: number; student_name: string | null;
+    student_email: string; status: string; created_at: string;
+  }>;
+} | null> {
+  if (!getAccessToken()) return null;
+  const response = await authFetch(`${API_URL}/admin/professionals/${professionalId}/students`);
+  if (!response.ok) return null;
+  const data = await parseJson(response);
+  return data?.data ?? null;
+}
+
+export async function updateAdminSubRole(userId: number, subRole: "super_admin" | "support") {
+  const response = await authFetch(`${API_URL}/admin/admin-roles/${userId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ subRole }),
+  });
+  const data = await parseJson(response);
+  if (!response.ok) throw new Error(data?.error || "Não foi possível atualizar o sub-role.");
+  return data?.data;
+}
+
 
