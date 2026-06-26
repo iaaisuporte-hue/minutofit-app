@@ -29,6 +29,23 @@ function normalizeKey(s: string): string {
  * traz GIF para ~todos os movimentos; o gargalo é o nome divergir do gerado pelo
  * motor. Aqui mapeamos os casos onde o nome do exercício não bate por substring.
  */
+/**
+ * OVERRIDE: o termo literal casa com o exercício ERRADO na biblioteca, então o
+ * sinônimo curado é tentado ANTES do literal (vence). Ex.: "elevação de quadril"
+ * (ponte de glúteo) casaria por substring com "Prancha com Elevação de Quadril".
+ */
+const OVERRIDE_ALIASES: Record<string, string> = {
+  "elevacao de quadril": "ponte de gluteo",
+  "elevacao de pelve": "ponte de gluteo",
+  alongamento: "alongamento de peitoral",
+  "alongamento rapido": "alongamento de peitoral",
+};
+
+/**
+ * FALLBACK: tentado DEPOIS do literal — rede de segurança quando o nome do motor
+ * não casa por substring, sem sobrescrever um literal que já acerta (ex.: "remada
+ * sentada" acha "Remada Sentada no Cabo" sozinho; "puxada alta" precisa do fallback).
+ */
 const MOVEMENT_ALIASES: Record<string, string> = {
   avanco: "afundo",
   "avanco reverso": "afundo",
@@ -40,8 +57,6 @@ const MOVEMENT_ALIASES: Record<string, string> = {
   "corrida estacionaria": "corrida no lugar",
   "puxada alta": "puxada",
   "remada sentada": "remada",
-  "elevacao de quadril": "ponte de gluteo",
-  "elevacao de pelve": "ponte de gluteo",
   mobilidade: "mobilidade de quadril",
   "mobilidade dinamica": "mobilidade de quadril",
   "ativacao de costas": "remada com elastico",
@@ -58,9 +73,15 @@ const MOVEMENT_ALIASES: Record<string, string> = {
 function buildSearchCandidates(name: string): string[] {
   const cleaned = cleanExerciseQuery(name);
   const words = cleaned.split(/\s+/).filter(Boolean);
-  const raw = [cleaned, words.slice(0, 2).join(" "), words[0]].filter(Boolean);
+  const terms = [cleaned, words.slice(0, 2).join(" "), words[0]].filter(Boolean);
   const out: string[] = [];
-  for (const term of raw) {
+  // 1. Overrides primeiro — vencem o literal nos casos de match errado.
+  for (const term of terms) {
+    const override = OVERRIDE_ALIASES[normalizeKey(term)];
+    if (override) out.push(override);
+  }
+  // 2. Literais (do específico ao núcleo) + fallback como rede de segurança.
+  for (const term of terms) {
     out.push(term);
     const alias = MOVEMENT_ALIASES[normalizeKey(term)];
     if (alias) out.push(alias);
