@@ -1,9 +1,12 @@
 import { useMemo, useState } from 'react';
 import {
   MetabolicCheckinModal,
+  MetabolicInsightList,
   MetabolicSummaryCard,
   MetabolicTrendStrip,
+  WeightLoadTrendChart,
   deriveMetabolicNarrative,
+  deriveScreenInsights,
   useMetabolicCheckins,
   type MetabolicCheckinRecord,
   type MetabolicCheckinInput,
@@ -72,12 +75,21 @@ export default function MetabolicStatePage() {
     [records, stats, loading, statsLoading],
   );
 
-  const visibleRecords = useMemo(() => {
+  const insights = useMemo(
+    () => (loading || statsLoading ? [] : deriveScreenInsights({ records, stats })),
+    [records, stats, loading, statsLoading],
+  );
+
+  // Janela de corte do período selecionado (0 = tudo). Governa gráfico e timeline.
+  const cutoff = useMemo(() => {
     const days = PERIODS.find((option) => option.key === period)?.days ?? null;
-    if (days == null) return records;
-    const cutoff = Date.now() - days * DAY_MS;
-    return records.filter((record) => new Date(record.recordedAt).getTime() >= cutoff);
-  }, [records, period]);
+    return days == null ? 0 : Date.now() - days * DAY_MS;
+  }, [period]);
+
+  const visibleRecords = useMemo(
+    () => (cutoff === 0 ? records : records.filter((record) => new Date(record.recordedAt).getTime() >= cutoff)),
+    [records, cutoff],
+  );
 
   // Tendência só é confiável com alguns registros espalhados no tempo — senão é só uma foto do momento.
   const hasTrend = records.length >= 3 && spanInDays(records) >= 7;
@@ -101,31 +113,34 @@ export default function MetabolicStatePage() {
 
       {narrative && <MetabolicSummaryCard narrative={narrative} onAction={() => setModalOpen(true)} />}
 
+      {records.length > 0 && (
+        <div className="metabolic-period-filter" role="group" aria-label="Filtrar período">
+          {PERIODS.map((option) => (
+            <button
+              type="button"
+              key={option.key}
+              className={`metabolic-period-chip${period === option.key ? ' is-active' : ''}`}
+              aria-pressed={period === option.key}
+              onClick={() => setPeriod(option.key)}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      <WeightLoadTrendChart records={records} stats={stats} cutoff={cutoff} />
+
+      <MetabolicInsightList insights={insights} />
+
       <WorkoutProgressSection stats={stats} loading={statsLoading} />
 
       <MetabolicTrendStrip records={records} loading={loading} />
 
       <section className="metabolic-history-page" style={{ display: 'grid', gap: 'var(--space-4)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
-          <div style={{ display: 'grid', gap: 'var(--space-1)' }}>
-            <div className="metabolic-eyebrow">Linha do tempo</div>
-            <h2 className="metabolic-section-title">Registros recentes</h2>
-          </div>
-          {records.length > 0 && (
-            <div className="metabolic-period-filter" role="group" aria-label="Filtrar período">
-              {PERIODS.map((option) => (
-                <button
-                  type="button"
-                  key={option.key}
-                  className={`metabolic-period-chip${period === option.key ? ' is-active' : ''}`}
-                  aria-pressed={period === option.key}
-                  onClick={() => setPeriod(option.key)}
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
-          )}
+        <div style={{ display: 'grid', gap: 'var(--space-1)' }}>
+          <div className="metabolic-eyebrow">Linha do tempo</div>
+          <h2 className="metabolic-section-title">Registros recentes</h2>
         </div>
 
         {error && <div className="badge badge-warn" role="alert">{error}</div>}
