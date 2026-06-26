@@ -1,10 +1,12 @@
 import { useMemo, useState } from 'react';
 import {
   MetabolicCheckinModal,
+  MetabolicIndicators,
   MetabolicInsightList,
   MetabolicSummaryCard,
-  MetabolicTrendStrip,
+  RegisterTypeSheet,
   WeightLoadTrendChart,
+  deriveIndicators,
   deriveMetabolicNarrative,
   deriveScreenInsights,
   useMetabolicCheckins,
@@ -65,7 +67,8 @@ function spanInDays(records: MetabolicCheckinRecord[]) {
 export default function MetabolicStatePage() {
   const { records, loading, error, saveCheckin } = useMetabolicCheckins(100);
   const { stats, loading: statsLoading } = useWorkoutStats();
-  const [modalOpen, setModalOpen] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [modalField, setModalField] = useState<keyof MetabolicCheckinInput | null>(null);
   const [period, setPeriod] = useState<PeriodKey>('30');
 
   const weightDeltas = useMemo(() => buildWeightDeltas(records), [records]);
@@ -77,6 +80,11 @@ export default function MetabolicStatePage() {
 
   const insights = useMemo(
     () => (loading || statsLoading ? [] : deriveScreenInsights({ records, stats })),
+    [records, stats, loading, statsLoading],
+  );
+
+  const indicators = useMemo(
+    () => (loading || statsLoading ? [] : deriveIndicators({ records, stats })),
     [records, stats, loading, statsLoading],
   );
 
@@ -94,6 +102,12 @@ export default function MetabolicStatePage() {
   // Tendência só é confiável com alguns registros espalhados no tempo — senão é só uma foto do momento.
   const hasTrend = records.length >= 3 && spanInDays(records) >= 7;
 
+  const openRegister = () => setSheetOpen(true);
+  const pickType = (field: keyof MetabolicCheckinInput) => {
+    setSheetOpen(false);
+    setModalField(field);
+  };
+
   async function handleSave(input: MetabolicCheckinInput) {
     await saveCheckin(input);
   }
@@ -105,13 +119,13 @@ export default function MetabolicStatePage() {
           <div style={{ display: 'grid', gap: 'var(--space-1)', maxWidth: 640 }}>
             <div className="metabolic-eyebrow">Estado metabólico</div>
             <h1 className="metabolic-section-title" style={{ fontSize: 'var(--text-3xl)' }}>Sua evolução metabólica</h1>
-            <p className="metabolic-section-copy">Peso, composição, carga e sinais do corpo ao longo do tempo. A tendência importa mais do que qualquer número isolado.</p>
+            <p className="metabolic-section-copy">Entenda como seu corpo responde aos treinos, à rotina e ao tempo.</p>
           </div>
-          <button type="button" className="btn btn-accent" onClick={() => setModalOpen(true)}>Registrar atualização</button>
+          <button type="button" className="btn btn-accent" onClick={openRegister}>Registrar evolução</button>
         </div>
       </section>
 
-      {narrative && <MetabolicSummaryCard narrative={narrative} onAction={() => setModalOpen(true)} />}
+      {narrative && <MetabolicSummaryCard narrative={narrative} onAction={openRegister} />}
 
       {records.length > 0 && (
         <div className="metabolic-period-filter" role="group" aria-label="Filtrar período">
@@ -129,13 +143,13 @@ export default function MetabolicStatePage() {
         </div>
       )}
 
+      <MetabolicIndicators cards={indicators} onRegister={openRegister} />
+
       <WeightLoadTrendChart records={records} stats={stats} cutoff={cutoff} />
 
       <MetabolicInsightList insights={insights} />
 
       <WorkoutProgressSection stats={stats} loading={statsLoading} />
-
-      <MetabolicTrendStrip records={records} loading={loading} />
 
       <section className="metabolic-history-page" style={{ display: 'grid', gap: 'var(--space-4)' }}>
         <div style={{ display: 'grid', gap: 'var(--space-1)' }}>
@@ -154,7 +168,7 @@ export default function MetabolicStatePage() {
         ) : records.length === 0 ? (
           <div className="metabolic-empty">
             <p className="metabolic-section-copy">Seus sinais de tendência aparecem aqui depois do primeiro registro. Comece pelo peso — leva 5 segundos.</p>
-            <button type="button" className="btn btn-accent" onClick={() => setModalOpen(true)}>Registrar meu primeiro sinal</button>
+            <button type="button" className="btn btn-accent" onClick={openRegister}>Registrar meu primeiro sinal</button>
           </div>
         ) : visibleRecords.length === 0 ? (
           <p className="metabolic-section-copy">Nenhum registro neste período. Experimente um intervalo maior.</p>
@@ -181,7 +195,8 @@ export default function MetabolicStatePage() {
         )}
       </section>
 
-      <MetabolicCheckinModal open={modalOpen} onClose={() => setModalOpen(false)} onSave={handleSave} />
+      <RegisterTypeSheet open={sheetOpen} onClose={() => setSheetOpen(false)} onPick={pickType} />
+      <MetabolicCheckinModal open={modalField !== null} initialField={modalField} onClose={() => setModalField(null)} onSave={handleSave} />
     </div>
   );
 }

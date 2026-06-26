@@ -7,10 +7,9 @@ export function MetabolicSummaryCard({ narrative, onAction }: { narrative: Metab
       <h2 className="metabolic-section-title">{narrative.headline}</h2>
       <p className="metabolic-summary-body">{narrative.body}</p>
       {narrative.nextAction && (
-        <div className="metabolic-summary-action">
-          <span>{narrative.nextAction}</span>
-          <button type="button" className="btn btn-accent" onClick={onAction}>Adicionar</button>
-        </div>
+        <button type="button" className="metabolic-summary-link" onClick={onAction}>
+          {narrative.nextAction} <span aria-hidden="true">→</span>
+        </button>
       )}
     </section>
   );

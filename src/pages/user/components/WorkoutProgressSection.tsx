@@ -79,7 +79,9 @@ function ExerciseRow({ ex }: { ex: ExerciseProgression }) {
 
 export function WorkoutProgressSection({ stats, loading }: { stats: WorkoutStats | null; loading: boolean }) {
   if (loading) return null;
-  if (!stats || stats.totalSessions === 0) return null;
+  // Só renderiza com carga real por exercício. Sem carga, o hero ("Informe a
+  // carga →") e o indicador "Carga —" já nudgeiam — evita card vazio repetitivo.
+  if (!stats || stats.exerciseProgression.length === 0) return null;
 
   const top = stats.exerciseProgression.slice(0, 8);
 
@@ -94,15 +96,9 @@ export function WorkoutProgressSection({ stats, loading }: { stats: WorkoutStats
         </p>
       </div>
 
-      {top.length === 0 ? (
-        <p className="metabolic-section-copy">
-          Informe a carga ao concluir um treino para acompanhar sua progressão por exercício aqui.
-        </p>
-      ) : (
-        <div className="metabolic-history-list">
-          {top.map((ex) => <ExerciseRow key={ex.exerciseId} ex={ex} />)}
-        </div>
-      )}
+      <div className="metabolic-history-list">
+        {top.map((ex) => <ExerciseRow key={ex.exerciseId} ex={ex} />)}
+      </div>
     </section>
   );
 }

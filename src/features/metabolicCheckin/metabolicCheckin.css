@@ -215,18 +215,131 @@
   color: var(--color-text);
 }
 
-.metabolic-summary-action {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-  flex-wrap: wrap;
+.metabolic-summary-link {
+  justify-self: start;
   margin-top: var(--space-1);
+  border: none;
+  background: none;
+  padding: 0;
+  color: var(--color-primary);
+  font: inherit;
+  font-weight: var(--font-semibold);
+  font-size: var(--text-sm);
+  cursor: pointer;
 }
 
-.metabolic-summary-action span {
+.metabolic-summary-link:hover {
+  text-decoration: underline;
+}
+
+.metabolic-metric-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: var(--space-3);
+}
+
+.metabolic-metric {
+  display: grid;
+  gap: 2px;
+  align-content: start;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-raised);
+  padding: var(--space-3);
+}
+
+.metabolic-metric.is-empty {
+  background: var(--color-surface);
+}
+
+.metabolic-metric-label {
+  color: var(--color-text-subtle);
+  font-size: var(--text-xs);
+  font-weight: var(--font-bold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.metabolic-metric-value {
+  color: var(--color-text);
+  font-size: var(--text-xl);
+  font-weight: var(--font-bold);
+}
+
+.metabolic-metric.is-empty .metabolic-metric-value {
+  color: var(--color-text-subtle);
+}
+
+.metabolic-metric-value.positive { color: var(--color-success-text); }
+.metabolic-metric-value.attention { color: var(--color-warn-text); }
+
+.metabolic-metric-hint {
   color: var(--color-text-muted);
   font-size: var(--text-sm);
+}
+
+.metabolic-sheet-panel {
+  width: min(520px, 100%);
+  max-height: min(86vh, 720px);
+  overflow: auto;
+  padding: var(--space-5);
+  display: grid;
+  gap: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-md);
+}
+
+.metabolic-sheet-options {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.metabolic-sheet-option {
+  display: grid;
+  gap: 2px;
+  text-align: left;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-raised);
+  padding: var(--space-3);
+  cursor: pointer;
+  transition: border-color 0.12s ease, background 0.12s ease;
+}
+
+.metabolic-sheet-option:hover:not(:disabled) {
+  border-color: var(--color-primary);
+}
+
+.metabolic-sheet-option:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.metabolic-sheet-option-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-text);
+  font-weight: var(--font-semibold);
+}
+
+.metabolic-sheet-option-desc {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.metabolic-sheet-soon {
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-subtle);
+  font-size: var(--text-xs);
+  font-weight: var(--font-bold);
+  padding: 1px 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .metabolic-insight-list {
