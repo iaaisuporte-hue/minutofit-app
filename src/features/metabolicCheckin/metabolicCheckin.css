@@ -135,3 +135,96 @@
   font-weight: var(--font-semibold);
   padding: 4px 10px;
 }
+
+.metabolic-history-delta {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+}
+
+.metabolic-period-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+.metabolic-period-chip {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  padding: 4px 12px;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+}
+
+.metabolic-period-chip:hover {
+  border-color: var(--color-text-subtle);
+}
+
+.metabolic-period-chip.is-active {
+  background: var(--color-primary-soft);
+  border-color: var(--color-primary);
+  color: var(--color-text);
+}
+
+.metabolic-banner {
+  margin: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-raised);
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  line-height: 1.5;
+  padding: var(--space-3);
+}
+
+.metabolic-empty {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-3);
+}
+
+.metabolic-summary {
+  border: 1px solid var(--color-border);
+  border-left: 3px solid var(--color-primary);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-md);
+  padding: var(--space-5);
+  display: grid;
+  gap: var(--space-2);
+}
+
+.metabolic-summary--positive {
+  border-left-color: var(--color-success-text);
+  background: var(--color-success-soft);
+}
+
+.metabolic-summary--attention {
+  border-left-color: var(--color-warn-text);
+  background: var(--color-warn-soft);
+}
+
+.metabolic-summary-body {
+  margin: 0;
+  font-size: var(--text-lg);
+  line-height: 1.5;
+  color: var(--color-text);
+}
+
+.metabolic-summary-action {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  margin-top: var(--space-1);
+}
+
+.metabolic-summary-action span {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}

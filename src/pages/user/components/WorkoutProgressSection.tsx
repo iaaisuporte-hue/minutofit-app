@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { getWorkoutStats, type WorkoutStats, type ExerciseProgression } from "../../../services/workoutSessionApi";
+import { type WorkoutStats, type ExerciseProgression } from "../../../services/workoutSessionApi";
 
 // Progressão de carga (Spec 010 V1.1) — frequência + ganho por exercício.
 // Cada exercício expande num gráfico temporal (carga × data). Some quando não
@@ -77,18 +77,7 @@ function ExerciseRow({ ex }: { ex: ExerciseProgression }) {
   );
 }
 
-export function WorkoutProgressSection() {
-  const [stats, setStats] = useState<WorkoutStats | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let cancelled = false;
-    getWorkoutStats()
-      .then((s) => { if (!cancelled) setStats(s); })
-      .finally(() => { if (!cancelled) setLoading(false); });
-    return () => { cancelled = true; };
-  }, []);
-
+export function WorkoutProgressSection({ stats, loading }: { stats: WorkoutStats | null; loading: boolean }) {
   if (loading) return null;
   if (!stats || stats.totalSessions === 0) return null;
 

@@ -1,13 +1,27 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   MetabolicCheckinModal,
+  MetabolicSummaryCard,
   MetabolicTrendStrip,
+  deriveMetabolicNarrative,
   useMetabolicCheckins,
   type MetabolicCheckinRecord,
   type MetabolicCheckinInput,
 } from '../../features/metabolicCheckin';
 import '../../features/metabolicCheckin/metabolicCheckin.css';
 import { WorkoutProgressSection } from './components/WorkoutProgressSection';
+import { useWorkoutStats } from './components/useWorkoutStats';
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+type PeriodKey = '7' | '30' | '90' | 'all';
+
+const PERIODS: { key: PeriodKey; label: string; days: number | null }[] = [
+  { key: '7', label: '7 dias', days: 7 },
+  { key: '30', label: '30 dias', days: 30 },
+  { key: '90', label: '90 dias', days: 90 },
+  { key: 'all', label: 'Tudo', days: null },
+];
 
 function formatDate(iso: string) {
   return new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }).format(new Date(iso));
@@ -23,9 +37,50 @@ function metricChips(record: MetabolicCheckinRecord) {
   return chips;
 }
 
+/** Delta de peso de cada registro vs. o registro de peso imediatamente anterior. Tendência, não diagnóstico. */
+function buildWeightDeltas(records: MetabolicCheckinRecord[]) {
+  const withWeight = records
+    .filter((record) => record.weightKg != null)
+    .sort((a, b) => new Date(a.recordedAt).getTime() - new Date(b.recordedAt).getTime());
+  const map = new Map<string, string>();
+  for (let i = 1; i < withWeight.length; i += 1) {
+    const delta = Number(withWeight[i].weightKg) - Number(withWeight[i - 1].weightKg);
+    if (Math.abs(delta) >= 0.1) {
+      const sign = delta > 0 ? '+' : '−';
+      map.set(withWeight[i].id, `${sign}${Math.abs(delta).toFixed(1)}kg vs. registro anterior`);
+    }
+  }
+  return map;
+}
+
+function spanInDays(records: MetabolicCheckinRecord[]) {
+  if (records.length < 2) return 0;
+  const times = records.map((record) => new Date(record.recordedAt).getTime());
+  return Math.round((Math.max(...times) - Math.min(...times)) / DAY_MS);
+}
+
 export default function MetabolicStatePage() {
   const { records, loading, error, saveCheckin } = useMetabolicCheckins(100);
+  const { stats, loading: statsLoading } = useWorkoutStats();
   const [modalOpen, setModalOpen] = useState(false);
+  const [period, setPeriod] = useState<PeriodKey>('30');
+
+  const weightDeltas = useMemo(() => buildWeightDeltas(records), [records]);
+
+  const narrative = useMemo(
+    () => (loading || statsLoading ? null : deriveMetabolicNarrative({ records, stats })),
+    [records, stats, loading, statsLoading],
+  );
+
+  const visibleRecords = useMemo(() => {
+    const days = PERIODS.find((option) => option.key === period)?.days ?? null;
+    if (days == null) return records;
+    const cutoff = Date.now() - days * DAY_MS;
+    return records.filter((record) => new Date(record.recordedAt).getTime() >= cutoff);
+  }, [records, period]);
+
+  // Tendência só é confiável com alguns registros espalhados no tempo — senão é só uma foto do momento.
+  const hasTrend = records.length >= 3 && spanInDays(records) >= 7;
 
   async function handleSave(input: MetabolicCheckinInput) {
     await saveCheckin(input);
@@ -37,33 +92,62 @@ export default function MetabolicStatePage() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
           <div style={{ display: 'grid', gap: 'var(--space-1)', maxWidth: 640 }}>
             <div className="metabolic-eyebrow">Estado metabólico</div>
-            <h1 className="metabolic-section-title" style={{ fontSize: 'var(--text-3xl)' }}>Histórico de atualizações</h1>
-            <p className="metabolic-section-copy">Acompanhe mudanças de composição, pressão e glicemia em uma linha do tempo simples. A tendência importa mais do que qualquer número isolado.</p>
+            <h1 className="metabolic-section-title" style={{ fontSize: 'var(--text-3xl)' }}>Sua evolução metabólica</h1>
+            <p className="metabolic-section-copy">Peso, composição, carga e sinais do corpo ao longo do tempo. A tendência importa mais do que qualquer número isolado.</p>
           </div>
-          <button type="button" className="btn btn-accent" onClick={() => setModalOpen(true)}>Nova atualização</button>
+          <button type="button" className="btn btn-accent" onClick={() => setModalOpen(true)}>Registrar atualização</button>
         </div>
       </section>
 
-      <WorkoutProgressSection />
+      {narrative && <MetabolicSummaryCard narrative={narrative} onAction={() => setModalOpen(true)} />}
+
+      <WorkoutProgressSection stats={stats} loading={statsLoading} />
 
       <MetabolicTrendStrip records={records} loading={loading} />
 
       <section className="metabolic-history-page" style={{ display: 'grid', gap: 'var(--space-4)' }}>
-        <div style={{ display: 'grid', gap: 'var(--space-1)' }}>
-          <div className="metabolic-eyebrow">Linha do tempo</div>
-          <h2 className="metabolic-section-title">Registros recentes</h2>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
+          <div style={{ display: 'grid', gap: 'var(--space-1)' }}>
+            <div className="metabolic-eyebrow">Linha do tempo</div>
+            <h2 className="metabolic-section-title">Registros recentes</h2>
+          </div>
+          {records.length > 0 && (
+            <div className="metabolic-period-filter" role="group" aria-label="Filtrar período">
+              {PERIODS.map((option) => (
+                <button
+                  type="button"
+                  key={option.key}
+                  className={`metabolic-period-chip${period === option.key ? ' is-active' : ''}`}
+                  aria-pressed={period === option.key}
+                  onClick={() => setPeriod(option.key)}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {error && <div className="badge badge-warn" role="alert">{error}</div>}
 
+        {records.length > 0 && !hasTrend && (
+          <p className="metabolic-banner">Ainda é uma foto, não uma tendência. Mais alguns registros e o S2Core começa a enxergar como seu corpo está evoluindo.</p>
+        )}
+
         {loading ? (
           <p className="metabolic-section-copy">Carregando suas atualizações...</p>
         ) : records.length === 0 ? (
-          <p className="metabolic-section-copy">Seus sinais de tendência aparecerão aqui depois do primeiro check-in metabólico.</p>
+          <div className="metabolic-empty">
+            <p className="metabolic-section-copy">Seus sinais de tendência aparecem aqui depois do primeiro registro. Comece pelo peso — leva 5 segundos.</p>
+            <button type="button" className="btn btn-accent" onClick={() => setModalOpen(true)}>Registrar meu primeiro sinal</button>
+          </div>
+        ) : visibleRecords.length === 0 ? (
+          <p className="metabolic-section-copy">Nenhum registro neste período. Experimente um intervalo maior.</p>
         ) : (
           <div className="metabolic-history-list">
-            {records.map((record) => {
+            {visibleRecords.map((record) => {
               const chips = metricChips(record);
+              const delta = weightDeltas.get(record.id);
               return (
                 <article className="metabolic-history-item" key={record.id} style={{ display: 'grid', gap: 'var(--space-2)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
@@ -73,6 +157,7 @@ export default function MetabolicStatePage() {
                   <div className="metabolic-history-metrics">
                     {chips.map((chip) => <span className="metabolic-history-chip" key={chip}>{chip}</span>)}
                   </div>
+                  {delta && <span className="metabolic-history-delta">{delta}</span>}
                   {record.notes && <p className="metabolic-section-copy">{record.notes}</p>}
                 </article>
               );
