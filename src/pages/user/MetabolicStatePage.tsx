@@ -16,6 +16,7 @@ import {
 import '../../features/metabolicCheckin/metabolicCheckin.css';
 import { WorkoutProgressSection } from './components/WorkoutProgressSection';
 import { useWorkoutStats } from './components/useWorkoutStats';
+import { useDailyCondition } from '../../features/dailyCheckin/useDailyCondition';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -67,6 +68,7 @@ function spanInDays(records: MetabolicCheckinRecord[]) {
 export default function MetabolicStatePage() {
   const { records, loading, error, saveCheckin } = useMetabolicCheckins(100);
   const { stats, loading: statsLoading } = useWorkoutStats();
+  const { condition } = useDailyCondition();
   const [sheetOpen, setSheetOpen] = useState(false);
   const [modalField, setModalField] = useState<keyof MetabolicCheckinInput | null>(null);
   const [period, setPeriod] = useState<PeriodKey>('30');
@@ -74,8 +76,8 @@ export default function MetabolicStatePage() {
   const weightDeltas = useMemo(() => buildWeightDeltas(records), [records]);
 
   const narrative = useMemo(
-    () => (loading || statsLoading ? null : deriveMetabolicNarrative({ records, stats })),
-    [records, stats, loading, statsLoading],
+    () => (loading || statsLoading ? null : deriveMetabolicNarrative({ records, stats, condition })),
+    [records, stats, condition, loading, statsLoading],
   );
 
   const insights = useMemo(
