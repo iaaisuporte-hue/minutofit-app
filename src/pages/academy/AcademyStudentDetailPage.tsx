@@ -100,7 +100,7 @@ function MaaSStrip({
   const hasSomeSignal = activity && (
     activity.lastWorkout ||
     activity.lastCheckin ||
-    activity.workouts30d > 0 ||
+    (activity.workouts30d ?? 0) > 0 ||
     (adherence7d != null && adherence7d > 0)
   );
 
@@ -110,7 +110,16 @@ function MaaSStrip({
         Sinais metabólicos
       </h2>
 
-      {!hasSomeSignal ? (
+      {activity?.restricted ? (
+        <div className="dash-alert-empty--ok">
+          <div className="dash-alert-ok-signal">Acompanhamento individual restrito</div>
+          <p className="dash-alert-ok-detail">
+            Aderência, treino e check-in ficam visíveis ao profissional vinculado
+            (personal/nutri) com consentimento do aluno. A academia vê presença física
+            e indicadores agregados.
+          </p>
+        </div>
+      ) : !hasSomeSignal ? (
         <div className="dash-alert-empty--ok">
           <div className="dash-alert-ok-signal">Sinais em formação</div>
           <p className="dash-alert-ok-detail">
@@ -197,6 +206,30 @@ function dateRelative(iso: string | null) {
 
 function ActivityBlock({ activity }: { activity?: StudentActivity }) {
   if (!activity) return null;
+
+  // Sem vínculo profissional: só operacional (presença). Treino/check-in/aderência blindados.
+  if (activity.restricted) {
+    return (
+      <div className="section-card">
+        <h2 className="section-card__title" style={{ marginBottom: "var(--space-4)" }}>Atividade</h2>
+        <div>
+          <div className="dash-eyebrow" style={{ marginBottom: 4 }}>Última presença</div>
+          <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--font-medium)" }}>
+            {dateRelative(activity.lastPhysicalPresence ?? null)}
+          </div>
+          {activity.lastPhysicalPresence && (
+            <div style={{ fontSize: "var(--text-xs)", color: "var(--color-text-2)", marginTop: 2 }}>
+              {new Date(activity.lastPhysicalPresence).toLocaleDateString("pt-BR")}
+            </div>
+          )}
+        </div>
+        <p style={{ marginTop: "var(--space-4)", fontSize: "var(--text-xs)", color: "var(--color-text-muted)" }}>
+          Treino, check-in diário e aderência ficam visíveis ao profissional vinculado
+          (personal/nutri) com consentimento do aluno.
+        </p>
+      </div>
+    );
+  }
 
   const adherence = activity.adherence30dPct;
   const barColor =

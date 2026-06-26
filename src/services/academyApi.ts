@@ -336,11 +336,13 @@ export interface StudentsListResult {
 }
 
 export interface StudentActivity {
+  /** true → bloco sensível blindado por falta de vínculo profissional. */
+  restricted?: boolean;
+  lastPhysicalPresence?: string | null;  // operacional — sempre visível
   lastWorkout: string | null;
   lastCheckin: string | null;
-  lastPhysicalPresence?: string | null;
-  workouts30d: number;
-  checkins30d: number;
+  workouts30d: number | null;
+  checkins30d: number | null;
   adherence30dPct: number | null;
   adherence7dPct?: number | null;
 }
