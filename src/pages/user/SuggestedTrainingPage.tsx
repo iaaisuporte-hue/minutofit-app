@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext";
+import { useIsMobile } from "../../hooks/useIsMobile";
 import { loadAnswers } from "./onboarding/onboardingStorage";
 import { type MuscleGroup, getYesterdayMuscleGroups } from "./workoutHistory";
 import { addXp, registerDailyCheckin } from "./gamification";
@@ -145,6 +146,7 @@ function getLevelVisual(level: ReadinessLevel) {
 
 export default function SuggestedTrainingPage() {
   const navigate = useNavigate();
+  const isMobile = useIsMobile(720);
   const { user, id } = useAuth();
   const { condition } = useDailyCondition();
   const userId = (id ?? "").trim().toLowerCase();
@@ -379,7 +381,7 @@ export default function SuggestedTrainingPage() {
             </div>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.2fr) minmax(280px, .8fr)", gap: 14 }}>
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "minmax(0, 1.2fr) minmax(280px, .8fr)", gap: 14 }}>
             <div
               style={{
                 padding: 18,
@@ -554,7 +556,7 @@ export default function SuggestedTrainingPage() {
         </div>
       </Card>
 
-      <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.05fr) minmax(0, .95fr)", gap: 16 }}>
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "minmax(0, 1.05fr) minmax(0, .95fr)", gap: 16 }}>
         <Card>
           <div style={{ display: "grid", gap: 18 }}>
             <div style={{ fontSize: 20, fontWeight: 700, color: COLORS.text }}>Estado de hoje</div>
