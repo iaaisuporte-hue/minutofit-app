@@ -1,0 +1,429 @@
+/* Modo Treino (Fase 1+2). Layout fullscreen mobile-first; barra de descanso
+   fixa no rodapé. Usa tokens globais — respeita branding por academia e modo
+   daltônico. Classes namespaced ws-* para não vazar. */
+
+.ws-root {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg, #fff);
+  color: var(--color-text);
+}
+
+/* ── Topo: progresso + sair ─────────────────────────── */
+.ws-top {
+  flex-shrink: 0;
+  padding: 10px 14px calc(10px + env(safe-area-inset-top));
+  padding-top: max(10px, env(safe-area-inset-top));
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+.ws-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.ws-title {
+  font-weight: 700;
+  font-size: 15px;
+  line-height: 1.2;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ws-sub {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+.ws-icon-btn {
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+.ws-progress-track {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--color-surface-raised);
+  overflow: hidden;
+}
+.ws-progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--color-primary);
+  transition: width 0.3s ease;
+}
+
+/* ── Corpo rolável ──────────────────────────────────── */
+.ws-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px;
+  padding-bottom: 120px; /* respiro p/ barra de descanso */
+  max-width: 720px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+/* ── Card do exercício atual ────────────────────────── */
+.ws-ex-card {
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  background: var(--color-surface);
+  overflow: hidden;
+}
+.ws-ex-head {
+  display: flex;
+  gap: 12px;
+  padding: 14px;
+  align-items: center;
+}
+.ws-thumb {
+  flex-shrink: 0;
+  width: 72px;
+  height: 72px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--color-surface-raised);
+  position: relative;
+  cursor: pointer;
+  border: none;
+  padding: 0;
+}
+.ws-thumb img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.ws-thumb-badge {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 999px;
+}
+.ws-ex-name {
+  font-weight: 700;
+  font-size: 16px;
+  line-height: 1.25;
+}
+.ws-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+.ws-chip {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  background: var(--color-surface-raised);
+  border-radius: 999px;
+  padding: 3px 8px;
+}
+.ws-chip.ws-chip-prev {
+  color: var(--color-text);
+  background: var(--color-primary-soft);
+}
+
+/* ── Lista de séries ────────────────────────────────── */
+.ws-sets {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  background: var(--color-border);
+  border-top: 1px solid var(--color-border);
+}
+.ws-set-row {
+  display: grid;
+  grid-template-columns: 28px 1fr 1fr 52px;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: var(--color-surface);
+}
+.ws-set-row.ws-set-done {
+  background: var(--color-success-soft);
+}
+.ws-set-idx {
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+.ws-field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.ws-field label {
+  font-size: 10px;
+  color: var(--color-text-subtle);
+  font-weight: 600;
+}
+.ws-input {
+  width: 100%;
+  padding: 8px 8px;
+  min-height: 40px;
+  border-radius: 8px;
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 15px;
+  text-align: center;
+}
+.ws-input::placeholder {
+  color: var(--color-text-subtle);
+}
+.ws-set-check {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  border: 1px solid var(--color-border-strong);
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+.ws-set-check.ws-checked {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-cta-text, #fff);
+}
+
+/* ── Ações de navegação ─────────────────────────────── */
+.ws-actions {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ws-btn {
+  width: 100%;
+  min-height: 50px;
+  border-radius: 12px;
+  border: none;
+  font-weight: 700;
+  font-size: 15px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.ws-btn-primary {
+  background: var(--color-primary);
+  color: var(--color-cta-text, #fff);
+}
+.ws-btn-ghost {
+  background: transparent;
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+  min-height: 44px;
+}
+.ws-btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+/* ── Barra de descanso (fixa) ───────────────────────── */
+.ws-rest {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1210;
+  padding: 12px 14px calc(12px + env(safe-area-inset-bottom));
+  background: var(--color-surface);
+  border-top: 1px solid var(--color-border);
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.12);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: 720px;
+  margin: 0 auto;
+}
+.ws-rest.ws-rest-soon {
+  background: var(--color-warn-soft);
+}
+.ws-rest-time {
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  font-size: 38px;
+  line-height: 1;
+  min-width: 92px;
+}
+.ws-rest-label {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  font-weight: 600;
+}
+.ws-rest-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.ws-rest-btn {
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+}
+.ws-rest-btn-skip {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-cta-text, #fff);
+}
+
+/* ── Resumo final ───────────────────────────────────── */
+.ws-summary {
+  max-width: 560px;
+  margin: 0 auto;
+}
+.ws-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin: 16px 0;
+}
+.ws-stat {
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 14px;
+  background: var(--color-surface);
+}
+.ws-stat-value {
+  font-weight: 800;
+  font-size: 24px;
+  line-height: 1;
+}
+.ws-stat-label {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  margin-top: 4px;
+}
+.ws-delta-up {
+  color: var(--color-primary);
+}
+.ws-delta-down {
+  color: var(--color-warn, #d97706);
+}
+/* ── Sinal de fadiga / prontidão (Fase 5) ───────────── */
+.ws-insight {
+  border-radius: 14px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+  border: 1px solid var(--color-border);
+}
+.ws-insight-head {
+  font-weight: 700;
+  font-size: 15px;
+  margin-bottom: 4px;
+}
+.ws-insight-body {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+.ws-insight-positive {
+  background: var(--color-success-soft);
+  border-color: var(--color-success-border);
+}
+.ws-insight-info {
+  background: var(--color-info-soft);
+  border-color: var(--color-info-border);
+}
+.ws-insight-caution {
+  background: var(--color-warn-soft);
+  border-color: var(--color-warn-border);
+}
+
+/* ── Comparação por exercício (Fase 4) ──────────────── */
+.ws-cmp {
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+.ws-cmp-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  padding: 10px 14px;
+  background: var(--color-surface-raised);
+  border-bottom: 1px solid var(--color-border);
+}
+.ws-cmp-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 14px;
+  font-size: 13px;
+  border-bottom: 1px solid var(--color-border);
+}
+.ws-cmp-row:last-child {
+  border-bottom: none;
+}
+.ws-cmp-name {
+  font-weight: 600;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ws-cmp-load {
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+.ws-cmp-load em {
+  font-style: normal;
+  font-weight: 700;
+  margin-left: 4px;
+  color: var(--color-text-muted);
+}
+
+.ws-textarea {
+  width: 100%;
+  min-height: 72px;
+  border-radius: 12px;
+  border: 1px solid var(--color-border-strong);
+  padding: 10px 12px;
+  font-size: 14px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  resize: vertical;
+}
+
+@media (min-width: 760px) {
+  .ws-rest-time {
+    font-size: 44px;
+  }
+}

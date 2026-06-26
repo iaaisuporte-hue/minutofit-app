@@ -10,6 +10,7 @@ import AccountSettingsPage from "./user/AccountSettingsPage";
 import HomeWorkoutsPage from "./user/HomeWorkoutsPage";
 import UpgradePlanPage from "./user/UpgradePlanPage";
 import WorkoutPlayerPage from "./user/WorkoutPlayerPage";
+import WorkoutSessionPage from "./user/WorkoutSessionPage";
 import ActivityTrackerPage from "./user/ActivityTrackerPage";
 
 // ✅ NOVAS PÁGINAS
@@ -283,6 +284,17 @@ export default function UserApp() {
                   <LimitedUserOnly allowed={canHomeWorkouts}>
                     <RequireClearance>
                       <HomeWorkoutsPage />
+                    </RequireClearance>
+                  </LimitedUserOnly>
+                }
+              />
+              {/* ✅ MODO TREINO (execução ao vivo + cronômetro) — Spec 010 UX */}
+              <Route
+                path="treino/:planId/:dayIndex"
+                element={
+                  <LimitedUserOnly allowed={!loading}>
+                    <RequireClearance>
+                      <WorkoutSessionPage />
                     </RequireClearance>
                   </LimitedUserOnly>
                 }

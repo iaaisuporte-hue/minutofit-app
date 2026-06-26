@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { fetchMyWorkoutPlans, abandonMyWorkoutPlan, type UserWorkoutPlan, type UserWorkoutPlanDay, type UserWorkoutPlanItem } from "../../services/userWorkoutPlansApi";
 import { getExercisesBatch, type Exercise } from "../../services/exercisesApi";
 import { COLORS } from "../../styles/colors";
@@ -8,10 +8,8 @@ import { TechniqueCard } from "../../features/training/techniques/TechniqueCard"
 import { InfoHint } from "../../components/InfoHint";
 import { ConfirmModal } from "../../features/team/ConfirmModal";
 import { Toast } from "../../features/team/Toast";
-import { persistGamificationCheckin } from "../../services/gamificationApi";
-import { createWorkoutSession } from "../../services/workoutSessionApi";
 import { WorkoutLogSheet, type SessionStatus } from "./components/WorkoutLogSheet";
-import { addWorkoutHistoryEntry, type MuscleGroup } from "../user/workoutHistory";
+import { registerWorkoutSession } from "./workoutSession/registerWorkoutSession";
 import { canShareWorkoutImage } from "./lib/shareWorkoutImage";
 import { ShareWorkoutModal } from "./components/ShareWorkoutModal";
 import { useAdaptiveTraining } from "../../features/training/adaptive/useAdaptiveTraining";
@@ -171,28 +169,6 @@ function ExerciseGifModal({ exercise, onClose }: ExerciseModalProps) {
       </div>
     </div>
   );
-}
-
-const MUSCLE_KEYWORD_MAP: Array<[RegExp, MuscleGroup]> = [
-  [/peito|chest|peitoral/i, 'chest'],
-  [/cost[as]|back|dorsal|lat[s]?/i, 'back'],
-  [/perna|leg[s]?|glúteo|glute/i, 'legs'],
-  [/ombro|shoulder/i, 'shoulders'],
-  [/bra[çc]o|arm[s]?|bícep|bicep|trícep|tricep/i, 'arms'],
-  [/core|abdômen|abdom|abs/i, 'core'],
-  [/corpo inteiro|full.?body|geral|total/i, 'full_body'],
-  [/cardio|aeró|aerob/i, 'cardio'],
-  [/mobilidade|flexib|stretching/i, 'mobility'],
-];
-
-function deriveMuscleGroupsFromFocus(focus: string | null, selectedGroup: string | null): MuscleGroup[] {
-  const text = focus ?? selectedGroup ?? '';
-  if (!text) return ['full_body'];
-  const found: MuscleGroup[] = [];
-  for (const [pattern, group] of MUSCLE_KEYWORD_MAP) {
-    if (pattern.test(text) && !found.includes(group)) found.push(group);
-  }
-  return found.length > 0 ? found : ['full_body'];
 }
 
 type PlanDayExerciseListProps = {
@@ -443,6 +419,7 @@ type PlanCardProps = {
 };
 
 function PlanCard({ plan, isOpen, onToggle, onAbandon, adaptiveData }: PlanCardProps) {
+  const navigate = useNavigate();
   const [activeDayIdx, setActiveDayIdx] = useState(0);
   const [isRegistering, setIsRegistering] = useState(false);
   const [registeredToday, setRegisteredToday] = useState(false);
@@ -495,46 +472,29 @@ function PlanCard({ plan, isOpen, onToggle, onAbandon, adaptiveData }: PlanCardP
     setIsRegistering(true);
     setRegistrationError(null);
 
-    const dayLabel = activeDay?.name ?? 'Sessão';
-    const workoutId = `plan-${plan.id}-day-${activeDay?.index ?? activeDayIdx + 1}-${Date.now()}`;
-    const title = `${plan.title} · ${dayLabel}`;
-    const muscleGroups = deriveMuscleGroupsFromFocus(activeDay?.focus ?? null, plan.selected_group);
-
-    addWorkoutHistoryEntry({
-      workoutId,
-      title,
-      muscleGroups,
-      date: new Date().toISOString(),
-    });
-
-    // Execução estruturada (Spec 010) — histórico confiável, linkado a plano/dia
-    // /adaptação/readiness. Fire-and-forget: nunca bloqueia a conclusão.
-    void createWorkoutSession({
-      source: 'personal',
-      status,
-      title,
-      planId: plan.id,
-      dayIndex: activeDay?.index ?? null,
-      sessionRpe,
-      prescribed: (displayDay.items ?? []).map((it) => ({
-        exerciseId: it.exerciseId ?? null,
-        name: it.name,
-        sets: it.sets,
-        reps: it.reps,
-        rest: it.rest,
-      })),
-      sets: loggedSets && loggedSets.length > 0 ? loggedSets : undefined,
-    });
-
     try {
-      const result = await persistGamificationCheckin({
-        source: 'workout',
-        xp: 30,
-        workout: { workoutId, title, muscleGroups },
+      // Finalizador único (Spec 010) — mesmo caminho do Modo Treino ao vivo.
+      const { streak } = await registerWorkoutSession({
+        planId: plan.id,
+        planTitle: plan.title,
+        selectedGroup: plan.selected_group,
+        dayIndex: activeDay?.index ?? null,
+        dayName: activeDay?.name ?? 'Sessão',
+        dayFocus: activeDay?.focus ?? null,
+        prescribed: (displayDay.items ?? []).map((it) => ({
+          exerciseId: it.exerciseId ?? null,
+          name: it.name,
+          sets: it.sets,
+          reps: it.reps,
+          rest: it.rest,
+        })),
+        sets: loggedSets,
+        status,
+        sessionRpe,
       });
       setRegisteredToday(true);
-      setRegistrationStreak(result?.streak ?? null);
-      const streakText = result?.streak ? `${result.streak} dias seguidos cuidando do seu corpo` : '';
+      setRegistrationStreak(streak);
+      const streakText = streak ? `${streak} dias seguidos cuidando do seu corpo` : '';
       const parts = ['Sessão registrada — sua leitura foi atualizada', streakText].filter(Boolean);
       setSuccessToast(parts.join(' · '));
     } catch {
@@ -645,6 +605,36 @@ function PlanCard({ plan, isOpen, onToggle, onAbandon, adaptiveData }: PlanCardP
 
           {hasExercises && (
             <div style={{ marginTop: 16 }}>
+              {/* CTA primário: Modo Treino ao vivo (execução + cronômetro). */}
+              {!registeredToday && (
+                <button
+                  type="button"
+                  onClick={() => navigate(`/app/user/treino/${plan.id}/${activeDay?.index ?? 0}`)}
+                  style={{
+                    width: '100%',
+                    padding: '14px 16px',
+                    minHeight: 52,
+                    borderRadius: 12,
+                    border: 'none',
+                    background: COLORS.primary,
+                    color: 'var(--color-cta-text, #fff)',
+                    fontWeight: 700,
+                    fontSize: 15,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 8,
+                    marginBottom: 8,
+                  }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <polygon points="6 4 20 12 6 20 6 4" />
+                  </svg>
+                  Iniciar treino
+                </button>
+              )}
+              {/* Fallback discreto: registrar sem cronômetro (treinou fora do app). */}
               <button
                 type="button"
                 onClick={() => setLogSheetOpen(true)}
@@ -654,11 +644,11 @@ function PlanCard({ plan, isOpen, onToggle, onAbandon, adaptiveData }: PlanCardP
                   padding: '13px 16px',
                   minHeight: 48,
                   borderRadius: 12,
-                  border: 'none',
-                  background: registeredToday ? 'var(--color-success)' : COLORS.primary,
-                  color: '#fff',
-                  fontWeight: 700,
-                  fontSize: 15,
+                  border: registeredToday ? 'none' : `1px solid ${COLORS.border}`,
+                  background: registeredToday ? 'var(--color-success)' : 'transparent',
+                  color: registeredToday ? '#fff' : COLORS.text,
+                  fontWeight: registeredToday ? 700 : 600,
+                  fontSize: registeredToday ? 15 : 14,
                   cursor: isRegistering ? 'not-allowed' : registeredToday ? 'default' : 'pointer',
                   opacity: isRegistering ? 0.75 : 1,
                   transition: 'background 0.2s, opacity 0.2s',
@@ -680,7 +670,7 @@ function PlanCard({ plan, isOpen, onToggle, onAbandon, adaptiveData }: PlanCardP
                   ? `Sessão registrada${registrationStreak ? ` · ${registrationStreak} dias` : ''}`
                   : isRegistering
                     ? 'Registrando...'
-                    : 'Concluir sessão de hoje'
+                    : 'Registrar sem cronômetro'
                 }
               </button>
 
