@@ -307,11 +307,16 @@ export default function UserApp() {
               />
               <Route path="settings" element={<LimitedUserOnly allowed={!loading}><AccountSettingsPage /></LimitedUserOnly>} />
 
-              {/* ✅ TREINO SUGERIDO */}
+              {/* ✅ TREINO SUGERIDO
+                  Aluno com personal (novato, ainda sem ficha) precisa alcançar o
+                  treino sugerido pelo card "Ver treino completo" e pelos atalhos do
+                  Hoje/metabolismo — mesmo sem a feature do plano. Sem isso a rota
+                  rebatia para /today. Coerente com PlanoPage, que já renderiza o
+                  SuggestedTrainingPage sem gate para esse aluno. */}
               <Route
                 path="suggested-training"
                 element={
-                  <LimitedUserOnly allowed={canSuggestedTraining}>
+                  <LimitedUserOnly allowed={canSuggestedTraining || isPersonalLed}>
                     <RequireClearance>
                       <SuggestedTrainingPage />
                     </RequireClearance>
