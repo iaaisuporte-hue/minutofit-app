@@ -9,6 +9,8 @@ import {
 } from "../../services/academyApi";
 import { EmptyState } from "../../components/EmptyState";
 import { resolveAcademyHeroLogo } from "./academyFallbackLogo";
+import { AcademyPlanBadge } from "../../features/academyPlan/AcademyPlanBadge";
+import { IntelligenceUpsellCard } from "../../features/academyPlan/IntelligenceUpsellCard";
 
 function dayLabel(n: number) {
   return n === 1 ? "1 dia" : `${n} dias`;
@@ -322,6 +324,8 @@ export default function AcademyDashboardPage() {
   const adoption               = data?.adoption;
   const commercialSignals      = data?.commercialSignals;
   const frequency              = data?.frequency;
+  // Spec 015 — Free=operação · Pro=inteligência. intelligenceLocked => Free.
+  const locked                 = data?.intelligenceLocked ?? false;
   const academyName            = branding?.display_name ?? academy?.display_name ?? "Academia";
   const logoColor      = branding?.primary_color ?? "var(--color-primary)";
   const initial        = academyName.slice(0, 2).toUpperCase();
@@ -339,7 +343,10 @@ export default function AcademyDashboardPage() {
       {/* Hero */}
       <div className="dash-hero">
         <div>
-          <div className="dash-hero-eyebrow">Visão geral</div>
+          <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
+            <div className="dash-hero-eyebrow">Visão geral</div>
+            <AcademyPlanBadge plan={locked ? "free" : "pro"} />
+          </div>
           <div style={{ display: "flex", alignItems: "center", gap: "var(--space-5)", marginTop: "var(--space-3)" }}>
             {heroLogo.kind === "img" ? (
               <img
@@ -424,13 +431,22 @@ export default function AcademyDashboardPage() {
 
           <div className="dash-kpi-item">
             <div className="dash-kpi-item-label">Em risco</div>
-            <div
-              className="dash-kpi-item-value"
-              style={studentsAtRisk > 0 ? { color: "var(--color-danger, #ef4444)" } : undefined}
-            >
-              {studentsAtRisk}
-            </div>
-            <div className="dash-kpi-item-note">sem check-in/presença em 14d</div>
+            {locked ? (
+              <>
+                <div className="dash-kpi-item-value" style={{ color: "var(--color-text-subtle)" }}>Pro</div>
+                <div className="dash-kpi-item-note">inteligência no Pro</div>
+              </>
+            ) : (
+              <>
+                <div
+                  className="dash-kpi-item-value"
+                  style={studentsAtRisk > 0 ? { color: "var(--color-danger, #ef4444)" } : undefined}
+                >
+                  {studentsAtRisk}
+                </div>
+                <div className="dash-kpi-item-note">sem check-in/presença em 14d</div>
+              </>
+            )}
           </div>
 
           <div className="dash-kpi-item">
@@ -441,10 +457,19 @@ export default function AcademyDashboardPage() {
 
           <div className="dash-kpi-item">
             <div className="dash-kpi-item-label">Aderência 7d</div>
-            <AdherenceBar pct={adherence7d} />
-            <div className="dash-kpi-item-note" style={{ marginTop: "var(--space-1)" }}>
-              {adherence7d != null ? "da base ativa" : "aguardando dados"}
-            </div>
+            {locked ? (
+              <>
+                <div className="dash-kpi-item-value" style={{ color: "var(--color-text-subtle)" }}>Pro</div>
+                <div className="dash-kpi-item-note" style={{ marginTop: "var(--space-1)" }}>inteligência no Pro</div>
+              </>
+            ) : (
+              <>
+                <AdherenceBar pct={adherence7d} />
+                <div className="dash-kpi-item-note" style={{ marginTop: "var(--space-1)" }}>
+                  {adherence7d != null ? "da base ativa" : "aguardando dados"}
+                </div>
+              </>
+            )}
           </div>
         </div>
       ) : (
@@ -461,6 +486,9 @@ export default function AcademyDashboardPage() {
           />
         </div>
       )}
+
+      {/* Spec 015 — Free: upsell da inteligência no lugar das seções Pro */}
+      {locked && students > 0 && <IntelligenceUpsellCard />}
 
       {/* Mov.2 — Frequência (presença física da recepção/catraca) */}
       {frequency && students > 0 && (
@@ -479,25 +507,26 @@ export default function AcademyDashboardPage() {
 
           <div className="dash-kpi-item">
             <div className="dash-kpi-item-label">Horário de pico</div>
-            <div className="dash-kpi-item-value">
-              {frequency.peakHour != null ? `${String(frequency.peakHour).padStart(2, "0")}h` : "—"}
+            <div className="dash-kpi-item-value" style={locked ? { color: "var(--color-text-subtle)" } : undefined}>
+              {locked ? "Pro" : frequency.peakHour != null ? `${String(frequency.peakHour).padStart(2, "0")}h` : "—"}
             </div>
             <div className="dash-kpi-item-note">
-              {frequency.peakHour != null ? "maior fluxo (30d)" : "aguardando dados"}
+              {locked ? "inteligência no Pro" : frequency.peakHour != null ? "maior fluxo (30d)" : "aguardando dados"}
             </div>
           </div>
         </div>
       )}
 
-      {/* At-risk students card */}
-      <AtRiskCard students={atRiskStudents} />
+      {/* At-risk students card (inteligência — Pro) */}
+      {!locked && <AtRiskCard students={atRiskStudents} />}
 
-      {/* M7 — Commercial signals */}
-      {commercialSignals && (
+      {/* M7 — Commercial signals (inteligência — Pro) */}
+      {!locked && commercialSignals && (
         <CommercialSignalsPanel signals={commercialSignals} studentsCount={students} />
       )}
 
-      {/* 3.4 — Average metabolism score */}
+      {/* 3.4 — Average metabolism score (inteligência — Pro) */}
+      {!locked && (
       <div className="dash-section" style={{ marginTop: "var(--space-6)" }}>
         <div className="dash-section-header">
           <div className="dash-section-title">Score metabólico médio</div>
@@ -529,8 +558,9 @@ export default function AcademyDashboardPage() {
           </div>
         )}
       </div>
+      )}
 
-      {/* 3.5 — Top personals by adherence */}
+      {/* 3.5 — Top personals by adherence (inteligência — Pro; vazio no Free) */}
       {topPersonals.length > 0 && (
         <div className="dash-section" style={{ marginTop: "var(--space-6)" }}>
           <div className="dash-section-header">

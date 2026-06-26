@@ -105,6 +105,34 @@ export interface AcademyDashboard {
   adoption: AcademyAdoption;
   commercialSignals?: AcademyCommercialSignals;
   frequency?: AcademyFrequency;
+  /** true → academia no Free; bloco de inteligência travado (upsell para Pro). */
+  intelligenceLocked?: boolean;
+}
+
+// ─── Plano SaaS da academia (Spec 015) ─────────────────────────────────────────
+
+export type AcademySaasPlan = "free" | "pro";
+
+export interface AcademySubscription {
+  plan: AcademySaasPlan;
+  status: string;
+  intelligenceEnabled: boolean;
+  studentCap: number | null;
+  currentPeriodEnd: string | null;
+  trialUntil: string | null;
+}
+
+export async function fetchAcademyPlan(): Promise<AcademySubscription> {
+  const data = await authFetch(`${API_URL}/academy/plan`).then(parseJson);
+  if (!data.success) throw new Error(data.error);
+  return data.data;
+}
+
+/** Inicia o checkout do Pro (MP pre-approval) e retorna a initPoint para redirect. */
+export async function startAcademyCheckout(): Promise<string> {
+  const data = await authFetch(`${API_URL}/academy/plan/checkout`, { method: "POST" }).then(parseJson);
+  if (!data.success) throw new Error(data.error || "Checkout indisponível no momento");
+  return data.data.initPoint;
 }
 
 export interface AcademyAuditRow {
