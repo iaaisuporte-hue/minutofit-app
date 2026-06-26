@@ -19,6 +19,7 @@ import {
 } from "./todayPageMotion";
 import "./todayPage.css";
 import { SportProfileSection } from "../../features/sport/components/SportProfileSection";
+import { useProfessionalContext } from "../../features/professionalVoice";
 import { COLORS } from "../../styles/colors";
 
 type Props = {
@@ -134,32 +135,6 @@ function Chip({ children }: { children: React.ReactNode }) {
     >
       {children}
     </span>
-  );
-}
-
-function MetabolicMetric({ label, value, tone }: { label: string; value: string | number; tone?: "up" | "down" }) {
-  return (
-    <div
-      style={{
-        padding: "var(--space-4)",
-        borderRadius: "var(--radius-card)",
-        border: `1px solid ${COLORS.border}`,
-        background: COLORS.panelDeep,
-        display: "grid",
-        gap: "var(--space-2)",
-      }}
-    >
-      <div style={{ color: COLORS.muted, fontSize: "var(--text-xs)", fontWeight: "var(--font-bold)", textTransform: "uppercase", letterSpacing: "0.07em" }}>{label}</div>
-      <div
-        style={{
-          fontSize: typeof value === "number" ? "var(--text-3xl)" : "var(--text-lg)",
-          fontWeight: "var(--font-bold)",
-          color: tone === "up" ? "var(--color-success-text)" : tone === "down" ? "var(--color-danger)" : COLORS.text,
-        }}
-      >
-        {value}
-      </div>
-    </div>
   );
 }
 
@@ -298,10 +273,8 @@ export default function UserProfilePage({ onLogout }: Props) {
       experienceLevel: user?.experienceLevel || "Não definido",
       height: user?.heightCm ? `${user.heightCm} cm` : "Não informado",
       weight: user?.weightKg ? `${user.weightKg} kg` : "Não informado",
-      dietaryRestrictions: user?.dietaryRestrictions || "Nenhuma informada",
     }),
     [
-      user?.dietaryRestrictions,
       user?.experienceLevel,
       user?.fitnessGoal,
       user?.heightCm,
@@ -314,6 +287,9 @@ export default function UserProfilePage({ onLogout }: Props) {
 
   const realAcademyName = branding?.displayName ?? academies?.[0]?.displayName ?? null;
   const derivedEnergy = useMemo(() => deriveEnergyStatus(metabolismData), [metabolismData]);
+  const { data: proContext } = useProfessionalContext();
+  const personalName = proContext?.personal?.name ?? null;
+  const nutriName = proContext?.nutri?.name ?? null;
 
   return (
     <motion.div
@@ -369,7 +345,6 @@ export default function UserProfilePage({ onLogout }: Props) {
             <motion.div variants={itemRevealVariants} style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap", alignItems: "center" }}>
               <Chip>{accountSummary.plan}</Chip>
               <Chip>{`${gamification?.streak ?? 0} dias de consistência`}</Chip>
-              {realAcademyName ? <Chip>{realAcademyName}</Chip> : null}
               <Link
                 to="/app/user/equipe"
                 style={{ marginLeft: "auto", color: COLORS.primary, fontWeight: "var(--font-semibold)", textDecoration: "none", fontSize: "var(--text-sm)" }}
@@ -381,81 +356,91 @@ export default function UserProfilePage({ onLogout }: Props) {
         </Card>
       </motion.div>
 
-      <motion.div variants={sectionRevealVariants} style={{ display: "grid", gap: "var(--space-4)" }}>
-        <motion.div variants={itemRevealVariants} whileInView="show" initial={shouldReduceMotion ? false : "hidden"} viewport={{ once: true, amount: 0.15 }}>
-          <Card interactive enableTilt={shouldUseTilt}>
-            <div style={{ display: "grid", gap: "var(--space-3)" }}>
-              <div style={{ fontSize: "var(--text-xl)", fontWeight: "var(--font-bold)", color: COLORS.text }}>Perfil fitness</div>
-              <div style={{ display: "grid", gap: "var(--space-3)", gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))" }}>
-                <DataRow label="Objetivo" value={accountSummary.fitnessGoal} />
-                <DataRow label="Nível" value={accountSummary.experienceLevel} />
-                <DataRow label="Altura" value={accountSummary.height} />
-                <DataRow label="Peso" value={accountSummary.weight} />
-                <DataRow label="Restrições alimentares" value={accountSummary.dietaryRestrictions} />
-              </div>
-            </div>
-          </Card>
-        </motion.div>
-      </motion.div>
-
       {metabolismData && (
         <motion.div variants={sectionRevealVariants}>
           <Card interactive enableTilt={shouldUseTilt}>
-            <div style={{ display: "grid", gap: "var(--space-4)" }}>
+            <div style={{ display: "grid", gap: "var(--space-3)" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "var(--space-3)" }}>
                 <div style={{ fontSize: "var(--text-xl)", fontWeight: "var(--font-bold)", color: COLORS.text }}>Estado metabólico</div>
-                <div style={{ display: "flex", gap: "var(--space-3)", flexWrap: "wrap", alignItems: "center" }}>
-                  <button
-                    type="button"
-                    className="btn btn-ghost"
-                    onClick={() => {
-                      const t30 = metabolismData.trend30d;
-                      const trend30Label =
-                        !t30 || t30.direction === "stable"
-                          ? "estável"
-                          : `${t30.delta >= 0 ? "+" : ""}${t30.delta} pts`;
-                      void drawEvolutionShareCard({
-                        partnerName: branding?.displayName ?? academies?.[0]?.displayName ?? "S2Core",
-                        userName: user?.name || accountSummary.name,
-                        score: metabolismData.score,
-                        trend30Label,
-                        streak: gamification?.streak ?? 0,
-                        logoUrl: branding?.logoUrl ?? academies?.[0]?.logoUrl ?? null,
-                      }).catch(() => {
-                        /* ignore */
-                      });
-                    }}
-                  >
-                    Compartilhar evolução de 30 dias
-                  </button>
-                  <Link
-                    to="/app/user/estado-metabolico"
-                    style={{ color: COLORS.primary, fontWeight: "var(--font-semibold)", textDecoration: "none", fontSize: "var(--text-sm)" }}
-                  >
-                    Ver evolução →
-                  </Link>
-                </div>
+                <Link
+                  to="/app/user/estado-metabolico"
+                  style={{ color: COLORS.primary, fontWeight: "var(--font-semibold)", textDecoration: "none", fontSize: "var(--text-sm)" }}
+                >
+                  Ver evolução →
+                </Link>
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "var(--space-3)" }}>
-                <MetabolicMetric label="Score" value={Math.round(metabolismData.score)} />
-                <MetabolicMetric
-                  label="Estado"
-                  value={
-                    derivedEnergy?.band === "low" ? "Pedindo recuperação"
-                    : derivedEnergy?.band === "high" ? "Em alta"
-                    : "Equilibrado"
-                  }
-                />
-                <MetabolicMetric
-                  label="Tendência"
-                  value={metabolismData.trend === "up" ? "↑ melhorando" : metabolismData.trend === "down" ? "↓ em queda" : "→ estável"}
-                  tone={metabolismData.trend === "up" ? "up" : metabolismData.trend === "down" ? "down" : undefined}
-                />
+              <div style={{ display: "flex", alignItems: "baseline", gap: "var(--space-3)", flexWrap: "wrap" }}>
+                <span style={{ fontSize: "var(--text-3xl)", fontWeight: "var(--font-bold)", color: COLORS.text }}>{Math.round(metabolismData.score)}</span>
+                <span style={{ color: COLORS.muted, fontSize: "var(--text-base)", fontWeight: "var(--font-semibold)" }}>
+                  {derivedEnergy?.band === "low" ? "pedindo recuperação" : derivedEnergy?.band === "high" ? "em alta" : "equilibrado"}
+                </span>
+                <span
+                  style={{
+                    fontSize: "var(--text-base)",
+                    fontWeight: "var(--font-semibold)",
+                    color: metabolismData.trend === "up" ? "var(--color-success-text)" : metabolismData.trend === "down" ? "var(--color-danger)" : COLORS.muted,
+                  }}
+                >
+                  {metabolismData.trend === "up" ? "melhorando ↑" : metabolismData.trend === "down" ? "em queda ↓" : "estável →"}
+                </span>
               </div>
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={() => {
+                  const t30 = metabolismData.trend30d;
+                  const trend30Label =
+                    !t30 || t30.direction === "stable"
+                      ? "estável"
+                      : `${t30.delta >= 0 ? "+" : ""}${t30.delta} pts`;
+                  void drawEvolutionShareCard({
+                    partnerName: branding?.displayName ?? academies?.[0]?.displayName ?? "S2Core",
+                    userName: user?.name || accountSummary.name,
+                    score: metabolismData.score,
+                    trend30Label,
+                    streak: gamification?.streak ?? 0,
+                    logoUrl: branding?.logoUrl ?? academies?.[0]?.logoUrl ?? null,
+                  }).catch(() => {
+                    /* ignore */
+                  });
+                }}
+                style={{ justifySelf: "start", fontSize: "var(--text-sm)" }}
+              >
+                Compartilhar resumo
+              </button>
             </div>
           </Card>
         </motion.div>
       )}
+
+      <motion.div variants={sectionRevealVariants}>
+        <Card interactive enableTilt={shouldUseTilt}>
+          <div style={{ display: "grid", gap: "var(--space-3)" }}>
+            <div style={{ fontSize: "var(--text-xl)", fontWeight: "var(--font-bold)", color: COLORS.text }}>Perfil fitness</div>
+            <div style={{ display: "grid", gap: "var(--space-3)", gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))" }}>
+              <DataRow label="Objetivo" value={accountSummary.fitnessGoal} />
+              <DataRow label="Nível" value={accountSummary.experienceLevel} />
+              <DataRow label="Altura" value={accountSummary.height} />
+              <DataRow label="Peso" value={accountSummary.weight} />
+            </div>
+          </div>
+        </Card>
+      </motion.div>
+
+      <motion.div variants={sectionRevealVariants}>
+        <Card>
+          <div style={{ display: "grid", gap: "var(--space-2)" }}>
+            <div style={{ color: COLORS.mutedSoft, fontSize: "var(--text-xs)", fontWeight: "var(--font-bold)", letterSpacing: "0.07em", textTransform: "uppercase" }}>Vínculos</div>
+            {personalName || nutriName || realAcademyName ? (
+              <div style={{ color: COLORS.text, fontSize: "var(--text-base)", fontWeight: "var(--font-semibold)" }}>
+                {`Personal: ${personalName ?? "—"}  ·  Nutri: ${nutriName ?? "—"}  ·  Academia: ${realAcademyName ?? "—"}`}
+              </div>
+            ) : (
+              <div style={{ color: COLORS.muted, fontSize: "var(--text-base)" }}>Nenhum profissional vinculado ainda.</div>
+            )}
+          </div>
+        </Card>
+      </motion.div>
 
       <motion.div variants={sectionRevealVariants}>
         <Card interactive enableTilt={shouldUseTilt}>
