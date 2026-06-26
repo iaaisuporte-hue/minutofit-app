@@ -31,18 +31,21 @@ function Card({
   style,
   interactive = false,
   enableTilt = false,
+  flat = false,
 }: {
   children: React.ReactNode;
   style?: React.CSSProperties;
   interactive?: boolean;
   enableTilt?: boolean;
+  /** Sem sombra + padding menor — para os cards secundários (só o card nobre mantém sombra). */
+  flat?: boolean;
 }) {
   const baseStyle: React.CSSProperties = {
     border: `1px solid ${COLORS.border}`,
     borderRadius: "var(--radius-card)",
     background: COLORS.panel,
-    boxShadow: "var(--shadow-md)",
-    padding: "var(--space-5)",
+    boxShadow: flat ? "none" : "var(--shadow-md)",
+    padding: flat ? "var(--space-4)" : "var(--space-5)",
     ...style,
   };
 
@@ -91,7 +94,7 @@ function SectionTitle({
   );
 }
 
-function DataRow({ label, value }: { label: string; value: string }) {
+function DataRow({ label, value, placeholder, onEdit }: { label: string; value: string | null; placeholder: string; onEdit: () => void }) {
   return (
     <div
       style={{
@@ -99,7 +102,7 @@ function DataRow({ label, value }: { label: string; value: string }) {
         justifyContent: "space-between",
         gap: 12,
         padding: "12px 14px",
-        borderRadius: "var(--radius-card)",
+        borderRadius: "var(--radius-lg)",
         border: `1px solid ${COLORS.border}`,
         background: COLORS.panelDeep,
         alignItems: "center",
@@ -108,7 +111,17 @@ function DataRow({ label, value }: { label: string; value: string }) {
       <div style={{ color: COLORS.mutedSoft, fontSize: "var(--text-xs)", fontWeight: "var(--font-semibold)", textTransform: "uppercase", letterSpacing: "0.07em" }}>
         {label}
       </div>
-      <div style={{ color: COLORS.text, fontSize: "var(--text-base)", fontWeight: "var(--font-semibold)", textAlign: "right" }}>{value}</div>
+      {value ? (
+        <div style={{ color: COLORS.text, fontSize: "var(--text-base)", fontWeight: "var(--font-semibold)", textAlign: "right" }}>{value}</div>
+      ) : (
+        <button
+          type="button"
+          onClick={onEdit}
+          style={{ background: "none", border: "none", padding: 0, cursor: "pointer", color: COLORS.primary, fontSize: "var(--text-sm)", fontWeight: "var(--font-semibold)" }}
+        >
+          {placeholder}
+        </button>
+      )}
     </div>
   );
 }
@@ -269,10 +282,10 @@ export default function UserProfilePage({ onLogout }: Props) {
     () => ({
       name: user?.name || "Aluno",
       plan: mapCanonicalPlanToLabel(normalizeToCanonicalPlanName(planName || user?.subscriptionTier)),
-      fitnessGoal: user?.fitnessGoal || "Não definido",
-      experienceLevel: user?.experienceLevel || "Não definido",
-      height: user?.heightCm ? `${user.heightCm} cm` : "Não informado",
-      weight: user?.weightKg ? `${user.weightKg} kg` : "Não informado",
+      fitnessGoal: user?.fitnessGoal || null,
+      experienceLevel: user?.experienceLevel || null,
+      height: user?.heightCm ? `${user.heightCm} cm` : null,
+      weight: user?.weightKg ? `${user.weightKg} kg` : null,
     }),
     [
       user?.experienceLevel,
@@ -299,11 +312,7 @@ export default function UserProfilePage({ onLogout }: Props) {
       animate="show"
     >
       <motion.div variants={sectionRevealVariants}>
-        <Card
-          interactive
-          enableTilt={shouldUseTilt}
-          style={{ padding: 0, overflow: "hidden" }}
-        >
+        <Card flat style={{ padding: 0, overflow: "hidden" }}>
           <div style={{ height: 4, background: "var(--gradient-primary)" }} />
           <motion.div style={{ display: "grid", gap: "var(--space-4)", padding: "var(--space-5)" }}>
             <motion.div
@@ -358,10 +367,10 @@ export default function UserProfilePage({ onLogout }: Props) {
 
       {metabolismData && (
         <motion.div variants={sectionRevealVariants}>
-          <Card interactive enableTilt={shouldUseTilt}>
+          <Card interactive enableTilt={shouldUseTilt} style={{ borderLeft: "3px solid var(--color-primary)" }}>
             <div style={{ display: "grid", gap: "var(--space-3)" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "var(--space-3)" }}>
-                <div style={{ fontSize: "var(--text-xl)", fontWeight: "var(--font-bold)", color: COLORS.text }}>Estado metabólico</div>
+                <div style={{ color: COLORS.mutedSoft, fontSize: "var(--text-xs)", fontWeight: "var(--font-bold)", letterSpacing: "0.07em", textTransform: "uppercase" }}>Como o S2Core te lê hoje</div>
                 <Link
                   to="/app/user/estado-metabolico"
                   style={{ color: COLORS.primary, fontWeight: "var(--font-semibold)", textDecoration: "none", fontSize: "var(--text-sm)" }}
@@ -414,21 +423,21 @@ export default function UserProfilePage({ onLogout }: Props) {
       )}
 
       <motion.div variants={sectionRevealVariants}>
-        <Card interactive enableTilt={shouldUseTilt}>
+        <Card flat>
           <div style={{ display: "grid", gap: "var(--space-3)" }}>
-            <div style={{ fontSize: "var(--text-xl)", fontWeight: "var(--font-bold)", color: COLORS.text }}>Perfil fitness</div>
+            <div style={{ fontSize: "var(--text-xl)", fontWeight: "var(--font-bold)", color: COLORS.text }}>Perfil essencial</div>
             <div style={{ display: "grid", gap: "var(--space-3)", gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))" }}>
-              <DataRow label="Objetivo" value={accountSummary.fitnessGoal} />
-              <DataRow label="Nível" value={accountSummary.experienceLevel} />
-              <DataRow label="Altura" value={accountSummary.height} />
-              <DataRow label="Peso" value={accountSummary.weight} />
+              <DataRow label="Objetivo" value={accountSummary.fitnessGoal} placeholder="definir" onEdit={() => navigate("/app/user/settings")} />
+              <DataRow label="Nível" value={accountSummary.experienceLevel} placeholder="definir" onEdit={() => navigate("/app/user/settings")} />
+              <DataRow label="Altura" value={accountSummary.height} placeholder="informar" onEdit={() => navigate("/app/user/settings")} />
+              <DataRow label="Peso" value={accountSummary.weight} placeholder="informar" onEdit={() => navigate("/app/user/settings")} />
             </div>
           </div>
         </Card>
       </motion.div>
 
       <motion.div variants={sectionRevealVariants}>
-        <Card>
+        <Card flat>
           <div style={{ display: "grid", gap: "var(--space-2)" }}>
             <div style={{ color: COLORS.mutedSoft, fontSize: "var(--text-xs)", fontWeight: "var(--font-bold)", letterSpacing: "0.07em", textTransform: "uppercase" }}>Vínculos</div>
             {personalName || nutriName || realAcademyName ? (
@@ -443,7 +452,7 @@ export default function UserProfilePage({ onLogout }: Props) {
       </motion.div>
 
       <motion.div variants={sectionRevealVariants}>
-        <Card interactive enableTilt={shouldUseTilt}>
+        <Card flat>
           <SportProfileSection />
         </Card>
       </motion.div>
