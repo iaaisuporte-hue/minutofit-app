@@ -504,6 +504,7 @@ export default function TodayPage() {
           condition={dailyCondition}
           setCondition={setDailyCondition}
           clearCondition={clearDailyCondition}
+          academyPresenceToday={todayState.academyPresenceToday}
           onConditionSaved={async ({ feeling, details: d }) => {
             try {
               const result = await persistWellbeingCheckin({

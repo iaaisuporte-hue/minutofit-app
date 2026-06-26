@@ -18,6 +18,7 @@ export interface TodayUserState {
   activePlan: UserWorkoutPlan | null;
   personal: ProfessionalContext["personal"];
   nutri: ProfessionalContext["nutri"];
+  academyPresenceToday: { academyName: string; at: string } | null;
   scenario: ScenarioKey | null;
   loading: boolean;
 }
@@ -62,6 +63,7 @@ function buildState(opts: {
     activePlan: opts.activePlan,
     personal,
     nutri,
+    academyPresenceToday: opts.professionalContext?.academyPresenceToday ?? null,
     scenario: opts.scenario,
     loading: opts.loading,
   };

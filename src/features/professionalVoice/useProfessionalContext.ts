@@ -14,6 +14,8 @@ export interface ProfessionalSummary {
 export interface ProfessionalContext {
   personal: ProfessionalSummary | null;
   nutri: ProfessionalSummary | null;
+  /** Presença física registrada hoje na academia — gatilho do micro check-in. */
+  academyPresenceToday?: { academyName: string; at: string } | null;
 }
 
 interface UseProfessionalContextResult {

@@ -21,6 +21,8 @@ interface Props {
   clearCondition: () => void;
   onConditionSet?: () => void;
   onConditionSaved?: (payload: { feeling: DailyFeeling; details: DailyConditionDetails }) => void | Promise<void>;
+  /** Presença física registrada hoje na academia — vira gatilho contextual do check-in. */
+  academyPresenceToday?: { academyName: string } | null;
 }
 
 const FEELING_META: Record<DailyFeeling, { label: string; icon: ReactNode; color: string; bg: string; border: string }> = {
@@ -113,7 +115,7 @@ const HYDRATION_OPTIONS: ReadonlyArray<{ value: 'yes' | 'no'; label: string }> =
 const DEFAULT_DETAILS: DailyConditionDetails = { sleptWell: true, inPain: false, stressed: false };
 
 export const DailyCheckin = forwardRef<DailyCheckinHandle, Props>(function DailyCheckin(
-  { condition, setCondition, clearCondition, onConditionSet, onConditionSaved },
+  { condition, setCondition, clearCondition, onConditionSet, onConditionSaved, academyPresenceToday },
   ref,
 ) {
   const isMobile = useIsMobile(720);
@@ -229,10 +231,14 @@ export const DailyCheckin = forwardRef<DailyCheckinHandle, Props>(function Daily
             Check-in diário
           </span>
           <span style={{ fontSize: isMobile ? 14 : 16, fontWeight: 700, color: 'var(--color-text)' }}>
-            Como está seu corpo hoje?
+            {academyPresenceToday
+              ? `Você treinou na ${academyPresenceToday.academyName} hoje — como está?`
+              : 'Como está seu corpo hoje?'}
           </span>
           <span style={{ fontSize: isMobile ? 12 : 13, color: 'var(--color-text-muted)' }}>
-            Esses sinais alimentam toda a sua leitura de hoje
+            {academyPresenceToday
+              ? 'Registramos sua presença. Conte como você se sente para ajustar seu dia.'
+              : 'Esses sinais alimentam toda a sua leitura de hoje'}
           </span>
         </div>
 
