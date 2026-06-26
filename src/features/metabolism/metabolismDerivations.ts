@@ -194,7 +194,15 @@ export function deriveHistoryMarkers(
     }
   }
 
-  return markers;
+  // 5. Reconciliação: um dia com treino registrado NUNCA é "queda por inatividade".
+  //    A queda do passo 2 é puro delta de score e pode cair numa data que também
+  //    teve treino (real, delta+ ou check-in de hoje) — o que gerava o marcador
+  //    contraditório "Treino registrado + Queda por inatividade" na mesma data.
+  //    A linha do gráfico ainda mostra a variação; só removemos o rótulo errado.
+  const datesWithWorkout = new Set(
+    markers.filter((m) => m.kind === "workout").map((m) => m.date)
+  );
+  return markers.filter((m) => !(m.kind === "drop" && datesWithWorkout.has(m.date)));
 }
 
 export function getStateLabelForScore(score: number, trend: MetabolicTrend): MetabolicStateLabel {
