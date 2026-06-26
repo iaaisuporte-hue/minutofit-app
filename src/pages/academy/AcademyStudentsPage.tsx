@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { EmptyState } from "../../components/EmptyState";
 import { Banner } from "../../components/Banner";
+import { useAcademyPlan } from "../../features/academyPlan/useAcademyPlan";
+import { BillingReminderButton } from "../../features/academyPlan/BillingReminderButton";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   fetchStudents,
@@ -93,6 +95,7 @@ const DEFAULT_ADD: AddForm = {
 
 export default function AcademyStudentsPage() {
   const navigate = useNavigate();
+  const { plan: academyPlan } = useAcademyPlan();
   const [searchParams] = useSearchParams();
   const filterFromUrl = searchParams.get("filter") === "at_risk" || searchParams.get("atRisk") === "1";
 
@@ -390,9 +393,15 @@ export default function AcademyStudentsPage() {
                   </td>
                   <td className="small">{s.joinedAt ? new Date(s.joinedAt).toLocaleDateString("pt-BR") : "—"}</td>
                   <td>
-                    <button className="btn btn-sm btn-ghost" onClick={() => navigate(`/app/academy/students/${s.userId}`)}>
-                      Ver perfil
-                    </button>
+                    <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 6 }}>
+                      <button className="btn btn-sm btn-ghost" onClick={() => navigate(`/app/academy/students/${s.userId}`)}>
+                        Ver perfil
+                      </button>
+                      {/* Régua de cobrança (Pro) — só em inadimplentes */}
+                      {s.studentStatus === "overdue" && academyPlan.intelligenceEnabled && (
+                        <BillingReminderButton userId={s.userId} name={s.name} phone={s.phone} />
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
