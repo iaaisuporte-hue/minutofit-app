@@ -76,6 +76,36 @@ function pillStyle(active: boolean, neon: NeonTheme) {
   };
 }
 
+/**
+ * Assinatura eletrônica por digitação (alternativa legal ao traço manual).
+ * Renderiza o nome completo digitado + rótulo de aceite num canvas PNG, gerando
+ * a mesma evidência (data URL) que o backend já registra com IP, user-agent,
+ * timestamp e hash. Válida como assinatura eletrônica simples (MP 2.200-2/2001,
+ * art. 10 §2 — aceita quando admitida pelas partes / click-wrap com identificação).
+ */
+function renderTypedSignature(fullName: string): string {
+  const canvas = document.createElement("canvas");
+  canvas.width = 600;
+  canvas.height = 160;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return "";
+  ctx.fillStyle = "#FFFFFF";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = "#111111";
+  ctx.textBaseline = "middle";
+  ctx.font = "italic 42px 'Segoe Script', 'Brush Script MT', 'Comic Sans MS', cursive";
+  ctx.fillText(fullName.trim(), 28, 66, canvas.width - 56);
+  ctx.strokeStyle = "#CCCCCC";
+  ctx.beginPath();
+  ctx.moveTo(28, 108);
+  ctx.lineTo(canvas.width - 28, 108);
+  ctx.stroke();
+  ctx.fillStyle = "#555555";
+  ctx.font = "13px sans-serif";
+  ctx.fillText("Assinatura eletrônica — aceite digitado e confirmado", 28, 130);
+  return canvas.toDataURL("image/png");
+}
+
 function SelectGroup<T extends string | number>({
   value,
   options,
@@ -300,6 +330,10 @@ export default function StudentCompliancePanel() {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [hasSignatureInk, setHasSignatureInk] = useState(false);
+  // Modo de assinatura: traço manual no quadro ou aceite eletrônico digitado.
+  const [sigMode, setSigMode] = useState<"draw" | "type">("draw");
+  const [typedName, setTypedName] = useState("");
+  const [typedAccept, setTypedAccept] = useState(false);
 
   const [healthFlags, setHealthFlags] = useState<Record<HealthField, boolean>>({
     sem_historico_hipertensao: false,
@@ -409,16 +443,24 @@ export default function StudentCompliancePanel() {
     for (const q of PARQ_ITEMS) {
       if (parq[q.id] === null) return "Responda todas as perguntas do PAR-Q (Sim ou Não).";
     }
-    if (!hasSignatureInk) return "Assine no quadro com o dedo ou mouse.";
+    if (sigMode === "draw") {
+      if (!hasSignatureInk) return "Assine no quadro com o dedo ou mouse.";
+    } else {
+      if (typedName.trim().length < 3) return "Digite seu nome completo para a assinatura eletrônica.";
+      if (!typedAccept) return "Confirme o aceite eletrônico do PAR-Q.";
+    }
     return null;
-  }, [healthFlags, onb, parq, hasSignatureInk, isFreePlan]);
+  }, [healthFlags, onb, parq, hasSignatureInk, isFreePlan, sigMode, typedName, typedAccept]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setMessage(null);
     const canvas = canvasWrapRef.current?.querySelector("canvas");
-    const dataUrl = canvas?.toDataURL("image/png") || "";
+    const dataUrl =
+      sigMode === "type"
+        ? renderTypedSignature(typedName)
+        : canvas?.toDataURL("image/png") || "";
     if (validationError) {
       setError(validationError);
       return;
@@ -462,6 +504,8 @@ export default function StudentCompliancePanel() {
           : "Dados salvos. Obrigado por completar triagem, onboarding e PAR-Q.",
       );
       setHasSignatureInk(false);
+      setTypedName("");
+      setTypedAccept(false);
       if (canvas) {
         const ctx = canvas.getContext("2d");
         if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -707,7 +751,7 @@ export default function StudentCompliancePanel() {
         ) : null}
 
         <section style={{ display: "grid", gap: 12 }}>
-          <div style={{ fontWeight: 600 }}>PAR-Q ({PARQ_FORM_VERSION})</div>
+          <div style={{ fontWeight: 600 }}>PAR-Q</div>
           {PARQ_ITEMS.map((q) => (
             <div key={q.id} style={{ display: "grid", gap: 8 }}>
               <div style={{ fontSize: 13, lineHeight: 1.4 }}>{q.text}</div>
@@ -738,19 +782,98 @@ export default function StudentCompliancePanel() {
         <section style={{ display: "grid", gap: 8 }}>
           <div style={{ fontWeight: 600 }}>Assinatura digital</div>
           <div style={{ color: neon.muted, fontSize: 12 }}>
-            Ao assinar, você confirma que leu e respondeu o PAR-Q acima. Versão registrada: {PARQ_FORM_VERSION}.
+            Ao assinar, você confirma que leu e respondeu o PAR-Q acima.
           </div>
-          <div ref={canvasWrapRef}>
-            <SignatureCanvas disabled={saving || locked} onStrokeChange={setHasSignatureInk} neon={neon} />
+
+          <div role="group" aria-label="Forma de assinatura" style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <button
+              type="button"
+              disabled={saving || locked}
+              aria-pressed={sigMode === "draw"}
+              onClick={() => setSigMode("draw")}
+              style={{ ...pillStyle(sigMode === "draw", neon), touchAction: "manipulation" }}
+            >
+              {sigMode === "draw" ? "✓ " : ""}Desenhar assinatura
+            </button>
+            <button
+              type="button"
+              disabled={saving || locked}
+              aria-pressed={sigMode === "type"}
+              onClick={() => setSigMode("type")}
+              style={{ ...pillStyle(sigMode === "type", neon), touchAction: "manipulation" }}
+            >
+              {sigMode === "type" ? "✓ " : ""}Digitar nome (aceite eletrônico)
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={clearCanvas}
-            disabled={saving || locked}
-            style={{ ...pillStyle(false, neon), width: "fit-content" }}
-          >
-            Limpar assinatura
-          </button>
+
+          {sigMode === "draw" ? (
+            <>
+              <div ref={canvasWrapRef}>
+                <SignatureCanvas disabled={saving || locked} onStrokeChange={setHasSignatureInk} neon={neon} />
+              </div>
+              <button
+                type="button"
+                onClick={clearCanvas}
+                disabled={saving || locked}
+                style={{ ...pillStyle(false, neon), width: "fit-content" }}
+              >
+                Limpar assinatura
+              </button>
+            </>
+          ) : (
+            <div style={{ display: "grid", gap: 10 }}>
+              <input
+                type="text"
+                value={typedName}
+                disabled={saving || locked}
+                onChange={(e) => setTypedName(e.target.value)}
+                placeholder="Seu nome completo"
+                autoComplete="name"
+                aria-label="Nome completo para assinatura eletrônica"
+                style={{
+                  padding: "12px 14px",
+                  borderRadius: 12,
+                  border: `1px solid ${neon.border}`,
+                  background: "#FAFAFA",
+                  color: neon.text,
+                  fontSize: 16,
+                  minHeight: 44,
+                }}
+              />
+              {typedName.trim() ? (
+                <div
+                  aria-hidden
+                  style={{
+                    fontFamily: "'Segoe Script', 'Brush Script MT', 'Comic Sans MS', cursive",
+                    fontStyle: "italic",
+                    fontSize: 28,
+                    color: neon.text,
+                    borderBottom: `1px solid ${neon.border}`,
+                    padding: "4px 2px 10px",
+                    overflow: "hidden",
+                    whiteSpace: "nowrap",
+                    textOverflow: "ellipsis",
+                  }}
+                >
+                  {typedName.trim()}
+                </div>
+              ) : null}
+              <label style={{ display: "flex", gap: 10, alignItems: "flex-start", cursor: "pointer", fontSize: 13, lineHeight: 1.4, color: neon.text }}>
+                <input
+                  type="checkbox"
+                  checked={typedAccept}
+                  disabled={saving || locked}
+                  onChange={(e) => setTypedAccept(e.target.checked)}
+                  style={{ marginTop: 3, minWidth: 18, minHeight: 18 }}
+                />
+                <span>
+                  Li e respondi o PAR-Q acima e declaro, sob minha responsabilidade, que assino
+                  eletronicamente este documento usando meu nome completo. Reconheço esta assinatura
+                  eletrônica como válida e vinculante.
+                </span>
+              </label>
+            </div>
+          )}
         </section>
 
         {error ? <div style={{ color: neon.danger, fontSize: 14 }}>{error}</div> : null}
