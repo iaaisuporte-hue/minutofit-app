@@ -42,6 +42,12 @@ const MOVEMENT_ALIASES: Record<string, string> = {
   "remada sentada": "remada",
   "elevacao de quadril": "ponte de gluteo",
   "elevacao de pelve": "ponte de gluteo",
+  mobilidade: "mobilidade de quadril",
+  "mobilidade dinamica": "mobilidade de quadril",
+  "ativacao de costas": "remada com elastico",
+  ativacao: "remada com elastico",
+  core: "prancha",
+  "core rapido": "prancha",
 };
 
 /**
