@@ -321,6 +321,7 @@ export default function AcademyDashboardPage() {
   const topPersonals           = data?.topPersonals ?? [];
   const adoption               = data?.adoption;
   const commercialSignals      = data?.commercialSignals;
+  const frequency              = data?.frequency;
   const academyName            = branding?.display_name ?? academy?.display_name ?? "Academia";
   const logoColor      = branding?.primary_color ?? "var(--color-primary)";
   const initial        = academyName.slice(0, 2).toUpperCase();
@@ -429,7 +430,7 @@ export default function AcademyDashboardPage() {
             >
               {studentsAtRisk}
             </div>
-            <div className="dash-kpi-item-note">sem check-in em 14d</div>
+            <div className="dash-kpi-item-note">sem check-in/presença em 14d</div>
           </div>
 
           <div className="dash-kpi-item">
@@ -458,6 +459,33 @@ export default function AcademyDashboardPage() {
               </button>
             }
           />
+        </div>
+      )}
+
+      {/* Mov.2 — Frequência (presença física da recepção/catraca) */}
+      {frequency && students > 0 && (
+        <div className="dash-kpi-grid" style={{ marginTop: "var(--space-6)" }}>
+          <div className="dash-kpi-item">
+            <div className="dash-kpi-item-label">Check-ins hoje</div>
+            <div className="dash-kpi-item-value">{frequency.checkinsToday}</div>
+            <div className="dash-kpi-item-note">presenças físicas</div>
+          </div>
+
+          <div className="dash-kpi-item">
+            <div className="dash-kpi-item-label">Check-ins no mês</div>
+            <div className="dash-kpi-item-value">{frequency.checkinsMonth}</div>
+            <div className="dash-kpi-item-note">acumulado do mês</div>
+          </div>
+
+          <div className="dash-kpi-item">
+            <div className="dash-kpi-item-label">Horário de pico</div>
+            <div className="dash-kpi-item-value">
+              {frequency.peakHour != null ? `${String(frequency.peakHour).padStart(2, "0")}h` : "—"}
+            </div>
+            <div className="dash-kpi-item-note">
+              {frequency.peakHour != null ? "maior fluxo (30d)" : "aguardando dados"}
+            </div>
+          </div>
         </div>
       )}
 

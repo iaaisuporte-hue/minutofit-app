@@ -76,6 +76,13 @@ export interface AcademyAdoption {
   netGrowth: number;
 }
 
+export interface AcademyFrequency {
+  checkinsToday: number;
+  checkinsMonth: number;
+  /** Hora (0–23) com mais presenças físicas nos últimos 30d; null se sem dados. */
+  peakHour: number | null;
+}
+
 export interface AcademyDashboard {
   academy: {
     display_name: string;
@@ -97,6 +104,7 @@ export interface AcademyDashboard {
   topPersonals: AcademyTopPersonal[];
   adoption: AcademyAdoption;
   commercialSignals?: AcademyCommercialSignals;
+  frequency?: AcademyFrequency;
 }
 
 export interface AcademyAuditRow {
@@ -330,6 +338,7 @@ export interface StudentsListResult {
 export interface StudentActivity {
   lastWorkout: string | null;
   lastCheckin: string | null;
+  lastPhysicalPresence?: string | null;
   workouts30d: number;
   checkins30d: number;
   adherence30dPct: number | null;

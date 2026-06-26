@@ -235,6 +235,18 @@ function ActivityBlock({ activity }: { activity?: StudentActivity }) {
         </div>
 
         <div>
+          <div className="dash-eyebrow" style={{ marginBottom: 4 }}>Última presença</div>
+          <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--font-medium)" }}>
+            {dateRelative(activity.lastPhysicalPresence ?? null)}
+          </div>
+          {activity.lastPhysicalPresence && (
+            <div style={{ fontSize: "var(--text-xs)", color: "var(--color-text-2)", marginTop: 2 }}>
+              {new Date(activity.lastPhysicalPresence).toLocaleDateString("pt-BR")}
+            </div>
+          )}
+        </div>
+
+        <div>
           <div className="dash-eyebrow" style={{ marginBottom: 4 }}>Treinos em 30d</div>
           <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--font-medium)" }}>
             {activity.workouts30d}
