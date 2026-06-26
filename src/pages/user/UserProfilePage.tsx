@@ -130,6 +130,22 @@ function getInitial(name: string) {
   return name.trim()[0]?.toUpperCase() ?? "A";
 }
 
+// Teaser interpretativo (Fase 4) — frase curta a partir de estado/tendência/lacunas.
+// Heurística TS pura. Lacuna é sempre enquadrada como ganho ("para uma leitura mais
+// precisa"), nunca como cobrança. Nada de diagnóstico.
+function deriveProfileTeaser(opts: { band?: "low" | "moderate" | "high"; trend: "up" | "down" | "stable"; missing: string[] }): string {
+  const { band, trend, missing } = opts;
+  if (missing.length >= 3) return "Complete seu perfil para uma leitura mais precisa.";
+  if (missing.length > 0) {
+    const list = missing.length === 1 ? missing[0] : `${missing.slice(0, -1).join(", ")} e ${missing[missing.length - 1]}`;
+    return `Complete ${list} para uma leitura mais precisa.`;
+  }
+  if (band === "low" || trend === "down") return "Seus sinais pedem um ritmo mais leve — priorize recuperação e sono.";
+  if (band === "high") return "Seu estado está em alta. Bom momento para manter a consistência.";
+  if (trend === "up") return "Sua tendência recente é positiva. Siga no ritmo.";
+  return "Seu estado está equilibrado. Pequenos ajustes mantêm a curva subindo.";
+}
+
 function Chip({ children }: { children: React.ReactNode }) {
   return (
     <span
@@ -304,6 +320,16 @@ export default function UserProfilePage({ onLogout }: Props) {
   const personalName = proContext?.personal?.name ?? null;
   const nutriName = proContext?.nutri?.name ?? null;
 
+  const profileTeaser = useMemo(() => {
+    if (!metabolismData) return null;
+    const missing: string[] = [];
+    if (!accountSummary.fitnessGoal) missing.push("seu objetivo");
+    if (!accountSummary.experienceLevel) missing.push("seu nível");
+    if (!accountSummary.height) missing.push("sua altura");
+    if (!accountSummary.weight) missing.push("seu peso");
+    return deriveProfileTeaser({ band: derivedEnergy?.band, trend: metabolismData.trend, missing });
+  }, [metabolismData, derivedEnergy, accountSummary]);
+
   return (
     <motion.div
       style={{ display: "grid", gap: "var(--space-4)" }}
@@ -393,6 +419,9 @@ export default function UserProfilePage({ onLogout }: Props) {
                   {metabolismData.trend === "up" ? "melhorando ↑" : metabolismData.trend === "down" ? "em queda ↓" : "estável →"}
                 </span>
               </div>
+              {profileTeaser && (
+                <div style={{ color: COLORS.muted, fontSize: "var(--text-base)", lineHeight: 1.5 }}>{profileTeaser}</div>
+              )}
               <button
                 type="button"
                 className="btn btn-ghost"
