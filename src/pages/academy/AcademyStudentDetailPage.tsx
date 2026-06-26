@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { EmptyState } from "../../components/EmptyState";
+import { useAcademyPlan } from "../../features/academyPlan/useAcademyPlan";
+import { BillingReminderButton } from "../../features/academyPlan/BillingReminderButton";
 import {
   fetchStudent,
   fetchPlans,
@@ -41,6 +43,7 @@ const AUDIT_LABEL: Record<string, string> = {
   "student.cancelled":      "Cancelado",
   "student.reactivated":    "Reativado",
   "student.password_reset": "Senha redefinida pela equipe",
+  "student.billing_reminder": "Cobrança enviada (WhatsApp)",
 };
 
 /** Resumo legível de `meta` do audit log (evita JSON bruto na UI). */
@@ -319,6 +322,7 @@ function ActivityBlock({ activity }: { activity?: StudentActivity }) {
 
 export default function AcademyStudentDetailPage() {
   const { userId } = useParams<{ userId: string }>();
+  const { plan: academyPlan } = useAcademyPlan();
   const navigate   = useNavigate();
 
   const [student, setStudent]      = useState<StudentDetail | null>(null);
@@ -606,6 +610,16 @@ export default function AcademyStudentDetailPage() {
                 >
                   {actionLoading === "reactivate" ? "Reativando..." : "Reativar aluno"}
                 </button>
+              )}
+
+              {/* Régua de cobrança (Pro) — só em alunos inadimplentes */}
+              {status === "overdue" && academyPlan.intelligenceEnabled && (
+                <BillingReminderButton
+                  userId={student.userId}
+                  name={student.name}
+                  phone={student.phone}
+                  onLogged={load}
+                />
               )}
 
               <button

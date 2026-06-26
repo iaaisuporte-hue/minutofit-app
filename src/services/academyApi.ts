@@ -135,6 +135,17 @@ export async function startAcademyCheckout(): Promise<string> {
   return data.data.initPoint;
 }
 
+/**
+ * Registra o touchpoint de cobrança (régua observável — feature Pro). O envio em si
+ * é manual via wa.me no front; aqui só auditamos a ação. 403 PRO_REQUIRED se Free.
+ */
+export async function sendBillingReminder(userId: number): Promise<void> {
+  const data = await authFetch(`${API_URL}/academy/students/${userId}/billing-reminder`, {
+    method: "POST",
+  }).then(parseJson);
+  if (!data.success) throw new Error(data.error || "Não foi possível registrar a cobrança");
+}
+
 export interface AcademyAuditRow {
   id: number;
   user_id: number | null;
