@@ -1,5 +1,4 @@
 import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext";
 import { useIsMobile } from "../../hooks/useIsMobile";
 import { loadAnswers } from "./onboarding/onboardingStorage";
@@ -9,47 +8,14 @@ import { persistGamificationCheckin } from "../../services/gamificationApi";
 import { createWorkoutSession } from "../../services/workoutSessionApi";
 import { addWorkoutHistoryEntry } from "./workoutHistory";
 import { COLORS } from "../../styles/colors";
-import { useDailyCondition } from "../../features/dailyCheckin/useDailyCondition";
-import { buildDailyWorkoutRecommendation, getWorkoutRoute } from "../../features/training/dailyWorkoutAdapter";
-import { searchExercises } from "../../services/exercisesApi";
 import { buildMetabolicRecommendation } from "../../features/training/metabolicRecommendationEngine";
+import { ExerciseDemoModal } from "./components/ExerciseDemoModal";
 import {
   type DailySignals,
   type ReadinessLevel,
   type SelectableStrengthGroup,
   defaultSignals,
 } from "../../features/training/metabolicRecommendationTypes";
-
-/** Extrai o ID do YouTube de qualquer formato de URL (watch?v=, youtu.be/, embed/, shorts/). */
-function extractYouTubeId(url: string): string | null {
-  const patterns = [
-    /[?&]v=([^&]+)/,
-    /youtu\.be\/([^?&/]+)/,
-    /\/embed\/([^?&/]+)/,
-    /\/shorts\/([^?&/]+)/,
-  ];
-  for (const p of patterns) {
-    const m = url.match(p);
-    if (m?.[1]) return m[1];
-  }
-  return null;
-}
-
-/**
- * Normaliza a descrição livre da atividade (ex: "5 min de mobilidade global",
- * "3 séries de alongamento dinâmico para quadril…") em um termo de busca que
- * casa com a biblioteca de exercícios. Remove o prefixo de quantidade/unidade e
- * mantém o núcleo do movimento.
- */
-function cleanExerciseQuery(activity: string): string {
-  let q = activity.trim();
-  q = q.replace(
-    /^\s*\d+\s*(a\s*\d+)?\s*(min(utos)?|s[ée]ries?|x|reps?|repeti[çc][õo]es)\b\.?\s*(de\s+)?/i,
-    ""
-  );
-  const words = q.split(/[\s,]+/).filter(Boolean).slice(0, 3);
-  return words.join(" ") || activity;
-}
 
 const groupLabelMap: Partial<Record<MuscleGroup, string>> = {
   chest: "peito",
@@ -61,20 +27,14 @@ const groupLabelMap: Partial<Record<MuscleGroup, string>> = {
   cardio: "cardio",
 };
 
-function Card({
-  children,
-  style,
-}: {
-  children: React.ReactNode;
-  style?: React.CSSProperties;
-}) {
+function Card({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
   return (
     <div
       style={{
         border: `1px solid ${COLORS.border}`,
         borderRadius: 20,
         background: COLORS.panel,
-        boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.05)",
+        boxShadow: "0 1px 3px rgba(0,0,0,0.05), 0 4px 12px rgba(0,0,0,0.04)",
         padding: 18,
         ...style,
       }}
@@ -84,49 +44,30 @@ function Card({
   );
 }
 
-function SectionTitle({
-  eyebrow,
-  title,
-  subtitle,
-}: {
-  eyebrow?: string;
-  title: string;
-  subtitle?: string;
-}) {
+function Eyebrow({ children, tone = "muted" }: { children: React.ReactNode; tone?: "muted" | "lime" }) {
   return (
-    <div style={{ display: "grid", gap: 8 }}>
-      {eyebrow ? (
-        <div
-          style={{
-            display: "inline-flex",
-            width: "fit-content",
-            alignItems: "center",
-            gap: 8,
-            borderRadius: 999,
-            background: COLORS.highlightSoft,
-            color: COLORS.lime,
-            padding: "8px 12px",
-            fontSize: 11,
-            fontWeight: 600,
-            letterSpacing: 1.2,
-            textTransform: "uppercase",
-          }}
-        >
-          {eyebrow}
-        </div>
-      ) : null}
-      <div style={{ fontSize: 30, fontWeight: 700, color: COLORS.text }}>{title}</div>
-      {subtitle ? <div style={{ color: COLORS.muted, lineHeight: 1.6, maxWidth: 780 }}>{subtitle}</div> : null}
+    <div
+      style={{
+        fontSize: 11,
+        fontWeight: 700,
+        letterSpacing: 1.1,
+        textTransform: "uppercase",
+        color: tone === "lime" ? COLORS.lime : COLORS.mutedSoft,
+      }}
+    >
+      {children}
     </div>
   );
 }
 
 function ChoicePill({
   active,
+  disabled,
   children,
   onClick,
 }: {
   active: boolean;
+  disabled?: boolean;
   children: React.ReactNode;
   onClick: () => void;
 }) {
@@ -134,14 +75,18 @@ function ChoicePill({
     <button
       type="button"
       onClick={onClick}
+      disabled={disabled}
       style={{
-        padding: "10px 12px",
-        borderRadius: 14,
+        padding: "9px 12px",
+        borderRadius: 12,
         border: active ? `1px solid ${COLORS.borderStrong}` : `1px solid ${COLORS.border}`,
         background: active ? COLORS.primarySoft : "#FAFAFA",
-        color: COLORS.text,
-        cursor: "pointer",
+        color: disabled ? COLORS.mutedSoft : COLORS.text,
+        cursor: disabled ? "not-allowed" : "pointer",
         fontWeight: 600,
+        fontSize: 13,
+        opacity: disabled ? 0.6 : 1,
+        transition: "background 0.12s, border-color 0.12s",
       }}
     >
       {children}
@@ -151,54 +96,39 @@ function ChoicePill({
 
 function getLevelVisual(level: ReadinessLevel) {
   if (level === "green") {
-    return {
-      label: "Prontidão alta",
-      background: "rgba(34,197,94,.14)",
-      border: COLORS.borderStrong,
-      color: COLORS.lime,
-    };
+    return { label: "Prontidão alta", background: "rgba(34,197,94,.12)", border: COLORS.borderStrong, color: COLORS.lime };
   }
   if (level === "yellow") {
-    return {
-      label: "Prontidão ajustada",
-      background: COLORS.yellowSoft,
-      border: COLORS.yellowBorder,
-      color: "#FFD36C",
-    };
+    return { label: "Prontidão ajustada", background: COLORS.yellowSoft, border: COLORS.yellowBorder, color: "#B45309" };
   }
-  return {
-    label: "Alerta metabólico",
-    background: COLORS.redSoft,
-    border: COLORS.redBorder,
-    color: "#FF9C9C",
-  };
+  return { label: "Alerta metabólico", background: COLORS.redSoft, border: COLORS.redBorder, color: "#B91C1C" };
 }
 
+const CONTEXT_OPTIONS: Array<{ value: DailySignals["preferredContext"]; label: string }> = [
+  { value: "home", label: "Em casa" },
+  { value: "gym", label: "Academia" },
+  { value: "outdoor", label: "Outdoor" },
+];
 
 export default function SuggestedTrainingPage() {
-  const navigate = useNavigate();
   const isMobile = useIsMobile(720);
   const { user, id } = useAuth();
-  const { condition } = useDailyCondition();
   const userId = (id ?? "").trim().toLowerCase();
   const onboarding = useMemo(() => (userId ? loadAnswers(userId) : null), [userId]);
   const yesterdayGroups = useMemo(() => getYesterdayMuscleGroups(), []);
+
   const [selectedGroups, setSelectedGroups] = useState<SelectableStrengthGroup[]>([]);
   const [completedExercises, setCompletedExercises] = useState<string[]>([]);
   const [exerciseXpEarned, setExerciseXpEarned] = useState(0);
   const [groupMessage, setGroupMessage] = useState<string | null>(null);
   const [trainingMessage, setTrainingMessage] = useState<string | null>(null);
-  const [videoMessage, setVideoMessage] = useState<string | null>(null);
-  const [showWorkoutWidget, setShowWorkoutWidget] = useState(false);
+  const [demoName, setDemoName] = useState<string | null>(null);
+  const [showAdjust, setShowAdjust] = useState(false);
   const [signals, setSignals] = useState<DailySignals>(() => ({
     ...defaultSignals,
     timeAvailable: onboarding?.timePerDay || defaultSignals.timeAvailable,
     preferredContext:
-      onboarding?.trainingPlace === "gym"
-        ? "gym"
-        : onboarding?.trainingPlace === "both"
-          ? "outdoor"
-          : "home",
+      onboarding?.trainingPlace === "gym" ? "gym" : onboarding?.trainingPlace === "both" ? "outdoor" : "home",
   }));
 
   const recommendation = useMemo(
@@ -211,79 +141,34 @@ export default function SuggestedTrainingPage() {
       }),
     [onboarding?.daysPerWeek, onboarding?.trainingPlace, selectedGroups, signals, user?.experienceLevel, user?.fitnessGoal, yesterdayGroups]
   );
-  const adaptiveWorkout = useMemo(
-    () =>
-      buildDailyWorkoutRecommendation({
-        condition,
-        user,
-        onboarding,
-      }),
-    [condition, onboarding, user]
-  );
-  const primaryAdaptiveWorkout =
-    adaptiveWorkout.recommendations.find((item) => item.type === adaptiveWorkout.primaryRecommendationType) ??
-    adaptiveWorkout.recommendations[0];
-  const alternativeAdaptiveWorkout =
-    adaptiveWorkout.recommendations.find((item) => item.type !== adaptiveWorkout.primaryRecommendationType) ??
-    adaptiveWorkout.recommendations[1];
 
   const readinessVisual = getLevelVisual(recommendation.level);
-  const maxSelectableGroups =
-    signals.timeAvailable === "60+" ? 3 : signals.timeAvailable === "30-45" ? 2 : 1;
-  const totalExercises = recommendation.workoutPlan
-    ? recommendation.workoutPlan.blocks.reduce((sum, block) => sum + block.exercises.length, 0)
-    : 0;
+  const maxSelectableGroups = signals.timeAvailable === "60+" ? 3 : signals.timeAvailable === "30-45" ? 2 : 1;
+  const plan = recommendation.workoutPlan;
+  const totalExercises = plan ? plan.blocks.reduce((sum, block) => sum + block.exercises.length, 0) : 0;
   const allExercisesCompleted = totalExercises > 0 && completedExercises.length === totalExercises;
 
-  async function openSupportVideo(activity: string, _workoutFocus?: string) {
-    setVideoMessage(null);
-    try {
-      const results = await searchExercises({ q: cleanExerciseQuery(activity), limit: 1 });
-      const exercise = results[0];
-      const videoId =
-        exercise?.primaryMediaUrl && exercise.primaryMediaType === "youtube"
-          ? extractYouTubeId(exercise.primaryMediaUrl)
-          : null;
-      if (videoId && exercise) {
-        navigate(
-          `/app/user/treinos/player/support-video?videoId=${encodeURIComponent(videoId)}&title=${encodeURIComponent(
-            `${exercise.name} · apoio`
-          )}&durationMin=2&returnTo=${encodeURIComponent("/app/user/suggested-training")}`
-        );
-        return;
-      }
-      setVideoMessage(`Ainda não há vídeo de apoio para "${activity}". Use o passo a passo do treino para guiar a execução.`);
-    } catch {
-      setVideoMessage("Não consegui carregar o vídeo de apoio agora. Tente novamente em instantes.");
-    }
+  function setContext(value: DailySignals["preferredContext"]) {
+    setSignals((current) => ({ ...current, preferredContext: value }));
+    setCompletedExercises([]);
   }
 
   function toggleSymptom(symptom: Exclude<DailySignals["symptoms"][number], "none">) {
     setSignals((current) => {
       const currentSymptoms = current.symptoms.filter((item) => item !== "none");
       const exists = currentSymptoms.includes(symptom);
-      const nextSymptoms = exists
-        ? currentSymptoms.filter((item) => item !== symptom)
-        : [...currentSymptoms, symptom];
-
-      return {
-        ...current,
-        symptoms: nextSymptoms.length ? nextSymptoms : ["none"],
-      };
+      const nextSymptoms = exists ? currentSymptoms.filter((item) => item !== symptom) : [...currentSymptoms, symptom];
+      return { ...current, symptoms: nextSymptoms.length ? nextSymptoms : ["none"] };
     });
   }
 
   function toggleGroup(group: SelectableStrengthGroup) {
-    if (yesterdayGroups.includes(group)) {
-      return;
-    }
-
+    if (yesterdayGroups.includes(group)) return;
     setSelectedGroups((current) => {
       if (current.includes(group)) {
         setGroupMessage(null);
         return current.filter((item) => item !== group);
       }
-
       if (current.length >= maxSelectableGroups) {
         setGroupMessage(
           maxSelectableGroups === 1
@@ -292,7 +177,6 @@ export default function SuggestedTrainingPage() {
         );
         return current;
       }
-
       setGroupMessage(null);
       return [...current, group];
     });
@@ -300,10 +184,7 @@ export default function SuggestedTrainingPage() {
 
   function toggleExerciseComplete(exerciseKey: string) {
     setCompletedExercises((current) => {
-      if (current.includes(exerciseKey)) {
-        return current.filter((item) => item !== exerciseKey);
-      }
-
+      if (current.includes(exerciseKey)) return current.filter((item) => item !== exerciseKey);
       addXp(5);
       setExerciseXpEarned((value) => value + 5);
       return [...current, exerciseKey];
@@ -311,60 +192,89 @@ export default function SuggestedTrainingPage() {
   }
 
   async function handleCompleteTraining() {
-    if (!recommendation.workoutPlan) {
-      return;
-    }
-
+    if (!plan) return;
     const workoutId = `ai-plan-${Date.now()}`;
-    const workoutTitle = `IA do dia • ${recommendation.workoutPlan.focus}`;
+    const workoutTitle = `IA do dia • ${plan.focus}`;
     const workoutGroups: MuscleGroup[] = selectedGroups.length
       ? [...selectedGroups]
-      : recommendation.workoutPlan.focus.toLowerCase().includes("cardio")
+      : plan.focus.toLowerCase().includes("cardio")
         ? ["cardio"]
         : ["core"];
 
-    addWorkoutHistoryEntry({
-      workoutId,
-      title: workoutTitle,
-      muscleGroups: workoutGroups,
-      date: new Date().toISOString(),
-    });
-
-    const checkin = registerDailyCheckin("workout", 0);
-    setTrainingMessage(
-      checkin.alreadyCheckedIn
-        ? `Sessão registrada. Sua leitura de amanhã já considera o esforço de hoje.`
-        : `Sessão registrada. Sua leitura de amanhã já considera o esforço de hoje.`
-    );
-
-    // Execução estruturada (Spec 010) — treino sugerido é não-estruturado
-    // (sem exercise_id), então registramos nível frequência. Best-effort.
+    addWorkoutHistoryEntry({ workoutId, title: workoutTitle, muscleGroups: workoutGroups, date: new Date().toISOString() });
+    registerDailyCheckin("workout", 0);
+    setTrainingMessage("Sessão registrada. Sua leitura de amanhã já considera o esforço de hoje.");
     void createWorkoutSession({ source: "suggested", status: "completed", title: workoutTitle });
 
     try {
       await persistGamificationCheckin({
         source: "workout",
         xp: exerciseXpEarned,
-        workout: {
-          workoutId,
-          title: workoutTitle,
-          muscleGroups: workoutGroups,
-        },
+        workout: { workoutId, title: workoutTitle, muscleGroups: workoutGroups },
       });
     } catch (error) {
       console.error("Failed to persist AI workout completion:", error);
     }
   }
 
+  const fieldLabel = { color: COLORS.mutedSoft, fontSize: 12, fontWeight: 600, textTransform: "uppercase" as const, letterSpacing: 1.1 };
+
   return (
-    <div style={{ display: "grid", gap: 18 }}>
+    <div style={{ maxWidth: 1080, margin: "0 auto", width: "100%", display: "grid", gap: 16 }}>
+      {/* Header compacto */}
+      <div style={{ display: "grid", gap: 6 }}>
+        <Eyebrow tone="lime">Treino que entende seu dia</Eyebrow>
+        <div style={{ fontSize: isMobile ? 24 : 28, fontWeight: 700, color: COLORS.text, lineHeight: 1.2 }}>
+          Seu treino de hoje
+        </div>
+        <div style={{ color: COLORS.muted, fontSize: 14, lineHeight: 1.6, maxWidth: 680 }}>
+          O S2Core lê seus sinais do dia e decide se hoje vale acelerar, manter, recuperar ou pausar — depois monta a sessão.
+        </div>
+      </div>
+
+      {/* Prontidão + contexto */}
+      <Card style={{ borderColor: readinessVisual.border, display: "grid", gap: 16 }}>
+        <div style={{ display: "grid", gap: 10 }}>
+          <span
+            style={{
+              justifySelf: "start",
+              display: "inline-flex",
+              borderRadius: 999,
+              padding: "6px 12px",
+              fontSize: 12,
+              fontWeight: 700,
+              background: readinessVisual.background,
+              color: readinessVisual.color,
+              border: `1px solid ${readinessVisual.border}`,
+            }}
+          >
+            {readinessVisual.label}
+          </span>
+          <div style={{ fontSize: isMobile ? 20 : 22, fontWeight: 700, color: COLORS.text, lineHeight: 1.25 }}>
+            {recommendation.title}
+          </div>
+          <div style={{ color: COLORS.muted, lineHeight: 1.6, maxWidth: 720 }}>{recommendation.summary}</div>
+        </div>
+
+        <div style={{ display: "grid", gap: 8 }}>
+          <span style={fieldLabel}>Onde você vai treinar</span>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 8 }}>
+            {CONTEXT_OPTIONS.map((opt) => (
+              <ChoicePill key={opt.value} active={signals.preferredContext === opt.value} onClick={() => setContext(opt.value)}>
+                {opt.label}
+              </ChoicePill>
+            ))}
+          </div>
+        </div>
+      </Card>
+
       {trainingMessage ? (
         <div
           style={{
             padding: 14,
             borderRadius: 14,
             border: `1px solid ${COLORS.borderStrong}`,
-            background: "rgba(34,197,94,.12)",
+            background: "rgba(34,197,94,.10)",
             color: COLORS.text,
             fontWeight: 600,
           }}
@@ -372,346 +282,285 @@ export default function SuggestedTrainingPage() {
           {trainingMessage}
         </div>
       ) : null}
-      {videoMessage ? (
-        <div
-          role="status"
-          style={{
-            padding: 12,
-            borderRadius: 12,
-            border: `1px solid ${COLORS.border}`,
-            background: COLORS.panelSoft,
-            color: COLORS.muted,
-            fontSize: 13,
-            lineHeight: 1.5,
-          }}
-        >
-          {videoMessage}
-        </div>
-      ) : null}
-      <Card style={{ background: COLORS.panelDeep, borderColor: COLORS.borderStrong }}>
-        <SectionTitle
-          eyebrow="Treino que entende seu dia"
-          title="Seu treino de hoje começa com leitura do estado do corpo."
-          subtitle="O S2Core transforma sinais do dia em decisão. Aqui o sistema não só escolhe um treino: ele decide se hoje vale acelerar, reduzir, recuperar ou pausar com segurança."
-        />
-      </Card>
 
-      <Card
-        style={{
-          borderColor: COLORS.borderStrong,
-          background: "linear-gradient(135deg, rgba(34,197,94,.10), rgba(6,182,212,.08), rgba(255,255,255,.98))",
-          boxShadow: "0 18px 40px rgba(6,182,212,.08)",
-        }}
-      >
-        <div style={{ display: "grid", gap: 18 }}>
-          <div style={{ display: "grid", gap: 8 }}>
-            <div
-              style={{
-                display: "inline-flex",
-                width: "fit-content",
-                alignItems: "center",
-                gap: 8,
-                borderRadius: 999,
-                background: "rgba(34,197,94,.12)",
-                color: COLORS.lime,
-                padding: "8px 12px",
-                fontSize: 11,
-                fontWeight: 700,
-                textTransform: "uppercase",
-                letterSpacing: 1.1,
-              }}
-            >
-              Recomendação adaptativa de hoje
-            </div>
-            <div style={{ fontSize: 28, fontWeight: 700, color: COLORS.text, lineHeight: 1.15 }}>
-              {primaryAdaptiveWorkout.title}
-            </div>
-            <div style={{ color: COLORS.muted, lineHeight: 1.7, maxWidth: 760 }}>
-              {adaptiveWorkout.message}
-            </div>
+      {/* Plano do dia OU dia de recuperação */}
+      {plan ? (
+        <Card style={{ display: "grid", gap: 16 }}>
+          <div style={{ display: "grid", gap: 6 }}>
+            <Eyebrow tone="lime">Plano de hoje</Eyebrow>
+            <div style={{ fontSize: isMobile ? 22 : 26, fontWeight: 700, color: COLORS.text, lineHeight: 1.2 }}>{plan.focus}</div>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "minmax(0, 1.2fr) minmax(280px, .8fr)", gap: 14 }}>
-            <div
-              style={{
-                padding: 18,
-                borderRadius: 18,
-                border: `1px solid ${COLORS.borderStrong}`,
-                background: "#FFFFFF",
-                display: "grid",
-                gap: 14,
-              }}
-            >
-              <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-                <div
-                  style={{
-                    display: "inline-flex",
-                    borderRadius: 999,
-                    padding: "6px 10px",
-                    background: "rgba(34,197,94,.12)",
-                    color: COLORS.lime,
-                    fontSize: 12,
-                    fontWeight: 700,
-                  }}
-                >
-                  Recomendado · {primaryAdaptiveWorkout.type === "home" ? "Treino em casa" : "Treino na academia"}
-                </div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.lime }}>
-                  {primaryAdaptiveWorkout.scoreImpact} score
-                </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 10 }}>
+            {[
+              { label: "Duração", value: plan.duration },
+              { label: "Intensidade", value: plan.intensity },
+              { label: "Blocos", value: String(plan.blocks.length) },
+            ].map((stat) => (
+              <div
+                key={stat.label}
+                style={{ padding: 14, borderRadius: 14, border: `1px solid ${COLORS.border}`, background: "#F9FAFB", display: "grid", gap: 6 }}
+              >
+                <span style={fieldLabel}>{stat.label}</span>
+                <span style={{ color: COLORS.text, fontSize: 16, fontWeight: 700, lineHeight: 1.25 }}>{stat.value}</span>
               </div>
+            ))}
+          </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 10 }}>
-                <div style={{ padding: 12, borderRadius: 14, border: `1px solid ${COLORS.border}`, background: "#F9FAFB" }}>
-                  <div style={{ color: COLORS.mutedSoft, fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.1 }}>Duração</div>
-                  <div style={{ marginTop: 6, color: COLORS.text, fontSize: 18, fontWeight: 700 }}>{primaryAdaptiveWorkout.duration} min</div>
-                </div>
-                <div style={{ padding: 12, borderRadius: 14, border: `1px solid ${COLORS.border}`, background: "#F9FAFB" }}>
-                  <div style={{ color: COLORS.mutedSoft, fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.1 }}>Objetivo</div>
-                  <div style={{ marginTop: 6, color: COLORS.text, fontSize: 18, fontWeight: 700 }}>{primaryAdaptiveWorkout.goal}</div>
-                </div>
-                <div style={{ padding: 12, borderRadius: 14, border: `1px solid ${COLORS.border}`, background: "#F9FAFB" }}>
-                  <div style={{ color: COLORS.mutedSoft, fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.1 }}>Intensidade</div>
-                  <div style={{ marginTop: 6, color: COLORS.text, fontSize: 18, fontWeight: 700 }}>{adaptiveWorkout.intensity}</div>
-                </div>
-              </div>
-
-              <div style={{ display: "grid", gap: 10 }}>
-                {primaryAdaptiveWorkout.exercises.map((exercise) => (
-                  <div
-                    key={exercise}
+          {/* Blocos */}
+          <div style={{ display: "grid", gap: 12 }}>
+            {plan.blocks.map((block, blockIndex) => (
+              <div key={block.title} style={{ display: "grid", gap: 10 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <span
                     style={{
-                      display: "flex",
-                      gap: 10,
-                      alignItems: "flex-start",
-                      padding: "12px 14px",
-                      borderRadius: 14,
-                      border: `1px solid ${COLORS.border}`,
-                      background: "#FAFAFA",
-                      color: COLORS.muted,
+                      minWidth: 26,
+                      height: 26,
+                      borderRadius: 999,
+                      background: COLORS.primarySoft,
+                      color: COLORS.lime,
+                      display: "grid",
+                      placeItems: "center",
+                      fontSize: 12,
+                      fontWeight: 700,
                     }}
-                    >
-                    <div
-                      style={{
-                        width: 8,
-                        height: 8,
-                        marginTop: 7,
-                        borderRadius: 999,
-                        background: "#22C55E",
-                        flex: "0 0 auto",
-                      }}
-                    />
-                    <div style={{ display: "grid", gap: 8, width: "100%" }}>
-                      <div>{exercise}</div>
-                      <button
-                        type="button"
-                        onClick={() => openSupportVideo(exercise, primaryAdaptiveWorkout.title)}
+                  >
+                    {blockIndex + 1}
+                  </span>
+                  <span style={{ fontSize: 15, fontWeight: 700, color: COLORS.text }}>{block.title}</span>
+                </div>
+
+                <div style={{ display: "grid", gap: 8 }}>
+                  {block.exercises.map((exercise, exerciseIndex) => {
+                    const exerciseKey = `${blockIndex}-${exerciseIndex}-${exercise}`;
+                    const checked = completedExercises.includes(exerciseKey);
+                    return (
+                      <div
+                        key={exerciseKey}
                         style={{
-                          padding: "8px 10px",
-                          borderRadius: 10,
-                          border: `1px solid ${COLORS.borderStrong}`,
-                          background: "rgba(34,197,94,.08)",
-                          color: COLORS.text,
-                          fontWeight: 700,
-                          width: "fit-content",
-                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "flex-start",
+                          gap: 10,
+                          padding: "12px 14px",
+                          borderRadius: 14,
+                          border: `1px solid ${checked ? COLORS.borderStrong : COLORS.border}`,
+                          background: checked ? "rgba(34,197,94,.10)" : "#FAFAFA",
                         }}
                       >
-                        Ver vídeo de apoio no app
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                        <button
+                          type="button"
+                          onClick={() => toggleExerciseComplete(exerciseKey)}
+                          aria-label={checked ? "Desmarcar" : "Marcar como feito"}
+                          style={{
+                            minWidth: 26,
+                            height: 26,
+                            marginTop: 1,
+                            borderRadius: 999,
+                            border: `1px solid ${checked ? COLORS.borderStrong : COLORS.border}`,
+                            background: checked ? COLORS.lime : "#FFFFFF",
+                            color: checked ? "#0A130D" : COLORS.muted,
+                            display: "grid",
+                            placeItems: "center",
+                            fontSize: 13,
+                            fontWeight: 700,
+                            cursor: "pointer",
+                            flexShrink: 0,
+                          }}
+                        >
+                          {checked ? "✓" : "+"}
+                        </button>
+                        <div style={{ display: "grid", gap: 8, flex: 1, minWidth: 0 }}>
+                          <span style={{ color: COLORS.text, lineHeight: 1.5, fontSize: 14 }}>{exercise}</span>
+                          <button
+                            type="button"
+                            onClick={() => setDemoName(exercise)}
+                            style={{
+                              justifySelf: "start",
+                              padding: "6px 10px",
+                              borderRadius: 10,
+                              border: `1px solid ${COLORS.border}`,
+                              background: "#FFFFFF",
+                              color: COLORS.text,
+                              fontWeight: 600,
+                              fontSize: 12,
+                              cursor: "pointer",
+                            }}
+                          >
+                            Ver demonstração
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
+            ))}
+          </div>
 
-              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                <button
-                  type="button"
-                  onClick={() => navigate(getWorkoutRoute(primaryAdaptiveWorkout.type))}
-                  style={{
-                    padding: "14px 16px",
-                    borderRadius: 14,
-                    border: `1px solid ${COLORS.borderStrong}`,
-                    background: "#22C55E",
-                    color: "#0A130D",
-                    fontWeight: 700,
-                    cursor: "pointer",
-                  }}
-                >
-                  {primaryAdaptiveWorkout.type === "home" ? `Começar a sessão de hoje · ${primaryAdaptiveWorkout.duration} min` : "Começar — sessão na academia"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => navigate(getWorkoutRoute(alternativeAdaptiveWorkout.type))}
-                  style={{
-                    padding: "14px 16px",
-                    borderRadius: 14,
-                    border: `1px solid ${COLORS.border}`,
-                    background: "#FAFAFA",
-                    color: COLORS.text,
-                    fontWeight: 700,
-                    cursor: "pointer",
-                  }}
-                >
-                  {alternativeAdaptiveWorkout.type === "home" ? "Usar alternativa em casa" : "Usar alternativa na academia"}
-                </button>
-              </div>
+          {plan.closingNote ? (
+            <div style={{ padding: 12, borderRadius: 12, border: `1px solid ${COLORS.border}`, background: COLORS.panelSoft, color: COLORS.muted, fontSize: 13, lineHeight: 1.6 }}>
+              {plan.closingNote}
             </div>
+          ) : null}
 
-            <div
+          {/* Progresso + registrar */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: isMobile ? "1fr" : "minmax(0, 1fr) auto",
+              gap: 12,
+              alignItems: "center",
+              padding: 16,
+              borderRadius: 16,
+              border: `1px solid ${COLORS.borderStrong}`,
+              background: "rgba(34,197,94,.08)",
+            }}
+          >
+            <div style={{ display: "grid", gap: 4 }}>
+              <span style={{ color: COLORS.text, fontWeight: 700, fontSize: 15 }}>
+                {completedExercises.length}/{totalExercises} exercícios marcados
+              </span>
+              <span style={{ color: COLORS.muted, fontSize: 13 }}>Marque conforme você executa — isso atualiza sua leitura de amanhã.</span>
+            </div>
+            <button
+              type="button"
+              onClick={handleCompleteTraining}
+              disabled={!allExercisesCompleted}
               style={{
-                padding: 18,
-                borderRadius: 18,
-                border: `1px solid ${COLORS.border}`,
-                background: "#FFFFFF",
-                display: "grid",
-                gap: 14,
-                alignContent: "start",
+                padding: "13px 18px",
+                borderRadius: 14,
+                border: `1px solid ${allExercisesCompleted ? COLORS.borderStrong : COLORS.border}`,
+                background: allExercisesCompleted ? COLORS.lime : "#F1F5F9",
+                color: allExercisesCompleted ? "#0A130D" : COLORS.mutedSoft,
+                fontWeight: 700,
+                cursor: allExercisesCompleted ? "pointer" : "not-allowed",
+                whiteSpace: "nowrap",
               }}
             >
-              <div style={{ display: "grid", gap: 8 }}>
-                <div style={{ color: COLORS.mutedSoft, fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.1 }}>
-                  Opção alternativa
-                </div>
-                <div style={{ fontSize: 20, fontWeight: 700, color: COLORS.text }}>{alternativeAdaptiveWorkout.title}</div>
-                <div style={{ color: COLORS.muted, lineHeight: 1.6 }}>
-                  {alternativeAdaptiveWorkout.duration} min · {alternativeAdaptiveWorkout.goal} · {alternativeAdaptiveWorkout.scoreImpact}
-                </div>
-              </div>
-
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                {alternativeAdaptiveWorkout.exercises.slice(0, 5).map((exercise) => (
-                  <div
-                    key={exercise}
-                    style={{
-                      padding: "6px 10px",
-                      borderRadius: 999,
-                      border: `1px solid ${COLORS.border}`,
-                      background: "#FAFAFA",
-                      color: COLORS.muted,
-                      fontSize: 12,
-                      fontWeight: 600,
-                    }}
-                  >
-                    {exercise}
-                  </div>
-                ))}
-              </div>
-
-              <div style={{ color: COLORS.muted, fontSize: 13, lineHeight: 1.6 }}>
-                Esta camada rápida existe para reduzir fricção: você escolhe entre casa e academia sem precisar passar pelo fluxo completo primeiro.
-              </div>
-            </div>
+              Registrar treino
+            </button>
           </div>
-        </div>
-      </Card>
+        </Card>
+      ) : (
+        <Card style={{ display: "grid", gap: 8 }}>
+          <Eyebrow tone="lime">Hoje é dia de recuperar</Eyebrow>
+          <div style={{ fontSize: 18, fontWeight: 700, color: COLORS.text }}>Sem treino prescrito para hoje</div>
+          <div style={{ color: COLORS.muted, lineHeight: 1.6 }}>
+            Seus sinais pedem recuperação. Forçar agora atrapalha o resultado — priorize sono, hidratação e movimento leve.
+          </div>
+        </Card>
+      )}
 
-      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "minmax(0, 1.05fr) minmax(0, .95fr)", gap: 16 }}>
-        <Card>
-          <div style={{ display: "grid", gap: 18 }}>
-            <div style={{ fontSize: 20, fontWeight: 700, color: COLORS.text }}>Estado de hoje</div>
+      {/* Por que + Ação (lado a lado no desktop) */}
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 16 }}>
+        {recommendation.rationale.length ? (
+          <Card style={{ display: "grid", gap: 12 }}>
+            <div style={{ fontSize: 16, fontWeight: 700, color: COLORS.text }}>Por que a IA chegou nisso</div>
+            <div style={{ display: "grid", gap: 8 }}>
+              {recommendation.rationale.map((item) => (
+                <div key={item} style={{ padding: 12, borderRadius: 12, background: COLORS.panelSoft, border: `1px solid ${COLORS.border}`, color: COLORS.muted, fontSize: 13, lineHeight: 1.5 }}>
+                  {item}
+                </div>
+              ))}
+            </div>
+          </Card>
+        ) : null}
 
+        {recommendation.actions.length ? (
+          <Card style={{ display: "grid", gap: 12 }}>
+            <div style={{ fontSize: 16, fontWeight: 700, color: COLORS.text }}>Ação recomendada</div>
             <div style={{ display: "grid", gap: 10 }}>
-              <div style={{ color: COLORS.mutedSoft, fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1.1 }}>
-                Como você acordou?
+              {recommendation.actions.map((item) => (
+                <div key={item} style={{ display: "flex", gap: 10, alignItems: "flex-start", color: COLORS.muted, fontSize: 13, lineHeight: 1.5 }}>
+                  <span style={{ minWidth: 22, height: 22, borderRadius: 999, background: COLORS.primarySoft, color: COLORS.lime, display: "grid", placeItems: "center", fontSize: 12, fontWeight: 700, flexShrink: 0, marginTop: 1 }}>✓</span>
+                  <span>{item}</span>
+                </div>
+              ))}
+            </div>
+          </Card>
+        ) : null}
+      </div>
+
+      {/* Alertas */}
+      {recommendation.warnings.length ? (
+        <Card style={{ borderColor: COLORS.redBorder, background: COLORS.redSoft, display: "grid", gap: 10 }}>
+          <div style={{ fontSize: 16, fontWeight: 700, color: "#B91C1C" }}>Alertas do dia</div>
+          <div style={{ display: "grid", gap: 8 }}>
+            {recommendation.warnings.map((warning) => (
+              <div key={warning} style={{ padding: 12, borderRadius: 12, border: `1px solid ${COLORS.redBorder}`, background: "#FFFFFF", color: "#7F1D1D", fontSize: 13, lineHeight: 1.5 }}>
+                {warning}
               </div>
-              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                {[
-                  ["great", "Acordei muito bem"],
-                  ["ok", "Acordei normal"],
-                  ["tired", "Acordei cansado"],
-                ].map(([value, label]) => (
-                  <ChoicePill
-                    key={value}
-                    active={signals.wokeUpFeeling === value}
-                    onClick={() => setSignals((current) => ({ ...current, wokeUpFeeling: value as DailySignals["wokeUpFeeling"] }))}
-                  >
+            ))}
+          </div>
+          <div style={{ color: COLORS.muted, fontSize: 12, lineHeight: 1.5 }}>
+            Este módulo interpreta sinais do dia, mas não substitui avaliação médica.
+          </div>
+        </Card>
+      ) : null}
+
+      {/* Ajustar meu dia — refinamento, progressivo */}
+      <Card style={{ display: "grid", gap: showAdjust ? 18 : 0 }}>
+        <button
+          type="button"
+          onClick={() => setShowAdjust((v) => !v)}
+          style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left", width: "100%" }}
+        >
+          <div style={{ display: "grid", gap: 2 }}>
+            <span style={{ fontSize: 16, fontWeight: 700, color: COLORS.text }}>Ajustar meu dia</span>
+            <span style={{ color: COLORS.muted, fontSize: 13 }}>Refine os sinais e a IA recalcula o treino na hora.</span>
+          </div>
+          <span style={{ color: COLORS.muted, fontSize: 13, fontWeight: 600, whiteSpace: "nowrap" }}>{showAdjust ? "Fechar ▲" : "Abrir ▼"}</span>
+        </button>
+
+        {showAdjust ? (
+          <div style={{ display: "grid", gap: 18 }}>
+            <div style={{ display: "grid", gap: 10 }}>
+              <span style={fieldLabel}>Como você acordou?</span>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                {[["great", "Muito bem"], ["ok", "Normal"], ["tired", "Cansado"]].map(([value, label]) => (
+                  <ChoicePill key={value} active={signals.wokeUpFeeling === value} onClick={() => setSignals((c) => ({ ...c, wokeUpFeeling: value as DailySignals["wokeUpFeeling"] }))}>
                     {label}
                   </ChoicePill>
                 ))}
               </div>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 14 }}>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))", gap: 16 }}>
               <div style={{ display: "grid", gap: 10 }}>
-                <div style={{ color: COLORS.mutedSoft, fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1.1 }}>
-                  Sono
-                </div>
+                <span style={fieldLabel}>Sono</span>
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  {[
-                    ["good", "Bom"],
-                    ["regular", "Regular"],
-                    ["poor", "Ruim"],
-                  ].map(([value, label]) => (
-                    <ChoicePill
-                      key={value}
-                      active={signals.sleepQuality === value}
-                      onClick={() => setSignals((current) => ({ ...current, sleepQuality: value as DailySignals["sleepQuality"] }))}
-                    >
+                  {[["good", "Bom"], ["regular", "Regular"], ["poor", "Ruim"]].map(([value, label]) => (
+                    <ChoicePill key={value} active={signals.sleepQuality === value} onClick={() => setSignals((c) => ({ ...c, sleepQuality: value as DailySignals["sleepQuality"] }))}>
                       {label}
                     </ChoicePill>
                   ))}
                 </div>
               </div>
-
               <div style={{ display: "grid", gap: 10 }}>
-                <div style={{ color: COLORS.mutedSoft, fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1.1 }}>
-                  Estresse
-                </div>
+                <span style={fieldLabel}>Estresse</span>
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  {[
-                    ["low", "Baixo"],
-                    ["medium", "Médio"],
-                    ["high", "Alto"],
-                  ].map(([value, label]) => (
-                    <ChoicePill
-                      key={value}
-                      active={signals.stressLevel === value}
-                      onClick={() => setSignals((current) => ({ ...current, stressLevel: value as DailySignals["stressLevel"] }))}
-                    >
+                  {[["low", "Baixo"], ["medium", "Médio"], ["high", "Alto"]].map(([value, label]) => (
+                    <ChoicePill key={value} active={signals.stressLevel === value} onClick={() => setSignals((c) => ({ ...c, stressLevel: value as DailySignals["stressLevel"] }))}>
                       {label}
                     </ChoicePill>
                   ))}
                 </div>
               </div>
-
               <div style={{ display: "grid", gap: 10 }}>
-                <div style={{ color: COLORS.mutedSoft, fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1.1 }}>
-                  Dor muscular
-                </div>
+                <span style={fieldLabel}>Dor muscular</span>
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  {[
-                    ["low", "Baixa"],
-                    ["medium", "Média"],
-                    ["high", "Alta"],
-                  ].map(([value, label]) => (
-                    <ChoicePill
-                      key={value}
-                      active={signals.sorenessLevel === value}
-                      onClick={() => setSignals((current) => ({ ...current, sorenessLevel: value as DailySignals["sorenessLevel"] }))}
-                    >
+                  {[["low", "Baixa"], ["medium", "Média"], ["high", "Alta"]].map(([value, label]) => (
+                    <ChoicePill key={value} active={signals.sorenessLevel === value} onClick={() => setSignals((c) => ({ ...c, sorenessLevel: value as DailySignals["sorenessLevel"] }))}>
                       {label}
                     </ChoicePill>
                   ))}
                 </div>
               </div>
-
               <div style={{ display: "grid", gap: 10 }}>
-                <div style={{ color: COLORS.mutedSoft, fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1.1 }}>
-                  Tempo disponível
-                </div>
+                <span style={fieldLabel}>Tempo disponível</span>
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  {[
-                    ["10-15", "10–15"],
-                    ["20-30", "20–30"],
-                    ["30-45", "30–45"],
-                    ["60+", "60+"],
-                  ].map(([value, label]) => (
-                    <ChoicePill
-                      key={value}
-                      active={signals.timeAvailable === value}
-                      onClick={() => setSignals((current) => ({ ...current, timeAvailable: value as DailySignals["timeAvailable"] }))}
-                    >
+                  {[["10-15", "10–15"], ["20-30", "20–30"], ["30-45", "30–45"], ["60+", "60+"]].map(([value, label]) => (
+                    <ChoicePill key={value} active={signals.timeAvailable === value} onClick={() => setSignals((c) => ({ ...c, timeAvailable: value as DailySignals["timeAvailable"] }))}>
                       {label} min
                     </ChoicePill>
                   ))}
@@ -719,66 +568,32 @@ export default function SuggestedTrainingPage() {
               </div>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 14 }}>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, minmax(0, 1fr))", gap: 16 }}>
               <div style={{ display: "grid", gap: 10 }}>
-                <div style={{ color: COLORS.mutedSoft, fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1.1 }}>
-                  Glicose
-                </div>
-                <div style={{ display: "grid", gap: 8 }}>
-                  {[
-                    ["normal", "Normal"],
-                    ["elevated", "Alta"],
-                    ["critical", "Muito alta"],
-                  ].map(([value, label]) => (
-                    <ChoicePill
-                      key={value}
-                      active={signals.glucoseStatus === value}
-                      onClick={() => setSignals((current) => ({ ...current, glucoseStatus: value as DailySignals["glucoseStatus"] }))}
-                    >
+                <span style={fieldLabel}>Glicose</span>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  {[["normal", "Normal"], ["elevated", "Alta"], ["critical", "Muito alta"]].map(([value, label]) => (
+                    <ChoicePill key={value} active={signals.glucoseStatus === value} onClick={() => setSignals((c) => ({ ...c, glucoseStatus: value as DailySignals["glucoseStatus"] }))}>
                       {label}
                     </ChoicePill>
                   ))}
                 </div>
               </div>
-
               <div style={{ display: "grid", gap: 10 }}>
-                <div style={{ color: COLORS.mutedSoft, fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1.1 }}>
-                  Pressão
-                </div>
-                <div style={{ display: "grid", gap: 8 }}>
-                  {[
-                    ["normal", "Normal"],
-                    ["elevated", "Elevada"],
-                    ["critical", "Crítica"],
-                  ].map(([value, label]) => (
-                    <ChoicePill
-                      key={value}
-                      active={signals.bloodPressureStatus === value}
-                      onClick={() =>
-                        setSignals((current) => ({ ...current, bloodPressureStatus: value as DailySignals["bloodPressureStatus"] }))
-                      }
-                    >
+                <span style={fieldLabel}>Pressão</span>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  {[["normal", "Normal"], ["elevated", "Elevada"], ["critical", "Crítica"]].map(([value, label]) => (
+                    <ChoicePill key={value} active={signals.bloodPressureStatus === value} onClick={() => setSignals((c) => ({ ...c, bloodPressureStatus: value as DailySignals["bloodPressureStatus"] }))}>
                       {label}
                     </ChoicePill>
                   ))}
                 </div>
               </div>
-
               <div style={{ display: "grid", gap: 10 }}>
-                <div style={{ color: COLORS.mutedSoft, fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1.1 }}>
-                  Contexto
-                </div>
-                <div style={{ display: "grid", gap: 8 }}>
-                  {[
-                    ["home", "Em casa"],
-                    ["gym", "Academia"],
-                    ["outdoor", "Outdoor"],
-                  ].map(([value, label]) => (
-                    <ChoicePill
-                      key={value}
-                      active={signals.preferredContext === value}
-                      onClick={() => setSignals((current) => ({ ...current, preferredContext: value as DailySignals["preferredContext"] }))}
-                    >
+                <span style={fieldLabel}>Sintomas</span>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  {[["headache", "Dor de cabeça"], ["dizziness", "Tontura"], ["nausea", "Enjoo"], ["palpitations", "Palpitação"]].map(([value, label]) => (
+                    <ChoicePill key={value} active={signals.symptoms.includes(value as Exclude<DailySignals["symptoms"][number], "none">)} onClick={() => toggleSymptom(value as Exclude<DailySignals["symptoms"][number], "none">)}>
                       {label}
                     </ChoicePill>
                   ))}
@@ -787,589 +602,28 @@ export default function SuggestedTrainingPage() {
             </div>
 
             <div style={{ display: "grid", gap: 10 }}>
-              <div style={{ color: COLORS.mutedSoft, fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1.1 }}>
-                Grupos musculares que você quer priorizar hoje
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 8 }}>
+              <span style={fieldLabel}>Grupos para priorizar hoje</span>
+              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, minmax(0, 1fr))" : "repeat(3, minmax(0, 1fr))", gap: 8 }}>
                 {(["chest", "back", "legs", "shoulders", "arms", "core"] as SelectableStrengthGroup[]).map((group) => {
                   const disabled = yesterdayGroups.includes(group);
                   const active = selectedGroups.includes(group);
-
                   return (
-                    <button
-                      key={group}
-                      type="button"
-                      onClick={() => toggleGroup(group)}
-                      disabled={disabled}
-                      style={{
-                        padding: "12px 10px",
-                        borderRadius: 14,
-                        border: active ? `1px solid ${COLORS.borderStrong}` : `1px solid ${disabled ? "#F9FAFB" : COLORS.border}`,
-                        background: active
-                          ? COLORS.primarySoft
-                          : disabled
-                            ? "#FAFAFA"
-                            : "#FAFAFA",
-                        color: disabled ? COLORS.mutedSoft : COLORS.text,
-                        cursor: disabled ? "not-allowed" : "pointer",
-                        fontWeight: 600,
-                        textTransform: "capitalize",
-                        opacity: disabled ? 0.65 : 1,
-                      }}
-                    >
-                      {groupLabelMap[group]}
-                    </button>
+                    <ChoicePill key={group} active={active} disabled={disabled} onClick={() => toggleGroup(group)}>
+                      <span style={{ textTransform: "capitalize" }}>{groupLabelMap[group]}</span>
+                    </ChoicePill>
                   );
                 })}
               </div>
-              <div style={{ color: COLORS.muted, fontSize: 12, lineHeight: 1.6 }}>
-                Se você não escolher nada, a IA decide o foco automaticamente. Grupos treinados ontem ficam indisponíveis hoje para respeitar recuperação.
-              </div>
-              {groupMessage ? (
-                <div style={{ color: "#FFD36C", fontSize: 12, lineHeight: 1.6 }}>{groupMessage}</div>
-              ) : null}
-            </div>
-
-            <div style={{ display: "grid", gap: 10 }}>
-              <div style={{ color: COLORS.mutedSoft, fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1.1 }}>
-                Sintomas de hoje
-              </div>
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                {[
-                  ["headache", "Dor de cabeça"],
-                  ["dizziness", "Tontura"],
-                  ["nausea", "Enjoo"],
-                  ["palpitations", "Palpitação"],
-                ].map(([value, label]) => (
-                  <ChoicePill
-                    key={value}
-                    active={signals.symptoms.includes(value as any)}
-                    onClick={() => toggleSymptom(value as Exclude<DailySignals["symptoms"][number], "none">)}
-                  >
-                    {label}
-                  </ChoicePill>
-                ))}
-              </div>
+              <span style={{ color: COLORS.muted, fontSize: 12, lineHeight: 1.6 }}>
+                Sem escolha, a IA decide o foco. Grupos treinados ontem ficam indisponíveis para respeitar a recuperação.
+              </span>
+              {groupMessage ? <span style={{ color: "#B45309", fontSize: 12, lineHeight: 1.6 }}>{groupMessage}</span> : null}
             </div>
           </div>
-        </Card>
+        ) : null}
+      </Card>
 
-        <div style={{ display: "grid", gap: 16 }}>
-          <Card style={{ background: COLORS.panelDeep, borderColor: readinessVisual.border }}>
-            <div style={{ display: "grid", gap: 14 }}>
-              <div
-                style={{
-                  display: "inline-flex",
-                  width: "fit-content",
-                  borderRadius: 999,
-                  padding: "8px 12px",
-                  fontSize: 12,
-                  fontWeight: 600,
-                  background: readinessVisual.background,
-                  color: readinessVisual.color,
-                  border: `1px solid ${readinessVisual.border}`,
-                }}
-              >
-                {readinessVisual.label}
-              </div>
-
-              <div style={{ fontSize: 26, fontWeight: 700, color: COLORS.text }}>{recommendation.title}</div>
-              <div style={{ color: COLORS.muted, lineHeight: 1.7 }}>{recommendation.summary}</div>
-            </div>
-          </Card>
-
-          {recommendation.workoutPlan ? (
-            <Card
-              style={{
-                borderColor: COLORS.borderStrong,
-                background: COLORS.panel,
-              }}
-            >
-              <div style={{ display: "grid", gap: 16 }}>
-                <div
-                  style={{
-                    display: "grid",
-                    gap: 16,
-                    padding: 18,
-                    borderRadius: 22,
-                    border: `1px solid ${COLORS.borderStrong}`,
-                    background: "rgba(34,197,94,.08)",
-                  }}
-                >
-                  <div style={{ display: "grid", gap: 8 }}>
-                    <div
-                      style={{
-                        display: "inline-flex",
-                        width: "fit-content",
-                        borderRadius: 999,
-                        background: "rgba(34,197,94,.14)",
-                        color: COLORS.lime,
-                        padding: "8px 12px",
-                        fontSize: 11,
-                        fontWeight: 600,
-                        textTransform: "uppercase",
-                        letterSpacing: 1.1,
-                      }}
-                    >
-                      Plano de hoje
-                    </div>
-                    <div style={{ fontSize: 14, color: COLORS.mutedSoft, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1.1 }}>
-                      Treino prescrito pela IA
-                    </div>
-                    <div style={{ fontSize: 30, fontWeight: 700, color: COLORS.text, lineHeight: 1.15 }}>
-                      {recommendation.workoutPlan.focus}
-                    </div>
-                    <div style={{ color: COLORS.muted, lineHeight: 1.7, maxWidth: 760 }}>
-                      Em vez de apontar para catálogo, a IA já entrega uma sessão pronta para hoje, coerente com seus sinais, contexto e tempo disponível.
-                    </div>
-                  </div>
-
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 12 }}>
-                    <div
-                      style={{
-                        padding: 14,
-                        borderRadius: 16,
-                        border: `1px solid ${COLORS.border}`,
-                        background: "#F9FAFB",
-                        display: "grid",
-                        gap: 6,
-                      }}
-                    >
-                      <div style={{ color: COLORS.mutedSoft, fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1.1 }}>
-                        Duração
-                      </div>
-                      <div style={{ color: COLORS.text, fontSize: 20, fontWeight: 700 }}>{recommendation.workoutPlan.duration}</div>
-                    </div>
-                    <div
-                      style={{
-                        padding: 14,
-                        borderRadius: 16,
-                        border: `1px solid ${COLORS.border}`,
-                        background: "#F9FAFB",
-                        display: "grid",
-                        gap: 6,
-                      }}
-                    >
-                      <div style={{ color: COLORS.mutedSoft, fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1.1 }}>
-                        Intensidade
-                      </div>
-                      <div style={{ color: COLORS.text, fontSize: 20, fontWeight: 700 }}>{recommendation.workoutPlan.intensity}</div>
-                    </div>
-                    <div
-                      style={{
-                        padding: 14,
-                        borderRadius: 16,
-                        border: `1px solid ${COLORS.border}`,
-                        background: "#F9FAFB",
-                        display: "grid",
-                        gap: 6,
-                      }}
-                    >
-                      <div style={{ color: COLORS.mutedSoft, fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1.1 }}>
-                        Blocos
-                      </div>
-                      <div style={{ color: COLORS.text, fontSize: 20, fontWeight: 700 }}>{recommendation.workoutPlan.blocks.length}</div>
-                    </div>
-                  </div>
-
-                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                    <button
-                      type="button"
-                      onClick={() => setShowWorkoutWidget(true)}
-                      style={{
-                        padding: "14px 16px",
-                        borderRadius: 14,
-                        border: `1px solid ${COLORS.borderStrong}`,
-                        background: "#22C55E",
-                        color: "#0A130D",
-                        fontWeight: 700,
-                        cursor: "pointer",
-                      }}
-                    >
-                      Abrir treino de hoje
-                    </button>
-                    <div
-                      style={{
-                        padding: "14px 16px",
-                        borderRadius: 14,
-                        border: `1px solid ${COLORS.border}`,
-                        background: "#FAFAFA",
-                        color: COLORS.muted,
-                        fontWeight: 600,
-                      }}
-                    >
-                      {completedExercises.length}/{totalExercises} exercícios marcados
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </Card>
-          ) : null}
-
-          <Card>
-            <div style={{ display: "grid", gap: 14 }}>
-              <div style={{ fontSize: 18, fontWeight: 700, color: COLORS.text }}>Por que a IA chegou nisso</div>
-              <div style={{ display: "grid", gap: 10 }}>
-                {recommendation.rationale.map((item) => (
-                  <div
-                    key={item}
-                    style={{
-                      padding: 12,
-                      borderRadius: 14,
-                      background: COLORS.panelSoft,
-                      border: `1px solid ${COLORS.border}`,
-                      color: COLORS.muted,
-                    }}
-                  >
-                    {item}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </Card>
-
-          <Card>
-            <div style={{ display: "grid", gap: 14 }}>
-              <div style={{ fontSize: 18, fontWeight: 700, color: COLORS.text }}>Ação recomendada</div>
-              <div style={{ display: "grid", gap: 10 }}>
-                {recommendation.actions.map((item) => (
-                  <div key={item} style={{ display: "flex", gap: 10, alignItems: "flex-start", color: COLORS.muted }}>
-                    <div
-                      style={{
-                        minWidth: 24,
-                        height: 24,
-                        borderRadius: 999,
-                        background: COLORS.primarySoft,
-                        color: COLORS.lime,
-                        display: "grid",
-                        placeItems: "center",
-                        fontSize: 12,
-                        fontWeight: 600,
-                        marginTop: 1,
-                      }}
-                    >
-                      ✓
-                    </div>
-                    <div style={{ lineHeight: 1.6 }}>{item}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </Card>
-
-          {recommendation.warnings.length ? (
-            <Card style={{ borderColor: COLORS.redBorder, background: "linear-gradient(180deg, rgba(42,20,20,.92), rgba(18,14,14,.96))" }}>
-              <div style={{ display: "grid", gap: 12 }}>
-                <div style={{ fontSize: 18, fontWeight: 700, color: COLORS.text }}>Alertas do dia</div>
-                <div style={{ display: "grid", gap: 10 }}>
-                  {recommendation.warnings.map((warning) => (
-                    <div
-                      key={warning}
-                      style={{
-                        padding: 12,
-                        borderRadius: 14,
-                        border: `1px solid ${COLORS.redBorder}`,
-                        background: COLORS.redSoft,
-                        color: "#FFD6D6",
-                        lineHeight: 1.6,
-                      }}
-                    >
-                      {warning}
-                    </div>
-                  ))}
-                </div>
-                <div style={{ color: COLORS.mutedSoft, fontSize: 12, lineHeight: 1.6 }}>
-                  Este módulo ajuda a interpretar sinais do dia, mas não substitui avaliação médica ou acompanhamento clínico.
-                </div>
-              </div>
-            </Card>
-          ) : null}
-        </div>
-      </div>
-
-      {showWorkoutWidget && recommendation.workoutPlan ? (
-        <div
-          onClick={() => setShowWorkoutWidget(false)}
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,.72)",
-            display: "grid",
-            placeItems: "center",
-            zIndex: 1200,
-            padding: 20,
-          }}
-        >
-          <div
-            onClick={(event) => event.stopPropagation()}
-            style={{
-              width: "min(980px, 100%)",
-              maxHeight: "90vh",
-              overflow: "auto",
-              borderRadius: 24,
-              border: `1px solid ${COLORS.borderStrong}`,
-              background: COLORS.panel,
-              boxShadow: "0 32px 80px rgba(0,0,0,.28)",
-              padding: isMobile ? 16 : 20,
-              display: "grid",
-              gap: 16,
-            }}
-          >
-            <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start" }}>
-              <div style={{ display: "grid", gap: 8 }}>
-                <div
-                  style={{
-                    display: "inline-flex",
-                    width: "fit-content",
-                    borderRadius: 999,
-                    background: "rgba(34,197,94,.14)",
-                    color: COLORS.lime,
-                    padding: "8px 12px",
-                    fontSize: 11,
-                    fontWeight: 600,
-                    textTransform: "uppercase",
-                    letterSpacing: 1.1,
-                  }}
-                >
-                  Widget do treino
-                </div>
-                <div style={{ fontSize: 28, fontWeight: 700, color: COLORS.text }}>{recommendation.workoutPlan.focus}</div>
-                <div style={{ color: COLORS.muted, lineHeight: 1.6 }}>
-                  Treino do dia aberto em foco total para você seguir a sessão, marcar exercícios e concluir sem sair da tela.
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setShowWorkoutWidget(false)}
-                style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 999,
-                  border: `1px solid ${COLORS.border}`,
-                  background: "#FAFAFA",
-                  color: COLORS.text,
-                  cursor: "pointer",
-                  fontSize: 18,
-                  fontWeight: 700,
-                }}
-              >
-                ×
-              </button>
-            </div>
-
-            {videoMessage ? (
-              <div
-                role="status"
-                style={{
-                  padding: 12,
-                  borderRadius: 12,
-                  border: `1px solid ${COLORS.border}`,
-                  background: COLORS.panelSoft,
-                  color: COLORS.muted,
-                  fontSize: 13,
-                  lineHeight: 1.5,
-                }}
-              >
-                {videoMessage}
-              </div>
-            ) : null}
-
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 12 }}>
-              <div
-                style={{
-                  padding: 14,
-                  borderRadius: 16,
-                  border: `1px solid ${COLORS.border}`,
-                  background: "#F9FAFB",
-                }}
-              >
-                <div style={{ color: COLORS.mutedSoft, fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1.1 }}>Duração</div>
-                <div style={{ marginTop: 8, color: COLORS.text, fontSize: 20, fontWeight: 700 }}>{recommendation.workoutPlan.duration}</div>
-              </div>
-              <div
-                style={{
-                  padding: 14,
-                  borderRadius: 16,
-                  border: `1px solid ${COLORS.border}`,
-                  background: "#F9FAFB",
-                }}
-              >
-                <div style={{ color: COLORS.mutedSoft, fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1.1 }}>Intensidade</div>
-                <div style={{ marginTop: 8, color: COLORS.text, fontSize: 20, fontWeight: 700 }}>{recommendation.workoutPlan.intensity}</div>
-              </div>
-              <div
-                style={{
-                  padding: 14,
-                  borderRadius: 16,
-                  border: `1px solid ${COLORS.border}`,
-                  background: "#F9FAFB",
-                }}
-              >
-                <div style={{ color: COLORS.mutedSoft, fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1.1 }}>Blocos</div>
-                <div style={{ marginTop: 8, color: COLORS.text, fontSize: 20, fontWeight: 700 }}>{recommendation.workoutPlan.blocks.length}</div>
-              </div>
-            </div>
-
-            <div style={{ display: "grid", gap: 12 }}>
-              {recommendation.workoutPlan.blocks.map((block, blockIndex) => (
-                <div
-                  key={block.title}
-                  style={{
-                    padding: 16,
-                    borderRadius: 18,
-                    border: `1px solid ${COLORS.border}`,
-                    background: COLORS.panelSoft,
-                    display: "grid",
-                    gap: 12,
-                  }}
-                >
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <div
-                      style={{
-                        minWidth: 30,
-                        height: 30,
-                        borderRadius: 999,
-                        background: COLORS.primarySoft,
-                        color: COLORS.lime,
-                        display: "grid",
-                        placeItems: "center",
-                        fontSize: 12,
-                        fontWeight: 700,
-                      }}
-                    >
-                      {blockIndex + 1}
-                    </div>
-                    <div style={{ fontSize: 16, fontWeight: 700, color: COLORS.text }}>{block.title}</div>
-                  </div>
-                  <div style={{ display: "grid", gap: 8 }}>
-                    {block.exercises.map((exercise, exerciseIndex) => {
-                      const exerciseKey = `${blockIndex}-${exerciseIndex}-${exercise}`;
-                      const checked = completedExercises.includes(exerciseKey);
-
-                      return (
-                        <button
-                          key={exerciseKey}
-                          type="button"
-                          onClick={() => toggleExerciseComplete(exerciseKey)}
-                          style={{
-                            display: "flex",
-                            gap: 10,
-                            alignItems: "flex-start",
-                            color: COLORS.muted,
-                            borderRadius: 14,
-                            border: `1px solid ${checked ? COLORS.borderStrong : COLORS.border}`,
-                            background: checked ? "rgba(34,197,94,.12)" : "#FAFAFA",
-                            padding: "12px 14px",
-                            cursor: "pointer",
-                            textAlign: "left",
-                            transition: "all 0.2s ease",
-                          }}
-                        >
-                          <div
-                            style={{
-                              minWidth: 24,
-                              height: 24,
-                              borderRadius: 999,
-                              background: COLORS.primarySoft,
-                              color: COLORS.lime,
-                              display: "grid",
-                              placeItems: "center",
-                              fontSize: 11,
-                              fontWeight: 600,
-                              marginTop: 1,
-                            }}
-                          >
-                            {checked ? "✓" : "+"}
-                          </div>
-                          <div style={{ lineHeight: 1.6 }}>
-                            {exercise}
-                            <div style={{ fontSize: 11, color: checked ? COLORS.text : COLORS.mutedSoft, marginTop: 4 }}>
-                              {checked ? "Feito" : "Marcar como feito"}
-                            </div>
-                            <button
-                              type="button"
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                openSupportVideo(exercise, recommendation.workoutPlan?.focus);
-                              }}
-                              style={{
-                                marginTop: 8,
-                                padding: "8px 10px",
-                                borderRadius: 10,
-                                border: `1px solid ${COLORS.borderStrong}`,
-                                background: "rgba(34,197,94,.08)",
-                                color: COLORS.text,
-                                fontWeight: 700,
-                                cursor: "pointer",
-                              }}
-                            >
-                              Ver vídeo de apoio
-                            </button>
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div
-              style={{
-                padding: 12,
-                borderRadius: 14,
-                border: `1px solid ${COLORS.border}`,
-                background: "#FAFAFA",
-                color: COLORS.muted,
-                lineHeight: 1.6,
-              }}
-            >
-              {recommendation.workoutPlan.closingNote}
-            </div>
-
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: isMobile ? "1fr" : "minmax(0, 1fr) auto",
-                gap: 12,
-                alignItems: "center",
-                padding: 16,
-                borderRadius: 18,
-                border: `1px solid ${COLORS.borderStrong}`,
-                background: "rgba(34,197,94,.10)",
-              }}
-            >
-              <div style={{ display: "grid", gap: 6 }}>
-                <div style={{ color: COLORS.text, fontWeight: 700, fontSize: 16 }}>
-                  Progresso da sessão: {completedExercises.length}/{totalExercises} exercícios
-                </div>
-                <div style={{ color: COLORS.muted, fontSize: 13 }}>
-                  Marque tudo para registrar como foi — isso atualiza sua leitura.
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={handleCompleteTraining}
-                disabled={!allExercisesCompleted}
-                style={{
-                  padding: "12px 16px",
-                  borderRadius: 14,
-                  border: `1px solid ${allExercisesCompleted ? COLORS.borderStrong : COLORS.border}`,
-                  background: allExercisesCompleted
-                    ? "#22C55E"
-                    : "#F9FAFB",
-                  color: allExercisesCompleted ? "#0A130D" : COLORS.muted,
-                  fontWeight: 700,
-                  cursor: allExercisesCompleted ? "pointer" : "not-allowed",
-                }}
-              >
-                Registrar como foi
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
+      {demoName ? <ExerciseDemoModal key={demoName} name={demoName} onClose={() => setDemoName(null)} /> : null}
     </div>
   );
 }
