@@ -13,7 +13,7 @@ type Props = {
  */
 export default function CoreFitLogo({ width = 200, variant = "horizontal", className, style }: Props) {
   const src = variant === "mark" ? "/corefit-icon.svg" : "/corefit-logo.svg";
-  const aspect = variant === "mark" ? 1 : 280 / 56;
+  const aspect = variant === "mark" ? 1 : 264 / 56;
   const h = Math.round(width / aspect);
 
   return (
