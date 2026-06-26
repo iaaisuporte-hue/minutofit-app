@@ -308,19 +308,18 @@ export default function UserApp() {
               <Route path="settings" element={<LimitedUserOnly allowed={!loading}><AccountSettingsPage /></LimitedUserOnly>} />
 
               {/* ✅ TREINO SUGERIDO
-                  Aluno com personal (novato, ainda sem ficha) precisa alcançar o
-                  treino sugerido pelo card "Ver treino completo" e pelos atalhos do
-                  Hoje/metabolismo — mesmo sem a feature do plano. Sem isso a rota
-                  rebatia para /today. Coerente com PlanoPage, que já renderiza o
-                  SuggestedTrainingPage sem gate para esse aluno. */}
+                  Conteúdo de recomendação client-side, sem dado sensível. Não tem
+                  gate de feature/produto: qualquer aluno autenticado alcança pelo
+                  card "Ver treino completo" e pelos atalhos do Hoje/metabolismo.
+                  O gate anterior (feature flag / estado async de personal) rebatia
+                  para /today de forma intermitente — removido de vez. Auth já é
+                  garantida pelo ProtectedRoute; PAR-Q continua via RequireClearance. */}
               <Route
                 path="suggested-training"
                 element={
-                  <LimitedUserOnly allowed={canSuggestedTraining || isPersonalLed}>
-                    <RequireClearance>
-                      <SuggestedTrainingPage />
-                    </RequireClearance>
-                  </LimitedUserOnly>
+                  <RequireClearance>
+                    <SuggestedTrainingPage />
+                  </RequireClearance>
                 }
               />
 
