@@ -20,6 +20,37 @@ import {
   defaultSignals,
 } from "../../features/training/metabolicRecommendationTypes";
 
+/** Extrai o ID do YouTube de qualquer formato de URL (watch?v=, youtu.be/, embed/, shorts/). */
+function extractYouTubeId(url: string): string | null {
+  const patterns = [
+    /[?&]v=([^&]+)/,
+    /youtu\.be\/([^?&/]+)/,
+    /\/embed\/([^?&/]+)/,
+    /\/shorts\/([^?&/]+)/,
+  ];
+  for (const p of patterns) {
+    const m = url.match(p);
+    if (m?.[1]) return m[1];
+  }
+  return null;
+}
+
+/**
+ * Normaliza a descrição livre da atividade (ex: "5 min de mobilidade global",
+ * "3 séries de alongamento dinâmico para quadril…") em um termo de busca que
+ * casa com a biblioteca de exercícios. Remove o prefixo de quantidade/unidade e
+ * mantém o núcleo do movimento.
+ */
+function cleanExerciseQuery(activity: string): string {
+  let q = activity.trim();
+  q = q.replace(
+    /^\s*\d+\s*(a\s*\d+)?\s*(min(utos)?|s[ée]ries?|x|reps?|repeti[çc][õo]es)\b\.?\s*(de\s+)?/i,
+    ""
+  );
+  const words = q.split(/[\s,]+/).filter(Boolean).slice(0, 3);
+  return words.join(" ") || activity;
+}
+
 const groupLabelMap: Partial<Record<MuscleGroup, string>> = {
   chest: "peito",
   back: "costas",
@@ -157,6 +188,7 @@ export default function SuggestedTrainingPage() {
   const [exerciseXpEarned, setExerciseXpEarned] = useState(0);
   const [groupMessage, setGroupMessage] = useState<string | null>(null);
   const [trainingMessage, setTrainingMessage] = useState<string | null>(null);
+  const [videoMessage, setVideoMessage] = useState<string | null>(null);
   const [showWorkoutWidget, setShowWorkoutWidget] = useState(false);
   const [signals, setSignals] = useState<DailySignals>(() => ({
     ...defaultSignals,
@@ -204,23 +236,25 @@ export default function SuggestedTrainingPage() {
   const allExercisesCompleted = totalExercises > 0 && completedExercises.length === totalExercises;
 
   async function openSupportVideo(activity: string, _workoutFocus?: string) {
+    setVideoMessage(null);
     try {
-      const results = await searchExercises({ q: activity, limit: 1 });
+      const results = await searchExercises({ q: cleanExerciseQuery(activity), limit: 1 });
       const exercise = results[0];
-      if (exercise?.primaryMediaUrl && exercise.primaryMediaType === "youtube") {
-        const videoIdMatch = exercise.primaryMediaUrl.match(/[?&]v=([^&]+)/);
-        const videoId = videoIdMatch?.[1] ?? "";
-        if (videoId) {
-          navigate(
-            `/app/user/treinos/player/support-video?videoId=${encodeURIComponent(videoId)}&title=${encodeURIComponent(
-              `${exercise.name} · apoio`
-            )}&durationMin=2&returnTo=${encodeURIComponent("/app/user/suggested-training")}`
-          );
-          return;
-        }
+      const videoId =
+        exercise?.primaryMediaUrl && exercise.primaryMediaType === "youtube"
+          ? extractYouTubeId(exercise.primaryMediaUrl)
+          : null;
+      if (videoId && exercise) {
+        navigate(
+          `/app/user/treinos/player/support-video?videoId=${encodeURIComponent(videoId)}&title=${encodeURIComponent(
+            `${exercise.name} · apoio`
+          )}&durationMin=2&returnTo=${encodeURIComponent("/app/user/suggested-training")}`
+        );
+        return;
       }
+      setVideoMessage(`Ainda não há vídeo de apoio para "${activity}". Use o passo a passo do treino para guiar a execução.`);
     } catch {
-      // silently ignore search errors
+      setVideoMessage("Não consegui carregar o vídeo de apoio agora. Tente novamente em instantes.");
     }
   }
 
@@ -336,6 +370,22 @@ export default function SuggestedTrainingPage() {
           }}
         >
           {trainingMessage}
+        </div>
+      ) : null}
+      {videoMessage ? (
+        <div
+          role="status"
+          style={{
+            padding: 12,
+            borderRadius: 12,
+            border: `1px solid ${COLORS.border}`,
+            background: COLORS.panelSoft,
+            color: COLORS.muted,
+            fontSize: 13,
+            lineHeight: 1.5,
+          }}
+        >
+          {videoMessage}
         </div>
       ) : null}
       <Card style={{ background: COLORS.panelDeep, borderColor: COLORS.borderStrong }}>
@@ -832,8 +882,7 @@ export default function SuggestedTrainingPage() {
             <Card
               style={{
                 borderColor: COLORS.borderStrong,
-                background: "linear-gradient(180deg, rgba(18,28,21,.98), rgba(12,16,14,.98))",
-                boxShadow: "0 24px 60px rgba(0,0,0,.52)",
+                background: COLORS.panel,
               }}
             >
               <div style={{ display: "grid", gap: 16 }}>
@@ -844,7 +893,7 @@ export default function SuggestedTrainingPage() {
                     padding: 18,
                     borderRadius: 22,
                     border: `1px solid ${COLORS.borderStrong}`,
-                    background: "linear-gradient(135deg, rgba(15,61,46,.92), rgba(14,22,18,.98))",
+                    background: "rgba(34,197,94,.08)",
                   }}
                 >
                   <div style={{ display: "grid", gap: 8 }}>
@@ -887,7 +936,7 @@ export default function SuggestedTrainingPage() {
                       }}
                     >
                       <div style={{ color: COLORS.mutedSoft, fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1.1 }}>
-                        Duracao
+                        Duração
                       </div>
                       <div style={{ color: COLORS.text, fontSize: 20, fontWeight: 700 }}>{recommendation.workoutPlan.duration}</div>
                     </div>
@@ -1059,9 +1108,9 @@ export default function SuggestedTrainingPage() {
               overflow: "auto",
               borderRadius: 24,
               border: `1px solid ${COLORS.borderStrong}`,
-              background: "linear-gradient(180deg, rgba(18,28,21,.98), rgba(10,14,12,.99))",
-              boxShadow: "0 32px 80px rgba(0,0,0,.6)",
-              padding: 20,
+              background: COLORS.panel,
+              boxShadow: "0 32px 80px rgba(0,0,0,.28)",
+              padding: isMobile ? 16 : 20,
               display: "grid",
               gap: 16,
             }}
@@ -1109,6 +1158,23 @@ export default function SuggestedTrainingPage() {
               </button>
             </div>
 
+            {videoMessage ? (
+              <div
+                role="status"
+                style={{
+                  padding: 12,
+                  borderRadius: 12,
+                  border: `1px solid ${COLORS.border}`,
+                  background: COLORS.panelSoft,
+                  color: COLORS.muted,
+                  fontSize: 13,
+                  lineHeight: 1.5,
+                }}
+              >
+                {videoMessage}
+              </div>
+            ) : null}
+
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 12 }}>
               <div
                 style={{
@@ -1118,7 +1184,7 @@ export default function SuggestedTrainingPage() {
                   background: "#F9FAFB",
                 }}
               >
-                <div style={{ color: COLORS.mutedSoft, fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1.1 }}>Duracao</div>
+                <div style={{ color: COLORS.mutedSoft, fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1.1 }}>Duração</div>
                 <div style={{ marginTop: 8, color: COLORS.text, fontSize: 20, fontWeight: 700 }}>{recommendation.workoutPlan.duration}</div>
               </div>
               <div
@@ -1153,7 +1219,7 @@ export default function SuggestedTrainingPage() {
                     padding: 16,
                     borderRadius: 18,
                     border: `1px solid ${COLORS.border}`,
-                    background: "linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.03))",
+                    background: COLORS.panelSoft,
                     display: "grid",
                     gap: 12,
                   }}
@@ -1193,9 +1259,7 @@ export default function SuggestedTrainingPage() {
                             color: COLORS.muted,
                             borderRadius: 14,
                             border: `1px solid ${checked ? COLORS.borderStrong : COLORS.border}`,
-                            background: checked
-                              ? "linear-gradient(135deg, rgba(34,197,94,.18), rgba(16,28,20,.88))"
-                              : "#FAFAFA",
+                            background: checked ? "rgba(34,197,94,.12)" : "#FAFAFA",
                             padding: "12px 14px",
                             cursor: "pointer",
                             textAlign: "left",
@@ -1207,7 +1271,7 @@ export default function SuggestedTrainingPage() {
                               minWidth: 24,
                               height: 24,
                               borderRadius: 999,
-                              background: checked ? "rgba(10,19,13,.72)" : COLORS.primarySoft,
+                              background: COLORS.primarySoft,
                               color: COLORS.lime,
                               display: "grid",
                               placeItems: "center",
@@ -1267,13 +1331,13 @@ export default function SuggestedTrainingPage() {
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: "minmax(0, 1fr) auto",
+                gridTemplateColumns: isMobile ? "1fr" : "minmax(0, 1fr) auto",
                 gap: 12,
                 alignItems: "center",
                 padding: 16,
                 borderRadius: 18,
                 border: `1px solid ${COLORS.borderStrong}`,
-                background: "linear-gradient(135deg, rgba(15,61,46,.64), rgba(15,22,18,.92))",
+                background: "rgba(34,197,94,.10)",
               }}
             >
               <div style={{ display: "grid", gap: 6 }}>

@@ -290,7 +290,7 @@ export default function UserApp() {
               <Route
                 path="treinos/player/:workoutId"
                 element={
-                  <LimitedUserOnly allowed={canWorkouts || canHomeWorkouts}>
+                  <LimitedUserOnly allowed={canWorkouts || canHomeWorkouts || isPersonalLed}>
                     <RequireClearance>
                       <WorkoutPlayerPage />
                     </RequireClearance>
