@@ -20,6 +20,48 @@ function cleanExerciseQuery(activity: string): string {
   return words.join(" ") || activity;
 }
 
+function normalizeKey(s: string): string {
+  return s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, " ").trim();
+}
+
+/**
+ * Sinônimos PT → termo presente na biblioteca (curado). A biblioteca é PT-BR e já
+ * traz GIF para ~todos os movimentos; o gargalo é o nome divergir do gerado pelo
+ * motor. Aqui mapeamos os casos onde o nome do exercício não bate por substring.
+ */
+const MOVEMENT_ALIASES: Record<string, string> = {
+  avanco: "afundo",
+  "avanco reverso": "afundo",
+  "avanco frontal": "afundo",
+  "joelho alto": "corrida no lugar",
+  "joelho alto rapido": "corrida no lugar",
+  "marcha no lugar": "corrida no lugar",
+  marcha: "corrida no lugar",
+  "corrida estacionaria": "corrida no lugar",
+  "puxada alta": "puxada",
+  "remada sentada": "remada",
+  "elevacao de quadril": "ponte de gluteo",
+  "elevacao de pelve": "ponte de gluteo",
+};
+
+/**
+ * Gera candidatos de busca do mais específico ao mais amplo, aplicando sinônimos.
+ * Como o backend casa por SUBSTRING do termo inteiro, o nome-núcleo (1ª palavra)
+ * costuma ser o que realmente encontra ("flexao" casa "Flexão de Braço").
+ */
+function buildSearchCandidates(name: string): string[] {
+  const cleaned = cleanExerciseQuery(name);
+  const words = cleaned.split(/\s+/).filter(Boolean);
+  const raw = [cleaned, words.slice(0, 2).join(" "), words[0]].filter(Boolean);
+  const out: string[] = [];
+  for (const term of raw) {
+    out.push(term);
+    const alias = MOVEMENT_ALIASES[normalizeKey(term)];
+    if (alias) out.push(alias);
+  }
+  return [...new Set(out.map((t) => t.trim()).filter(Boolean))];
+}
+
 /** GIF do free-exercise-db vem como frames /0.jpg e /1.jpg — anima alternando. */
 function frame1FromUrl(url: string | null | undefined): string | null {
   if (!url) return null;
@@ -50,16 +92,35 @@ export function ExerciseDemoModal({ name, onClose }: { name: string; onClose: ()
   // inicial (loading=true) já cobre o reset — o efeito só dispara a busca.
   useEffect(() => {
     let alive = true;
-    searchExercises({ q: cleanExerciseQuery(name), limit: 1 })
-      .then((rows) => {
-        if (alive) setExercise(rows[0] ?? null);
-      })
-      .catch(() => {
-        if (alive) setExercise(null);
+
+    // Busca progressiva: tenta os candidatos do mais específico ao mais amplo e
+    // para no primeiro com mídia. Guarda o 1º match sem mídia como último recurso
+    // (mostra ao menos o nome canônico da biblioteca).
+    async function resolve() {
+      const candidates = buildSearchCandidates(name);
+      let firstNamed: ExerciseSummary | null = null;
+      for (const q of candidates) {
+        if (!alive) return null;
+        try {
+          const rows = await searchExercises({ q, limit: 1 });
+          const row = rows[0];
+          if (row?.primaryMediaUrl) return row;
+          if (row && !firstNamed) firstNamed = row;
+        } catch {
+          /* tenta o próximo candidato */
+        }
+      }
+      return firstNamed;
+    }
+
+    resolve()
+      .then((row) => {
+        if (alive) setExercise(row ?? null);
       })
       .finally(() => {
         if (alive) setLoading(false);
       });
+
     return () => {
       alive = false;
     };
