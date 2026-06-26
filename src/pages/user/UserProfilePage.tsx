@@ -116,31 +116,24 @@ function getInitial(name: string) {
   return name.trim()[0]?.toUpperCase() ?? "A";
 }
 
-function formatCurrentDate() {
-  return new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "short" }).format(new Date());
-}
-
-function ProfileSignal({ label, value }: { label: string; value: string }) {
+function Chip({ children }: { children: React.ReactNode }) {
   return (
-    <div
+    <span
       style={{
-        display: "grid",
-        gap: "var(--space-1)",
-        minWidth: 150,
-        flex: "1 1 150px",
-        padding: "var(--space-3)",
-        borderRadius: "var(--radius-lg)",
+        display: "inline-flex",
+        alignItems: "center",
+        padding: "4px 12px",
+        borderRadius: "var(--radius-pill)",
         border: `1px solid ${COLORS.border}`,
-        background: COLORS.panel,
+        background: COLORS.panelDeep,
+        color: COLORS.text,
+        fontSize: "var(--text-sm)",
+        fontWeight: "var(--font-semibold)",
+        whiteSpace: "nowrap",
       }}
     >
-      <span style={{ color: COLORS.mutedSoft, fontSize: "var(--text-xs)", fontWeight: "var(--font-bold)", letterSpacing: "0.07em", textTransform: "uppercase" }}>
-        {label}
-      </span>
-      <span style={{ color: COLORS.text, fontSize: "var(--text-base)", fontWeight: "var(--font-semibold)", lineHeight: 1.35 }}>
-        {value}
-      </span>
-    </div>
+      {children}
+    </span>
   );
 }
 
@@ -319,9 +312,8 @@ export default function UserProfilePage({ onLogout }: Props) {
     ]
   );
 
-  const academyName = branding?.displayName ?? academies?.[0]?.displayName ?? "S2Core";
+  const realAcademyName = branding?.displayName ?? academies?.[0]?.displayName ?? null;
   const derivedEnergy = useMemo(() => deriveEnergyStatus(metabolismData), [metabolismData]);
-  const metabolicUpdatedLabel = useMemo(() => formatCurrentDate(), []);
 
   return (
     <motion.div
@@ -337,21 +329,16 @@ export default function UserProfilePage({ onLogout }: Props) {
           style={{ padding: 0, overflow: "hidden" }}
         >
           <div style={{ height: 4, background: "var(--gradient-primary)" }} />
-          <motion.div style={{ display: "grid", gap: "var(--space-5)", padding: "var(--space-5)" }}>
+          <motion.div style={{ display: "grid", gap: "var(--space-4)", padding: "var(--space-5)" }}>
             <motion.div
               variants={itemRevealVariants}
-              style={{
-                display: "flex",
-                alignItems: isMobile ? "flex-start" : "center",
-                gap: "var(--space-4)",
-                flexDirection: isMobile ? "column" : "row",
-              }}
+              style={{ display: "flex", alignItems: "center", gap: "var(--space-3)" }}
             >
               <div
                 aria-hidden
                 style={{
-                  width: 64,
-                  height: 64,
+                  width: 44,
+                  height: 44,
                   borderRadius: "50%",
                   border: `1px solid ${COLORS.border}`,
                   background: COLORS.panel,
@@ -359,42 +346,36 @@ export default function UserProfilePage({ onLogout }: Props) {
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  fontSize: "var(--text-3xl)",
+                  fontSize: "var(--text-xl)",
                   fontWeight: "var(--font-bold)",
                   flex: "0 0 auto",
                 }}
               >
                 {getInitial(accountSummary.name)}
               </div>
-              <SectionTitle
-                eyebrow="Minha conta"
-                title={accountSummary.name}
-                subtitle="Como o S2Core te conhece hoje: seus dados, sinais de consistência e acompanhamento reunidos em uma leitura simples."
-              />
-            </motion.div>
-
-            <motion.div variants={itemRevealVariants} style={{ display: "flex", gap: "var(--space-3)", flexWrap: "wrap" }}>
-              <ProfileSignal label="Plano" value={accountSummary.plan} />
-              <ProfileSignal label="Consistência" value={`${gamification?.streak ?? 0} dias`} />
-              <ProfileSignal label="Academia" value={academyName} />
-            </motion.div>
-
-            <motion.div variants={itemRevealVariants} style={{ display: "flex", justifyContent: "flex-end", gap: "var(--space-3)", flexWrap: "wrap" }}>
-              <Link
-                to="/app/user/equipe"
-                className="btn btn-ghost"
-                style={{ fontSize: "var(--text-sm)", textDecoration: "none" }}
-              >
-                Ver minha equipe →
-              </Link>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <SectionTitle eyebrow="Meu S2Core" title={accountSummary.name} />
+              </div>
               <button
                 type="button"
                 className="btn btn-ghost"
                 onClick={() => navigate("/app/user/settings")}
-                style={{ fontSize: "var(--text-sm)" }}
+                style={{ fontSize: "var(--text-sm)", flex: "0 0 auto" }}
               >
-                Editar conta →
+                Editar perfil
               </button>
+            </motion.div>
+
+            <motion.div variants={itemRevealVariants} style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap", alignItems: "center" }}>
+              <Chip>{accountSummary.plan}</Chip>
+              <Chip>{`${gamification?.streak ?? 0} dias de consistência`}</Chip>
+              {realAcademyName ? <Chip>{realAcademyName}</Chip> : null}
+              <Link
+                to="/app/user/equipe"
+                style={{ marginLeft: "auto", color: COLORS.primary, fontWeight: "var(--font-semibold)", textDecoration: "none", fontSize: "var(--text-sm)" }}
+              >
+                Minha equipe →
+              </Link>
             </motion.div>
           </motion.div>
         </Card>
@@ -403,13 +384,8 @@ export default function UserProfilePage({ onLogout }: Props) {
       <motion.div variants={sectionRevealVariants} style={{ display: "grid", gap: "var(--space-4)" }}>
         <motion.div variants={itemRevealVariants} whileInView="show" initial={shouldReduceMotion ? false : "hidden"} viewport={{ once: true, amount: 0.15 }}>
           <Card interactive enableTilt={shouldUseTilt}>
-            <div style={{ display: "grid", gap: "var(--space-4)" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "var(--space-3)", flexWrap: "wrap" }}>
-                <div style={{ fontSize: "var(--text-xl)", fontWeight: "var(--font-bold)", color: COLORS.text }}>Perfil fitness</div>
-                <button type="button" className="btn btn-ghost" onClick={() => navigate("/app/user/settings")} style={{ fontSize: "var(--text-sm)" }}>
-                  Editar →
-                </button>
-              </div>
+            <div style={{ display: "grid", gap: "var(--space-3)" }}>
+              <div style={{ fontSize: "var(--text-xl)", fontWeight: "var(--font-bold)", color: COLORS.text }}>Perfil fitness</div>
               <div style={{ display: "grid", gap: "var(--space-3)", gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))" }}>
                 <DataRow label="Objetivo" value={accountSummary.fitnessGoal} />
                 <DataRow label="Nível" value={accountSummary.experienceLevel} />
@@ -426,13 +402,8 @@ export default function UserProfilePage({ onLogout }: Props) {
         <motion.div variants={sectionRevealVariants}>
           <Card interactive enableTilt={shouldUseTilt}>
             <div style={{ display: "grid", gap: "var(--space-4)" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "var(--space-3)" }}>
-                <div style={{ display: "grid", gap: "var(--space-1)", maxWidth: 520 }}>
-                  <div style={{ fontSize: "var(--text-xl)", fontWeight: "var(--font-bold)", color: COLORS.text }}>Estado metabólico</div>
-                  <div style={{ color: COLORS.muted, fontSize: "var(--text-base)", lineHeight: 1.55 }}>
-                    Sua leitura metabólica atual, recalculada com os sinais disponíveis. Atualizado em {metabolicUpdatedLabel}.
-                  </div>
-                </div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "var(--space-3)" }}>
+                <div style={{ fontSize: "var(--text-xl)", fontWeight: "var(--font-bold)", color: COLORS.text }}>Estado metabólico</div>
                 <div style={{ display: "flex", gap: "var(--space-3)", flexWrap: "wrap", alignItems: "center" }}>
                   <button
                     type="button"
@@ -458,7 +429,7 @@ export default function UserProfilePage({ onLogout }: Props) {
                     Compartilhar evolução de 30 dias
                   </button>
                   <Link
-                    to="/app/user/today"
+                    to="/app/user/estado-metabolico"
                     style={{ color: COLORS.primary, fontWeight: "var(--font-semibold)", textDecoration: "none", fontSize: "var(--text-sm)" }}
                   >
                     Ver evolução →
