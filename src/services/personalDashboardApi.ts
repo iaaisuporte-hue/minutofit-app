@@ -1,6 +1,7 @@
 import { API_URL, parseJson } from "./apiBase";
 import { authFetch } from "./apiClient";
 import { getAccessToken } from "./authTokens";
+import type { MetabolicEvolutionPayload } from "../features/metabolicCheckin";
 
 // Tipos canônicos vêm de src/shared/types/personal-dashboard.ts
 // (espelha corefit-backend/src/shared/types/personal-dashboard.ts).
@@ -281,6 +282,20 @@ export async function fetchPersonalStudentSnapshot(studentId: string) {
   }
 
   return (data?.data || null) as PersonalStudentSnapshot | null;
+}
+
+// Evolução metabólica do aluno (Spec 014) — read-only, consent-gated no backend.
+export async function fetchPersonalStudentEvolution(studentId: string): Promise<MetabolicEvolutionPayload | null> {
+  if (!getAccessToken()) return null;
+
+  const response = await authFetch(`${API_URL}/personal/students/${studentId}/evolution`);
+  if (response.status === 401) return null;
+
+  const data = await parseJson(response);
+  if (!response.ok) {
+    throw new Error(data?.error || "Não foi possível carregar a evolução do aluno.");
+  }
+  return (data?.data || null) as MetabolicEvolutionPayload | null;
 }
 
 export type PersonalStudentActivity = {

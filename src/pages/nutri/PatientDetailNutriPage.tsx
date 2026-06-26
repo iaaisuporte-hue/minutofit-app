@@ -14,6 +14,7 @@ import {
   publishVoiceNote,
   listVoiceNotes,
   fetchPatientInsights,
+  fetchPatientEvolution,
   OBJECTIVE_LABELS,
   type NutriObjective,
   type NutritionPlan,
@@ -26,6 +27,7 @@ import {
   type VoiceNote,
   type NutriInsight,
 } from "../../services/nutriApi";
+import { MetabolicEvolutionView, type MetabolicEvolutionPayload } from "../../features/metabolicCheckin";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -1360,11 +1362,47 @@ function VozTab({ patientId }: { patientId: number }) {
 }
 
 // ---------------------------------------------------------------------------
+// Evolução tab (Spec 014) — read-only, consent-gated
+// ---------------------------------------------------------------------------
+
+function EvolucaoTab({ patientId }: { patientId: number }) {
+  const [data, setData] = useState<MetabolicEvolutionPayload | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    fetchPatientEvolution(patientId)
+      .then((d) => { if (!cancelled) setData(d); })
+      .catch((e: any) => {
+        if (cancelled) return;
+        setError(e?.message === "consent_required"
+          ? "O paciente ainda não compartilhou os dados de evolução com você."
+          : (e?.message || "Não foi possível carregar a evolução."));
+      })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [patientId]);
+
+  if (loading) return <p className="metabolic-section-copy" style={{ padding: "8px 0" }}>Carregando evolução...</p>;
+  if (error) return <p className="metabolic-section-copy" style={{ padding: "8px 0" }}>{error}</p>;
+  if (!data) return <p className="metabolic-section-copy" style={{ padding: "8px 0" }}>Sem dados de evolução.</p>;
+
+  return (
+    <div style={{ paddingTop: 8 }}>
+      <MetabolicEvolutionView records={data.checkins} stats={data.workoutStats} workoutsShared={data.scopes.workouts} />
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Main page
 // ---------------------------------------------------------------------------
 
-type TabName = "Plano" | "Adesão" | "Contexto" | "Observações" | "Insights" | "Voz";
-const TABS: TabName[] = ["Plano", "Adesão", "Contexto", "Observações", "Insights", "Voz"];
+type TabName = "Plano" | "Adesão" | "Contexto" | "Evolução" | "Observações" | "Insights" | "Voz";
+const TABS: TabName[] = ["Plano", "Adesão", "Contexto", "Evolução", "Observações", "Insights", "Voz"];
 
 export default function PatientDetailNutriPage() {
   const { patientId } = useParams<{ patientId: string }>();
@@ -1404,6 +1442,7 @@ export default function PatientDetailNutriPage() {
       {tab === "Plano" && <PlanTab patientId={id} />}
       {tab === "Adesão" && <AdherenceTab patientId={id} />}
       {tab === "Contexto" && <ContextTab patientId={id} />}
+      {tab === "Evolução" && <EvolucaoTab patientId={id} />}
       {tab === "Observações" && <ObservationsTab patientId={id} />}
       {tab === "Insights" && <InsightsTab patientId={id} />}
       {tab === "Voz" && <VozTab patientId={id} />}

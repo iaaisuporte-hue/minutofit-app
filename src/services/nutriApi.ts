@@ -1,5 +1,6 @@
 import { API_URL, parseJson } from './apiBase';
 import { authFetch } from './apiClient';
+import type { MetabolicEvolutionPayload } from '../features/metabolicCheckin';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -420,6 +421,15 @@ export async function fetchPatientInsights(patientId: number): Promise<NutriInsi
   const res = await authFetch(`${API_URL}/nutri/patients/${patientId}/insights`);
   const json = await parseJson(res);
   return (json.data ?? []) as NutriInsight[];
+}
+
+// Evolução metabólica do paciente (Spec 014) — read-only, consent-gated no backend.
+export async function fetchPatientEvolution(patientId: number): Promise<MetabolicEvolutionPayload | null> {
+  const res = await authFetch(`${API_URL}/nutri/patients/${patientId}/evolution`);
+  if (res.status === 401) return null;
+  const json = await parseJson(res);
+  if (!json.success) throw new Error(json.error ?? 'Não foi possível carregar a evolução do paciente.');
+  return (json.data ?? null) as MetabolicEvolutionPayload | null;
 }
 
 export async function recordNutritionCheckin(adherence: Adherence, note?: string): Promise<NutritionCheckin> {

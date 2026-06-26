@@ -4,6 +4,7 @@ import {
   MetabolicIndicators,
   MetabolicInsightList,
   MetabolicSummaryCard,
+  ProfessionalShareCard,
   RegisterTypeSheet,
   WeightLoadTrendChart,
   deriveIndicators,
@@ -150,6 +151,8 @@ export default function MetabolicStatePage() {
       <WeightLoadTrendChart records={records} stats={stats} cutoff={cutoff} />
 
       <MetabolicInsightList insights={insights} />
+
+      <ProfessionalShareCard />
 
       <WorkoutProgressSection stats={stats} loading={statsLoading} />
 

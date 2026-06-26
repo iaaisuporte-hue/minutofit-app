@@ -15,6 +15,7 @@ import { CockpitTabToday } from "./cockpit/CockpitTabToday";
 import { CockpitTabWeek } from "./cockpit/CockpitTabWeek";
 import { CockpitTabTechnical } from "./cockpit/CockpitTabTechnical";
 import { CockpitTabRelationship } from "./cockpit/CockpitTabRelationship";
+import { CockpitTabEvolucao } from "./cockpit/CockpitTabEvolucao";
 import { CockpitTabAiSummary } from "./cockpit/CockpitTabAiSummary";
 import "./personalPremium.css";
 
@@ -183,6 +184,9 @@ export default function StudentProfileModal({
           <button type="button" className="pp-tab" aria-selected={tab === "week"} onClick={() => setTab("week")}>
             Semana
           </button>
+          <button type="button" className="pp-tab" aria-selected={tab === "evolucao"} onClick={() => setTab("evolucao")}>
+            Evolução
+          </button>
           <button type="button" className="pp-tab" aria-selected={tab === "ia_summary"} onClick={() => setTab("ia_summary")}>
             IA
           </button>
@@ -230,6 +234,10 @@ export default function StudentProfileModal({
           studentId={studentId}
           studentName={data?.name ?? studentName}
         />
+      ) : null}
+
+      {!loading && !error && tab === "evolucao" ? (
+        <CockpitTabEvolucao studentId={studentId} />
       ) : null}
 
       {tab === "ia_summary" ? (

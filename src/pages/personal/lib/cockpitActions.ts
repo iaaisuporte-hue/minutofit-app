@@ -1,6 +1,6 @@
 import type { PersonalStudentSnapshot } from "../../../services/personalDashboardApi";
 
-export type CockpitTabId = "today" | "week" | "technical" | "relationship" | "ia_summary";
+export type CockpitTabId = "today" | "week" | "technical" | "relationship" | "evolucao" | "ia_summary";
 
 export type CockpitSuggestion = {
   message: string;
