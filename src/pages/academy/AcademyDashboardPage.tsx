@@ -13,6 +13,8 @@ import { EmptyState } from "../../components/EmptyState";
 import { resolveAcademyHeroLogo } from "./academyFallbackLogo";
 import { AcademyPlanBadge } from "../../features/academyPlan/AcademyPlanBadge";
 import { IntelligenceUpsellCard } from "../../features/academyPlan/IntelligenceUpsellCard";
+import { AcademyUpgradeButton } from "../../features/academyPlan/AcademyUpgradeButton";
+import { useAcademyPlan } from "../../features/academyPlan/useAcademyPlan";
 
 function dayLabel(n: number) {
   return n === 1 ? "1 dia" : `${n} dias`;
@@ -275,6 +277,7 @@ function CommercialSignalsPanel({ signals, studentsCount }: { signals: AcademyCo
 
 export default function AcademyDashboardPage() {
   const navigate = useNavigate();
+  const { plan: academyPlan } = useAcademyPlan();
   const [data, setData]       = useState<AcademyDashboard | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState<string | null>(null);
@@ -427,6 +430,25 @@ export default function AcademyDashboardPage() {
           <div className="dash-pulse-value">{total}</div>
         </div>
       </div>
+
+      {/* Spec 018 — aviso de regularização (assinatura Pro vencida, ainda na graça) */}
+      {academyPlan.pastDue && (
+        <div
+          className="section-card"
+          style={{ marginTop: "var(--space-4)", borderColor: "var(--color-warn-border, #f59e0b)", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "var(--space-4)", flexWrap: "wrap" }}
+        >
+          <div>
+            <div className="dash-eyebrow" style={{ color: "var(--color-warn, #b45309)" }}>Assinatura Pro vencida</div>
+            <p style={{ fontSize: "var(--text-sm)", color: "var(--color-text-muted)", margin: "4px 0 0" }}>
+              {academyPlan.currentPeriodEnd
+                ? `Venceu em ${new Date(academyPlan.currentPeriodEnd).toLocaleDateString("pt-BR")}. `
+                : ""}
+              Regularize para manter a inteligência da academia. O acesso dos alunos não é afetado.
+            </p>
+          </div>
+          <AcademyUpgradeButton label="Regularizar Pro" />
+        </div>
+      )}
 
       {/* Opção 2 — filtro operacional por unidade (oculto se < 2 unidades) */}
       {units.length >= 2 && (

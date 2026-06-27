@@ -122,6 +122,8 @@ export interface AcademySubscription {
   studentCap: number | null;
   currentPeriodEnd: string | null;
   trialUntil: string | null;
+  /** Pro vencido mas dentro da graça: aviso de regularização ao owner/manager (Spec 018). */
+  pastDue?: boolean;
 }
 
 export async function fetchAcademyPlan(): Promise<AcademySubscription> {
