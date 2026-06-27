@@ -146,6 +146,61 @@ export async function sendBillingReminder(userId: number): Promise<void> {
   if (!data.success) throw new Error(data.error || "Não foi possível registrar a cobrança");
 }
 
+// ─── Unidades / Filiais (Spec 017) ─────────────────────────────────────────────
+
+export interface AcademyUnit {
+  id: number;
+  academyId: number;
+  name: string;
+  address: string | null;
+  status: "active" | "inactive";
+  isPrimary: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export async function fetchUnits(includeInactive = false): Promise<AcademyUnit[]> {
+  const qs = includeInactive ? "?includeInactive=1" : "";
+  const data = await authFetch(`${API_URL}/academy/units${qs}`).then(parseJson);
+  if (!data.success) throw new Error(data.error);
+  return data.data;
+}
+
+export async function createUnit(params: { name: string; address?: string | null }): Promise<AcademyUnit> {
+  const data = await authFetch(`${API_URL}/academy/units`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(params),
+  }).then(parseJson);
+  if (!data.success) throw new Error(data.error);
+  return data.data;
+}
+
+export async function updateUnit(id: number, params: { name?: string; address?: string | null }): Promise<AcademyUnit> {
+  const data = await authFetch(`${API_URL}/academy/units/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(params),
+  }).then(parseJson);
+  if (!data.success) throw new Error(data.error);
+  return data.data;
+}
+
+export async function setUnitStatus(id: number, status: "active" | "inactive"): Promise<AcademyUnit> {
+  const data = await authFetch(`${API_URL}/academy/units/${id}/status`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ status }),
+  }).then(parseJson);
+  if (!data.success) throw new Error(data.error);
+  return data.data;
+}
+
+export async function setUnitPrimary(id: number): Promise<void> {
+  const data = await authFetch(`${API_URL}/academy/units/${id}/primary`, { method: "POST" }).then(parseJson);
+  if (!data.success) throw new Error(data.error);
+}
+
 export interface AcademyAuditRow {
   id: number;
   user_id: number | null;

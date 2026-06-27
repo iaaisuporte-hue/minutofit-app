@@ -50,7 +50,9 @@ export type AppPermission =
   | "academy.invitations.write"
   | "academy.recepcao.dashboard"
   | "academy.checkin.write"
-  | "academy.billing.operate";
+  | "academy.billing.operate"
+  | "academy.units.read"
+  | "academy.units.write";
 
 const ALL_ADMIN_PERMISSIONS: AppPermission[] = [
   "admin.accessProfiles",
@@ -85,6 +87,8 @@ const ALL_ACADEMY_OWNER_PERMISSIONS: AppPermission[] = [
   "academy.recepcao.dashboard",
   "academy.checkin.write",
   "academy.billing.operate",
+  "academy.units.read",
+  "academy.units.write",
 ];
 
 const PROFILE_PERMISSIONS: Record<AccessProfile, AppPermission[]> = {
@@ -129,6 +133,8 @@ const PROFILE_PERMISSIONS: Record<AccessProfile, AppPermission[]> = {
     "academy.recepcao.dashboard",
     "academy.checkin.write",
     "academy.billing.operate",
+    "academy.units.read",
+    "academy.units.write",
   ],
   academy_finance: [
     "academy.dashboard",
@@ -147,6 +153,7 @@ const PROFILE_PERMISSIONS: Record<AccessProfile, AppPermission[]> = {
     "academy.checkin.write",
     "academy.billing.operate",
     "academy.audit.read",
+    "academy.units.read",
   ],
   academy_personal: [
     "academy.students.read",
@@ -319,6 +326,8 @@ export const APP_PERMISSION_META: Record<AppPermission, { label: string; group: 
   "academy.recepcao.dashboard": { label: "Recepção", group: "Academia", description: "Acessar o hub operacional da recepção." },
   "academy.checkin.write": { label: "Check-in operacional", group: "Academia", description: "Registrar entrada, exceções e visitantes." },
   "academy.billing.operate": { label: "Cobrança operacional", group: "Financeiro Academia", description: "Operar cobranças simples sem acesso a DRE." },
+  "academy.units.read": { label: "Ver unidades", group: "Academia", description: "Consultar as unidades/filiais da academia." },
+  "academy.units.write": { label: "Gerenciar unidades", group: "Academia", description: "Criar, editar, ativar/inativar e definir unidade principal." },
 };
 
 export const ACCESS_PROFILE_ORDER: AccessProfile[] = [

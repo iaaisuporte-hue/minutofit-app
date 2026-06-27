@@ -7,11 +7,13 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   fetchStudents,
   fetchPlans,
+  fetchUnits,
   addStudentDirect,
   inviteStudent,
   type Student,
   type StudentsStats,
   type AcademyPlan,
+  type AcademyUnit,
 } from "../../services/academyApi";
 
 const STATUS_LABELS: Record<string, string> = {
@@ -68,6 +70,7 @@ interface AddForm {
   avatarUrl:             string;
   // Matrícula
   planId:                string;
+  unitId:                string;
   startDate:             string;
   paymentMethod:         string;
   // Ficha
@@ -86,7 +89,7 @@ interface AddForm {
 const DEFAULT_ADD: AddForm = {
   mode: "direct",
   name: "", email: "", cpf: "", birthDate: "", phone: "", avatarUrl: "",
-  planId: "", startDate: "", paymentMethod: "",
+  planId: "", unitId: "", startDate: "", paymentMethod: "",
   mainGoal: "", medicalRestrictions: "",
   emergencyContactName: "", emergencyContactPhone: "",
   acceptedTerms: false, acceptedLgpd: false,
@@ -110,6 +113,7 @@ export default function AcademyStudentsPage() {
   const [searchInput, setInput]   = useState("");
 
   const [plans, setPlans]           = useState<AcademyPlan[]>([]);
+  const [units, setUnits]           = useState<AcademyUnit[]>([]);
   const [showAdd, setShowAdd]       = useState(false);
   const [addForm, setAddForm]       = useState<AddForm>(DEFAULT_ADD);
   const [addLoading, setAddLoading] = useState(false);
@@ -142,6 +146,7 @@ export default function AcademyStudentsPage() {
     setAtRiskOnly(v);
   }, [searchParams]);
   useEffect(() => { fetchPlans().then(setPlans).catch(() => {}); }, []);
+  useEffect(() => { fetchUnits(false).then(setUnits).catch(() => {}); }, []);
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();
@@ -170,6 +175,7 @@ export default function AcademyStudentsPage() {
           birthDate:             addForm.birthDate || undefined,
           avatarUrl:             addForm.avatarUrl || undefined,
           planId:                addForm.planId     ? Number(addForm.planId)  : undefined,
+          unitId:                addForm.unitId     ? Number(addForm.unitId)  : undefined,
           startDate:             addForm.startDate  || undefined,
           paymentMethod:         addForm.paymentMethod  || undefined,
           mainGoal:              addForm.mainGoal        || undefined,
@@ -611,6 +617,17 @@ export default function AcademyStudentsPage() {
                               <input type="date" className="input" value={addForm.startDate} onChange={(e) => setField("startDate", e.target.value)} />
                             </div>
                           </div>
+                          {units.length > 0 && (
+                            <div className="field">
+                              <label className="label">Unidade</label>
+                              <select className="input" value={addForm.unitId} onChange={(e) => setField("unitId", e.target.value)}>
+                                <option value="">Sem unidade</option>
+                                {units.map((u) => (
+                                  <option key={u.id} value={String(u.id)}>{u.name}{u.isPrimary ? " (principal)" : ""}</option>
+                                ))}
+                              </select>
+                            </div>
+                          )}
                           <div className="field">
                             <label className="label">Forma de pagamento</label>
                             <select className="input" value={addForm.paymentMethod} onChange={(e) => setField("paymentMethod", e.target.value)}>

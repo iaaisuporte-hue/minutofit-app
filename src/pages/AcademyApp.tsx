@@ -11,6 +11,7 @@ import { extractTenantSlug } from "../services/tenantHost";
 import AcademyDashboardPage       from "./academy/AcademyDashboardPage";
 import AcademyTeamPage            from "./academy/AcademyTeamPage";
 import AcademyBrandingSettingsPage from "./academy/AcademyBrandingSettingsPage";
+import AcademyUnitsPage            from "./academy/AcademyUnitsPage";
 import AcademyStudentsPage        from "./academy/AcademyStudentsPage";
 import AcademyStudentDetailPage   from "./academy/AcademyStudentDetailPage";
 import AcademyPlansPage           from "./academy/AcademyPlansPage";
@@ -94,6 +95,7 @@ const NAV_GROUPS: Array<{ label: string; items: NavItem[] }> = [
     label: "Configuração",
     items: [
       { to: "/app/academy/team",      label: "Equipe",            permission: "academy.invitations.write"  },
+      { to: "/app/academy/units",     label: "Unidades",          permission: "academy.units.read"         },
       { to: "/app/academy/branding",  label: "Identidade visual", permission: "academy.branding"           },
     ],
   },
@@ -256,6 +258,14 @@ export default function AcademyApp() {
             element={
               <AcademyPermissionRoute permission="academy.finance.read">
                 <AcademyFinancePage />
+              </AcademyPermissionRoute>
+            }
+          />
+          <Route
+            path="units"
+            element={
+              <AcademyPermissionRoute permission="academy.units.read" fallbackTo="/app/academy/dashboard">
+                <AcademyUnitsPage />
               </AcademyPermissionRoute>
             }
           />
