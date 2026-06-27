@@ -2,10 +2,12 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   fetchAcademyDashboard,
+  fetchUnits,
   type AcademyDashboard,
   type AcademyDashboardAtRiskStudent,
   type AcademyTopPersonal,
   type AcademyCommercialSignals,
+  type AcademyUnit,
 } from "../../services/academyApi";
 import { EmptyState } from "../../components/EmptyState";
 import { resolveAcademyHeroLogo } from "./academyFallbackLogo";
@@ -276,15 +278,21 @@ export default function AcademyDashboardPage() {
   const [data, setData]       = useState<AcademyDashboard | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState<string | null>(null);
+  const [units, setUnits]     = useState<AcademyUnit[]>([]);
+  const [selectedUnit, setSelectedUnit] = useState<number | "">("");
+
+  // Unidades ativas para o filtro operacional (oculto se a academia tem < 2).
+  useEffect(() => { fetchUnits(false).then(setUnits).catch(() => {}); }, []);
 
   useEffect(() => {
-    fetchAcademyDashboard()
+    setLoading(true);
+    fetchAcademyDashboard(selectedUnit || null)
       .then(setData)
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
-  }, []);
+  }, [selectedUnit]);
 
-  if (loading) {
+  if (loading && !data) {
     return (
       <div className="page-container">
         <div className="dash-section">
@@ -419,6 +427,29 @@ export default function AcademyDashboardPage() {
           <div className="dash-pulse-value">{total}</div>
         </div>
       </div>
+
+      {/* Opção 2 — filtro operacional por unidade (oculto se < 2 unidades) */}
+      {units.length >= 2 && (
+        <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", marginTop: "var(--space-4)", flexWrap: "wrap" }}>
+          <span className="dash-eyebrow">Unidade</span>
+          <select
+            className="input"
+            value={selectedUnit === "" ? "" : String(selectedUnit)}
+            onChange={(e) => setSelectedUnit(e.target.value ? Number(e.target.value) : "")}
+            style={{ maxWidth: 240 }}
+          >
+            <option value="">Todas as unidades</option>
+            {units.map((u) => (
+              <option key={u.id} value={String(u.id)}>{u.name}{u.isPrimary ? " (principal)" : ""}</option>
+            ))}
+          </select>
+          {selectedUnit !== "" && (
+            <span style={{ fontSize: "var(--text-xs)", color: "var(--color-text-muted)" }}>
+              Operação e frequência refletem a unidade · inteligência segue agregada da academia.
+            </span>
+          )}
+        </div>
+      )}
 
       {/* KPI signal grid */}
       {students > 0 ? (

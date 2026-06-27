@@ -107,6 +107,8 @@ export interface AcademyDashboard {
   frequency?: AcademyFrequency;
   /** true → academia no Free; bloco de inteligência travado (upsell para Pro). */
   intelligenceLocked?: boolean;
+  /** Unidade aplicada no recorte operacional (null = todas). */
+  unitId?: number | null;
 }
 
 // ─── Plano SaaS da academia (Spec 015) ─────────────────────────────────────────
@@ -327,8 +329,9 @@ export async function saveBranding(params: AcademyBranding): Promise<void> {
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 
-export async function fetchAcademyDashboard(): Promise<AcademyDashboard> {
-  const data = await authFetch(`${API_URL}/academy/dashboard`).then(parseJson);
+export async function fetchAcademyDashboard(unitId?: number | null): Promise<AcademyDashboard> {
+  const qs = unitId ? `?unitId=${unitId}` : "";
+  const data = await authFetch(`${API_URL}/academy/dashboard${qs}`).then(parseJson);
   if (!data.success) throw new Error(data.error);
   return data.data;
 }
