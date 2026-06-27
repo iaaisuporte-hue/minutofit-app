@@ -11,11 +11,15 @@ import {
   cancelStudentApi,
   reactivateStudentApi,
   resetStudentPasswordApi,
+  patchStudent,
+  fetchUnits,
   type StudentDetail,
   type AcademyPlan,
+  type AcademyUnit,
   type Enrollment,
   type StudentActivity,
 } from "../../services/academyApi";
+import { useAuth } from "../../auth/AuthContext";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
 import type { StudentMemberships } from "../../services/academyApi";
 
@@ -320,8 +324,71 @@ function ActivityBlock({ activity }: { activity?: StudentActivity }) {
   );
 }
 
+/** Unidade do aluno: visualizar e (com permissão) trocar para outra unidade ativa. */
+function StudentUnitCard({ student, canWrite, onChanged }: {
+  student: StudentDetail;
+  canWrite: boolean;
+  onChanged: () => void;
+}) {
+  const [units, setUnits] = useState<AcademyUnit[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => { fetchUnits(true).then(setUnits).catch(() => {}); }, []);
+
+  // Academia sem nenhuma unidade: nada a gerir (compatibilidade 1-unidade/legado).
+  if (units.length === 0) return null;
+
+  const activeUnits = units.filter((u) => u.status === "active");
+  const current = units.find((u) => u.id === student.unitId) ?? null;
+
+  async function change(value: string) {
+    setSaving(true);
+    setError(null);
+    try {
+      await patchStudent(student.userId, { unitId: value ? Number(value) : null });
+      onChanged();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Não foi possível alterar a unidade.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="section-card">
+      <h2 className="section-card__title" style={{ marginBottom: "var(--space-3)" }}>Unidade</h2>
+      {canWrite ? (
+        <>
+          <select
+            className="input"
+            disabled={saving}
+            value={current && current.status === "active" ? String(current.id) : ""}
+            onChange={(e) => change(e.target.value)}
+            style={{ maxWidth: 320 }}
+          >
+            <option value="">Sem unidade</option>
+            {activeUnits.map((u) => (
+              <option key={u.id} value={String(u.id)}>{u.name}{u.isPrimary ? " (principal)" : ""}</option>
+            ))}
+          </select>
+          {current && current.status !== "active" && (
+            <div style={{ fontSize: 12, color: "var(--color-warn)", marginTop: 6 }}>
+              Unidade atual “{current.name}” está inativa — selecione uma unidade ativa.
+            </div>
+          )}
+          {error && <div style={{ fontSize: 12, color: "var(--color-danger)", marginTop: 6 }}>{error}</div>}
+        </>
+      ) : (
+        <InfoField label="Unidade atual" value={current ? current.name : "Sem unidade"} />
+      )}
+    </div>
+  );
+}
+
 export default function AcademyStudentDetailPage() {
   const { userId } = useParams<{ userId: string }>();
+  const auth = useAuth();
   const { plan: academyPlan } = useAcademyPlan();
   const navigate   = useNavigate();
 
@@ -675,6 +742,13 @@ export default function AcademyStudentDetailPage() {
 
         {/* Right — Main content */}
         <div style={{ display: "grid", gap: "var(--space-5)" }}>
+          {/* Unidade do aluno (gestão pós-cadastro) */}
+          <StudentUnitCard
+            student={student}
+            canWrite={auth.hasPermission("academy.students.write")}
+            onChanged={load}
+          />
+
           {/* Enrollment */}
           <div className="section-card">
             <div className="section-card__header">
