@@ -15,6 +15,7 @@ import {
   listVoiceNotes,
   fetchPatientInsights,
   fetchPatientEvolution,
+  checkDietAgainstProfile,
   OBJECTIVE_LABELS,
   type NutriObjective,
   type NutritionPlan,
@@ -26,7 +27,17 @@ import {
   type PatientDailyCheckin,
   type VoiceNote,
   type NutriInsight,
+  type DietAlert,
 } from "../../services/nutriApi";
+
+const ALERT_KIND_LABEL: Record<DietAlert["kind"], string> = {
+  allergy: "Alergia", intolerance: "Intolerância", restriction: "Restrição",
+  preference: "Preferência", clinical_condition: "Condição clínica", medication: "Medicamento",
+};
+const ALERT_LEVEL_COLOR: Record<DietAlert["level"], string> = {
+  strong: "var(--color-danger)", moderate: "var(--color-warn-text)",
+  info: "var(--color-info-text)", suggestion: "var(--color-text-muted)",
+};
 import { MetabolicEvolutionView, type MetabolicEvolutionPayload } from "../../features/metabolicCheckin";
 import ClinicalProfileTab from "./ClinicalProfileTab";
 
@@ -103,6 +114,8 @@ function PlanTab({ patientId }: { patientId: number }) {
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [draft, setDraft] = useState<EditDraft | null>(null);
+  const [editAlerts, setEditAlerts] = useState<DietAlert[]>([]);
+  const [editAck, setEditAck] = useState(false);
 
   useEffect(() => {
     fetchPatientPlans(patientId)
@@ -121,6 +134,7 @@ function PlanTab({ patientId }: { patientId: number }) {
   }
 
   function updateMeal(idx: number, field: "name" | "orientation" | "meal_time", value: string) {
+    if (editAck) { setEditAck(false); setEditAlerts([]); } // editou → re-checa no próximo salvar
     setDraft((prev) => {
       if (!prev) return prev;
       const meals = prev.meals.map((m, i) => i === idx ? { ...m, [field]: value } : m);
@@ -129,6 +143,7 @@ function PlanTab({ patientId }: { patientId: number }) {
   }
 
   function addMeal() {
+    if (editAck) { setEditAck(false); setEditAlerts([]); }
     setDraft((prev) => {
       if (!prev || prev.meals.length >= 6) return prev;
       return { ...prev, meals: [...prev.meals, { name: "", orientation: "", meal_time: "", order_index: prev.meals.length }] };
@@ -136,6 +151,7 @@ function PlanTab({ patientId }: { patientId: number }) {
   }
 
   function removeMeal(idx: number) {
+    if (editAck) { setEditAck(false); setEditAlerts([]); }
     setDraft((prev) => {
       if (!prev) return prev;
       return { ...prev, meals: prev.meals.filter((_, i) => i !== idx).map((m, i) => ({ ...m, order_index: i })) };
@@ -148,6 +164,22 @@ function PlanTab({ patientId }: { patientId: number }) {
     if (draft.meals.length === 0 || draft.meals.some((m) => !m.name.trim() || !m.orientation.trim())) return;
     setSaving(true);
     try {
+      // Fecha o loop: checa a dieta editada contra o perfil clínico antes de salvar.
+      // Item incompatível exige confirmação consciente; falha na checagem não bloqueia.
+      if (!editAck) {
+        try {
+          const found = await checkDietAgainstProfile(
+            patientId,
+            draft.meals.map((m) => ({ name: m.name, orientation: m.orientation })),
+          );
+          if (found.length > 0) {
+            setEditAlerts(found);
+            setEditAck(true);
+            setSaving(false);
+            return;
+          }
+        } catch { /* checagem indisponível — segue salvamento */ }
+      }
       await updateNutritionPlan(patientId, data.active.id, {
         ...draft,
         meals: draft.meals.map((m) => ({ ...m, meal_time: m.meal_time || null })),
@@ -155,6 +187,8 @@ function PlanTab({ patientId }: { patientId: number }) {
       const refreshed = await fetchPatientPlans(patientId);
       setData(refreshed as { active: NutritionPlan | null; history: NutritionPlan[] });
       setEditing(false);
+      setEditAlerts([]);
+      setEditAck(false);
     } finally {
       setSaving(false);
     }
@@ -254,11 +288,33 @@ function PlanTab({ patientId }: { patientId: number }) {
             <button type="button" className="btn btn-ghost btn-sm" style={{ marginBottom: 16 }} onClick={addMeal}>+ Refeição</button>
           )}
 
+          {editAlerts.length > 0 && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 14 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: COLORS.text }}>
+                Itens podem conflitar com o perfil do paciente
+              </div>
+              {editAlerts.map((a, i) => (
+                <div key={`${a.label}-${i}`} style={{
+                  fontSize: 12.5, lineHeight: 1.45, color: ALERT_LEVEL_COLOR[a.level],
+                  padding: "8px 11px", borderRadius: 8,
+                  border: `1px solid ${ALERT_LEVEL_COLOR[a.level]}`,
+                  background: "var(--color-surface)",
+                }}>
+                  <strong>{ALERT_KIND_LABEL[a.kind]}</strong> em “{draft.meals[a.mealIndex]?.name || `Refeição ${a.mealIndex + 1}`}”:
+                  {" "}contém <strong>{a.matchedTerm}</strong> — paciente registrou <strong>{a.label}</strong>.
+                </div>
+              ))}
+              <div style={{ fontSize: 12, color: COLORS.muted }}>
+                Revise ou clique novamente em salvar para manter assim mesmo.
+              </div>
+            </div>
+          )}
+
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             <button type="button" className="btn btn-primary" disabled={!canSave || saving} onClick={() => void handleSaveEdit()}>
-              {saving ? "Salvando..." : "Salvar alterações"}
+              {saving ? "Salvando..." : editAck && editAlerts.length > 0 ? "Salvar mesmo assim" : "Salvar alterações"}
             </button>
-            <button type="button" className="btn btn-ghost" onClick={() => setEditing(false)}>Cancelar</button>
+            <button type="button" className="btn btn-ghost" onClick={() => { setEditing(false); setEditAlerts([]); setEditAck(false); }}>Cancelar</button>
           </div>
         </div>
       </div>

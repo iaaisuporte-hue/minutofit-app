@@ -4,6 +4,7 @@ import { COLORS } from "../../styles/colors";
 import {
   createNutritionPlan,
   checkDietAgainstProfile,
+  suggestSubstitution,
   OBJECTIVE_LABELS,
   METABOLIC_GOAL_LABELS,
   WORKOUT_RELATION_LABELS,
@@ -14,6 +15,7 @@ import {
   type NutritionPlan,
   type DietAlert,
   type AlertLevel,
+  type SubstitutionSuggestion,
 } from "../../services/nutriApi";
 
 const ALERT_STYLE: Record<AlertLevel, { bg: string; border: string; color: string }> = {
@@ -374,6 +376,7 @@ export default function CreatePlanPage() {
   const [error, setError] = useState<string | null>(null);
   const [alerts, setAlerts] = useState<DietAlert[]>([]);
   const [acknowledged, setAcknowledged] = useState(false);
+  const [suggestions, setSuggestions] = useState<Record<number, SubstitutionSuggestion>>({});
 
   const id = Number(patientId);
 
@@ -421,6 +424,20 @@ export default function CreatePlanPage() {
           if (found.length > 0) {
             setAlerts(found);
             setAcknowledged(true);
+            // Fase 2: busca sugestões de troca para as refeições em conflito.
+            const conflictIdx = Array.from(new Set(found.map((a) => a.mealIndex)));
+            try {
+              const pairs = await Promise.all(
+                conflictIdx.map(async (idx) => {
+                  const m = filledMeals[idx];
+                  const s = await suggestSubstitution(id, {
+                    name: m.name, orientation: m.orientation, alternatives: m.alternatives,
+                  });
+                  return [idx, s] as const;
+                }),
+              );
+              setSuggestions(Object.fromEntries(pairs));
+            } catch { /* sugestões são best-effort */ }
             setSubmitting(false);
             return; // aguarda confirmação explícita do nutri
           }
@@ -445,10 +462,7 @@ export default function CreatePlanPage() {
 
   function updateMeal(index: number, field: keyof MealDraft, value: string | string[]) {
     // Editar a dieta invalida a confirmação anterior — re-checa no próximo salvar.
-    if (acknowledged) {
-      setAcknowledged(false);
-      setAlerts([]);
-    }
+    resetAck();
     setMeals((prev) =>
       prev.map((m, i) => (i === index ? { ...m, [field]: value } : m))
     );
@@ -458,6 +472,7 @@ export default function CreatePlanPage() {
     if (acknowledged) {
       setAcknowledged(false);
       setAlerts([]);
+      setSuggestions({});
     }
   }
 
@@ -650,6 +665,31 @@ export default function CreatePlanPage() {
                 >
                   <strong>{ALERT_KIND_LABEL[a.kind]}</strong> em “{mealName}”: contém <strong>{a.matchedTerm}</strong>
                   {" "}— paciente registrou <strong>{a.label}</strong>.
+                </div>
+              );
+            })}
+            {/* Fase 2 — substituição assistida: dicas de troca + alternativas seguras */}
+            {Object.entries(suggestions).map(([idxStr, s]) => {
+              const idx = Number(idxStr);
+              const safe = s.alternatives.filter((a) => a.safe).map((a) => a.description);
+              if (s.swapHints.length === 0 && safe.length === 0) return null;
+              return (
+                <div key={`sug-${idx}`} style={{
+                  padding: "9px 12px", borderRadius: 8,
+                  background: "var(--color-primary-soft)", border: "1px solid var(--color-border)",
+                  fontSize: 12.5, lineHeight: 1.5,
+                }}>
+                  <div style={{ fontWeight: 700, color: COLORS.text, marginBottom: 4 }}>
+                    Sugestões para “{filledMeals[idx]?.name || `Refeição ${idx + 1}`}”
+                  </div>
+                  {s.swapHints.map((h, k) => (
+                    <div key={k} style={{ color: COLORS.text }}>• {h}</div>
+                  ))}
+                  {safe.length > 0 && (
+                    <div style={{ color: COLORS.muted, marginTop: 4 }}>
+                      Alternativas já cadastradas compatíveis: {safe.join(" · ")}
+                    </div>
+                  )}
                 </div>
               );
             })}

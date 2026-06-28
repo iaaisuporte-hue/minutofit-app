@@ -573,6 +573,27 @@ export async function checkDietAgainstProfile(
   return json.data?.alerts ?? [];
 }
 
+export interface SubstitutionSuggestion {
+  hasConflict: boolean;
+  conflicts: Array<{ level: AlertLevel; kind: DietaryKind; label: string; matchedTerm: string }>;
+  alternatives: Array<{ description: string; safe: boolean; conflictLabels: string[] }>;
+  swapHints: string[];
+}
+
+// Fase 2 — motor de substituição assistida para uma refeição.
+export async function suggestSubstitution(
+  patientId: number,
+  meal: { name?: string; orientation?: string; alternatives?: string[] },
+): Promise<SubstitutionSuggestion> {
+  const res = await authFetch(`${API_URL}/nutri/patients/${patientId}/clinical-profile/suggest`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ meal }),
+  });
+  const json = await parseJson(res);
+  return json.data ?? { hasConflict: false, conflicts: [], alternatives: [], swapHints: [] };
+}
+
 // User (aluno) — Perfil Alimentar read-only
 export async function fetchMyDietaryProfile(): Promise<{
   items: ProfileItem[];
