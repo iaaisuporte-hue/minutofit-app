@@ -105,6 +105,7 @@ export default function WorkoutSessionPage() {
   const [sessionRpe, setSessionRpe] = useState<number | null>(null);
   const [notes, setNotes] = useState("");
   const [finishing, setFinishing] = useState(false);
+  const [saved, setSaved] = useState(false);
 
   const adaptive = useAdaptiveTraining(true);
   const restCtx = useRef<{ exIdx: number; setIdx: number; planned: number; endsAt: number } | null>(null);
@@ -380,7 +381,10 @@ export default function WorkoutSessionPage() {
       /* gamificação best-effort; segue mesmo assim */
     }
     clearDraft(planId, dayIndex);
-    navigate("/app/user/ficha", { replace: true });
+    // NÃO navega embora: entra no estado "salvo" com o Compartilhar em destaque.
+    // Sair na hora escondia a divulgação orgânica (regressão reportada jun/2026).
+    setFinishing(false);
+    setSaved(true);
   }
 
   function discardAndExit() {
@@ -487,58 +491,81 @@ export default function WorkoutSessionPage() {
             </div>
           ) : null}
 
-          <div style={{ display: "grid", gap: 6, marginBottom: 14 }}>
-            <div style={{ fontSize: 12, fontWeight: 600, color: "var(--color-text-muted)" }}>
-              Como foi o esforço? (opcional)
-            </div>
-            <div style={{ display: "flex", gap: 6 }}>
-              {RPE_OPTIONS.map((o) => (
-                <button
-                  key={o.rpe}
-                  type="button"
-                  onClick={() => setSessionRpe(sessionRpe === o.rpe ? null : o.rpe)}
-                  className="ws-rest-btn"
-                  style={
-                    sessionRpe === o.rpe
-                      ? { flex: 1, background: "var(--color-primary-soft)", borderColor: "var(--color-primary)" }
-                      : { flex: 1 }
-                  }
-                >
-                  {o.label}
-                </button>
-              ))}
-            </div>
-          </div>
+          {!saved ? (
+            <>
+              <div style={{ display: "grid", gap: 6, marginBottom: 14 }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: "var(--color-text-muted)" }}>
+                  Como foi o esforço? (opcional)
+                </div>
+                <div style={{ display: "flex", gap: 6 }}>
+                  {RPE_OPTIONS.map((o) => (
+                    <button
+                      key={o.rpe}
+                      type="button"
+                      onClick={() => setSessionRpe(sessionRpe === o.rpe ? null : o.rpe)}
+                      className="ws-rest-btn"
+                      style={
+                        sessionRpe === o.rpe
+                          ? { flex: 1, background: "var(--color-primary-soft)", borderColor: "var(--color-primary)" }
+                          : { flex: 1 }
+                      }
+                    >
+                      {o.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
 
-          <textarea
-            className="ws-textarea"
-            placeholder="Observação rápida (opcional): como você se sentiu, algum incômodo…"
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            maxLength={280}
-          />
+              <textarea
+                className="ws-textarea"
+                placeholder="Observação rápida (opcional): como você se sentiu, algum incômodo…"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                maxLength={280}
+              />
+            </>
+          ) : (
+            <div className="ws-saved-banner">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+              Treino salvo — agora mostre sua evolução
+            </div>
+          )}
 
           <div className="ws-actions">
-            <button className="ws-btn ws-btn-primary" onClick={confirmFinish} disabled={finishing}>
-              {finishing ? "Salvando…" : "Concluir e salvar"}
-            </button>
-            {/* ⚠️ Compartilhamento social (feature madura — ver docs/MATURE_FEATURES.md). */}
-            {sessionStatus !== "abandoned" ? (
-              <WorkoutShareTrigger
-                focus={day.focus?.trim() || day.name}
-                dayName={day.name}
-                stats={{
-                  durationMin,
-                  doneSets,
-                  totalSets,
-                  completionPct: adherence,
-                  volumeKg: volume > 0 ? volume : null,
-                }}
-              />
-            ) : null}
-            <button className="ws-btn ws-btn-ghost" onClick={() => setPhase("running")} disabled={finishing}>
-              Voltar ao treino
-            </button>
+            {saved ? (
+              <>
+                {/* ⚠️ Compartilhamento social (feature madura — ver docs/MATURE_FEATURES.md).
+                    Em destaque APÓS salvar — é o momento natural de divulgação orgânica. */}
+                {sessionStatus !== "abandoned" ? (
+                  <WorkoutShareTrigger
+                    variant="primary"
+                    focus={day.focus?.trim() || day.name}
+                    dayName={day.name}
+                    stats={{
+                      durationMin,
+                      doneSets,
+                      totalSets,
+                      completionPct: adherence,
+                      volumeKg: volume > 0 ? volume : null,
+                    }}
+                  />
+                ) : null}
+                <button className="ws-btn ws-btn-ghost" onClick={() => navigate("/app/user/ficha", { replace: true })}>
+                  Voltar para a ficha
+                </button>
+              </>
+            ) : (
+              <>
+                <button className="ws-btn ws-btn-primary" onClick={confirmFinish} disabled={finishing}>
+                  {finishing ? "Salvando…" : "Concluir e salvar"}
+                </button>
+                <button className="ws-btn ws-btn-ghost" onClick={() => setPhase("running")} disabled={finishing}>
+                  Voltar ao treino
+                </button>
+              </>
+            )}
           </div>
         </div>
       </div>
