@@ -23,5 +23,8 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Test (regressão de features maduras — ver docs/MATURE_FEATURES.md)
+        run: npm test
+
       - name: Build
         run: npm run build
