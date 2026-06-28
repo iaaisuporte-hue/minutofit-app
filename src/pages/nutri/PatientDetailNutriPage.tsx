@@ -28,6 +28,7 @@ import {
   type NutriInsight,
 } from "../../services/nutriApi";
 import { MetabolicEvolutionView, type MetabolicEvolutionPayload } from "../../features/metabolicCheckin";
+import ClinicalProfileTab from "./ClinicalProfileTab";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -1401,8 +1402,8 @@ function EvolucaoTab({ patientId }: { patientId: number }) {
 // Main page
 // ---------------------------------------------------------------------------
 
-type TabName = "Plano" | "Adesão" | "Contexto" | "Evolução" | "Observações" | "Insights" | "Voz";
-const TABS: TabName[] = ["Plano", "Adesão", "Contexto", "Evolução", "Observações", "Insights", "Voz"];
+type TabName = "Plano" | "Perfil" | "Adesão" | "Contexto" | "Evolução" | "Observações" | "Insights" | "Voz";
+const TABS: TabName[] = ["Plano", "Perfil", "Adesão", "Contexto", "Evolução", "Observações", "Insights", "Voz"];
 
 export default function PatientDetailNutriPage() {
   const { patientId } = useParams<{ patientId: string }>();
@@ -1440,6 +1441,7 @@ export default function PatientDetailNutriPage() {
       <TabBar tabs={TABS} active={tab} onSelect={(t) => setTab(t as TabName)} />
 
       {tab === "Plano" && <PlanTab patientId={id} />}
+      {tab === "Perfil" && <ClinicalProfileTab patientId={id} />}
       {tab === "Adesão" && <AdherenceTab patientId={id} />}
       {tab === "Contexto" && <ContextTab patientId={id} />}
       {tab === "Evolução" && <EvolucaoTab patientId={id} />}

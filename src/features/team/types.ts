@@ -7,6 +7,7 @@ export type ConsentScope =
   | 'body_metrics'
   | 'body_photos'
   | 'nutrition'
+  | 'clinical_nutrition'
   | 'parq_anamnese'
   | 'activity_logs'
   | 'chat_history'
@@ -25,6 +26,7 @@ export const SCOPE_LABELS: Record<ConsentScope, string> = {
   body_metrics: 'Medidas corporais',
   body_photos: 'Fotos de evolução',
   nutrition: 'Plano alimentar',
+  clinical_nutrition: 'Perfil clínico-nutricional',
   parq_anamnese: 'Anamnese e PAR-Q',
   activity_logs: 'Atividades físicas',
   chat_history: 'Histórico de mensagens',

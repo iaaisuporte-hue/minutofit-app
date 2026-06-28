@@ -3,6 +3,7 @@ import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { COLORS } from "../../styles/colors";
 import {
   createNutritionPlan,
+  checkDietAgainstProfile,
   OBJECTIVE_LABELS,
   METABOLIC_GOAL_LABELS,
   WORKOUT_RELATION_LABELS,
@@ -11,7 +12,25 @@ import {
   type WorkoutRelation,
   type MealPayload,
   type NutritionPlan,
+  type DietAlert,
+  type AlertLevel,
 } from "../../services/nutriApi";
+
+const ALERT_STYLE: Record<AlertLevel, { bg: string; border: string; color: string }> = {
+  strong:     { bg: "var(--color-danger-soft, rgba(220,38,38,.08))", border: "var(--color-danger)", color: "var(--color-danger)" },
+  moderate:   { bg: "var(--color-warn-soft)", border: "var(--color-warn-border)", color: "var(--color-warn-text)" },
+  info:       { bg: "var(--color-info-soft)", border: "var(--color-info-border)", color: "var(--color-info-text)" },
+  suggestion: { bg: "var(--color-surface-muted, #F3F4F6)", border: "var(--color-border)", color: "var(--color-text-muted)" },
+};
+
+const ALERT_KIND_LABEL: Record<DietAlert["kind"], string> = {
+  allergy: "Alergia",
+  intolerance: "Intolerância",
+  restriction: "Restrição",
+  preference: "Preferência",
+  clinical_condition: "Condição clínica",
+  medication: "Medicamento",
+};
 
 function planToDrafts(plan: NutritionPlan): MealDraft[] {
   return plan.meals.map((m) => ({
@@ -353,6 +372,8 @@ export default function CreatePlanPage() {
   );
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [alerts, setAlerts] = useState<DietAlert[]>([]);
+  const [acknowledged, setAcknowledged] = useState(false);
 
   const id = Number(patientId);
 
@@ -384,6 +405,30 @@ export default function CreatePlanPage() {
           .filter((a) => a.description.length > 0),
       }));
 
+      // Checagem contra o perfil clínico-nutricional antes de salvar.
+      // Alimento incompatível nunca é salvo silenciosamente — exige confirmação.
+      // Falha na checagem (ex: sem consent) não bloqueia o salvamento.
+      if (!acknowledged) {
+        try {
+          const found = await checkDietAgainstProfile(
+            id,
+            filledMeals.map((m) => ({
+              name: m.name,
+              orientation: m.orientation,
+              alternatives: m.alternatives,
+            })),
+          );
+          if (found.length > 0) {
+            setAlerts(found);
+            setAcknowledged(true);
+            setSubmitting(false);
+            return; // aguarda confirmação explícita do nutri
+          }
+        } catch {
+          /* checagem indisponível — segue o fluxo normal de salvamento */
+        }
+      }
+
       await createNutritionPlan(id, {
         title: title.trim(),
         objective: objective as NutriObjective,
@@ -399,17 +444,33 @@ export default function CreatePlanPage() {
   }
 
   function updateMeal(index: number, field: keyof MealDraft, value: string | string[]) {
+    // Editar a dieta invalida a confirmação anterior — re-checa no próximo salvar.
+    if (acknowledged) {
+      setAcknowledged(false);
+      setAlerts([]);
+    }
     setMeals((prev) =>
       prev.map((m, i) => (i === index ? { ...m, [field]: value } : m))
     );
   }
 
+  function resetAck() {
+    if (acknowledged) {
+      setAcknowledged(false);
+      setAlerts([]);
+    }
+  }
+
   function addMeal() {
-    if (meals.length < MAX_MEALS) setMeals((prev) => [...prev, emptyMeal()]);
+    if (meals.length < MAX_MEALS) {
+      resetAck();
+      setMeals((prev) => [...prev, emptyMeal()]);
+    }
   }
 
   function removeMeal(index: number) {
     if (meals.length <= 1) return;
+    resetAck();
     setMeals((prev) => prev.filter((_, i) => i !== index));
   }
 
@@ -566,6 +627,38 @@ export default function CreatePlanPage() {
           )}
         </div>
 
+        {alerts.length > 0 && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: COLORS.text }}>
+              Atenção: itens podem conflitar com o perfil do paciente
+            </div>
+            {alerts.map((a, i) => {
+              const st = ALERT_STYLE[a.level];
+              const mealName = filledMeals[a.mealIndex]?.name || `Refeição ${a.mealIndex + 1}`;
+              return (
+                <div
+                  key={`${a.mealIndex}-${a.label}-${i}`}
+                  style={{
+                    padding: "9px 12px",
+                    borderRadius: 8,
+                    background: st.bg,
+                    border: `1px solid ${st.border}`,
+                    color: st.color,
+                    fontSize: 12.5,
+                    lineHeight: 1.45,
+                  }}
+                >
+                  <strong>{ALERT_KIND_LABEL[a.kind]}</strong> em “{mealName}”: contém <strong>{a.matchedTerm}</strong>
+                  {" "}— paciente registrou <strong>{a.label}</strong>.
+                </div>
+              );
+            })}
+            <div style={{ fontSize: 12, color: COLORS.muted }}>
+              Revise os itens acima. Para manter assim mesmo, clique novamente em salvar.
+            </div>
+          </div>
+        )}
+
         {error && (
           <div
             style={{
@@ -613,7 +706,11 @@ export default function CreatePlanPage() {
               transition: "background 0.15s",
             }}
           >
-            {submitting ? "Salvando..." : "Salvar plano"}
+            {submitting
+              ? "Salvando..."
+              : acknowledged && alerts.length > 0
+                ? "Salvar mesmo assim"
+                : "Salvar plano"}
           </button>
         </div>
       </form>

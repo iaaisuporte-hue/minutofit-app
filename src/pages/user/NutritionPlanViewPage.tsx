@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { COLORS } from "../../styles/colors";
 import { usePushSubscription } from "../../features/nutrition/usePushSubscription";
+import DietaryProfileCard from "../../features/nutrition/DietaryProfileCard";
 import {
   fetchMealTimeline,
   recordMealCheckin,
@@ -877,6 +878,9 @@ export default function NutritionPlanViewPage() {
           </div>
         )}
       </div>
+
+      {/* Perfil Alimentar (compacto, read-only) */}
+      <DietaryProfileCard />
 
       {/* Timeline */}
       {timeline.meals.length > 0 ? (
