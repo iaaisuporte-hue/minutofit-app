@@ -1,9 +1,21 @@
 import { useEffect, useRef, useState } from "react";
-import { composeWorkoutImage, shareImageBlob, type ComposedImage, type WorkoutShareFormat } from "../lib/shareWorkoutImage";
+import {
+  buildShareText,
+  canShareWorkoutImage,
+  composeWorkoutImage,
+  copyShareText,
+  downloadComposedImage,
+  shareImageBlob,
+  type ComposedImage,
+  type WorkoutShareFormat,
+  type WorkoutShareStats,
+} from "../lib/shareWorkoutImage";
 
 type Props = {
   focus: string;
   dayName?: string;
+  /** Estatísticas seguras opcionais para enriquecer o card e o texto. */
+  stats?: WorkoutShareStats | null;
   onClose: () => void;
 };
 
@@ -12,20 +24,24 @@ type Props = {
  * o aluno escolhe/tira uma foto que vira o fundo do card, vê o resultado e
  * compartilha. O share() parte do botão "Compartilhar" (gesto do usuário).
  */
-export function ShareWorkoutModal({ focus, dayName, onClose }: Props) {
+export function ShareWorkoutModal({ focus, dayName, stats, onClose }: Props) {
   const [image, setImage] = useState<ComposedImage | null>(null);
   const [composing, setComposing] = useState(true);
   const [sharing, setSharing] = useState(false);
   const [photo, setPhoto] = useState<File | null>(null);
   const [format, setFormat] = useState<WorkoutShareFormat>("story");
   const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // Capacidade de share nativo (≈ mobile). No desktop cai nos fallbacks abaixo.
+  const nativeShare = canShareWorkoutImage();
 
   async function recompose(bg: File | null, fmt: WorkoutShareFormat) {
     setComposing(true);
     setError(null);
     try {
-      const img = await composeWorkoutImage({ focus, dayName, backgroundFile: bg, format: fmt });
+      const img = await composeWorkoutImage({ focus, dayName, backgroundFile: bg, format: fmt, stats });
       setImage(img);
     } catch {
       setError("Não consegui montar a imagem com essa foto. Tente outra.");
@@ -60,10 +76,23 @@ export function ShareWorkoutModal({ focus, dayName, onClose }: Props) {
     if (!image) return;
     setSharing(true);
     try {
-      await shareImageBlob(image);
-      onClose();
+      const ok = await shareImageBlob(image, stats);
+      if (ok) onClose();
     } finally {
       setSharing(false);
+    }
+  }
+
+  function onDownload() {
+    if (!image) return;
+    downloadComposedImage(image);
+  }
+
+  async function onCopy() {
+    const ok = await copyShareText(buildShareText({ focus, dayName, stats }));
+    if (ok) {
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2000);
     }
   }
 
@@ -186,25 +215,67 @@ export function ShareWorkoutModal({ focus, dayName, onClose }: Props) {
           {hasPhoto ? "Trocar foto de fundo" : "Adicionar foto de fundo"}
         </button>
 
-        <button
-          type="button"
-          onClick={() => void onShare()}
-          disabled={!image || composing || sharing}
-          style={{
-            width: "100%", padding: "13px 16px", minHeight: 48, borderRadius: 12,
-            border: "none", background: "var(--color-primary)", color: "#fff",
-            fontWeight: 700, fontSize: 15,
-            cursor: !image || composing || sharing ? "not-allowed" : "pointer",
-            opacity: !image || composing || sharing ? 0.75 : 1,
-            display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-          }}
-        >
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
-            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
-          </svg>
-          {sharing ? "Abrindo…" : "Compartilhar"}
-        </button>
+        {/* Share nativo (mobile) — abre Stories/apps. Só quando o device suporta. */}
+        {nativeShare ? (
+          <button
+            type="button"
+            onClick={() => void onShare()}
+            disabled={!image || composing || sharing}
+            style={{
+              width: "100%", padding: "13px 16px", minHeight: 48, borderRadius: 12,
+              border: "none", background: "var(--color-primary)", color: "#fff",
+              fontWeight: 700, fontSize: 15,
+              cursor: !image || composing || sharing ? "not-allowed" : "pointer",
+              opacity: !image || composing || sharing ? 0.75 : 1,
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+            }}
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
+              <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+            </svg>
+            {sharing ? "Abrindo…" : "Compartilhar nos Stories"}
+          </button>
+        ) : null}
+
+        {/* Fallbacks (sempre disponíveis — cobre desktop e devices sem Web Share). */}
+        <div style={{ display: "flex", gap: 8 }}>
+          <button
+            type="button"
+            onClick={onDownload}
+            disabled={!image || composing}
+            style={{
+              flex: 1, padding: "12px 14px", minHeight: 46, borderRadius: 12,
+              border: nativeShare ? "1px solid var(--color-border)" : "none",
+              background: nativeShare ? "transparent" : "var(--color-primary)",
+              color: nativeShare ? "var(--color-text)" : "#fff",
+              fontWeight: 700, fontSize: 14,
+              cursor: !image || composing ? "not-allowed" : "pointer",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+            }}
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            Baixar imagem
+          </button>
+          <button
+            type="button"
+            onClick={() => void onCopy()}
+            style={{
+              flex: 1, padding: "12px 14px", minHeight: 46, borderRadius: 12,
+              border: "1px solid var(--color-border)", background: "transparent",
+              color: "var(--color-text)", fontWeight: 700, fontSize: 14,
+              cursor: "pointer",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+            }}
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+            </svg>
+            {copied ? "Copiado!" : "Copiar texto"}
+          </button>
+        </div>
       </div>
     </div>
   );

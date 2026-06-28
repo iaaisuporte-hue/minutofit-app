@@ -20,6 +20,7 @@ import {
   type SessionDraft,
 } from "./workoutSession/sessionDraft";
 import { computeSessionComparison, deriveFatigueInsight } from "./workoutSession/sessionSummary";
+import { WorkoutShareTrigger } from "./components/WorkoutShareTrigger";
 import "./workoutSession/workoutSession.css";
 
 // ── helpers de parsing (espelham o backend p/ contagem de séries / rest) ──
@@ -521,6 +522,20 @@ export default function WorkoutSessionPage() {
             <button className="ws-btn ws-btn-primary" onClick={confirmFinish} disabled={finishing}>
               {finishing ? "Salvando…" : "Concluir e salvar"}
             </button>
+            {/* ⚠️ Compartilhamento social (feature madura — ver docs/MATURE_FEATURES.md). */}
+            {sessionStatus !== "abandoned" ? (
+              <WorkoutShareTrigger
+                focus={day.focus?.trim() || day.name}
+                dayName={day.name}
+                stats={{
+                  durationMin,
+                  doneSets,
+                  totalSets,
+                  completionPct: adherence,
+                  volumeKg: volume > 0 ? volume : null,
+                }}
+              />
+            ) : null}
             <button className="ws-btn ws-btn-ghost" onClick={() => setPhase("running")} disabled={finishing}>
               Voltar ao treino
             </button>

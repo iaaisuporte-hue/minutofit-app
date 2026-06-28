@@ -10,8 +10,7 @@ import { ConfirmModal } from "../../features/team/ConfirmModal";
 import { Toast } from "../../features/team/Toast";
 import { WorkoutLogSheet, type SessionStatus } from "./components/WorkoutLogSheet";
 import { registerWorkoutSession } from "./workoutSession/registerWorkoutSession";
-import { canShareWorkoutImage } from "./lib/shareWorkoutImage";
-import { ShareWorkoutModal } from "./components/ShareWorkoutModal";
+import { WorkoutShareTrigger } from "./components/WorkoutShareTrigger";
 import { useAdaptiveTraining } from "../../features/training/adaptive/useAdaptiveTraining";
 import type { AdaptiveTodayResponse } from "../../services/trainingAdaptiveApi";
 import { ReadinessPill } from "../../features/training/adaptive/ReadinessPill";
@@ -426,10 +425,7 @@ function PlanCard({ plan, isOpen, onToggle, onAbandon, adaptiveData }: PlanCardP
   const [registrationStreak, setRegistrationStreak] = useState<number | null>(null);
   const [registrationError, setRegistrationError] = useState<string | null>(null);
   const [successToast, setSuccessToast] = useState<string | null>(null);
-  const [shareOpen, setShareOpen] = useState(false);
   const [logSheetOpen, setLogSheetOpen] = useState(false);
-  // Capacidade de compartilhar imagem = ≈ mobile (desktop não compartilha arquivo).
-  const canShare = useMemo(() => canShareWorkoutImage(), []);
 
   const days = useMemo(() => {
     if (Array.isArray(plan.days) && plan.days.length > 0) return plan.days;
@@ -682,43 +678,15 @@ function PlanCard({ plan, isOpen, onToggle, onAbandon, adaptiveData }: PlanCardP
                 />
               )}
 
-              {/* Compartilhar a conquista (mobile): foto de fundo + foco + marca */}
-              {registeredToday && canShare && (
-                <button
-                  type="button"
-                  onClick={() => setShareOpen(true)}
-                  style={{
-                    width: '100%',
-                    marginTop: 8,
-                    padding: '11px 16px',
-                    minHeight: 44,
-                    borderRadius: 12,
-                    border: `1px solid ${COLORS.border}`,
-                    background: 'transparent',
-                    color: COLORS.text,
-                    fontWeight: 700,
-                    fontSize: 14,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 8,
-                  }}
-                >
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
-                    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
-                  </svg>
-                  Compartilhar treino
-                </button>
-              )}
-
-              {shareOpen && (
-                <ShareWorkoutModal
-                  focus={displayDay.focus?.trim() || displayDay.name}
-                  dayName={displayDay.name}
-                  onClose={() => setShareOpen(false)}
-                />
+              {/* ⚠️ Compartilhar a conquista (feature madura — ver docs/MATURE_FEATURES.md).
+                  Sempre disponível após registrar; o fallback cobre desktop e devices sem Web Share. */}
+              {registeredToday && (
+                <div style={{ marginTop: 8 }}>
+                  <WorkoutShareTrigger
+                    focus={displayDay.focus?.trim() || displayDay.name}
+                    dayName={displayDay.name}
+                  />
+                </div>
               )}
 
               {registrationError && (

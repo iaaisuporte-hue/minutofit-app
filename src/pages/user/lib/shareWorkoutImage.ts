@@ -134,6 +134,27 @@ async function loadImage(file: File | Blob): Promise<HTMLImageElement> {
 /** Proporção do card: "story" = 1080×1920 (9:16, Stories) · "square" = 1080×1080 (feed). */
 export type WorkoutShareFormat = "story" | "square";
 
+/**
+ * Estatísticas SEGURAS e motivacionais do treino para o card/texto. Apenas dados
+ * de desempenho do próprio treino — NUNCA peso corporal, medidas, dor, fadiga,
+ * dados clínicos, nome de personal/academia, IDs ou plano (ver docs/MATURE_FEATURES.md
+ * › Compartilhamento social de treino › Privacidade).
+ */
+export type WorkoutShareStats = {
+  /** Duração total em minutos. */
+  durationMin?: number | null;
+  /** Séries concluídas. */
+  doneSets?: number | null;
+  /** Séries previstas. */
+  totalSets?: number | null;
+  /** Percentual de conclusão (0–100). */
+  completionPct?: number | null;
+  /** Volume total levantado em kg. */
+  volumeKg?: number | null;
+  /** Sequência/consistência (dias seguidos). */
+  streak?: number | null;
+};
+
 export type ComposeWorkoutInput = {
   /** Foco do treino exibido em destaque, ex.: "Superiores". */
   focus: string;
@@ -143,12 +164,27 @@ export type ComposeWorkoutInput = {
   backgroundFile?: File | Blob | null;
   /** Proporção do card. Padrão: "story". */
   format?: WorkoutShareFormat;
+  /** Estatísticas seguras opcionais — exibidas como linha discreta no card. */
+  stats?: WorkoutShareStats | null;
 };
+
+/** Monta os "chips" de stats seguros (linha única) a partir das estatísticas. */
+function buildStatChips(stats?: WorkoutShareStats | null): string[] {
+  if (!stats) return [];
+  const chips: string[] = [];
+  if (stats.durationMin && stats.durationMin > 0) chips.push(`${Math.round(stats.durationMin)} min`);
+  if (stats.doneSets != null && stats.totalSets != null && stats.totalSets > 0) {
+    chips.push(`${stats.doneSets}/${stats.totalSets} séries`);
+  }
+  if (stats.volumeKg && stats.volumeKg > 0) chips.push(`${Math.round(stats.volumeKg)} kg`);
+  if (stats.streak && stats.streak > 1) chips.push(`${stats.streak} dias seguidos`);
+  return chips;
+}
 
 export type ComposedImage = { blob: Blob; dataUrl: string; focus: string; format: WorkoutShareFormat };
 
 /** Monta o card-imagem (story 1080×1920 ou square 1080²) e devolve blob + dataUrl. */
-export async function composeWorkoutImage({ focus, dayName, backgroundFile, format = "story" }: ComposeWorkoutInput): Promise<ComposedImage> {
+export async function composeWorkoutImage({ focus, dayName, backgroundFile, format = "story", stats }: ComposeWorkoutInput): Promise<ComposedImage> {
   const W = 1080;
   const H = format === "story" ? 1920 : 1080;
   // Lift extra no rodapé: Story afasta da UI do Instagram; square dá respiro mínimo.
@@ -239,6 +275,16 @@ export async function composeWorkoutImage({ focus, dayName, backgroundFile, form
   ctx.fillText("TREINO CONCLUÍDO", padX, eyebrowBaseline);
   if (hasTracking) (ctx as unknown as { letterSpacing: string }).letterSpacing = "0px";
 
+  // — Stats seguros (acima do eyebrow): linha discreta "45 min · 18/22 séries · 1240 kg"
+  const chips = buildStatChips(stats);
+  if (chips.length) {
+    const statsSize = isStory ? 34 : 28;
+    const statsBaseline = eyebrowBaseline - eyebrowSize - (isStory ? 30 : 22);
+    ctx.font = `600 ${statsSize}px Inter, system-ui, sans-serif`;
+    ctx.fillStyle = "rgba(255,255,255,0.68)";
+    ctx.fillText(chips.join("  ·  "), padX, statsBaseline);
+  }
+
   // — Data
   const dateStr = new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" });
   const meta = dayName && dayName.trim() && dayName.trim() !== focus.trim()
@@ -268,11 +314,25 @@ export async function composeWorkoutImage({ focus, dayName, backgroundFile, form
   return { blob, dataUrl, focus, format };
 }
 
+const CTA = "Treine com inteligência metabólica";
+
 /**
- * Abre o menu nativo de compartilhar com a imagem já composta.
+ * Texto motivacional SEGURO para compartilhar/copiar. Só inclui foco, stats
+ * seguros (duração/séries/volume/sequência), marca e CTA — nunca dados sensíveis.
+ */
+export function buildShareText(input: { focus: string; dayName?: string; stats?: WorkoutShareStats | null }): string {
+  const chips = buildStatChips(input.stats);
+  const lines = [`Treino de ${input.focus} concluído 💪`];
+  if (chips.length) lines.push(chips.join(" · "));
+  lines.push(`${CTA} — ${BRAND}`);
+  return lines.join("\n");
+}
+
+/**
+ * Abre o menu nativo de compartilhar com a imagem já composta (mobile).
  * Deve ser chamado a partir de um gesto do usuário. Retorna true se compartilhado.
  */
-export async function shareImageBlob(image: ComposedImage): Promise<boolean> {
+export async function shareImageBlob(image: ComposedImage, stats?: WorkoutShareStats | null): Promise<boolean> {
   const file = new File([image.blob], "treino.jpg", { type: image.blob.type || "image/jpeg" });
   const nav = navigator as ShareableNavigator;
   if (typeof nav.share !== "function") return false;
@@ -281,11 +341,35 @@ export async function shareImageBlob(image: ComposedImage): Promise<boolean> {
     await navigator.share({
       files: [file],
       title: `${BRAND} — treino concluído`,
-      text: `Treino de ${image.focus} concluído. 💪 ${BRAND}`,
+      text: buildShareText({ focus: image.focus, stats }),
     });
     return true;
   } catch {
     // AbortError (cancelado) ou falha — não é erro a propagar.
     return false;
   }
+}
+
+/** Fallback desktop: baixa a imagem composta como arquivo .jpg. */
+export function downloadComposedImage(image: ComposedImage, filename = "treino-s2core.jpg"): void {
+  if (typeof document === "undefined") return;
+  const a = document.createElement("a");
+  a.href = image.dataUrl;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+
+/** Fallback universal: copia o texto motivacional seguro para a área de transferência. */
+export async function copyShareText(text: string): Promise<boolean> {
+  try {
+    if (navigator?.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch {
+    /* cai no retorno false */
+  }
+  return false;
 }
