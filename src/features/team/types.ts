@@ -36,6 +36,19 @@ export const SCOPE_LABELS: Record<ConsentScope, string> = {
 export const DEFAULT_SCOPES_PERSONAL: ConsentScope[] = ['profile', 'workouts', 'daily_checkins'];
 export const DEFAULT_SCOPES_NUTRI: ConsentScope[] = ['profile', 'daily_checkins', 'nutrition'];
 
+// Todos os escopos que o aluno PODE conceder a cada papel. Usado pelo gerenciador
+// de consentimento para também listar escopos sensíveis que nunca são concedidos
+// por padrão (ex.: `body_photos`), permitindo ao aluno ligá-los conscientemente.
+// Ordem = ordem de exibição.
+export const MANAGEABLE_SCOPES_PERSONAL: ConsentScope[] = [
+  'profile', 'workouts', 'daily_checkins', 'metabolic', 'sleep',
+  'body_metrics', 'body_photos', 'activity_logs', 'parq_anamnese', 'sports', 'chat_history',
+];
+export const MANAGEABLE_SCOPES_NUTRI: ConsentScope[] = [
+  'profile', 'nutrition', 'clinical_nutrition', 'daily_checkins', 'metabolic',
+  'sleep', 'body_metrics', 'body_photos', 'parq_anamnese', 'chat_history',
+];
+
 export interface ConsentEntry {
   id: string;
   scope: ConsentScope;

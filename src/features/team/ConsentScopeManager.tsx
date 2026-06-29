@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { COLORS } from '../../styles/colors';
 import type { ConsentEntry, ConsentScope, ProfessionalRole } from './types';
-import { SCOPE_LABELS } from './types';
+import { SCOPE_LABELS, MANAGEABLE_SCOPES_PERSONAL, MANAGEABLE_SCOPES_NUTRI } from './types';
 import { listConsents, revokeConsent, grantConsent } from './api';
 import { Toast } from './Toast';
 
@@ -31,7 +31,25 @@ export function ConsentScopeManager({
     setLoading(true);
     try {
       const data = await listConsents(professionalId, professionalRole);
-      setConsents(data);
+      // Mescla as linhas existentes com TODOS os escopos concedíveis ao papel.
+      // Escopos sensíveis nunca concedidos por padrão (ex.: `body_photos`)
+      // aparecem como toggle desligado, para o aluno ligá-los conscientemente.
+      const manageable =
+        professionalRole === 'nutri' ? MANAGEABLE_SCOPES_NUTRI : MANAGEABLE_SCOPES_PERSONAL;
+      const byScope = new Map(data.map((c) => [c.scope, c]));
+      const merged: ConsentEntry[] = manageable.map(
+        (scope) =>
+          byScope.get(scope) ?? {
+            id: '',
+            scope,
+            status: 'revoked' as const,
+            grantedAt: '',
+            revokedAt: null,
+          },
+      );
+      // Preserva escopos eventualmente existentes fora da lista (defensivo).
+      for (const c of data) if (!manageable.includes(c.scope)) merged.push(c);
+      setConsents(merged);
     } catch {
       // silent
     } finally {

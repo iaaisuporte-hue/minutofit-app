@@ -18,6 +18,7 @@ import '../../features/metabolicCheckin/metabolicCheckin.css';
 import { WorkoutProgressSection } from './components/WorkoutProgressSection';
 import { useWorkoutStats } from './components/useWorkoutStats';
 import { useDailyCondition } from '../../features/dailyCheckin/useDailyCondition';
+import { ProgressPhotosSection } from '../../features/progressPhotos/ProgressPhotosSection';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -155,6 +156,8 @@ export default function MetabolicStatePage() {
       <ProfessionalShareCard />
 
       <WorkoutProgressSection stats={stats} loading={statsLoading} />
+
+      <ProgressPhotosSection />
 
       <section className="metabolic-history-page" style={{ display: 'grid', gap: 'var(--space-4)' }}>
         <div style={{ display: 'grid', gap: 'var(--space-1)' }}>
