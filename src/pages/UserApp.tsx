@@ -1,9 +1,11 @@
+import { useEffect, useState } from "react";
 import { NavLink, Navigate, Route, Routes, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import AppShell from "../layout/AppShell";
 import MobileBottomNav from "../layout/MobileBottomNav";
 import { useFeatureFlags } from "../auth/FeatureFlagsContext";
 import CoreFitLogo from "../components/CoreFitLogo";
+import { fetchChatConversations } from "../services/messagesApi";
 
 import { useTodayUserState } from "./user/hooks/useTodayUserState";
 import AccountSettingsPage from "./user/AccountSettingsPage";
@@ -75,6 +77,16 @@ const NAV_ICONS: Record<string, React.ReactNode> = {
       <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
     </svg>
   ),
+  nutrition: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M3 2v7c0 1.1.9 2 2 2h0a2 2 0 0 0 2-2V2M5 2v20M16 2c-1.7 0-3 2.2-3 5s1.3 5 3 5v10" />
+    </svg>
+  ),
+  evolution: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" /><polyline points="16 7 22 7 22 13" />
+    </svg>
+  ),
   team: (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
@@ -137,7 +149,6 @@ export default function UserApp() {
   const firstName = user?.name?.split(" ")[0] || "Aluno";
   const { hasFeature, loading } = useFeatureFlags();
   const canMessages = hasFeature("messages");
-  const canProfile = hasFeature("profile");
   const showTracker = true;
   const showTrainingAi = true;
   const canSuggestedTraining = hasFeature("suggested_training");
@@ -149,24 +160,50 @@ export default function UserApp() {
   const isPersonalLed = todayUserState.hasActivePersonal;
   const showSuggestedTrainingNav = canSuggestedTraining && !isPersonalLed;
 
+  const [unreadCount, setUnreadCount] = useState(0);
+  useEffect(() => {
+    if (!canMessages) return;
+    fetchChatConversations()
+      .then((convs) => {
+        const total = convs.reduce((sum, c) => sum + (c.unreadCount ?? 0), 0);
+        setUnreadCount(total);
+      })
+      .catch(() => {/* silencioso — badge simplesmente não aparece */});
+  }, [canMessages]);
+
   function handleLogout() {
     logout();
     navigate("/login", { replace: true });
   }
 
+  // Mensagens como ícone no topo (não é aba do bottom nav). Mantém as 5 abas
+  // fixas e segue o mesmo padrão "destinos + ícone" da área do personal.
+  const mobileMessagesIcon = canMessages ? (
+    <NavLink
+      to={`${USER_BASE}/messages`}
+      style={{ position: "relative", display: "flex", alignItems: "center", padding: 8, borderRadius: 8, color: "var(--color-text-muted)", textDecoration: "none" }}
+      title="Mensagens"
+      aria-label="Mensagens"
+    >
+      {({ isActive }) => (
+        <>
+          <span style={{ color: isActive ? "var(--color-primary)" : "var(--color-text-muted)", display: "flex" }}>
+            {NAV_ICONS.messages}
+          </span>
+          {unreadCount > 0 && (
+            <span style={{ position: "absolute", top: 2, right: 2, minWidth: 16, height: 16, borderRadius: 999, background: "var(--color-primary)", color: "#fff", fontSize: 10, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 3px", lineHeight: 1 }}>
+              {unreadCount > 9 ? "9+" : unreadCount}
+            </span>
+          )}
+        </>
+      )}
+    </NavLink>
+  ) : undefined;
+
   return (
       <AppShell
-        bottomNav={
-          <MobileBottomNav
-            baseUrl={USER_BASE}
-            showFicha={true}
-            showMessages={canMessages}
-            showLab={false}
-            showTracker={showTracker}
-            showProfile={canProfile}
-            onLogout={handleLogout}
-          />
-        }
+        bottomNav={<MobileBottomNav baseUrl={USER_BASE} />}
+        mobileHeader={mobileMessagesIcon}
         sidebar={
           <>
             <div style={{ padding: "8px 4px 16px" }}>
@@ -175,13 +212,16 @@ export default function UserApp() {
             </div>
 
             <div className="navStack">
+              {/* 5 destinos principais — espelham as abas fixas do mobile */}
               <MenuLink to={`${USER_BASE}/today`} label="Hoje" iconKey="home" />
-              <MenuLink to={`${USER_BASE}/estado-metabolico`} label="Minha evolução" iconKey="tracker" />
-              <MenuLink to={`${USER_BASE}/ficha`} label="Meu plano" iconKey="clipboard" />
+              <MenuLink to={`${USER_BASE}/plano`} label="Treino" iconKey="workouts" />
+              <MenuLink to={`${USER_BASE}/plano-alimentar`} label="Alimentação" iconKey="nutrition" />
+              <MenuLink to={`${USER_BASE}/estado-metabolico`} label="Evolução" iconKey="evolution" />
+              <MenuLink to={`${USER_BASE}/profile`} label="Perfil" iconKey="profile" />
+              {/* Atalhos secundários (só desktop tem espaço) */}
               {showSuggestedTrainingNav && <MenuLink to={`${USER_BASE}/suggested-training`} label="Treino do dia" iconKey="target" />}
               {showTracker && <MenuLink to={`${USER_BASE}/activities`} label="Atividades" iconKey="tracker" />}
               {canMessages && <MenuLink to={`${USER_BASE}/messages`} label="Mensagens" iconKey="messages" />}
-              {canProfile && <MenuLink to={`${USER_BASE}/profile`} label="Perfil" iconKey="profile" />}
               <MenuLink to={`${USER_BASE}/equipe`} label="Minha equipe" iconKey="team" />
 
               {canSettings && (
@@ -240,13 +280,11 @@ export default function UserApp() {
                   </LimitedUserOnly>
                 }
               />
+              {/* Perfil é aba fixa do bottom nav → sempre acessível (identidade,
+                  conta, equipe e logout). Backend segue gateando dados sensíveis. */}
               <Route
                 path="profile"
-                element={
-                  <LimitedUserOnly allowed={canProfile}>
-                    <UserProfilePage onLogout={handleLogout} />
-                  </LimitedUserOnly>
-                }
+                element={<UserProfilePage onLogout={handleLogout} />}
               />
               <Route
                 path="movement-lab"
