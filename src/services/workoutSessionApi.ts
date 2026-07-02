@@ -26,6 +26,23 @@ export interface CreateWorkoutSessionPayload {
   notes?: string | null;
   prescribed?: PrescribedItem[];
   sets?: unknown[];
+  /**
+   * Quando true (status completed/partial), o SERVIDOR grava o log raso + XP/
+   * streak na mesma transação (P0-1). Substitui a 2ª chamada a
+   * /gamification/checkins — não combinar com persistGamificationCheckin no
+   * mesmo evento, sob pena de dupla contagem.
+   */
+  awardGamification?: boolean;
+  muscleGroups?: string[];
+}
+
+export interface CreateWorkoutSessionResult {
+  id: number;
+  startedAt: string;
+  setCount: number;
+  /** Preenchidos só quando awardGamification=true; senão null. */
+  streak: number | null;
+  xp: number | null;
 }
 
 export interface ExerciseProgression {
@@ -56,7 +73,9 @@ export async function getWorkoutStats(): Promise<WorkoutStats | null> {
   }
 }
 
-export async function createWorkoutSession(payload: CreateWorkoutSessionPayload) {
+export async function createWorkoutSession(
+  payload: CreateWorkoutSessionPayload,
+): Promise<CreateWorkoutSessionResult | null> {
   if (!getAccessToken()) return null;
   try {
     const res = await authFetch(`${API_URL}/training/sessions`, {
@@ -72,7 +91,7 @@ export async function createWorkoutSession(payload: CreateWorkoutSessionPayload)
       return null;
     }
     const data = await parseJson(res);
-    return data?.data ?? null;
+    return (data?.data as CreateWorkoutSessionResult) ?? null;
   } catch (err) {
     Sentry.captureException(err, { tags: { feature: "workout_session", reason: "network" } });
     return null;

@@ -1,11 +1,12 @@
 import { createWorkoutSession } from "../../../services/workoutSessionApi";
-import { persistGamificationCheckin } from "../../../services/gamificationApi";
 import { addWorkoutHistoryEntry, type MuscleGroup } from "../workoutHistory";
 
 // Finalizador ÚNICO de uma sessão de treino. Reusado pela ficha (folha pós-treino)
-// e pelo Modo Treino ao vivo, para que histórico, XP/streak e execução estruturada
-// (Spec 010) sigam exatamente o mesmo caminho. Best-effort: a chamada de execução
-// nunca bloqueia a conclusão; só a gamificação pode lançar (streak/XP).
+// e pelo Modo Treino ao vivo. Desde o P0-1 da auditoria é UMA só chamada ao
+// servidor (POST /training/sessions com awardGamification): execução rica
+// (workout_sessions + set logs), log raso (user_workout_logs) e XP/streak são
+// gravados na MESMA transação — sem a antiga 2ª chamada a /gamification/checkins,
+// que podia divergir/perder registro. Lança se o servidor não confirmar.
 
 const MUSCLE_KEYWORD_MAP: Array<[RegExp, MuscleGroup]> = [
   [/peito|chest|peitoral/i, "chest"],
@@ -70,6 +71,8 @@ export async function registerWorkoutSession(
   const workoutId = `plan-${p.planId}-day-${p.dayIndex ?? 0}-${Date.now()}`;
   const muscleGroups = deriveMuscleGroupsFromFocus(p.dayFocus, p.selectedGroup);
 
+  // Cache local do histórico (heurística dos motores de recomendação). Migra
+  // para leitura de backend no P1 — por ora permanece como cache.
   addWorkoutHistoryEntry({
     workoutId,
     title,
@@ -77,8 +80,8 @@ export async function registerWorkoutSession(
     date: new Date().toISOString(),
   });
 
-  // Execução estruturada (Spec 010) — fire-and-forget, nunca bloqueia.
-  void createWorkoutSession({
+  // Chamada ÚNICA: execução rica + log raso + XP/streak na mesma transação.
+  const session = await createWorkoutSession({
     source: "personal",
     status: p.status,
     title,
@@ -94,13 +97,16 @@ export async function registerWorkoutSession(
       rest: it.rest,
     })),
     sets: p.sets && p.sets.length > 0 ? p.sets : undefined,
+    awardGamification: true,
+    muscleGroups,
   });
 
-  const result = await persistGamificationCheckin({
-    source: "workout",
-    xp: 30,
-    workout: { workoutId, title, muscleGroups },
-  });
+  // null = falha (rede/HTTP/sem token). O registro é o dado essencial: lança
+  // para que a UI de erro apareça (ficha) ou seja engolida onde já é
+  // best-effort (Modo Treino ao vivo — confirmFinish já faz try/catch).
+  if (!session) {
+    throw new Error("Não foi possível registrar a sessão.");
+  }
 
-  return { streak: result?.streak ?? null, title };
+  return { streak: session.streak, title };
 }
