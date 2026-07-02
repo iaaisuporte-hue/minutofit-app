@@ -65,10 +65,10 @@ Card/texto contêm **apenas**: nome do app/marca, foco e nome do treino, data, e
 | Feature | Onde | Arquivos-chave |
 |--------|------|----------------|
 | Concluir treino (execução ao vivo) | Modo Treino | `WorkoutSessionPage.tsx`, `workoutSession/` |
-| Cronômetro de descanso | Modo Treino | `workoutSession/useRestTimer.ts` |
+| Cronômetro de descanso | Modo Treino | `workoutSession/useRestTimer.ts` · teste: `workoutSession/useRestTimer.test.ts` |
 | Resumo pós-treino (volume/aderência/comparação) | Modo Treino | `workoutSession/sessionSummary.ts` |
-| Registrar sessão (estruturada + XP/streak) | Ficha + Modo Treino | `workoutSession/registerWorkoutSession.ts` |
-| Histórico de treino | Aluno | `workoutHistory.ts`, `/training/sessions` |
+| Registrar sessão (estruturada + XP/streak) | Ficha + Modo Treino | `workoutSession/registerWorkoutSession.ts` (write-through servidor: 1 chamada grava execução + log + XP/streak na mesma transação) |
+| Histórico de treino | Aluno | `components/WorkoutHistorySection.tsx` (Evolução) · `workoutHistory.ts` (cache) · `GET /training/sessions` |
 | Ficha prescrita / executada | Ficha | `MyWorkoutPlansPage.tsx` |
 | Check-in diário | Hoje | `metabolicCheckin/`, gamification |
 

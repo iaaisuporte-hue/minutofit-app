@@ -16,6 +16,7 @@ import {
 } from '../../features/metabolicCheckin';
 import '../../features/metabolicCheckin/metabolicCheckin.css';
 import { WorkoutProgressSection } from './components/WorkoutProgressSection';
+import { WorkoutHistorySection } from './components/WorkoutHistorySection';
 import { useWorkoutStats } from './components/useWorkoutStats';
 import { useDailyCondition } from '../../features/dailyCheckin/useDailyCondition';
 import { ProgressPhotosSection } from '../../features/progressPhotos/ProgressPhotosSection';
@@ -156,6 +157,8 @@ export default function MetabolicStatePage() {
       <ProfessionalShareCard />
 
       <WorkoutProgressSection stats={stats} loading={statsLoading} />
+
+      <WorkoutHistorySection />
 
       <ProgressPhotosSection />
 

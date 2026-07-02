@@ -1,0 +1,242 @@
+import { useEffect, useState } from "react";
+import {
+  getWorkoutSessionDetail,
+  listWorkoutSessions,
+  type WorkoutSessionDetail,
+  type WorkoutSessionListItem,
+  type WorkoutSessionStatus,
+  type WorkoutSessionSource,
+  type ReadinessLevel,
+} from "../../../services/workoutSessionApi";
+
+// Histórico de treinos executados (P1-1). Lê GET /training/sessions — a fonte
+// canônica desde o write-through do P0-1 — e mostra cada sessão com detalhe por
+// série sob demanda. Some quando não há sessão (não polui a Evolução do
+// iniciante). Não é rota nova: seção auto-contida na Evolução, como a
+// WorkoutProgressSection.
+
+const STATUS_META: Record<WorkoutSessionStatus, { label: string; color: string }> = {
+  completed: { label: "Concluído", color: "var(--color-success-text, #16A34A)" },
+  partial: { label: "Parcial", color: "var(--color-warn, #D97706)" },
+  abandoned: { label: "Incompleto", color: "var(--color-text-muted, #6B7280)" },
+  started: { label: "Em andamento", color: "var(--color-text-muted, #6B7280)" },
+};
+
+const SOURCE_LABEL: Record<WorkoutSessionSource, string> = {
+  personal: "Ficha do personal",
+  suggested: "Treino sugerido",
+  academy: "Academia",
+  free: "Treino livre",
+};
+
+const READINESS_COLOR: Record<ReadinessLevel, string> = {
+  green: "var(--color-success-text, #16A34A)",
+  yellow: "var(--color-warn, #D97706)",
+  red: "var(--color-danger, #DC2626)",
+};
+
+function formatDate(iso: string) {
+  return new Intl.DateTimeFormat("pt-BR", {
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(iso));
+}
+
+function StatusPill({ status }: { status: WorkoutSessionStatus }) {
+  const meta = STATUS_META[status];
+  return (
+    <span
+      style={{
+        fontSize: 12,
+        fontWeight: 700,
+        color: meta.color,
+        border: `1px solid ${meta.color}`,
+        borderRadius: "var(--radius-full, 999px)",
+        padding: "2px 10px",
+        whiteSpace: "nowrap",
+      }}
+    >
+      {meta.label}
+    </span>
+  );
+}
+
+function SetsDetail({ detail }: { detail: WorkoutSessionDetail }) {
+  if (detail.sets.length === 0) {
+    return <p className="metabolic-section-copy">Sessão registrada sem detalhe de séries.</p>;
+  }
+  // Agrupa séries consecutivas pelo mesmo exercício (backend já ordena por
+  // order_index, set_index).
+  const groups: { name: string; sets: WorkoutSessionDetail["sets"] }[] = [];
+  for (const s of detail.sets) {
+    const last = groups[groups.length - 1];
+    if (last && last.name === s.exerciseName) last.sets.push(s);
+    else groups.push({ name: s.exerciseName, sets: [s] });
+  }
+
+  return (
+    <div style={{ display: "grid", gap: 12, paddingTop: 4 }}>
+      {groups.map((g, gi) => (
+        <div key={gi} style={{ display: "grid", gap: 4 }}>
+          <strong style={{ color: "var(--color-text)", fontSize: 14 }}>{g.name}</strong>
+          <div style={{ display: "grid", gap: 2 }}>
+            {g.sets.map((s, si) => {
+              const reps = s.repsDone != null ? `${s.repsDone}` : s.plannedReps ?? "—";
+              const load = s.loadDoneKg != null ? ` × ${s.loadDoneKg} kg` : "";
+              const skipped = s.status === "skipped";
+              return (
+                <span
+                  key={si}
+                  className="metabolic-eyebrow"
+                  style={{
+                    color: skipped ? "var(--color-text-muted, #6B7280)" : "var(--color-text-soft, #4B5563)",
+                    textDecoration: skipped ? "line-through" : "none",
+                  }}
+                >
+                  Série {s.setIndex} · {reps} reps{load}
+                  {s.rpe != null ? ` · RPE ${s.rpe}` : ""}
+                  {skipped ? " · pulada" : ""}
+                </span>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+      {detail.notes ? (
+        <p className="metabolic-section-copy" style={{ fontStyle: "italic" }}>
+          “{detail.notes}”
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+function SessionRow({ session }: { session: WorkoutSessionListItem }) {
+  const [open, setOpen] = useState(false);
+  const [detail, setDetail] = useState<WorkoutSessionDetail | null>(null);
+  const [loadingDetail, setLoadingDetail] = useState(false);
+
+  async function toggle() {
+    const next = !open;
+    setOpen(next);
+    if (next && !detail && !loadingDetail) {
+      setLoadingDetail(true);
+      const d = await getWorkoutSessionDetail(session.id);
+      setDetail(d);
+      setLoadingDetail(false);
+    }
+  }
+
+  const metaParts = [SOURCE_LABEL[session.source]];
+  if (session.sessionRpe != null) metaParts.push(`Esforço ${session.sessionRpe}/10`);
+
+  return (
+    <article className="metabolic-history-item" style={{ display: "grid", gap: 10 }}>
+      <button
+        type="button"
+        onClick={toggle}
+        aria-expanded={open}
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: "var(--space-3)",
+          background: "none",
+          border: "none",
+          padding: 0,
+          cursor: "pointer",
+          width: "100%",
+          textAlign: "left",
+        }}
+      >
+        <div style={{ minWidth: 0, flex: 1, display: "grid", gap: 2 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            {session.readinessLevel && (
+              <span
+                aria-hidden="true"
+                style={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: "50%",
+                  background: READINESS_COLOR[session.readinessLevel],
+                  flexShrink: 0,
+                }}
+              />
+            )}
+            <strong
+              style={{
+                color: "var(--color-text)",
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
+              {session.title || "Treino"}
+            </strong>
+          </div>
+          <span className="metabolic-eyebrow">
+            {formatDate(session.startedAt)} · {metaParts.join(" · ")}
+          </span>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4, flexShrink: 0 }}>
+          <StatusPill status={session.status} />
+          <span className="metabolic-eyebrow">{session.setsDone} séries · toque</span>
+        </div>
+      </button>
+
+      {open &&
+        (loadingDetail ? (
+          <p className="metabolic-section-copy">Carregando séries...</p>
+        ) : detail ? (
+          <SetsDetail detail={detail} />
+        ) : (
+          <p className="metabolic-section-copy">Não foi possível carregar o detalhe.</p>
+        ))}
+    </article>
+  );
+}
+
+export function WorkoutHistorySection() {
+  const [sessions, setSessions] = useState<WorkoutSessionListItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    listWorkoutSessions(30)
+      .then((rows) => {
+        if (!cancelled) setSessions(rows);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Some inteiramente quando não há sessão — iniciante sem treino não vê seção
+  // vazia (a WorkoutProgressSection segue a mesma regra).
+  if (!loading && sessions.length === 0) return null;
+
+  return (
+    <section className="metabolic-history-page" style={{ display: "grid", gap: "var(--space-4)" }}>
+      <div style={{ display: "grid", gap: "var(--space-1)" }}>
+        <div className="metabolic-eyebrow">Linha do tempo</div>
+        <h2 className="metabolic-section-title">Histórico de treinos</h2>
+        <p className="metabolic-section-copy">Cada sessão que você registrou, com as séries que fez.</p>
+      </div>
+
+      {loading ? (
+        <p className="metabolic-section-copy">Carregando seus treinos...</p>
+      ) : (
+        <div className="metabolic-history-list">
+          {sessions.map((s) => (
+            <SessionRow key={s.id} session={s} />
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
