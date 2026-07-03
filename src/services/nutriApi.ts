@@ -128,6 +128,9 @@ export interface PatientSummary {
   activePlan: { plan_id: number; title: string; started_at: string } | null;
   adherence7d: number;
   adherence30d: number;
+  /** Aderência REAL por refeição (P1-6); null = sem dado granular → usar legado. */
+  mealAdherence7dPct: number | null;
+  mealAdherence30dPct: number | null;
   lastCheckinDate: string | null;
   riskFlag: boolean;
   adherenceDropFlag: boolean;

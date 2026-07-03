@@ -8,10 +8,17 @@ function daysSince(dateStr: string | null): number | null {
   return Math.floor((Date.now() - new Date(dateStr).getTime()) / 86400000);
 }
 
-function AdherenceLabel({ checkins7d }: { checkins7d: number }) {
-  const pct = Math.round((checkins7d / 7) * 100);
+// Prefere a aderência REAL por refeição (P1-6); cai no proxy legado (dias com
+// check-in ÷ 7) quando não há dado granular. O rótulo distingue os dois casos.
+function AdherenceLabel({ mealPct, checkins7d }: { mealPct: number | null; checkins7d: number }) {
+  const real = mealPct != null;
+  const pct = real ? mealPct : Math.round((checkins7d / 7) * 100);
   const color = pct >= 70 ? COLORS.primary : pct >= 40 ? "var(--color-warn)" : COLORS.danger;
-  return <span style={{ color, fontWeight: 600, fontSize: 13 }}>{pct}% adesão (7d)</span>;
+  return (
+    <span style={{ color, fontWeight: 600, fontSize: 13 }}>
+      {pct}% {real ? "adesão às refeições" : "dias com check-in"} (7d)
+    </span>
+  );
 }
 
 function LastCheckinLabel({ date }: { date: string | null }) {
@@ -192,7 +199,7 @@ export default function NutritionPatientsPage() {
                   }}
                 >
                   {p.activePlan ? (
-                    <AdherenceLabel checkins7d={p.adherence7d} />
+                    <AdherenceLabel mealPct={p.mealAdherence7dPct} checkins7d={p.adherence7d} />
                   ) : (
                     <span style={{ color: COLORS.muted, fontSize: 13 }}>Sem plano ativo</span>
                   )}
