@@ -7,6 +7,7 @@ import {
   type ProgressPhoto,
   type ProgressPose,
 } from "../../services/progressPhotosApi";
+import { ConfirmModal } from "../team/ConfirmModal";
 
 const ACCEPT = "image/jpeg,image/png,image/webp,image/heic";
 const MAX_BYTES = 10 * 1024 * 1024;
@@ -33,6 +34,8 @@ export function ProgressPhotosSection() {
   const [error, setError] = useState<string | null>(null);
   const [pose, setPose] = useState<ProgressPose>("front");
   const [storageUnavailable, setStorageUnavailable] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   async function load() {
@@ -77,8 +80,11 @@ export function ProgressPhotosSection() {
     }
   }
 
-  async function handleDelete(id: number) {
-    if (!window.confirm("Remover esta foto? Esta ação não pode ser desfeita.")) return;
+  // Princípio VIII: remoção destrutiva usa ConfirmModal, nunca window.confirm.
+  async function confirmDelete() {
+    const id = confirmDeleteId;
+    if (id == null) return;
+    setDeleting(true);
     const prev = photos;
     setPhotos((p) => p.filter((x) => x.id !== id)); // otimista
     try {
@@ -86,6 +92,9 @@ export function ProgressPhotosSection() {
     } catch {
       setPhotos(prev); // reverte
       setError("Não foi possível remover a foto.");
+    } finally {
+      setDeleting(false);
+      setConfirmDeleteId(null);
     }
   }
 
@@ -168,7 +177,7 @@ export function ProgressPhotosSection() {
                 />
                 <button
                   type="button"
-                  onClick={() => void handleDelete(photo.id)}
+                  onClick={() => setConfirmDeleteId(photo.id)}
                   aria-label="Remover foto"
                   title="Remover"
                   style={{
@@ -191,6 +200,18 @@ export function ProgressPhotosSection() {
             </figure>
           ))}
         </div>
+      )}
+
+      {confirmDeleteId != null && (
+        <ConfirmModal
+          title="Remover esta foto?"
+          description="Esta ação não pode ser desfeita."
+          confirmLabel="Remover"
+          destructive
+          loading={deleting}
+          onConfirm={() => void confirmDelete()}
+          onCancel={() => setConfirmDeleteId(null)}
+        />
       )}
     </section>
   );
