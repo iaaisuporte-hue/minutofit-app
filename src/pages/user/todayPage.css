@@ -2,6 +2,12 @@
   will-change: transform, box-shadow;
 }
 
+/* Deep-link do painel de compliance no Perfil (?focus=compliance / #compliance) —
+   offset para o anchor não parar embaixo do header fixo. */
+#compliance {
+  scroll-margin-top: min(88px, 18vh);
+}
+
 .today-dashboard {
   display: grid;
   gap: 14px;

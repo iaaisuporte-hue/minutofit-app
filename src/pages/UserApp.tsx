@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { NavLink, Navigate, Route, Routes, useNavigate } from "react-router-dom";
+import { NavLink, Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import AppShell from "../layout/AppShell";
 import MobileBottomNav from "../layout/MobileBottomNav";
@@ -8,7 +8,6 @@ import CoreFitLogo from "../components/CoreFitLogo";
 import { fetchChatConversations } from "../services/messagesApi";
 
 import { useTodayUserState } from "./user/hooks/useTodayUserState";
-import AccountSettingsPage from "./user/AccountSettingsPage";
 import HomeWorkoutsPage from "./user/HomeWorkoutsPage";
 import UpgradePlanPage from "./user/UpgradePlanPage";
 import WorkoutPlayerPage from "./user/WorkoutPlayerPage";
@@ -143,6 +142,13 @@ function LimitedUserOnly({ allowed, children }: { allowed: boolean; children: Re
   return <>{children}</>;
 }
 
+// /settings foi fundida no Perfil. Redirect preserva ?focus=compliance / #compliance
+// para o deep-link do painel de compliance seguir funcionando (bookmarks, e-mails).
+function SettingsRedirect() {
+  const location = useLocation();
+  return <Navigate to={{ pathname: `${USER_BASE}/profile`, search: location.search, hash: location.hash }} replace />;
+}
+
 export default function UserApp() {
   const navigate = useNavigate();
   const { logout, user } = useAuth();
@@ -154,7 +160,6 @@ export default function UserApp() {
   const canSuggestedTraining = hasFeature("suggested_training");
   const canWorkouts = hasFeature("workouts");
   const canHomeWorkouts = hasFeature("home_workouts");
-  const canSettings = hasFeature("settings");
 
   const todayUserState = useTodayUserState();
   const isPersonalLed = todayUserState.hasActivePersonal;
@@ -223,13 +228,6 @@ export default function UserApp() {
               {showTracker && <MenuLink to={`${USER_BASE}/activities`} label="Atividades" iconKey="tracker" />}
               {canMessages && <MenuLink to={`${USER_BASE}/messages`} label="Mensagens" iconKey="messages" />}
               <MenuLink to={`${USER_BASE}/equipe`} label="Minha equipe" iconKey="team" />
-
-              {canSettings && (
-                <div style={{ paddingTop: 12, paddingBottom: 4 }}>
-                  <div className="sectionLabel">Geral</div>
-                </div>
-              )}
-              {canSettings && <MenuLink to={`${USER_BASE}/settings`} label="Configurações" iconKey="settings" />}
             </div>
 
             <div style={{ flex: 1 }} />
@@ -355,7 +353,7 @@ export default function UserApp() {
                   </LimitedUserOnly>
                 }
               />
-              <Route path="settings" element={<LimitedUserOnly allowed={!loading}><AccountSettingsPage /></LimitedUserOnly>} />
+              <Route path="settings" element={<SettingsRedirect />} />
 
               {/* ✅ TREINO SUGERIDO
                   Conteúdo de recomendação client-side, sem dado sensível. Não tem

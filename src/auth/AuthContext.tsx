@@ -29,6 +29,7 @@ export interface AuthUser {
   cpf?: string;
   phone?: string;
   role: Role;
+  photoUrl?: string;
   fitnessGoal?: string;
   experienceLevel?: string;
   heightCm?: number;

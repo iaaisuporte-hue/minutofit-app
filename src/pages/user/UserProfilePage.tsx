@@ -1,5 +1,5 @@
-import React, { useMemo } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import React, { Suspense, lazy, useEffect, useMemo, useState } from "react";
+import { Link, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import InteractiveSurfaceCard from "../../components/InteractiveSurfaceCard";
 import { useIsMobile } from "../../hooks/useIsMobile";
@@ -21,10 +21,54 @@ import "./todayPage.css";
 import { SportProfileSection } from "../../features/sport/components/SportProfileSection";
 import { useProfessionalContext } from "../../features/professionalVoice";
 import { COLORS } from "../../styles/colors";
+import { ConfirmDialog } from "../../components/ConfirmDialog";
+import EssentialProfileModal from "./components/EssentialProfileModal";
+import { useToast } from "../../components/Toast";
+import { API_URL } from "../../services/apiBase";
+import { authFetch } from "../../services/apiClient";
+import { formatCpf, formatPhone } from "../../utils/validators";
+import { LoadingSkeleton } from "../../components/LoadingSkeleton";
+
+// Painel pesado (~900 linhas + canvas de assinatura) — carregado sob demanda
+// para não pesar no chunk da 5ª aba do bottom nav.
+const StudentCompliancePanel = lazy(() => import("./studentCompliance/StudentCompliancePanel"));
 
 type Props = {
   onLogout: () => void;
 };
+
+function ContactField({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
+  return (
+    <label style={{ display: "grid", gap: 6 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
+        <div style={{ fontWeight: "var(--font-semibold)", fontSize: "var(--text-sm)", color: COLORS.text }}>{label}</div>
+        {hint ? <div style={{ color: COLORS.mutedSoft, fontSize: "var(--text-xs)" }}>{hint}</div> : null}
+      </div>
+      {children}
+    </label>
+  );
+}
+
+function ContactInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
+  const { readOnly, ...rest } = props;
+  return (
+    <input
+      {...rest}
+      readOnly={readOnly}
+      style={{
+        width: "100%",
+        padding: "12px 12px",
+        borderRadius: 14,
+        border: `1px solid ${COLORS.border}`,
+        background: readOnly ? COLORS.panelSoft : COLORS.panelDeep,
+        color: readOnly ? COLORS.muted : COLORS.text,
+        outline: "none",
+        fontWeight: 600,
+        cursor: readOnly ? "default" : "text",
+      }}
+    />
+  );
+}
 
 function Card({
   children,
@@ -277,7 +321,7 @@ function drawEvolutionShareCard(opts: {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = "corefit-evolucao.png";
+      a.download = "s2core-evolucao.png";
       a.click();
       URL.revokeObjectURL(url);
       resolve();
@@ -286,13 +330,91 @@ function drawEvolutionShareCard(opts: {
 }
 
 export default function UserProfilePage({ onLogout }: Props) {
-  const navigate = useNavigate();
-  const { user, branding, academies } = useAuth();
+  const location = useLocation();
+  const { user, branding, academies, accessProfile, getUser } = useAuth();
   const { data: metabolismData } = useMetabolism();
   const { data: gamification } = useGamificationSummary();
   const { planName } = useFeatureFlags();
   const isMobile = useIsMobile(720);
   const { shouldReduceMotion, shouldUseTilt } = useTodayMotionSafe({ isMobile });
+  const toast = useToast();
+  const isLimitedProfile = accessProfile === "clientes_sb";
+
+  const [confirmLogout, setConfirmLogout] = useState(false);
+  const [essentialOpen, setEssentialOpen] = useState(false);
+
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [cpfMasked, setCpfMasked] = useState("—");
+  const [savingProfile, setSavingProfile] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    setName(user.name?.trim() || "");
+    setEmail(user.email || "");
+    setPhone(user.phone ? formatPhone(user.phone) : "");
+    setCpfMasked(user.cpf ? formatCpf(user.cpf) : "—");
+  }, [user]);
+
+  // Deep-link vindo do redirect de /settings (?focus=compliance ou #compliance).
+  // Retry generoso porque o painel de compliance é lazy — o anchor #compliance
+  // só existe depois que o chunk carrega.
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const focusCompliance = params.get("focus") === "compliance";
+    const hasComplianceHash = location.hash === "#compliance";
+    if (!focusCompliance && !hasComplianceHash) return;
+    let attempts = 0;
+    const maxAttempts = 25;
+    const timer = window.setInterval(() => {
+      const target = document.getElementById("compliance");
+      if (target) {
+        target.scrollIntoView({ behavior: "smooth", block: "start" });
+        window.clearInterval(timer);
+        return;
+      }
+      attempts += 1;
+      if (attempts >= maxAttempts) window.clearInterval(timer);
+    }, 80);
+    return () => window.clearInterval(timer);
+  }, [location.hash, location.search]);
+
+  async function refreshFromServer() {
+    const latest = await getUser();
+    if (latest) {
+      setName(latest.name?.trim() || "");
+      setEmail(latest.email || "");
+      setPhone(latest.phone ? formatPhone(latest.phone) : "");
+      setCpfMasked(latest.cpf ? formatCpf(latest.cpf) : "—");
+    }
+  }
+
+  async function saveProfile() {
+    if (!name.trim()) { toast.error("Informe seu nome."); return; }
+    setSavingProfile(true);
+    try {
+      const res = await authFetch(`${API_URL}/auth/profile`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: name.trim(), phone: phone.trim() || undefined }),
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error(d?.error || "Falha ao salvar dados.");
+      }
+      await refreshFromServer();
+      toast.success("Dados salvos com sucesso.");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Falha ao salvar.");
+    } finally {
+      setSavingProfile(false);
+    }
+  }
+
+  function scrollToContact() {
+    document.getElementById("dados-contato")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
 
   const accountSummary = useMemo(
     () => ({
@@ -337,6 +459,24 @@ export default function UserProfilePage({ onLogout }: Props) {
       initial={shouldReduceMotion ? false : "hidden"}
       animate="show"
     >
+      {isLimitedProfile && (
+        <motion.div variants={sectionRevealVariants}>
+          <div
+            style={{
+              borderRadius: "var(--radius-lg)",
+              padding: 12,
+              border: `1px solid ${COLORS.primaryBorder}`,
+              background: COLORS.primarySoft,
+              color: COLORS.muted,
+              fontSize: "var(--text-sm)",
+              lineHeight: 1.4,
+            }}
+          >
+            <b>Plano clientes SB:</b> o app mantém o foco em Hoje e Treinos em casa. Aqui você acompanha e ajusta seus dados básicos de contato.
+          </div>
+        </motion.div>
+      )}
+
       <motion.div variants={sectionRevealVariants}>
         <Card flat style={{ padding: 0, overflow: "hidden" }}>
           <div style={{ height: 4, background: "var(--gradient-primary)" }} />
@@ -370,7 +510,7 @@ export default function UserProfilePage({ onLogout }: Props) {
               <button
                 type="button"
                 className="btn btn-ghost"
-                onClick={() => navigate("/app/user/settings")}
+                onClick={scrollToContact}
                 style={{ fontSize: "var(--text-sm)", flex: "0 0 auto" }}
               >
                 Editar perfil
@@ -454,16 +594,94 @@ export default function UserProfilePage({ onLogout }: Props) {
       <motion.div variants={sectionRevealVariants}>
         <Card flat>
           <div style={{ display: "grid", gap: "var(--space-3)" }}>
-            <div style={{ fontSize: "var(--text-xl)", fontWeight: "var(--font-bold)", color: COLORS.text }}>Perfil essencial</div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+              <div style={{ fontSize: "var(--text-xl)", fontWeight: "var(--font-bold)", color: COLORS.text }}>Perfil essencial</div>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                onClick={() => setEssentialOpen(true)}
+                style={{ fontSize: "var(--text-sm)", flex: "0 0 auto" }}
+              >
+                Editar
+              </button>
+            </div>
             <div style={{ display: "grid", gap: "var(--space-3)", gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))" }}>
-              <DataRow label="Objetivo" value={accountSummary.fitnessGoal} placeholder="definir" onEdit={() => navigate("/app/user/settings")} />
-              <DataRow label="Nível" value={accountSummary.experienceLevel} placeholder="definir" onEdit={() => navigate("/app/user/settings")} />
-              <DataRow label="Altura" value={accountSummary.height} placeholder="informar" onEdit={() => navigate("/app/user/settings")} />
-              <DataRow label="Peso" value={accountSummary.weight} placeholder="informar" onEdit={() => navigate("/app/user/settings")} />
+              <DataRow label="Objetivo" value={accountSummary.fitnessGoal} placeholder="definir" onEdit={() => setEssentialOpen(true)} />
+              <DataRow label="Nível" value={accountSummary.experienceLevel} placeholder="definir" onEdit={() => setEssentialOpen(true)} />
+              <DataRow label="Altura" value={accountSummary.height} placeholder="informar" onEdit={() => setEssentialOpen(true)} />
+              <DataRow label="Peso" value={accountSummary.weight} placeholder="informar" onEdit={() => setEssentialOpen(true)} />
             </div>
           </div>
         </Card>
       </motion.div>
+
+      <motion.div variants={sectionRevealVariants}>
+        <Card flat>
+          <div id="dados-contato" style={{ display: "grid", gap: "var(--space-3)", scrollMarginTop: "min(88px, 18vh)" }}>
+            <div style={{ fontSize: "var(--text-xl)", fontWeight: "var(--font-bold)", color: COLORS.text }}>Dados e contato</div>
+            <ContactField label="Nome" hint="Como você quer ser chamado">
+              <ContactInput value={name} onChange={(e) => setName(e.target.value)} placeholder="Seu nome" autoComplete="name" />
+            </ContactField>
+            <ContactField label="E-mail" hint="Identificador de login — não alterar aqui">
+              <ContactInput value={email} readOnly placeholder="seuemail@dominio.com" autoComplete="email" />
+            </ContactField>
+            <ContactField label="Telefone" hint="WhatsApp ou celular para contato">
+              <ContactInput
+                value={phone}
+                onChange={(e) => setPhone(formatPhone(e.target.value))}
+                placeholder="(00) 00000-0000"
+                autoComplete="tel"
+                inputMode="tel"
+              />
+            </ContactField>
+            <ContactField label="CPF" hint="Cadastro — somente leitura">
+              <ContactInput value={cpfMasked} readOnly placeholder="—" autoComplete="off" />
+            </ContactField>
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+              <button type="button" className="btn btn-primary" onClick={() => void saveProfile()} disabled={savingProfile} style={{ minHeight: 44 }}>
+                {savingProfile ? "Salvando..." : "Salvar dados"}
+              </button>
+              <button type="button" className="btn btn-ghost" onClick={() => void refreshFromServer()} style={{ minHeight: 44 }}>
+                Atualizar da sessão
+              </button>
+            </div>
+          </div>
+        </Card>
+      </motion.div>
+
+      {user?.role === "user" && (
+        <motion.div variants={sectionRevealVariants}>
+          <Card flat>
+            <div style={{ display: "grid", gap: "var(--space-3)" }}>
+              <div style={{ display: "grid", gap: 8 }}>
+                <div style={{ color: COLORS.mutedSoft, fontSize: "var(--text-xs)", fontWeight: "var(--font-bold)", letterSpacing: "0.07em", textTransform: "uppercase" }}>
+                  Saúde &amp; compliance
+                </div>
+                <div style={{ height: 5, borderRadius: 999, background: COLORS.panelDeep, overflow: "hidden", border: `1px solid ${COLORS.border}` }}>
+                  <div
+                    style={{
+                      height: "100%",
+                      width: user.studentComplianceComplete ? "100%" : "0%",
+                      borderRadius: 999,
+                      background: "var(--gradient-primary)",
+                      transition: "width 0.65s cubic-bezier(0.22, 1, 0.36, 1)",
+                    }}
+                  />
+                </div>
+                <div style={{ color: COLORS.mutedSoft, fontSize: "var(--text-xs)", lineHeight: 1.35 }}>
+                  {user.studentComplianceComplete ? "Cadastro de compliance concluído." : "Complete triagem e PAR-Q para liberar o uso completo."}
+                </div>
+              </div>
+              {/* Renderizado direto, SEM card interativo: tilt/whileTap capturavam o
+                  toque do bloco inteiro no mobile, deixando checkboxes/assinatura
+                  não-clicáveis. O painel já tem borda, fundo e padding próprios. */}
+              <Suspense fallback={<LoadingSkeleton />}>
+                <StudentCompliancePanel />
+              </Suspense>
+            </div>
+          </Card>
+        </motion.div>
+      )}
 
       <motion.div variants={sectionRevealVariants}>
         <Card flat>
@@ -490,13 +708,21 @@ export default function UserProfilePage({ onLogout }: Props) {
         <button
           type="button"
           className="btn btn-ghost"
-          onClick={() => {
-            if (window.confirm("Sair da conta?")) onLogout();
-          }}
+          onClick={() => setConfirmLogout(true)}
         >
           Sair da conta
         </button>
       </motion.div>
+
+      <EssentialProfileModal open={essentialOpen} onClose={() => setEssentialOpen(false)} />
+      <ConfirmDialog
+        open={confirmLogout}
+        title="Sair da conta?"
+        confirmLabel="Sair"
+        danger
+        onConfirm={() => { setConfirmLogout(false); onLogout(); }}
+        onCancel={() => setConfirmLogout(false)}
+      />
     </motion.div>
   );
 }
