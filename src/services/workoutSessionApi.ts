@@ -99,6 +99,7 @@ export interface WorkoutSetLogRow {
   repsDone: number | null;
   loadDoneKg: number | null;
   rpe: number | null;
+  discomfort: string | null;
   status: "done" | "skipped";
 }
 
@@ -163,6 +164,7 @@ export async function getWorkoutSessionDetail(id: number): Promise<WorkoutSessio
         repsDone: num(s.reps_done),
         loadDoneKg: num(s.load_done_kg),
         rpe: num(s.rpe),
+        discomfort: (s.discomfort as string | null) ?? null,
         status: s.status === "skipped" ? "skipped" : "done",
       })),
     };

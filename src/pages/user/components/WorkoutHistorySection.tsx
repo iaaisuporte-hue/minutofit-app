@@ -78,9 +78,27 @@ function SetsDetail({ detail }: { detail: WorkoutSessionDetail }) {
 
   return (
     <div style={{ display: "grid", gap: 12, paddingTop: 4 }}>
-      {groups.map((g, gi) => (
+      {groups.map((g, gi) => {
+        const hadDiscomfort = g.sets.some((s) => s.discomfort);
+        return (
         <div key={gi} style={{ display: "grid", gap: 4 }}>
-          <strong style={{ color: "var(--color-text)", fontSize: 14 }}>{g.name}</strong>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            <strong style={{ color: "var(--color-text)", fontSize: 14 }}>{g.name}</strong>
+            {hadDiscomfort && (
+              <span
+                style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  color: "var(--color-warn, #D97706)",
+                  border: "1px solid var(--color-warn, #D97706)",
+                  borderRadius: "var(--radius-full, 999px)",
+                  padding: "1px 8px",
+                }}
+              >
+                desconforto
+              </span>
+            )}
+          </div>
           <div style={{ display: "grid", gap: 2 }}>
             {g.sets.map((s, si) => {
               const reps = s.repsDone != null ? `${s.repsDone}` : s.plannedReps ?? "—";
@@ -103,7 +121,8 @@ function SetsDetail({ detail }: { detail: WorkoutSessionDetail }) {
             })}
           </div>
         </div>
-      ))}
+        );
+      })}
       {detail.notes ? (
         <p className="metabolic-section-copy" style={{ fontStyle: "italic" }}>
           “{detail.notes}”

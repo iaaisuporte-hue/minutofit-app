@@ -104,6 +104,9 @@ export default function WorkoutSessionPage() {
   const [showExit, setShowExit] = useState(false);
   const [sessionRpe, setSessionRpe] = useState<number | null>(null);
   const [notes, setNotes] = useState("");
+  // P1-3: desconforto/dor por exercício (índice na lista) — sinal de recuperação
+  // capturado no resumo, sem poluir as linhas de série. Alimenta workout_set_logs.discomfort.
+  const [discomfortEx, setDiscomfortEx] = useState<Set<number>>(() => new Set());
   const [finishing, setFinishing] = useState(false);
   const [saved, setSaved] = useState(false);
 
@@ -313,6 +316,7 @@ export default function WorkoutSessionPage() {
           loadDoneKg: s.done ? parseNum(s.loadKg) : null,
           plannedRestS: s.plannedRestS,
           restDoneS: s.restDoneS,
+          discomfort: discomfortEx.has(orderIndex) ? "desconforto relatado" : null,
           status: s.done ? "done" : "skipped",
         });
       });
@@ -515,6 +519,42 @@ export default function WorkoutSessionPage() {
                   ))}
                 </div>
               </div>
+
+              {exercises.length > 0 && (
+                <div style={{ display: "grid", gap: 6, marginBottom: 14 }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: "var(--color-text-muted)" }}>
+                    Algum movimento incomodou? (opcional)
+                  </div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                    {exercises.map((ex, i) => {
+                      const on = discomfortEx.has(i);
+                      return (
+                        <button
+                          key={i}
+                          type="button"
+                          aria-pressed={on}
+                          onClick={() =>
+                            setDiscomfortEx((prev) => {
+                              const next = new Set(prev);
+                              if (next.has(i)) next.delete(i);
+                              else next.add(i);
+                              return next;
+                            })
+                          }
+                          className="ws-rest-btn"
+                          style={
+                            on
+                              ? { background: "var(--color-warn-soft, #fff8e1)", borderColor: "var(--color-warn, #f0a500)" }
+                              : undefined
+                          }
+                        >
+                          {ex.name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               <textarea
                 className="ws-textarea"
