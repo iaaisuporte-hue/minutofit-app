@@ -10,7 +10,6 @@ import { useMetabolism } from "../../features/metabolism/useMetabolism";
 import { useGamificationSummary } from "../../features/gamification/useGamificationSummary";
 import { deriveEnergyStatus } from "../../features/metabolism/metabolismDerivations";
 import {
-  itemRevealVariants,
   pageStaggerVariants,
   sectionRevealVariants,
   subtleHoverScale,
@@ -336,7 +335,7 @@ export default function UserProfilePage({ onLogout }: Props) {
   const { data: gamification } = useGamificationSummary();
   const { planName } = useFeatureFlags();
   const isMobile = useIsMobile(720);
-  const { shouldReduceMotion, shouldUseTilt } = useTodayMotionSafe({ isMobile });
+  const { shouldReduceMotion } = useTodayMotionSafe({ isMobile });
   const toast = useToast();
   const isLimitedProfile = accessProfile === "clientes_sb";
 
@@ -480,11 +479,8 @@ export default function UserProfilePage({ onLogout }: Props) {
       <motion.div variants={sectionRevealVariants}>
         <Card flat style={{ padding: 0, overflow: "hidden" }}>
           <div style={{ height: 4, background: "var(--gradient-primary)" }} />
-          <motion.div style={{ display: "grid", gap: "var(--space-4)", padding: "var(--space-5)" }}>
-            <motion.div
-              variants={itemRevealVariants}
-              style={{ display: "flex", alignItems: "center", gap: "var(--space-3)" }}
-            >
+          <div style={{ display: "grid", gap: "var(--space-4)", padding: "var(--space-5)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
               <div
                 aria-hidden
                 style={{
@@ -515,9 +511,9 @@ export default function UserProfilePage({ onLogout }: Props) {
               >
                 Editar perfil
               </button>
-            </motion.div>
+            </div>
 
-            <motion.div variants={itemRevealVariants} style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap", alignItems: "center" }}>
+            <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap", alignItems: "center" }}>
               <Chip>{accountSummary.plan}</Chip>
               <Chip>{`${gamification?.streak ?? 0} dias de consistência`}</Chip>
               <Link
@@ -526,124 +522,125 @@ export default function UserProfilePage({ onLogout }: Props) {
               >
                 Minha equipe →
               </Link>
-            </motion.div>
-          </motion.div>
-        </Card>
-      </motion.div>
+            </div>
 
-      {metabolismData && (
-        <motion.div variants={sectionRevealVariants}>
-          <Card interactive enableTilt={shouldUseTilt} style={{ borderLeft: "3px solid var(--color-primary)" }}>
-            <div style={{ display: "grid", gap: "var(--space-3)" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "var(--space-3)" }}>
-                <div style={{ color: COLORS.mutedSoft, fontSize: "var(--text-xs)", fontWeight: "var(--font-bold)", letterSpacing: "0.07em", textTransform: "uppercase" }}>Como o S2Core te lê hoje</div>
-                <Link
-                  to="/app/user/estado-metabolico"
-                  style={{ color: COLORS.primary, fontWeight: "var(--font-semibold)", textDecoration: "none", fontSize: "var(--text-sm)" }}
-                >
-                  Ver evolução →
-                </Link>
-              </div>
-              <div style={{ display: "flex", alignItems: "baseline", gap: "var(--space-3)", flexWrap: "wrap" }}>
-                <span style={{ fontSize: "var(--text-3xl)", fontWeight: "var(--font-bold)", color: COLORS.text }}>{Math.round(metabolismData.score)}</span>
-                <span style={{ color: COLORS.muted, fontSize: "var(--text-base)", fontWeight: "var(--font-semibold)" }}>
-                  {derivedEnergy?.band === "low" ? "pedindo recuperação" : derivedEnergy?.band === "high" ? "em alta" : "equilibrado"}
-                </span>
-                <span
-                  style={{
-                    fontSize: "var(--text-base)",
-                    fontWeight: "var(--font-semibold)",
-                    color: metabolismData.trend === "up" ? "var(--color-success-text)" : metabolismData.trend === "down" ? "var(--color-danger)" : COLORS.muted,
+            <div style={{ color: COLORS.mutedSoft, fontSize: "var(--text-sm)", lineHeight: 1.5 }}>
+              {personalName || nutriName || realAcademyName
+                ? `Personal ${personalName ?? "—"} · Nutri ${nutriName ?? "—"} · Academia ${realAcademyName ?? "—"}`
+                : "Nenhum profissional vinculado ainda."}
+            </div>
+
+            {metabolismData && (
+              <div style={{ display: "grid", gap: "var(--space-3)", paddingTop: "var(--space-4)", borderTop: `1px solid ${COLORS.border}` }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "var(--space-3)" }}>
+                  <div style={{ color: COLORS.mutedSoft, fontSize: "var(--text-xs)", fontWeight: "var(--font-bold)", letterSpacing: "0.07em", textTransform: "uppercase" }}>Como o S2Core te lê hoje</div>
+                  <Link
+                    to="/app/user/estado-metabolico"
+                    style={{ color: COLORS.primary, fontWeight: "var(--font-semibold)", textDecoration: "none", fontSize: "var(--text-sm)" }}
+                  >
+                    Ver evolução →
+                  </Link>
+                </div>
+                <div style={{ display: "flex", alignItems: "baseline", gap: "var(--space-3)", flexWrap: "wrap" }}>
+                  <span style={{ fontSize: "var(--text-3xl)", fontWeight: "var(--font-bold)", color: COLORS.text }}>{Math.round(metabolismData.score)}</span>
+                  <span style={{ color: COLORS.muted, fontSize: "var(--text-base)", fontWeight: "var(--font-semibold)" }}>
+                    {derivedEnergy?.band === "low" ? "pedindo recuperação" : derivedEnergy?.band === "high" ? "em alta" : "equilibrado"}
+                  </span>
+                  <span
+                    style={{
+                      fontSize: "var(--text-base)",
+                      fontWeight: "var(--font-semibold)",
+                      color: metabolismData.trend === "up" ? "var(--color-success-text)" : metabolismData.trend === "down" ? "var(--color-danger)" : COLORS.muted,
+                    }}
+                  >
+                    {metabolismData.trend === "up" ? "melhorando ↑" : metabolismData.trend === "down" ? "em queda ↓" : "estável →"}
+                  </span>
+                </div>
+                {profileTeaser && (
+                  <div style={{ color: COLORS.muted, fontSize: "var(--text-base)", lineHeight: 1.5 }}>{profileTeaser}</div>
+                )}
+                <button
+                  type="button"
+                  className="btn btn-ghost"
+                  onClick={() => {
+                    const t30 = metabolismData.trend30d;
+                    const trend30Label =
+                      !t30 || t30.direction === "stable"
+                        ? "estável"
+                        : `${t30.delta >= 0 ? "+" : ""}${t30.delta} pts`;
+                    void drawEvolutionShareCard({
+                      partnerName: branding?.displayName ?? academies?.[0]?.displayName ?? "S2Core",
+                      userName: user?.name || accountSummary.name,
+                      score: metabolismData.score,
+                      trend30Label,
+                      streak: gamification?.streak ?? 0,
+                      logoUrl: branding?.logoUrl ?? academies?.[0]?.logoUrl ?? null,
+                    }).catch(() => {
+                      /* ignore */
+                    });
                   }}
+                  style={{ justifySelf: "start", fontSize: "var(--text-sm)" }}
                 >
-                  {metabolismData.trend === "up" ? "melhorando ↑" : metabolismData.trend === "down" ? "em queda ↓" : "estável →"}
-                </span>
+                  Compartilhar resumo
+                </button>
               </div>
-              {profileTeaser && (
-                <div style={{ color: COLORS.muted, fontSize: "var(--text-base)", lineHeight: 1.5 }}>{profileTeaser}</div>
-              )}
-              <button
-                type="button"
-                className="btn btn-ghost"
-                onClick={() => {
-                  const t30 = metabolismData.trend30d;
-                  const trend30Label =
-                    !t30 || t30.direction === "stable"
-                      ? "estável"
-                      : `${t30.delta >= 0 ? "+" : ""}${t30.delta} pts`;
-                  void drawEvolutionShareCard({
-                    partnerName: branding?.displayName ?? academies?.[0]?.displayName ?? "S2Core",
-                    userName: user?.name || accountSummary.name,
-                    score: metabolismData.score,
-                    trend30Label,
-                    streak: gamification?.streak ?? 0,
-                    logoUrl: branding?.logoUrl ?? academies?.[0]?.logoUrl ?? null,
-                  }).catch(() => {
-                    /* ignore */
-                  });
-                }}
-                style={{ justifySelf: "start", fontSize: "var(--text-sm)" }}
-              >
-                Compartilhar resumo
-              </button>
-            </div>
-          </Card>
-        </motion.div>
-      )}
-
-      <motion.div variants={sectionRevealVariants}>
-        <Card flat>
-          <div style={{ display: "grid", gap: "var(--space-3)" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
-              <div style={{ fontSize: "var(--text-xl)", fontWeight: "var(--font-bold)", color: COLORS.text }}>Perfil essencial</div>
-              <button
-                type="button"
-                className="btn btn-ghost btn-sm"
-                onClick={() => setEssentialOpen(true)}
-                style={{ fontSize: "var(--text-sm)", flex: "0 0 auto" }}
-              >
-                Editar
-              </button>
-            </div>
-            <div style={{ display: "grid", gap: "var(--space-3)", gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))" }}>
-              <DataRow label="Objetivo" value={accountSummary.fitnessGoal} placeholder="definir" onEdit={() => setEssentialOpen(true)} />
-              <DataRow label="Nível" value={accountSummary.experienceLevel} placeholder="definir" onEdit={() => setEssentialOpen(true)} />
-              <DataRow label="Altura" value={accountSummary.height} placeholder="informar" onEdit={() => setEssentialOpen(true)} />
-              <DataRow label="Peso" value={accountSummary.weight} placeholder="informar" onEdit={() => setEssentialOpen(true)} />
-            </div>
+            )}
           </div>
         </Card>
       </motion.div>
 
       <motion.div variants={sectionRevealVariants}>
         <Card flat>
-          <div id="dados-contato" style={{ display: "grid", gap: "var(--space-3)", scrollMarginTop: "min(88px, 18vh)" }}>
-            <div style={{ fontSize: "var(--text-xl)", fontWeight: "var(--font-bold)", color: COLORS.text }}>Dados e contato</div>
-            <ContactField label="Nome" hint="Como você quer ser chamado">
-              <ContactInput value={name} onChange={(e) => setName(e.target.value)} placeholder="Seu nome" autoComplete="name" />
-            </ContactField>
-            <ContactField label="E-mail" hint="Identificador de login — não alterar aqui">
-              <ContactInput value={email} readOnly placeholder="seuemail@dominio.com" autoComplete="email" />
-            </ContactField>
-            <ContactField label="Telefone" hint="WhatsApp ou celular para contato">
-              <ContactInput
-                value={phone}
-                onChange={(e) => setPhone(formatPhone(e.target.value))}
-                placeholder="(00) 00000-0000"
-                autoComplete="tel"
-                inputMode="tel"
-              />
-            </ContactField>
-            <ContactField label="CPF" hint="Cadastro — somente leitura">
-              <ContactInput value={cpfMasked} readOnly placeholder="—" autoComplete="off" />
-            </ContactField>
-            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-              <button type="button" className="btn btn-primary" onClick={() => void saveProfile()} disabled={savingProfile} style={{ minHeight: 44 }}>
-                {savingProfile ? "Salvando..." : "Salvar dados"}
-              </button>
-              <button type="button" className="btn btn-ghost" onClick={() => void refreshFromServer()} style={{ minHeight: 44 }}>
-                Atualizar da sessão
-              </button>
+          <div id="dados-contato" style={{ display: "grid", gap: "var(--space-4)", scrollMarginTop: "min(88px, 18vh)" }}>
+            <div style={{ fontSize: "var(--text-xl)", fontWeight: "var(--font-bold)", color: COLORS.text }}>Seus dados</div>
+
+            <div style={{ display: "grid", gap: "var(--space-3)" }}>
+              <ContactField label="Nome" hint="Como você quer ser chamado">
+                <ContactInput value={name} onChange={(e) => setName(e.target.value)} placeholder="Seu nome" autoComplete="name" />
+              </ContactField>
+              <ContactField label="E-mail" hint="Identificador de login — não alterar aqui">
+                <ContactInput value={email} readOnly placeholder="seuemail@dominio.com" autoComplete="email" />
+              </ContactField>
+              <ContactField label="Telefone" hint="WhatsApp ou celular para contato">
+                <ContactInput
+                  value={phone}
+                  onChange={(e) => setPhone(formatPhone(e.target.value))}
+                  placeholder="(00) 00000-0000"
+                  autoComplete="tel"
+                  inputMode="tel"
+                />
+              </ContactField>
+              <ContactField label="CPF" hint="Cadastro — somente leitura">
+                <ContactInput value={cpfMasked} readOnly placeholder="—" autoComplete="off" />
+              </ContactField>
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                <button type="button" className="btn btn-primary" onClick={() => void saveProfile()} disabled={savingProfile} style={{ minHeight: 44 }}>
+                  {savingProfile ? "Salvando..." : "Salvar dados"}
+                </button>
+                <button type="button" className="btn btn-ghost" onClick={() => void refreshFromServer()} style={{ minHeight: 44 }}>
+                  Atualizar da sessão
+                </button>
+              </div>
+            </div>
+
+            <div style={{ display: "grid", gap: "var(--space-3)", paddingTop: "var(--space-4)", borderTop: `1px solid ${COLORS.border}` }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+                <div style={{ fontSize: "var(--text-base)", fontWeight: "var(--font-bold)", color: COLORS.text }}>Perfil essencial</div>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => setEssentialOpen(true)}
+                  style={{ fontSize: "var(--text-sm)", flex: "0 0 auto" }}
+                >
+                  Editar
+                </button>
+              </div>
+              <div style={{ display: "grid", gap: "var(--space-3)", gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))" }}>
+                <DataRow label="Objetivo" value={accountSummary.fitnessGoal} placeholder="definir" onEdit={() => setEssentialOpen(true)} />
+                <DataRow label="Nível" value={accountSummary.experienceLevel} placeholder="definir" onEdit={() => setEssentialOpen(true)} />
+                <DataRow label="Altura" value={accountSummary.height} placeholder="informar" onEdit={() => setEssentialOpen(true)} />
+                <DataRow label="Peso" value={accountSummary.weight} placeholder="informar" onEdit={() => setEssentialOpen(true)} />
+              </div>
             </div>
           </div>
         </Card>
@@ -682,21 +679,6 @@ export default function UserProfilePage({ onLogout }: Props) {
           </Card>
         </motion.div>
       )}
-
-      <motion.div variants={sectionRevealVariants}>
-        <Card flat>
-          <div style={{ display: "grid", gap: "var(--space-2)" }}>
-            <div style={{ color: COLORS.mutedSoft, fontSize: "var(--text-xs)", fontWeight: "var(--font-bold)", letterSpacing: "0.07em", textTransform: "uppercase" }}>Vínculos</div>
-            {personalName || nutriName || realAcademyName ? (
-              <div style={{ color: COLORS.text, fontSize: "var(--text-base)", fontWeight: "var(--font-semibold)" }}>
-                {`Personal: ${personalName ?? "—"}  ·  Nutri: ${nutriName ?? "—"}  ·  Academia: ${realAcademyName ?? "—"}`}
-              </div>
-            ) : (
-              <div style={{ color: COLORS.muted, fontSize: "var(--text-base)" }}>Nenhum profissional vinculado ainda.</div>
-            )}
-          </div>
-        </Card>
-      </motion.div>
 
       <motion.div variants={sectionRevealVariants}>
         <Card flat>
