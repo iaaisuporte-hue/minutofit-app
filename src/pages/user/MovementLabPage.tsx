@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import "./movementLab.css";
 import { authFetch } from "../../services/apiClient";
 import { API_URL } from "../../services/apiBase";
+import { postLabEvent } from "./lib/labEvents";
 import {
   EXERCISE_CATALOG,
   EXERCISE_GROUPS,
@@ -88,6 +90,48 @@ const MEDIAPIPE_SCRIPTS = [
 ];
 
 const STORAGE_KEY = "corefit:movement:sessions";
+// Chave própria do ack do disclaimer beta — NÃO reutilizar a de sessões.
+const BETA_ACK_KEY = "corefit:movement:betaDisclaimerAck";
+
+// Classifica a falha de inicialização em uma mensagem acionável + um `kind` curto
+// para analytics. getUserMedia (via window.Camera) rejeita com DOMException.name.
+function describeCameraError(err: unknown): { kind: string; message: string } {
+  const e = err as { name?: string; message?: string } | null;
+  const name = e?.name ?? "";
+  const msg = String(e?.message ?? "");
+  if (name === "NotAllowedError" || name === "PermissionDeniedError" || name === "SecurityError") {
+    return {
+      kind: "permission_denied",
+      message:
+        "Permissão de câmera negada. Autorize o acesso pela barra de endereço (ícone de cadeado) e toque em Tentar novamente.",
+    };
+  }
+  if (name === "NotFoundError" || name === "DevicesNotFoundError") {
+    return {
+      kind: "no_camera",
+      message:
+        "Nenhuma câmera foi encontrada neste dispositivo. Conecte uma webcam ou abra o Lab em um aparelho com câmera.",
+    };
+  }
+  if (name === "NotReadableError" || name === "TrackStartError" || name === "AbortError") {
+    return {
+      kind: "camera_in_use",
+      message:
+        "A câmera parece estar em uso por outro aplicativo. Feche os outros programas que usam a câmera e toque em Tentar novamente.",
+    };
+  }
+  if (msg.includes("MediaPipe") || msg.includes("Failed to load") || msg.includes("canvas")) {
+    return {
+      kind: "mediapipe_load",
+      message:
+        "Não foi possível carregar os recursos de análise. Verifique sua conexão e toque em Tentar novamente.",
+    };
+  }
+  return {
+    kind: "unknown",
+    message: msg || "Não foi possível iniciar a câmera. Toque em Tentar novamente.",
+  };
+}
 
 // Skeleton colors by form score range (must be literal values, not CSS vars)
 const SKELETON_COLOR_HIGH = "#22C55E";
@@ -268,6 +312,19 @@ export default function MovementLabPage() {
     useState<SessionSummaryData | null>(null);
   const [history, setHistory] = useState<MovementSession[]>(loadHistory);
 
+  // ── Beta: disclaimer, retry de câmera e feedback pós-sessão ─
+  const [searchParams] = useSearchParams();
+  const [showDisclaimer, setShowDisclaimer] = useState(false);
+  const [retryToken, setRetryToken] = useState(0);
+  const [feedbackFor, setFeedbackFor] = useState<{
+    exerciseId: ExerciseId;
+    exerciseLabel: string;
+    repCount: number;
+  } | null>(null);
+  const [feedbackRating, setFeedbackRating] = useState(0);
+  const [feedbackComment, setFeedbackComment] = useState("");
+  const openedReportedRef = useRef(false);
+
   // ── Refs (accessed inside callbacks without stale closures) ─
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -334,6 +391,24 @@ export default function MovementLabPage() {
   useEffect(() => {
     window.addEventListener("devicemotion", handleDeviceMotion);
     return () => window.removeEventListener("devicemotion", handleDeviceMotion);
+  }, []);
+
+  // ── Analytics: Lab aberto (uma vez), com a origem do card ─
+  useEffect(() => {
+    if (openedReportedRef.current) return;
+    openedReportedRef.current = true;
+    const from = searchParams.get("from");
+    const source = from === "today" || from === "treino" ? from : "direct";
+    postLabEvent("movement_lab.opened", { source });
+  }, [searchParams]);
+
+  // ── Disclaimer beta na primeira visita (ack em localStorage) ─
+  useEffect(() => {
+    try {
+      if (!localStorage.getItem(BETA_ACK_KEY)) setShowDisclaimer(true);
+    } catch {
+      // storage indisponível — segue sem bloquear
+    }
   }, []);
 
   // ── Camera initialization (once on mount) ─────────────────
@@ -678,13 +753,13 @@ export default function MovementLabPage() {
         cameraRef.current = camera;
         await camera.start();
         if (!cancelled) setCameraStatus("ready");
-      } catch (err: any) {
+      } catch (err) {
         console.error(err);
         if (!cancelled) {
+          const described = describeCameraError(err);
           setCameraStatus("error");
-          setErrorMessage(
-            err?.message || "Não foi possível iniciar a webcam."
-          );
+          setErrorMessage(described.message);
+          postLabEvent("movement_lab.camera_error", { errorKind: described.kind });
         }
       }
     }
@@ -702,7 +777,37 @@ export default function MovementLabPage() {
       poseRef.current = null;
       cameraRef.current = null;
     };
-  }, []);
+  }, [retryToken]);
+
+  function handleRetryCamera() {
+    setErrorMessage(null);
+    setCameraStatus("idle");
+    setRetryToken((t) => t + 1);
+  }
+
+  function ackDisclaimer() {
+    try {
+      localStorage.setItem(BETA_ACK_KEY, "1");
+    } catch {
+      // storage indisponível — segue mesmo assim
+    }
+    setShowDisclaimer(false);
+  }
+
+  function submitFeedback() {
+    if (!feedbackFor || feedbackRating === 0) return;
+    postLabEvent("movement_lab.feedback_submitted", {
+      rating: feedbackRating,
+      comment: feedbackComment.trim() || undefined,
+      exerciseId: feedbackFor.exerciseId,
+      repCount: feedbackFor.repCount,
+    });
+    setFeedbackFor(null);
+  }
+
+  function skipFeedback() {
+    setFeedbackFor(null);
+  }
 
   // ── Derived values ────────────────────────────────────────
   const currentRule = EXERCISE_CATALOG[exerciseId];
@@ -818,6 +923,25 @@ export default function MovementLabPage() {
       // Backend unavailable — session already saved to localStorage
     });
 
+    const durationS = firstRepAtRef.current
+      ? Math.max(0, Math.round((Date.now() - firstRepAtRef.current) / 1000))
+      : 0;
+    postLabEvent("movement_lab.session_completed", {
+      exerciseId: session.exerciseId,
+      repCount: session.repCount,
+      avgFormScore: session.avgFormScore,
+      durationS,
+    });
+
+    // Abre o feedback do beta (o resumo fecha; firstRepAtRef é zerado no reset)
+    setFeedbackFor({
+      exerciseId: session.exerciseId,
+      exerciseLabel: session.exerciseLabel,
+      repCount: session.repCount,
+    });
+    setFeedbackRating(0);
+    setFeedbackComment("");
+
     handleResetSeries();
   }
 
@@ -835,6 +959,12 @@ export default function MovementLabPage() {
   // ── Render ────────────────────────────────────────────────
   return (
     <div className="ml-page">
+
+      {/* ── Header + selo beta ────────────────────────────── */}
+      <div className="ml-page-header">
+        <h1 className="ml-page-title">Lab de Movimento</h1>
+        <span className="ml-beta-badge">Beta</span>
+      </div>
 
       {/* ── Exercise selector ─────────────────────────────── */}
       <div className="ml-card ml-selector-wrap">
@@ -1003,7 +1133,12 @@ export default function MovementLabPage() {
 
       {/* ── Error ─────────────────────────────────────────── */}
       {errorMessage && (
-        <div className="ml-error-msg">{errorMessage}</div>
+        <div className="ml-error-msg">
+          <div className="ml-error-text">{errorMessage}</div>
+          <button type="button" className="ml-retry-btn" onClick={handleRetryCamera}>
+            Tentar novamente
+          </button>
+        </div>
       )}
 
       {/* ── Coaching stack ────────────────────────────────── */}
@@ -1181,6 +1316,78 @@ export default function MovementLabPage() {
               <Sparkline scores={exerciseHistory.map((s) => s.avgFormScore)} />
             </div>
           )}
+        </div>
+      )}
+
+      {/* ── Disclaimer beta (primeira visita) ─────────────── */}
+      {showDisclaimer && (
+        <div className="ml-summary-backdrop">
+          <div className="ml-summary-modal">
+            <div>
+              <div className="ml-summary-eyebrow">Recurso em teste · Beta</div>
+              <div className="ml-summary-headline">Como funciona o Lab</div>
+            </div>
+            <ul className="ml-disclaimer-list">
+              <li>A contagem de repetições é experimental e pode errar — ajuste manualmente quando precisar.</li>
+              <li>A análise acontece no seu aparelho. Nenhum vídeo é gravado ou enviado.</li>
+              <li>É um apoio à execução. Não substitui a orientação do seu personal ou profissional de saúde.</li>
+            </ul>
+            <div className="ml-summary-actions">
+              <button className="ml-summary-btn-primary" type="button" onClick={ackDisclaimer}>
+                Entendi
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Feedback pós-sessão (beta) ────────────────────── */}
+      {feedbackFor && (
+        <div
+          className="ml-summary-backdrop"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) skipFeedback();
+          }}
+        >
+          <div className="ml-summary-modal">
+            <div>
+              <div className="ml-summary-eyebrow">Sua opinião ajuda o beta</div>
+              <div className="ml-summary-headline">A contagem fez sentido?</div>
+            </div>
+            <div className="ml-feedback-stars">
+              {[1, 2, 3, 4, 5].map((n) => (
+                <button
+                  key={n}
+                  type="button"
+                  aria-label={`${n} ${n > 1 ? "estrelas" : "estrela"}`}
+                  className={`ml-feedback-star${feedbackRating >= n ? " ml-feedback-star-on" : ""}`}
+                  onClick={() => setFeedbackRating(n)}
+                >
+                  ★
+                </button>
+              ))}
+            </div>
+            <textarea
+              className="ml-feedback-textarea"
+              placeholder="O que funcionou ou falhou? (opcional)"
+              value={feedbackComment}
+              maxLength={500}
+              onChange={(e) => setFeedbackComment(e.target.value)}
+            />
+            <div className="ml-summary-actions">
+              <button
+                className="ml-summary-btn-primary"
+                type="button"
+                disabled={feedbackRating === 0}
+                onClick={submitFeedback}
+              >
+                Enviar
+              </button>
+              <button className="ml-summary-btn-secondary" type="button" onClick={skipFeedback}>
+                Pular
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

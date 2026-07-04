@@ -15,6 +15,7 @@ import { useAdaptiveTraining } from "../../features/training/adaptive/useAdaptiv
 import type { AdaptiveTodayResponse } from "../../services/trainingAdaptiveApi";
 import { ReadinessPill } from "../../features/training/adaptive/ReadinessPill";
 import { AdaptationBanner } from "../../features/training/adaptive/AdaptationBanner";
+import { MovementLabEntryCard } from "./components/MovementLabEntryCard";
 
 function formatDate(value: string) {
   try {
@@ -826,6 +827,8 @@ export default function MyWorkoutPlansPage() {
         <div style={{ fontSize: 17, fontWeight: 700, color: COLORS.text }}>Minha ficha</div>
         <div style={{ color: COLORS.mutedSoft, fontSize: 12 }}>— fichas do seu personal</div>
       </div>
+
+      <MovementLabEntryCard source="treino" />
 
       {loading ? <div style={{ color: COLORS.muted }}>Carregando fichas...</div> : null}
       {error ? <div style={{ color: COLORS.danger }}>{error}</div> : null}

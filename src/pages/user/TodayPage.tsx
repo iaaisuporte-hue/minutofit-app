@@ -66,6 +66,7 @@ import { useAdaptiveTraining } from "../../features/training/adaptive/useAdaptiv
 import { AdaptationBanner } from "../../features/training/adaptive/AdaptationBanner";
 import { WorkoutStateChip } from "./components/WorkoutStateChip";
 import { WeeklyLoopCard, useHasWeeklyLoopInsights } from "../../features/loopVisibility";
+import { MovementLabEntryCard } from "./components/MovementLabEntryCard";
 import { usePushSubscription } from "../../features/nutrition/usePushSubscription";
 import "./todayPage.css";
 
@@ -664,6 +665,7 @@ export default function TodayPage() {
           onDaysChange={setHistoryDays}
         />
         {hasWeeklyLoopInsights && <WeeklyLoopCard condition={dailyCondition} />}
+        <MovementLabEntryCard source="today" />
       </motion.div>
 
       {/* 6. Plano alimentar — só renderiza para quem tem nutri (silencioso caso contrário) */}

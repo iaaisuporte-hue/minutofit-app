@@ -153,10 +153,15 @@ export default function UserApp() {
   const navigate = useNavigate();
   const { logout, user } = useAuth();
   const firstName = user?.name?.split(" ")[0] || "Aluno";
-  const { hasFeature, loading } = useFeatureFlags();
+  const { hasFeature, loading, planName } = useFeatureFlags();
   const canMessages = hasFeature("messages");
   const showTracker = true;
-  const showTrainingAi = true;
+  // Lab de Movimento: gated pela flag `movement_lab` (habilitada no Free em beta).
+  // Desligar a flag no plano remove os cards de entrada e bloqueia a rota — kill-switch.
+  const canMovementLab = hasFeature("movement_lab");
+  // Falha aberta enquanto as flags não resolveram (planName null = pré-fetch ou fetch
+  // falhou) para não rebater visitas por URL direta/bookmark antes do /me/features chegar.
+  const allowMovementLabRoute = canMovementLab || loading || planName === null;
   const canSuggestedTraining = hasFeature("suggested_training");
   const canWorkouts = hasFeature("workouts");
   const canHomeWorkouts = hasFeature("home_workouts");
@@ -287,7 +292,7 @@ export default function UserApp() {
               <Route
                 path="movement-lab"
                 element={
-                  <LimitedUserOnly allowed={showTrainingAi}>
+                  <LimitedUserOnly allowed={allowMovementLabRoute}>
                     <RequireClearance>
                       <MovementLabPage />
                     </RequireClearance>
@@ -378,7 +383,7 @@ export default function UserApp() {
               <Route
                 path="espelho"
                 element={
-                  <LimitedUserOnly allowed={showTrainingAi}>
+                  <LimitedUserOnly allowed={allowMovementLabRoute}>
                     <RequireClearance>
                       <MovementLabPage />
                     </RequireClearance>
