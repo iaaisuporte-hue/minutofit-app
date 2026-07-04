@@ -28,6 +28,8 @@ export type ExerciseSummary = {
   tags: string[];
   primaryMediaUrl: string | null;
   primaryMediaType: string | null;
+  /** Perfil de captura do Lab de Movimento (Spec 022); null quando não mapeado. */
+  movementLabExerciseId: string | null;
   createdAt: string;
   updatedAt: string;
 };

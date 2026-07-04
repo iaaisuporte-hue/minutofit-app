@@ -8,6 +8,7 @@ import {
 } from "../../services/userWorkoutPlansApi";
 import { getExercisesBatch, type Exercise } from "../../services/exercisesApi";
 import { getWorkoutStats } from "../../services/workoutSessionApi";
+import { useFeatureFlags } from "../../auth/FeatureFlagsContext";
 import { useAdaptiveTraining } from "../../features/training/adaptive/useAdaptiveTraining";
 import { ExerciseDemoModal } from "./components/ExerciseDemoModal";
 import { registerWorkoutSession, type RegisterSessionStatus } from "./workoutSession/registerWorkoutSession";
@@ -100,6 +101,10 @@ export default function WorkoutSessionPage() {
   const [startedAt, setStartedAt] = useState<number>(() => Date.now());
   const [prevLoad, setPrevLoad] = useState<Map<string, number>>(new Map());
   const [exMedia, setExMedia] = useState<Map<string, string>>(new Map());
+  // Spec 022: uuid do exercício → perfil de captura do Lab (quando mapeado).
+  const [exLab, setExLab] = useState<Map<string, string>>(new Map());
+  const { hasFeature } = useFeatureFlags();
+  const canGuidedLab = hasFeature("movement_lab_guided");
   const [demoName, setDemoName] = useState<string | null>(null);
   const [showExit, setShowExit] = useState(false);
   const [sessionRpe, setSessionRpe] = useState<number | null>(null);
@@ -244,11 +249,14 @@ export default function WorkoutSessionPage() {
       .then((rows) => {
         if (!alive) return;
         const m = new Map<string, string>();
+        const lab = new Map<string, string>();
         for (const ex of rows) {
           const url = pickMediaUrl(ex);
           if (url) m.set(ex.id, url);
+          if (ex.movementLabExerciseId) lab.set(ex.id, ex.movementLabExerciseId);
         }
         setExMedia(m);
+        setExLab(lab);
       })
       .catch(() => {});
     return () => {
@@ -615,6 +623,23 @@ export default function WorkoutSessionPage() {
   // phase === "running"
   const restSoon = rest.active && rest.secondsLeft <= 10;
   const mediaUrl = current?.exerciseId ? exMedia.get(current.exerciseId) ?? null : null;
+  const currentLabId = current?.exerciseId ? exLab.get(current.exerciseId) ?? null : null;
+
+  function openLabForCurrent() {
+    if (!current?.exerciseId || !currentLabId) return;
+    const q = new URLSearchParams({
+      from: "treino",
+      labId: currentLabId,
+      exerciseId: current.exerciseId,
+      name: current.name,
+      sets: String(current.sets.length),
+      reps: currentItem?.reps ?? "",
+      rest: String(current.sets[0]?.plannedRestS ?? ""),
+      planId: String(planId),
+      dayIndex: String(dayIndex),
+    });
+    navigate(`/app/user/movement-lab?${q.toString()}`);
+  }
   const prev = current?.exerciseId ? prevLoad.get(current.exerciseId) ?? null : null;
   const allCurrentDone = current?.sets.every((s) => s.done) ?? false;
   const isLast = currentIndex >= exercises.length - 1;
@@ -670,6 +695,12 @@ export default function WorkoutSessionPage() {
                   ) : null}
                   {prev != null ? <span className="ws-chip ws-chip-prev">última: {prev} kg</span> : null}
                 </div>
+                {canGuidedLab && currentLabId ? (
+                  <button type="button" className="ws-lab-btn" onClick={openLabForCurrent}>
+                    <span className="ws-lab-badge">Beta</span>
+                    Analisar com o Lab
+                  </button>
+                ) : null}
               </div>
             </div>
 

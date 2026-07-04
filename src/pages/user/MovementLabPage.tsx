@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import "./movementLab.css";
 import { authFetch } from "../../services/apiClient";
 import { API_URL } from "../../services/apiBase";
+import { useFeatureFlags } from "../../auth/FeatureFlagsContext";
 import { postLabEvent } from "./lib/labEvents";
 import {
   EXERCISE_CATALOG,
@@ -62,6 +63,27 @@ type MovementSession = {
 
 type SessionSummaryData = MovementSession & {
   repScores: number[];
+};
+
+// ── Modo guiado pela ficha (Spec 022) ────────────────────────
+
+type GuidedSet = {
+  detectedReps: number;
+  repsDone: number;
+  formScore: number;
+  symmetry: number;
+  confidence: "low" | "medium" | "high";
+};
+
+type GuidedState = {
+  planId: number;
+  dayIndex: number;
+  exerciseUuid: string; // UUID da biblioteca — vai em workout_set_logs.exercise_id
+  name: string;
+  targetSets: number;
+  targetReps: string; // "10" ou "8-12"
+  restS: number;
+  completed: GuidedSet[];
 };
 
 // ── Globals (MediaPipe loaded via CDN) ───────────────────────
@@ -325,6 +347,17 @@ export default function MovementLabPage() {
   const [feedbackComment, setFeedbackComment] = useState("");
   const openedReportedRef = useRef(false);
 
+  // ── Modo guiado (Spec 022) ─────────────────────────────────
+  const navigate = useNavigate();
+  const { hasFeature } = useFeatureFlags();
+  const [guided, setGuided] = useState<GuidedState | null>(null);
+  const [guidedReps, setGuidedReps] = useState(0);
+  const [guidedRest, setGuidedRest] = useState<number | null>(null);
+  const [guidedFinished, setGuidedFinished] = useState(false);
+  const [guidedSaving, setGuidedSaving] = useState(false);
+  const [guidedError, setGuidedError] = useState<string | null>(null);
+  const guidedInitRef = useRef(false);
+
   // ── Refs (accessed inside callbacks without stale closures) ─
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -410,6 +443,48 @@ export default function MovementLabPage() {
       // storage indisponível — segue sem bloquear
     }
   }, []);
+
+  // ── Init do modo guiado a partir da query da ficha (uma vez) ─
+  useEffect(() => {
+    if (guidedInitRef.current) return;
+    guidedInitRef.current = true;
+    if (!hasFeature("movement_lab_guided")) return; // flag off → cai no avulso
+    const labId = searchParams.get("labId");
+    const exerciseUuid = searchParams.get("exerciseId");
+    const planIdP = Number(searchParams.get("planId"));
+    const dayIndexP = Number(searchParams.get("dayIndex"));
+    if (!labId || !(labId in EXERCISE_CATALOG) || !exerciseUuid) return;
+    if (!Number.isFinite(planIdP) || !Number.isFinite(dayIndexP)) return;
+    const id = labId as ExerciseId;
+    setGuided({
+      planId: planIdP,
+      dayIndex: dayIndexP,
+      exerciseUuid,
+      name: searchParams.get("name") || EXERCISE_CATALOG[id].label,
+      targetSets: Math.min(12, Math.max(1, Number(searchParams.get("sets")) || 1)),
+      targetReps: searchParams.get("reps") || "",
+      restS: Math.max(0, Math.min(600, Number(searchParams.get("rest")) || 60)),
+      completed: [],
+    });
+    setActiveCategory(EXERCISE_CATALOG[id].category);
+    setExerciseId(id);
+  }, [searchParams, hasFeature]);
+
+  // ── Ao abrir o resumo em modo guiado, prepara a correção de reps ─
+  useEffect(() => {
+    if (guided && sessionSummary) setGuidedReps(sessionSummary.repCount);
+  }, [guided, sessionSummary]);
+
+  // ── Contagem regressiva do descanso entre séries ─
+  useEffect(() => {
+    if (guidedRest == null) return;
+    if (guidedRest <= 0) {
+      setGuidedRest(null);
+      return;
+    }
+    const t = setTimeout(() => setGuidedRest((s) => (s == null ? null : s - 1)), 1000);
+    return () => clearTimeout(t);
+  }, [guidedRest]);
 
   // ── Camera initialization (once on mount) ─────────────────
   useEffect(() => {
@@ -809,6 +884,81 @@ export default function MovementLabPage() {
     setFeedbackFor(null);
   }
 
+  // ── Modo guiado: salvar série, descanso, finalizar ─────────
+  async function finalizeGuided(completed: GuidedSet[], status: "completed" | "partial") {
+    if (!guided) return;
+    setGuidedSaving(true);
+    setGuidedError(null);
+    try {
+      const res = await authFetch(`${API_URL}/training/sessions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          source: "movement_lab",
+          status,
+          planId: guided.planId,
+          dayIndex: guided.dayIndex,
+          title: guided.name,
+          awardGamification: false, // analisar 1 exercício ≠ treino completo — não infla XP/streak
+          sets: completed.map((c, i) => ({
+            exerciseId: guided.exerciseUuid,
+            name: guided.name,
+            orderIndex: 0,
+            setIndex: i + 1,
+            plannedReps: guided.targetReps,
+            repsDone: c.repsDone,
+            plannedRestS: guided.restS,
+            status: "done",
+            capture: {
+              detectedReps: c.detectedReps,
+              corrected: c.repsDone !== c.detectedReps,
+              avgFormScore: c.formScore,
+              avgSymmetry: c.symmetry,
+              confidence: c.confidence,
+            },
+          })),
+        }),
+      });
+      if (!res.ok) throw new Error("save_failed");
+      setGuidedFinished(true);
+    } catch {
+      setGuidedError("Não foi possível salvar a execução. Tente novamente.");
+    } finally {
+      setGuidedSaving(false);
+    }
+  }
+
+  function handleSaveGuidedSet() {
+    if (!guided || !sessionSummary) return;
+    const entry: GuidedSet = {
+      detectedReps: sessionSummary.repCount,
+      repsDone: Math.max(0, guidedReps),
+      formScore: sessionSummary.avgFormScore,
+      symmetry: sessionSummary.avgSymmetry,
+      confidence: analysis.confidence,
+    };
+    const completed = [...guided.completed, entry];
+    setGuided({ ...guided, completed });
+    setSessionSummary(null);
+    handleResetSeries();
+    if (completed.length >= guided.targetSets) {
+      void finalizeGuided(completed, "completed");
+    } else {
+      setGuidedRest(guided.restS > 0 ? guided.restS : 60);
+    }
+  }
+
+  function handleFinishGuidedEarly() {
+    if (!guided || guided.completed.length === 0) return;
+    const status = guided.completed.length >= guided.targetSets ? "completed" : "partial";
+    void finalizeGuided(guided.completed, status);
+  }
+
+  function exitGuidedToWorkout() {
+    if (!guided) return;
+    navigate(`/app/user/treino/${guided.planId}/${guided.dayIndex}`);
+  }
+
   // ── Derived values ────────────────────────────────────────
   const currentRule = EXERCISE_CATALOG[exerciseId];
 
@@ -965,6 +1115,35 @@ export default function MovementLabPage() {
         <h1 className="ml-page-title">Lab de Movimento</h1>
         <span className="ml-beta-badge">Beta</span>
       </div>
+
+      {/* ── Banner do modo guiado (aberto da ficha) ───────── */}
+      {guided && !guidedFinished && (
+        <div className="ml-guided-banner">
+          <div className="ml-guided-info">
+            <div className="ml-guided-title">Guiado · {guided.name}</div>
+            <div className="ml-guided-meta">
+              Série {Math.min(guided.completed.length + 1, guided.targetSets)} de {guided.targetSets}
+              {guided.targetReps ? ` · meta ${guided.targetReps} reps` : ""}
+            </div>
+          </div>
+          <div className="ml-guided-actions">
+            {guided.completed.length > 0 && (
+              <button
+                type="button"
+                className="ml-guided-finish"
+                onClick={handleFinishGuidedEarly}
+                disabled={guidedSaving}
+              >
+                {guidedSaving ? "Salvando..." : "Concluir treino"}
+              </button>
+            )}
+            <button type="button" className="ml-guided-exit" onClick={exitGuidedToWorkout}>
+              Sair
+            </button>
+          </div>
+        </div>
+      )}
+      {guidedError && <div className="ml-error-msg"><div className="ml-error-text">{guidedError}</div></div>}
 
       {/* ── Exercise selector ─────────────────────────────── */}
       <div className="ml-card ml-selector-wrap">
@@ -1256,22 +1435,70 @@ export default function MovementLabPage() {
 
             <div className="ml-summary-insight">{sessionSummary.insight}</div>
 
-            <div className="ml-summary-actions">
-              <button
-                className="ml-summary-btn-primary"
-                type="button"
-                onClick={handleSaveSession}
-              >
-                Salvar sessão
-              </button>
-              <button
-                className="ml-summary-btn-secondary"
-                type="button"
-                onClick={handleResetSeries}
-              >
-                Descartar
-              </button>
-            </div>
+            {guided ? (
+              <>
+                <div className="ml-reps-correct">
+                  <span className="ml-reps-correct-label">
+                    Reps válidas (a IA contou {sessionSummary.repCount})
+                  </span>
+                  <div className="ml-reps-stepper">
+                    <button
+                      type="button"
+                      aria-label="Diminuir"
+                      onClick={() => setGuidedReps((r) => Math.max(0, r - 1))}
+                    >
+                      −
+                    </button>
+                    <span className="ml-reps-stepper-value">{guidedReps}</span>
+                    <button
+                      type="button"
+                      aria-label="Aumentar"
+                      onClick={() => setGuidedReps((r) => r + 1)}
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+                <div className="ml-summary-actions">
+                  <button
+                    className="ml-summary-btn-primary"
+                    type="button"
+                    disabled={guidedSaving}
+                    onClick={handleSaveGuidedSet}
+                  >
+                    {guided.completed.length + 1 >= guided.targetSets
+                      ? guidedSaving
+                        ? "Salvando..."
+                        : "Salvar e concluir"
+                      : "Salvar série"}
+                  </button>
+                  <button
+                    className="ml-summary-btn-secondary"
+                    type="button"
+                    onClick={handleResetSeries}
+                  >
+                    Refazer série
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div className="ml-summary-actions">
+                <button
+                  className="ml-summary-btn-primary"
+                  type="button"
+                  onClick={handleSaveSession}
+                >
+                  Salvar sessão
+                </button>
+                <button
+                  className="ml-summary-btn-secondary"
+                  type="button"
+                  onClick={handleResetSeries}
+                >
+                  Descartar
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -1316,6 +1543,44 @@ export default function MovementLabPage() {
               <Sparkline scores={exerciseHistory.map((s) => s.avgFormScore)} />
             </div>
           )}
+        </div>
+      )}
+
+      {/* ── Descanso entre séries (guiado) ────────────────── */}
+      {guided && guidedRest != null && !guidedFinished && (
+        <div className="ml-summary-backdrop">
+          <div className="ml-summary-modal ml-rest-modal">
+            <div className="ml-summary-eyebrow">Descanso</div>
+            <div className="ml-rest-count">{guidedRest}s</div>
+            <div className="ml-summary-score-sub">
+              Prepare a próxima série ({guided.completed.length + 1}/{guided.targetSets})
+            </div>
+            <div className="ml-summary-actions">
+              <button className="ml-summary-btn-primary" type="button" onClick={() => setGuidedRest(null)}>
+                Pular descanso
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Execução guiada concluída ─────────────────────── */}
+      {guided && guidedFinished && (
+        <div className="ml-summary-backdrop">
+          <div className="ml-summary-modal">
+            <div>
+              <div className="ml-summary-eyebrow">Execução salva</div>
+              <div className="ml-summary-headline">{guided.name}</div>
+            </div>
+            <div className="ml-summary-score-sub">
+              {guided.completed.length} de {guided.targetSets} séries registradas na sua ficha.
+            </div>
+            <div className="ml-summary-actions">
+              <button className="ml-summary-btn-primary" type="button" onClick={exitGuidedToWorkout}>
+                Voltar ao treino
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
