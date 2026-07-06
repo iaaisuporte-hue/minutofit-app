@@ -33,6 +33,11 @@ export function StudentExecutionCard({ studentId }: { studentId: string }) {
   const adh = summary.adherencePct;
   const adhColor = adh == null ? "var(--color-text-muted)" : adh >= 80 ? "var(--color-success-text, #16A34A)" : adh >= 50 ? "var(--color-warn, #D97706)" : "var(--color-danger, #DC2626)";
 
+  // Desconforto relatado nas sessões recentes (P1-3) — movimentos distintos.
+  const recentDiscomfort = Array.from(
+    new Set(summary.sessions.slice(0, 6).flatMap((s) => s.discomfortExercises)),
+  );
+
   return (
     <div
       style={{
@@ -60,26 +65,51 @@ export function StudentExecutionCard({ studentId }: { studentId: string }) {
           <div style={{ fontSize: 11, color: "var(--color-text-muted)" }}>aderência (séries feitas ÷ prescritas)</div>
         </div>
         <div style={{ flex: 1, display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}>
-          {summary.sessions.slice(0, 6).map((s) => (
-            <span
-              key={s.id}
-              title={`${STATUS_LABEL[s.status] ?? s.status} · ${s.setsDone}/${s.prescribedSets} séries`}
-              style={{
-                fontSize: 11,
-                fontWeight: 600,
-                padding: "3px 8px",
-                borderRadius: 999,
-                border: "1px solid var(--color-border)",
-                color: s.status === "partial" ? "var(--color-warn, #D97706)" : "var(--color-text-muted)",
-                background: "var(--color-bg-main)",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {fmtDate(s.date)} · {s.setsDone}/{s.prescribedSets || "?"}
-            </span>
-          ))}
+          {summary.sessions.slice(0, 6).map((s) => {
+            const hasDiscomfort = s.discomfortExercises.length > 0;
+            return (
+              <span
+                key={s.id}
+                title={
+                  `${STATUS_LABEL[s.status] ?? s.status} · ${s.setsDone}/${s.prescribedSets} séries` +
+                  (hasDiscomfort ? ` · desconforto: ${s.discomfortExercises.join(", ")}` : "")
+                }
+                style={{
+                  fontSize: 11,
+                  fontWeight: 600,
+                  padding: "3px 8px",
+                  borderRadius: 999,
+                  border: `1px solid ${hasDiscomfort ? "var(--color-warn, #D97706)" : "var(--color-border)"}`,
+                  color: hasDiscomfort
+                    ? "var(--color-warn, #D97706)"
+                    : s.status === "partial"
+                      ? "var(--color-warn, #D97706)"
+                      : "var(--color-text-muted)",
+                  background: "var(--color-bg-main)",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {fmtDate(s.date)} · {s.setsDone}/{s.prescribedSets || "?"}
+                {hasDiscomfort ? " ⚠" : ""}
+              </span>
+            );
+          })}
         </div>
       </div>
+
+      {recentDiscomfort.length > 0 && (
+        <div
+          style={{
+            fontSize: 12,
+            color: "var(--color-warn, #D97706)",
+            borderTop: "1px solid var(--color-border)",
+            paddingTop: 10,
+            lineHeight: 1.4,
+          }}
+        >
+          ⚠ Desconforto relatado nas sessões recentes: <strong>{recentDiscomfort.join(", ")}</strong>. Vale um olhar na técnica/carga.
+        </div>
+      )}
     </div>
   );
 }

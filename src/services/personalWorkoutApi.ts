@@ -51,6 +51,8 @@ export interface StudentTrainingSummary {
     readinessLevel: string | null;
     setsDone: number;
     prescribedSets: number;
+    /** Movimentos em que o aluno relatou desconforto/dor nesta sessão (P1-3). */
+    discomfortExercises: string[];
   }[];
 }
 
