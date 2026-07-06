@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { ConfirmModal } from "../../features/team/ConfirmModal";
 import { MapContainer, Marker, Polyline, Popup, TileLayer } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -259,6 +260,7 @@ export default function ActivityTrackerPage() {
   const [elapsedTime, setElapsedTime] = useState(0);
   const [rewardMessage, setRewardMessage] = useState<string | null>(null);
   const [expandedMapId, setExpandedMapId] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   // ── Manual (treadmill) mode ──────────────────────────────────────────────
   const [manualMode, setManualMode] = useState(false);
@@ -628,11 +630,17 @@ export default function ActivityTrackerPage() {
     }
   }
 
+  // Princípio VIII: remoção destrutiva usa ConfirmModal, nunca window.confirm.
   function deleteActivity(id: string) {
-    if (!window.confirm("Excluir esta sessão? Esta ação não pode ser desfeita.")) return;
+    setConfirmDeleteId(id);
+  }
+  function confirmDeleteActivity() {
+    const id = confirmDeleteId;
+    if (id == null) return;
     const updated = activities.filter((a) => a.id !== id);
     setActivities(updated);
     localStorage.setItem("activities", JSON.stringify(updated));
+    setConfirmDeleteId(null);
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -641,6 +649,17 @@ export default function ActivityTrackerPage() {
 
   return (
     <div className={`tr-page${currentActivity ? " tr-page--live" : ""}`}>
+      {confirmDeleteId != null && (
+        <ConfirmModal
+          title="Excluir esta sessão?"
+          description="Esta ação não pode ser desfeita."
+          confirmLabel="Excluir"
+          destructive
+          onConfirm={() => confirmDeleteActivity()}
+          onCancel={() => setConfirmDeleteId(null)}
+        />
+      )}
+
       {/* Reward banner */}
       {rewardMessage && <div className="tr-reward">{rewardMessage}</div>}
 

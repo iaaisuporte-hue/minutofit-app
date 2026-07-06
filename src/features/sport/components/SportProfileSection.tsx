@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { ConfirmModal } from '../../team/ConfirmModal';
 import { useNavigate } from 'react-router-dom';
 import { useSportProfile } from '../hooks/useSportProfile';
 import { useSportHasPersonal } from '../hooks/useSportHasPersonal';
@@ -32,6 +33,8 @@ export function SportProfileSection() {
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showConsentModal, setShowConsentModal] = useState(false);
+  const [confirmDeactivate, setConfirmDeactivate] = useState(false);
+  const [deactivating, setDeactivating] = useState(false);
 
   useEffect(() => {
     if (loading || personalLoading) return;
@@ -78,9 +81,18 @@ export function SportProfileSection() {
     }
   }
 
-  async function handleDeactivate() {
-    if (!window.confirm('Desativar Fight Intelligence? Seu histórico será preservado.')) return;
-    await deactivate();
+  // Princípio VIII: ação destrutiva usa ConfirmModal, nunca window.confirm.
+  function handleDeactivate() {
+    setConfirmDeactivate(true);
+  }
+  async function doDeactivate() {
+    setDeactivating(true);
+    try {
+      await deactivate();
+    } finally {
+      setDeactivating(false);
+      setConfirmDeactivate(false);
+    }
   }
 
   const selectedSport = sports.find((s) => s.key === primarySport);
@@ -95,6 +107,17 @@ export function SportProfileSection() {
           personalId={personalId}
           onAccept={() => setShowConsentModal(false)}
           onDecline={() => setShowConsentModal(false)}
+        />
+      )}
+      {confirmDeactivate && (
+        <ConfirmModal
+          title="Desativar Fight Intelligence?"
+          description="Seu histórico será preservado. Você pode reativar quando quiser."
+          confirmLabel="Desativar"
+          destructive
+          loading={deactivating}
+          onConfirm={() => void doDeactivate()}
+          onCancel={() => setConfirmDeactivate(false)}
         />
       )}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-3)' }}>
