@@ -35,7 +35,8 @@ export function StudentExecutionCard({ studentId }: { studentId: string }) {
 
   // Desconforto relatado nas sessões recentes (P1-3) — movimentos distintos.
   const recentDiscomfort = Array.from(
-    new Set(summary.sessions.slice(0, 6).flatMap((s) => s.discomfortExercises)),
+    // `?? []` tolera um backend uma versão atrás (sem o campo) durante o skew de deploy.
+    new Set(summary.sessions.slice(0, 6).flatMap((s) => s.discomfortExercises ?? [])),
   );
 
   return (
@@ -66,13 +67,14 @@ export function StudentExecutionCard({ studentId }: { studentId: string }) {
         </div>
         <div style={{ flex: 1, display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}>
           {summary.sessions.slice(0, 6).map((s) => {
-            const hasDiscomfort = s.discomfortExercises.length > 0;
+            const dis = s.discomfortExercises ?? [];
+            const hasDiscomfort = dis.length > 0;
             return (
               <span
                 key={s.id}
                 title={
                   `${STATUS_LABEL[s.status] ?? s.status} · ${s.setsDone}/${s.prescribedSets} séries` +
-                  (hasDiscomfort ? ` · desconforto: ${s.discomfortExercises.join(", ")}` : "")
+                  (hasDiscomfort ? ` · desconforto: ${dis.join(", ")}` : "")
                 }
                 style={{
                   fontSize: 11,
