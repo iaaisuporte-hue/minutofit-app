@@ -18,6 +18,7 @@ import {
 } from "./todayPageMotion";
 import "./todayPage.css";
 import { SportProfileSection } from "../../features/sport/components/SportProfileSection";
+import { AccountDataSection } from "../../features/account/AccountDataSection";
 import { useProfessionalContext } from "../../features/professionalVoice";
 import { COLORS } from "../../styles/colors";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
@@ -684,6 +685,10 @@ export default function UserProfilePage({ onLogout }: Props) {
         <Card flat>
           <SportProfileSection />
         </Card>
+      </motion.div>
+
+      <motion.div variants={sectionRevealVariants}>
+        <AccountDataSection onDeleted={onLogout} />
       </motion.div>
 
       <motion.div variants={sectionRevealVariants} style={{ display: "flex", justifyContent: "flex-end" }}>
