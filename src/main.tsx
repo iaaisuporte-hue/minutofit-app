@@ -3,6 +3,7 @@ import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import * as Sentry from "@sentry/react";
 import App from "./App";
+import { isNativeApp } from "./lib/platform";
 import "@fontsource/inter/400.css";
 import "@fontsource/inter/500.css";
 import "@fontsource/inter/600.css";
@@ -42,7 +43,9 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
 
 // PWA — registra o service worker no boot (instalável + offline shell),
 // independente do push. O fluxo de push (usePushSubscription) reusa o mesmo SW.
-if ("serviceWorker" in navigator && import.meta.env.PROD) {
+// No app empacotado (Capacitor) o SW é redundante/conflitante com o WebView e o
+// push nativo, então não registramos.
+if ("serviceWorker" in navigator && import.meta.env.PROD && !isNativeApp()) {
   window.addEventListener("load", () => {
     navigator.serviceWorker.register("/sw.js", { scope: "/" }).catch(() => {
       /* registro best-effort — não bloqueia o app */

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Download, X } from "lucide-react";
+import { isNativeApp } from "../../lib/platform";
 
 /**
  * Faixa de "Instalar o app" — APENAS Android/Chrome, onde o evento
@@ -30,6 +31,8 @@ export function InstallPrompt() {
   const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null);
 
   useEffect(() => {
+    // No app empacotado (Capacitor) não existe instalação de PWA — banner inerte.
+    if (isNativeApp()) return;
     if (isStandalone()) return;
     try {
       if (localStorage.getItem(DISMISS_KEY)) return;

@@ -10,6 +10,7 @@ import { fetchChatConversations } from "../services/messagesApi";
 import { useTodayUserState } from "./user/hooks/useTodayUserState";
 import HomeWorkoutsPage from "./user/HomeWorkoutsPage";
 import UpgradePlanPage from "./user/UpgradePlanPage";
+import { isNativeApp } from "../lib/platform";
 import WorkoutPlayerPage from "./user/WorkoutPlayerPage";
 import WorkoutSessionPage from "./user/WorkoutSessionPage";
 import ActivityTrackerPage from "./user/ActivityTrackerPage";
@@ -363,10 +364,11 @@ export default function UserApp() {
                   </LimitedUserOnly>
                 }
               />
+              {/* Página de planos oculta no app empacotado (política das lojas) */}
               <Route
                 path="upgrade"
                 element={
-                  <LimitedUserOnly allowed={!loading}>
+                  <LimitedUserOnly allowed={!loading && !isNativeApp()}>
                     <UpgradePlanPage />
                   </LimitedUserOnly>
                 }

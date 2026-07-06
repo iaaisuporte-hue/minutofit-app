@@ -1,9 +1,11 @@
 import { useEffect } from 'react';
 import { authFetch } from '../../services/apiClient';
-
-const API_URL = import.meta.env.VITE_API_URL ?? '';
+import { API_URL } from '../../services/apiBase';
+import { isNativeApp } from '../../lib/platform';
 
 async function registerPush(): Promise<void> {
+  // No app empacotado o push é nativo (FCM/APNs), não web push — não mexer no SW.
+  if (isNativeApp()) return;
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
 
   // Fetch VAPID public key — 503 means push not configured on server, bail silently

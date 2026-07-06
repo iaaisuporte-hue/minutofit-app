@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { COLORS } from '../../styles/colors';
+import { isNativeApp } from '../../lib/platform';
 import type { OfferingPeriod, StudentSubscription, SubscriptionStatus } from './types';
 import { cancelMySubscription, listMySubscriptions } from './api';
 import { ConfirmModal } from './ConfirmModal';
@@ -81,6 +82,27 @@ export function MySubscriptionsSection() {
 
   if (loading) return null;
   if (visible.length === 0) return null;
+
+  // App empacotado (Capacitor): sem preços, sem cancelar, sem link de pagamento
+  // (política das lojas). Só um aviso neutro de que a gestão é feita na web.
+  if (isNativeApp()) {
+    return (
+      <div
+        style={{
+          background: COLORS.panel,
+          border: `1px solid ${COLORS.border}`,
+          borderRadius: 12,
+          padding: 16,
+          fontSize: 13,
+          color: COLORS.muted,
+          lineHeight: 1.5,
+        }}
+      >
+        Você tem acompanhamento ativo com um profissional. Para gerenciar seu plano,
+        acesse sua conta pela versão web do S2Core.
+      </div>
+    );
+  }
 
   return (
     <div
