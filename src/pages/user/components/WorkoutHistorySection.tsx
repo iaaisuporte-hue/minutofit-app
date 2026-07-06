@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   getWorkoutSessionDetail,
   listWorkoutSessions,
@@ -8,6 +9,7 @@ import {
   type WorkoutSessionSource,
   type ReadinessLevel,
 } from "../../../services/workoutSessionApi";
+import { useFeatureFlags } from "../../../auth/FeatureFlagsContext";
 
 // Histórico de treinos executados (P1-1). Lê GET /training/sessions — a fonte
 // canônica desde o write-through do P0-1 — e mostra cada sessão com detalhe por
@@ -27,6 +29,8 @@ const SOURCE_LABEL: Record<WorkoutSessionSource, string> = {
   suggested: "Treino sugerido",
   academy: "Academia",
   free: "Treino livre",
+  movement_lab: "Lab de Movimento",
+  user_retroactive: "Registro retroativo",
 };
 
 const READINESS_COLOR: Record<ReadinessLevel, string> = {
@@ -194,9 +198,26 @@ function SessionRow({ session }: { session: WorkoutSessionListItem }) {
             >
               {session.title || "Treino"}
             </strong>
+            {session.isRetroactive && (
+              <span
+                title="Registrado pelo aluno após o dia do treino"
+                style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  color: "var(--color-text-muted, #6B7280)",
+                  border: "1px solid var(--color-border, #E5E7EB)",
+                  borderRadius: "var(--radius-full, 999px)",
+                  padding: "1px 8px",
+                  whiteSpace: "nowrap",
+                  flexShrink: 0,
+                }}
+              >
+                Registrado retroativamente
+              </span>
+            )}
           </div>
           <span className="metabolic-eyebrow">
-            {formatDate(session.startedAt)} · {metaParts.join(" · ")}
+            {formatDate(session.performedAt)} · {metaParts.join(" · ")}
           </span>
         </div>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4, flexShrink: 0 }}>
@@ -217,7 +238,32 @@ function SessionRow({ session }: { session: WorkoutSessionListItem }) {
   );
 }
 
+function RetroEntryButton() {
+  const navigate = useNavigate();
+  return (
+    <button
+      type="button"
+      onClick={() => navigate("/app/user/registrar-treino-anterior")}
+      style={{
+        justifySelf: "start",
+        padding: "8px 14px",
+        borderRadius: "var(--radius-full, 999px)",
+        border: "1px solid var(--color-border, #E5E7EB)",
+        background: "transparent",
+        color: "var(--color-primary, #2563EB)",
+        fontWeight: 600,
+        fontSize: 14,
+        cursor: "pointer",
+      }}
+    >
+      + Registrar treino anterior
+    </button>
+  );
+}
+
 export function WorkoutHistorySection() {
+  const { hasFeature } = useFeatureFlags();
+  const canRetro = hasFeature("retro_workout_enabled");
   const [sessions, setSessions] = useState<WorkoutSessionListItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -235,17 +281,54 @@ export function WorkoutHistorySection() {
     };
   }, []);
 
-  // Some inteiramente quando não há sessão — iniciante sem treino não vê seção
-  // vazia (a WorkoutProgressSection segue a mesma regra).
-  if (!loading && sessions.length === 0) return null;
+  // Sem sessão: com a flag ligada, ainda oferecemos o ponto de entrada retroativo
+  // (o aluno pode nunca ter registrado ao vivo); sem a flag, some como antes.
+  if (!loading && sessions.length === 0) {
+    if (!canRetro) return null;
+    return (
+      <section className="metabolic-history-page" style={{ display: "grid", gap: "var(--space-3)" }}>
+        <div style={{ display: "grid", gap: "var(--space-1)" }}>
+          <div className="metabolic-eyebrow">Linha do tempo</div>
+          <h2 className="metabolic-section-title">Histórico de treinos</h2>
+          <p className="metabolic-section-copy">Treinou fora do app? Registre um treino que você já fez.</p>
+        </div>
+        <RetroEntryButton />
+      </section>
+    );
+  }
+
+  // Alerta leve anti-abuso: muitos retroativos entre as sessões recentes.
+  const recent = sessions.slice(0, 7);
+  const retroRecent = recent.filter((s) => s.isRetroactive).length;
+  const showRetroNudge = canRetro && retroRecent >= 3;
 
   return (
     <section className="metabolic-history-page" style={{ display: "grid", gap: "var(--space-4)" }}>
-      <div style={{ display: "grid", gap: "var(--space-1)" }}>
-        <div className="metabolic-eyebrow">Linha do tempo</div>
-        <h2 className="metabolic-section-title">Histórico de treinos</h2>
-        <p className="metabolic-section-copy">Cada sessão que você registrou, com as séries que fez.</p>
+      <div style={{ display: "grid", gap: "var(--space-2)" }}>
+        <div style={{ display: "grid", gap: "var(--space-1)" }}>
+          <div className="metabolic-eyebrow">Linha do tempo</div>
+          <h2 className="metabolic-section-title">Histórico de treinos</h2>
+          <p className="metabolic-section-copy">Cada sessão que você registrou, com as séries que fez.</p>
+        </div>
+        {canRetro && <RetroEntryButton />}
       </div>
+
+      {showRetroNudge && (
+        <p
+          style={{
+            margin: 0,
+            fontSize: 13,
+            color: "var(--color-text-soft, #4B5563)",
+            background: "var(--color-warn-soft, #FEF3C7)",
+            border: "1px solid var(--color-warn, #D97706)",
+            borderRadius: "var(--radius-md, 10px)",
+            padding: "10px 12px",
+          }}
+        >
+          Percebemos vários registros retroativos seguidos. Registrar no dia mantém seu plano mais afiado — que tal
+          marcar o próximo logo depois do treino?
+        </p>
+      )}
 
       {loading ? (
         <p className="metabolic-section-copy">Carregando seus treinos...</p>

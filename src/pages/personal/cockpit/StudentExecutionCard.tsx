@@ -69,11 +69,15 @@ export function StudentExecutionCard({ studentId }: { studentId: string }) {
           {summary.sessions.slice(0, 6).map((s) => {
             const dis = s.discomfortExercises ?? [];
             const hasDiscomfort = dis.length > 0;
+            const retro = s.isRetroactive === true;
             return (
               <span
                 key={s.id}
                 title={
                   `${STATUS_LABEL[s.status] ?? s.status} · ${s.setsDone}/${s.prescribedSets} séries` +
+                  (retro
+                    ? ` · registrado retroativamente${s.createdAt ? ` em ${fmtDate(s.createdAt)}` : ""} — não é acompanhamento em tempo real`
+                    : "") +
                   (hasDiscomfort ? ` · desconforto: ${dis.join(", ")}` : "")
                 }
                 style={{
@@ -81,7 +85,8 @@ export function StudentExecutionCard({ studentId }: { studentId: string }) {
                   fontWeight: 600,
                   padding: "3px 8px",
                   borderRadius: 999,
-                  border: `1px solid ${hasDiscomfort ? "var(--color-warn, #D97706)" : "var(--color-border)"}`,
+                  // Retro usa borda tracejada — sinal visual de que não é tempo real.
+                  border: `1px ${retro ? "dashed" : "solid"} ${hasDiscomfort ? "var(--color-warn, #D97706)" : "var(--color-border)"}`,
                   color: hasDiscomfort
                     ? "var(--color-warn, #D97706)"
                     : s.status === "partial"
@@ -92,6 +97,7 @@ export function StudentExecutionCard({ studentId }: { studentId: string }) {
                 }}
               >
                 {fmtDate(s.date)} · {s.setsDone}/{s.prescribedSets || "?"}
+                {retro ? " ⟲" : ""}
                 {hasDiscomfort ? " ⚠" : ""}
               </span>
             );

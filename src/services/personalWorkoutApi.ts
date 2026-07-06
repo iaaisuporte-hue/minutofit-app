@@ -45,7 +45,12 @@ export interface StudentTrainingSummary {
   total: number;
   sessions: {
     id: number;
+    /** Data real do treino (retro usa performed_at). */
     date: string;
+    /** Quando o registro foi feito no sistema — desambigua o retroativo (Spec 024). */
+    createdAt?: string;
+    /** true quando o aluno registrou após o dia do treino — NÃO é tempo real. */
+    isRetroactive?: boolean;
     status: string;
     source: string;
     readinessLevel: string | null;

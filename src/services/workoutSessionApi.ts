@@ -34,13 +34,26 @@ export interface CreateWorkoutSessionPayload {
    */
   awardGamification?: boolean;
   muscleGroups?: string[];
+  /**
+   * Registro retroativo (Spec 024): data real do treino, 'YYYY-MM-DD'. Presença
+   * ativa o modo retro no backend (source vira 'user_retroactive'). Exige
+   * `confirmedHonesty: true` quando a data é anterior a hoje.
+   */
+  performedAt?: string;
+  confirmedHonesty?: boolean;
+  retroactiveReason?: string;
 }
 
 export interface CreateWorkoutSessionResult {
   id: number;
   startedAt: string;
+  /** Data real do treino (= startedAt no retro). */
+  performedAt?: string;
+  isRetroactive?: boolean;
+  /** true quando o registro contou para o streak (hoje ou D-1). */
+  countedForStreak?: boolean;
   setCount: number;
-  /** Preenchidos só quando awardGamification=true; senão null. */
+  /** Preenchidos só quando awardGamification=true e contou streak; senão null. */
   streak: number | null;
   xp: number | null;
 }
@@ -74,7 +87,7 @@ export async function getWorkoutStats(): Promise<WorkoutStats | null> {
 }
 
 export type WorkoutSessionStatus = "started" | "completed" | "partial" | "abandoned";
-export type WorkoutSessionSource = "personal" | "suggested" | "academy" | "free";
+export type WorkoutSessionSource = "personal" | "suggested" | "academy" | "free" | "movement_lab" | "user_retroactive";
 export type ReadinessLevel = "green" | "yellow" | "red";
 
 export interface WorkoutSessionListItem {
@@ -88,6 +101,9 @@ export interface WorkoutSessionListItem {
   title: string | null;
   startedAt: string;
   endedAt: string | null;
+  /** Data real do treino (retro usa performed_at). Fallback = startedAt. */
+  performedAt: string;
+  isRetroactive: boolean;
   setsDone: number;
 }
 
@@ -127,6 +143,8 @@ function mapListItem(r: Record<string, unknown>): WorkoutSessionListItem {
     title: (r.title as string | null) ?? null,
     startedAt: String(r.started_at),
     endedAt: r.ended_at == null ? null : String(r.ended_at),
+    performedAt: String(r.performed_at ?? r.started_at),
+    isRetroactive: r.is_retroactive === true,
     setsDone: Number(r.sets_done ?? 0),
   };
 }
@@ -195,5 +213,40 @@ export async function createWorkoutSession(
   } catch (err) {
     Sentry.captureException(err, { tags: { feature: "workout_session", reason: "network" } });
     return null;
+  }
+}
+
+export type CreateSessionOutcome =
+  | { ok: true; data: CreateWorkoutSessionResult }
+  | { ok: false; errorCode: string; status: number };
+
+/**
+ * Variante do createWorkoutSession que PRESERVA o código de erro do backend —
+ * o registro retroativo (Spec 024) precisa distinguir janela excedida, limite de
+ * frequência (429) e feature desligada (403) para dar a mensagem certa ao aluno.
+ * A createWorkoutSession original (que devolve null) segue intacta para o fluxo ao vivo.
+ */
+export async function createWorkoutSessionWithError(
+  payload: CreateWorkoutSessionPayload,
+): Promise<CreateSessionOutcome> {
+  if (!getAccessToken()) return { ok: false, errorCode: "unauthenticated", status: 401 };
+  try {
+    const res = await authFetch(`${API_URL}/training/sessions`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await parseJson(res).catch(() => null);
+    if (!res.ok) {
+      // `code` (feature gate) tem precedência sobre `error` (que pode ser mensagem livre).
+      const errorCode = (data?.code as string) || (data?.error as string) || "request_failed";
+      return { ok: false, errorCode, status: res.status };
+    }
+    const result = (data?.data as CreateWorkoutSessionResult) ?? null;
+    if (!result) return { ok: false, errorCode: "empty_response", status: res.status };
+    return { ok: true, data: result };
+  } catch (err) {
+    Sentry.captureException(err, { tags: { feature: "retro_workout", reason: "network" } });
+    return { ok: false, errorCode: "network_error", status: 0 };
   }
 }

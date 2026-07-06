@@ -20,6 +20,7 @@ import UserMessagesPage from "./user/UserMessagesPage";
 import UserProfilePage from "./user/UserProfilePage";
 import MetabolicStatePage from "./user/MetabolicStatePage";
 import MovementLabPage from "./user/MovementLabPage";
+import RetroWorkoutPage from "./user/RetroWorkoutPage";
 import MyWorkoutPlansPage from "./user/MyWorkoutPlansPage";
 
 // ✅ ONBOARDING
@@ -162,6 +163,10 @@ export default function UserApp() {
   // Falha aberta enquanto as flags não resolveram (planName null = pré-fetch ou fetch
   // falhou) para não rebater visitas por URL direta/bookmark antes do /me/features chegar.
   const allowMovementLabRoute = canMovementLab || loading || planName === null;
+  // Registro retroativo de treino (Spec 024): kill-switch por flag; mesmo padrão
+  // fail-open enquanto as flags carregam para não piscar o "sem acesso".
+  const canRetroWorkout = hasFeature("retro_workout_enabled");
+  const allowRetroWorkoutRoute = canRetroWorkout || loading || planName === null;
   const canSuggestedTraining = hasFeature("suggested_training");
   const canWorkouts = hasFeature("workouts");
   const canHomeWorkouts = hasFeature("home_workouts");
@@ -296,6 +301,14 @@ export default function UserApp() {
                     <RequireClearance>
                       <MovementLabPage />
                     </RequireClearance>
+                  </LimitedUserOnly>
+                }
+              />
+              <Route
+                path="registrar-treino-anterior"
+                element={
+                  <LimitedUserOnly allowed={allowRetroWorkoutRoute}>
+                    <RetroWorkoutPage />
                   </LimitedUserOnly>
                 }
               />

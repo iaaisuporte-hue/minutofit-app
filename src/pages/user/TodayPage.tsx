@@ -977,6 +977,25 @@ export default function TodayPage() {
                       <ActionButton onClick={handleQuickCheckin} fullWidth>
                         Registrar como feito
                       </ActionButton>
+
+                      {hasFeature("retro_workout_enabled") && (
+                        <button
+                          type="button"
+                          onClick={() => navigate("/app/user/registrar-treino-anterior")}
+                          style={{
+                            background: "none",
+                            border: "none",
+                            padding: 0,
+                            color: SURFACE.muted,
+                            fontSize: 13,
+                            cursor: "pointer",
+                            textDecoration: "underline",
+                            justifySelf: "center",
+                          }}
+                        >
+                          Foi outro dia? Registrar treino anterior
+                        </button>
+                      )}
                     </div>
                   </motion.div>
                 )}
