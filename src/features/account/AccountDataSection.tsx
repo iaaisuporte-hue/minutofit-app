@@ -85,6 +85,15 @@ export function AccountDataSection({ onDeleted }: { onDeleted: () => void }) {
         Excluir minha conta
       </button>
 
+      <div style={{ fontSize: "var(--text-xs)", color: COLORS.mutedSoft, display: "flex", gap: 12, flexWrap: "wrap" }}>
+        <a href="https://www.s2core.com.br/privacidade" target="_blank" rel="noopener noreferrer" style={{ color: COLORS.muted }}>
+          Política de Privacidade
+        </a>
+        <a href="https://www.s2core.com.br/termos" target="_blank" rel="noopener noreferrer" style={{ color: COLORS.muted }}>
+          Termos de Uso
+        </a>
+      </div>
+
       {showDelete && (
         <div
           role="dialog"
