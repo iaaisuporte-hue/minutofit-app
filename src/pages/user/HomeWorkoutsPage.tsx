@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { motion, useReducedMotion, useScroll, useTransform } from "framer-motion";
 import { Play } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { handleExternal } from "../../lib/externalLink";
 import InteractiveSurfaceCard from "../../components/InteractiveSurfaceCard";
 import { useIsMobile } from "../../hooks/useIsMobile";
 import {
@@ -133,6 +134,7 @@ function ExtraYoutubeModal({
               href={video.url}
               target="_blank"
               rel="noopener noreferrer"
+              onClick={(e) => handleExternal(e, video.url)}
               whileHover={shouldReduceMotion ? undefined : subtleHoverScale}
               whileTap={shouldReduceMotion ? undefined : subtleTapScale}
               style={{

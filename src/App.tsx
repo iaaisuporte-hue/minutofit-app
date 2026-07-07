@@ -19,12 +19,14 @@ import DirectInviteAcceptPage from "./pages/DirectInviteAcceptPage";
 import CookieConsentBanner from "./components/CookieConsentBanner";
 import PrivacyPolicyPage from "./pages/PrivacyPolicyPage";
 import WaitlistPage from "./pages/WaitlistPage";
+import { NativeAppBridge } from "./lib/NativeAppBridge";
 
 export default function App() {
   return (
     <ToastProvider>
     <AuthProvider>
       <FeatureFlagsProvider>
+        <NativeAppBridge />
         <CookieConsentBanner />
         <Routes>
           <Route path="/privacidade" element={<PrivacyPolicyPage />} />

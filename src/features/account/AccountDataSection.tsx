@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { COLORS } from "../../styles/colors";
 import { exportMyData, deleteMyAccount } from "../../services/accountApi";
+import { handleExternal } from "../../lib/externalLink";
 
 /**
  * Seção "Seus dados e conta" (LGPD + requisito de loja Apple 5.1.1v / Google).
@@ -86,10 +87,10 @@ export function AccountDataSection({ onDeleted }: { onDeleted: () => void }) {
       </button>
 
       <div style={{ fontSize: "var(--text-xs)", color: COLORS.mutedSoft, display: "flex", gap: 12, flexWrap: "wrap" }}>
-        <a href="https://www.s2core.com.br/privacidade" target="_blank" rel="noopener noreferrer" style={{ color: COLORS.muted }}>
+        <a href="https://www.s2core.com.br/privacidade" target="_blank" rel="noopener noreferrer" onClick={(e) => handleExternal(e, "https://www.s2core.com.br/privacidade")} style={{ color: COLORS.muted }}>
           Política de Privacidade
         </a>
-        <a href="https://www.s2core.com.br/termos" target="_blank" rel="noopener noreferrer" style={{ color: COLORS.muted }}>
+        <a href="https://www.s2core.com.br/termos" target="_blank" rel="noopener noreferrer" onClick={(e) => handleExternal(e, "https://www.s2core.com.br/termos")} style={{ color: COLORS.muted }}>
           Termos de Uso
         </a>
       </div>

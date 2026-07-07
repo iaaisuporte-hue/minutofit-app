@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { fetchMyWorkoutPlans, abandonMyWorkoutPlan, type UserWorkoutPlan, type UserWorkoutPlanDay, type UserWorkoutPlanItem } from "../../services/userWorkoutPlansApi";
 import { getExercisesBatch, type Exercise } from "../../services/exercisesApi";
+import { handleExternal } from "../../lib/externalLink";
 import { COLORS } from "../../styles/colors";
 import { EmptyState } from "../../components/EmptyState";
 import { TechniqueCard } from "../../features/training/techniques/TechniqueCard";
@@ -380,6 +381,7 @@ function PlanDayExerciseList({ day, planId }: PlanDayExerciseListProps) {
                     href={primaryMedia.url}
                     target="_blank"
                     rel="noopener noreferrer"
+                    onClick={(e) => handleExternal(e, primaryMedia.url)}
                     style={{ color: COLORS.primary, fontSize: 12, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4 }}
                   >
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">

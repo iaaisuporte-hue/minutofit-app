@@ -30,6 +30,8 @@
 .main {
   min-width: 0;
   padding: 28px var(--space-6);
+  /* Área segura do topo (notch/status bar) no app empacotado e PWA; 0 no desktop. */
+  padding-top: max(28px, env(safe-area-inset-top, 0px));
   background: var(--color-bg-main);
 }
 

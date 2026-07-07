@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom"
 import { addWorkoutHistoryEntry, wasMuscleGroupTrainedYesterday, type MuscleGroup } from "./workoutHistory";
 import { getStreak, registerDailyCheckin } from "./gamification";
 import { persistGamificationCheckin } from "../../services/gamificationApi";
+import { handleExternal } from "../../lib/externalLink";
 import { createWorkoutSession } from "../../services/workoutSessionApi";
 import { homeWorkoutCatalog, type HomeWorkoutAccessibility } from "./homeWorkoutCatalog";
 import { useNeonTheme } from "../../theme/corefitNeonTheme";
@@ -603,6 +604,7 @@ export default function WorkoutPlayerPage() {
               href={currentYoutubeUrl}
               target="_blank"
               rel="noreferrer"
+              onClick={(e) => handleExternal(e, currentYoutubeUrl)}
               aria-label={`Abrir ${current.title} no YouTube em nova aba`}
               style={{
                 padding: "10px 14px",
