@@ -16,7 +16,7 @@ const FIELD_STYLE: React.CSSProperties = {
   boxSizing: "border-box",
   fontFamily: "inherit",
   color: "#1E293B",
-  background: "#FFFFFF",
+  background: "var(--color-surface)",
 };
 
 const LABEL_STYLE: React.CSSProperties = {
@@ -120,7 +120,7 @@ export default function DirectInviteAcceptPage() {
 
   const pageStyle: React.CSSProperties = {
     minHeight: "100dvh",
-    background: "#F8FAFC",
+    background: "var(--color-bg-main)",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
@@ -128,7 +128,7 @@ export default function DirectInviteAcceptPage() {
   };
 
   const cardStyle: React.CSSProperties = {
-    background: "#FFFFFF",
+    background: "var(--color-surface)",
     borderRadius: 20,
     padding: 36,
     maxWidth: 440,
@@ -315,7 +315,7 @@ export default function DirectInviteAcceptPage() {
               <input
                 value={existingAccountEmail}
                 readOnly
-                style={{ ...FIELD_STYLE, background: "#F8FAFC", color: "#64748B" }}
+                style={{ ...FIELD_STYLE, background: "var(--color-bg-main)", color: "#64748B" }}
               />
             </div>
           )}

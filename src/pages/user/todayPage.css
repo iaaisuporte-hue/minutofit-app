@@ -11,7 +11,7 @@
 .today-dashboard {
   display: grid;
   gap: 14px;
-  color: #0f172a;
+  color: var(--color-text);
   min-width: 0;
   width: 100%;
 }
@@ -27,7 +27,7 @@
 .today-card,
 .today-hero,
 .today-compact-stat {
-  background: #ffffff;
+  background: var(--color-surface);
   border: 1px solid #e2e8f0;
   box-shadow: 0 10px 32px rgba(15, 23, 42, 0.06);
 }
@@ -88,7 +88,7 @@
   font-weight: 700;
   letter-spacing: -0.03em;
   line-height: 1.1;
-  color: #0f172a;
+  color: var(--color-text);
 }
 
 .today-hero-description,
@@ -143,7 +143,7 @@
 }
 
 .today-tag {
-  background: #f8fafc;
+  background: var(--color-bg-main);
   padding: 5px 10px;
   font-weight: 600;
 }
@@ -162,7 +162,7 @@
 
 .today-progress-value {
   font-size: 12px;
-  color: #0f172a;
+  color: var(--color-text);
   font-weight: 700;
 }
 
@@ -176,7 +176,7 @@
 .today-progress-fill {
   height: 100%;
   border-radius: 999px;
-  background: linear-gradient(90deg, #7B9919, #06b6d4);
+  background: var(--gradient-primary);
 }
 
 .today-footnote,
@@ -205,7 +205,7 @@
 .today-compact-stat-value {
   font-size: 24px;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--color-text);
   line-height: 1;
 }
 
@@ -241,13 +241,13 @@
 }
 
 .today-quick-action-card-highlight {
-  background: linear-gradient(140deg, rgba(6, 182, 212, 0.08), rgba(123, 153, 25, 0.08));
+  background: linear-gradient(140deg, rgba(123, 153, 25, 0.08), rgba(123, 153, 25, 0.08));
 }
 
 .today-quick-action-title {
   font-size: 16px;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--color-text);
 }
 
 .today-forecast-grid {
@@ -291,7 +291,7 @@
 .today-forecast-value {
   font-size: 30px;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--color-text);
 }
 
 .today-forecast-delta {
@@ -308,14 +308,14 @@
 }
 
 .today-impact-preview-active {
-  background: rgba(6, 182, 212, 0.06);
+  background: rgba(123, 153, 25, 0.06);
   transform: translateY(-1px);
 }
 
 .today-impact-title {
   font-size: 16px;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--color-text);
 }
 
 .today-group-grid {
@@ -367,7 +367,7 @@
 }
 
 .today-last-workout {
-  background: #f8fafc;
+  background: var(--color-bg-main);
   padding: 12px 14px;
   font-size: 13px;
 }
@@ -383,7 +383,7 @@
 }
 
 .today-workout-spotlight {
-  box-shadow: 0 16px 36px rgba(6, 182, 212, 0.08);
+  box-shadow: 0 16px 36px rgba(123, 153, 25, 0.08);
 }
 
 .today-workout-type-pill {
@@ -391,14 +391,14 @@
   align-items: center;
   border-radius: 999px;
   padding: 6px 10px;
-  background: rgba(6, 182, 212, 0.08);
-  color: #0f172a;
+  background: rgba(123, 153, 25, 0.08);
+  color: var(--color-text);
   font-size: 12px;
   font-weight: 700;
 }
 
 .today-workout-type-pill-subtle {
-  background: #f8fafc;
+  background: var(--color-bg-main);
   color: #64748b;
 }
 
@@ -420,7 +420,7 @@
 .today-workout-metric strong,
 .today-workout-alt-title {
   font-size: 16px;
-  color: #0f172a;
+  color: var(--color-text);
 }
 
 .today-workout-metric-label {
@@ -449,7 +449,7 @@
   height: 8px;
   margin-top: 6px;
   border-radius: 999px;
-  background: linear-gradient(135deg, #7B9919, #06b6d4);
+  background: var(--gradient-primary);
   flex: 0 0 auto;
 }
 

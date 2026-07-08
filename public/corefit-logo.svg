@@ -1,11 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 264 56" role="img" aria-label="S2Core">
-  <text x="132" y="40" text-anchor="middle"
-    font-family="system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif"
-    font-size="36" font-weight="900" letter-spacing="-0.01em">
-    <tspan fill="#0f172a">S2</tspan><tspan fill="#22C55E">CORE</tspan>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 264 56" role="img" aria-label="s2core — more than training">
+  <text x="132" y="37" text-anchor="middle"
+    font-family="'Manrope','Segoe UI',system-ui,-apple-system,Arial,sans-serif"
+    font-size="34" font-weight="800" letter-spacing="-0.5">
+    <tspan fill="#0A0A0A">s</tspan><tspan fill="#7B9919">2</tspan><tspan fill="#0A0A0A">core</tspan>
   </text>
-  <text x="133" y="53" text-anchor="middle"
-    font-family="system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif"
-    font-size="8.5" font-weight="600" fill="rgba(15,23,42,0.55)"
-    letter-spacing="1.8">MORE THAN TRAINING.</text>
+  <text x="133" y="51" text-anchor="middle"
+    font-family="'Manrope','Segoe UI',system-ui,-apple-system,Arial,sans-serif"
+    font-size="7.5" font-weight="600" fill="#7B9919"
+    letter-spacing="3">MORE THAN TRAINING</text>
 </svg>

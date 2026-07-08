@@ -53,12 +53,12 @@ const overlay: CSSProperties = {
 };
 const sheet: CSSProperties = {
   width: "min(560px, 100%)", background: "var(--color-surface, #fff)", borderRadius: 18,
-  border: "1px solid var(--color-border, #E5E7EB)", boxShadow: "var(--shadow-lg)",
+  border: "1px solid var(--color-border, var(--color-border))", boxShadow: "var(--shadow-lg)",
   padding: 18, display: "grid", gap: 12,
 };
 const rowStyle: CSSProperties = {
   display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10,
-  padding: "10px 12px", borderRadius: 10, border: "1px solid var(--color-border, #E5E7EB)",
+  padding: "10px 12px", borderRadius: 10, border: "1px solid var(--color-border, var(--color-border))",
 };
 const inputStyle: CSSProperties = {
   width: 60, padding: "8px 10px", borderRadius: 8, border: "1px solid var(--color-border-strong, #D1D5DB)",
@@ -70,14 +70,14 @@ const primaryBtn: CSSProperties = {
   fontWeight: 700, fontSize: 15, cursor: "pointer", minHeight: 44,
 };
 const ghostBtn: CSSProperties = {
-  padding: "12px 16px", borderRadius: 12, border: "1px solid var(--color-border, #E5E7EB)",
+  padding: "12px 16px", borderRadius: 12, border: "1px solid var(--color-border, var(--color-border))",
   background: "transparent", color: "var(--color-text, #0A130D)", fontWeight: 600, cursor: "pointer", minHeight: 44,
 };
 const pill = (active: boolean): CSSProperties => ({
   flex: 1, padding: "7px 6px", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer",
-  border: `1px solid ${active ? "var(--color-primary, #5E7412)" : "var(--color-border, #E5E7EB)"}`,
+  border: `1px solid ${active ? "var(--color-primary, #5E7412)" : "var(--color-border, var(--color-border))"}`,
   background: active ? "var(--color-primary-soft, rgba(123,153,25,.12))" : "transparent",
-  color: active ? "var(--color-text, #0A130D)" : "var(--color-text-muted, #6B7280)",
+  color: active ? "var(--color-text, #0A130D)" : "var(--color-text-muted, var(--color-text-muted))",
 });
 
 interface Props {
@@ -132,7 +132,7 @@ export function WorkoutLogSheet({ items, onConfirm, onClose }: Props) {
       <div style={sheet} onClick={(e) => e.stopPropagation()}>
         <div>
           <div style={{ fontWeight: 700, fontSize: 18, color: "var(--color-text, #0A130D)" }}>Como foi o treino?</div>
-          <div style={{ fontSize: 13, color: "var(--color-text-muted, #6B7280)" }}>
+          <div style={{ fontSize: 13, color: "var(--color-text-muted, var(--color-text-muted))" }}>
             Carga é opcional. Marque "pulei" se não fez algum exercício.
           </div>
         </div>
@@ -146,7 +146,7 @@ export function WorkoutLogSheet({ items, onConfirm, onClose }: Props) {
                   <div style={{ fontWeight: 600, fontSize: 14, color: "var(--color-text, #0A130D)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                     {it.name}
                   </div>
-                  <div style={{ fontSize: 12, color: "var(--color-text-muted, #6B7280)" }}>{it.sets} × {it.reps}</div>
+                  <div style={{ fontSize: 12, color: "var(--color-text-muted, var(--color-text-muted))" }}>{it.sets} × {it.reps}</div>
                 </div>
                 {!isSkipped && (
                   <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
@@ -157,7 +157,7 @@ export function WorkoutLogSheet({ items, onConfirm, onClose }: Props) {
                       style={inputStyle}
                       aria-label={`Carga em kg para ${it.name}`}
                     />
-                    <span style={{ fontSize: 12, color: "var(--color-text-muted, #6B7280)" }}>kg</span>
+                    <span style={{ fontSize: 12, color: "var(--color-text-muted, var(--color-text-muted))" }}>kg</span>
                   </div>
                 )}
                 <button
@@ -165,9 +165,9 @@ export function WorkoutLogSheet({ items, onConfirm, onClose }: Props) {
                   onClick={() => setSkipped((p) => ({ ...p, [i]: !p[i] }))}
                   style={{
                     flexShrink: 0, padding: "5px 10px", borderRadius: 999, fontSize: 12, fontWeight: 600,
-                    cursor: "pointer", border: `1px solid var(--color-border, #E5E7EB)`,
+                    cursor: "pointer", border: `1px solid var(--color-border, var(--color-border))`,
                     background: isSkipped ? "var(--color-warn, #D97706)" : "transparent",
-                    color: isSkipped ? "#fff" : "var(--color-text-muted, #6B7280)",
+                    color: isSkipped ? "#fff" : "var(--color-text-muted, var(--color-text-muted))",
                   }}
                 >
                   {isSkipped ? "Pulei" : "Feito"}
@@ -179,7 +179,7 @@ export function WorkoutLogSheet({ items, onConfirm, onClose }: Props) {
 
         {/* Esforço da sessão (RPE) — opcional */}
         <div style={{ display: "grid", gap: 6 }}>
-          <div style={{ fontSize: 12, fontWeight: 600, color: "var(--color-text-muted, #6B7280)" }}>Como foi o esforço? (opcional)</div>
+          <div style={{ fontSize: 12, fontWeight: 600, color: "var(--color-text-muted, var(--color-text-muted))" }}>Como foi o esforço? (opcional)</div>
           <div style={{ display: "flex", gap: 6 }}>
             {RPE_OPTIONS.map((o) => (
               <button key={o.rpe} type="button" onClick={() => setSessionRpe(sessionRpe === o.rpe ? null : o.rpe)} style={pill(sessionRpe === o.rpe)}>
@@ -195,7 +195,7 @@ export function WorkoutLogSheet({ items, onConfirm, onClose }: Props) {
           onClick={() => setDiscomfort((v) => !v)}
           style={{
             display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 10,
-            border: `1px solid ${discomfort ? "var(--color-warn, #D97706)" : "var(--color-border, #E5E7EB)"}`,
+            border: `1px solid ${discomfort ? "var(--color-warn, #D97706)" : "var(--color-border, var(--color-border))"}`,
             background: discomfort ? "rgba(245,158,11,.10)" : "transparent", cursor: "pointer", textAlign: "left",
             color: "var(--color-text, #0A130D)", fontSize: 13, fontWeight: 600,
           }}

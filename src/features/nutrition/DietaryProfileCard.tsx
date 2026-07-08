@@ -143,7 +143,7 @@ export default function DietaryProfileCard() {
                         background:
                           item.severity === "severe"
                             ? "var(--color-danger-soft, rgba(220,38,38,.08))"
-                            : "var(--color-surface-muted, #F3F4F6)",
+                            : "var(--color-surface-muted, var(--color-surface-subtle))",
                         border: `1px solid ${item.severity === "severe" ? "var(--color-danger)" : "var(--color-border)"}`,
                         borderRadius: 999,
                         padding: "3px 9px",

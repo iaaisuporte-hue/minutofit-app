@@ -32,7 +32,7 @@ export default function ParqSigningPage() {
         flexDirection: 'column',
         alignItems: 'center',
         padding: '24px 16px 48px',
-        background: 'var(--color-bg, #f9fafb)',
+        background: 'var(--color-bg, var(--color-surface-raised))',
       }}
     >
       <div style={{ maxWidth: 680, width: '100%' }}>
@@ -40,7 +40,7 @@ export default function ParqSigningPage() {
           <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0 }}>
             Triagem de saúde e PAR-Q
           </h1>
-          <p style={{ marginTop: 8, color: 'var(--color-text-muted, #6b7280)', fontSize: 14 }}>
+          <p style={{ marginTop: 8, color: 'var(--color-text-muted, var(--color-text-muted))', fontSize: 14 }}>
             Para usar os recursos de treino, preencha a triagem de saúde e assine o PAR-Q abaixo.
             Isso garante sua segurança e é exigido por boas práticas de atividade física.
           </p>

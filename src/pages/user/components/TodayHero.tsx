@@ -22,7 +22,7 @@ export function TodayHero({ primary, readingLine, onAction }: Props) {
         padding: 20,
         borderRadius: 18,
         background: "linear-gradient(135deg, rgba(15,61,46,.10), rgba(15,22,18,.03))",
-        border: "1px solid var(--color-border, #E5E7EB)",
+        border: "1px solid var(--color-border, var(--color-border))",
         boxShadow: "var(--shadow-lg)",
       }}
     >
@@ -34,7 +34,7 @@ export function TodayHero({ primary, readingLine, onAction }: Props) {
               fontWeight: 600,
               letterSpacing: ".03em",
               textTransform: "uppercase",
-              color: "var(--color-text-muted, #6B7280)",
+              color: "var(--color-text-muted, var(--color-text-muted))",
             }}
           >
             {readingLine}
@@ -43,7 +43,7 @@ export function TodayHero({ primary, readingLine, onAction }: Props) {
         <h1 style={{ fontSize: 22, fontWeight: 700, lineHeight: 1.2, margin: 0, color: "var(--color-text, #0A130D)" }}>
           {primary.title}
         </h1>
-        <p style={{ fontSize: 14, lineHeight: 1.5, margin: 0, color: "var(--color-text-muted, #6B7280)" }}>
+        <p style={{ fontSize: 14, lineHeight: 1.5, margin: 0, color: "var(--color-text-muted, var(--color-text-muted))" }}>
           {primary.subtitle}
         </p>
       </div>

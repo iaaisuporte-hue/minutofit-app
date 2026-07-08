@@ -523,7 +523,7 @@ export default function WorkoutBuilderPage() {
     padding: "7px 10px",
     borderRadius: 8,
     border: `1px solid ${WB.border}`,
-    background: "#FFFFFF",
+    background: "var(--color-surface)",
     color: WB.text,
     outline: "none",
     fontSize: 13,
@@ -770,7 +770,7 @@ export default function WorkoutBuilderPage() {
                         padding: "9px 11px",
                         borderRadius: 9,
                         border: `1px solid ${WB.border}`,
-                        background: "#FFFFFF",
+                        background: "var(--color-surface)",
                         opacity: already ? 0.55 : 1,
                       }}
                     >
@@ -1113,7 +1113,7 @@ export default function WorkoutBuilderPage() {
                       style={{
                         border: `1px solid ${dragOverIdx === idx ? WB.primaryBorder : WB.border}`,
                         borderRadius: 9,
-                        background: "#FFFFFF",
+                        background: "var(--color-surface)",
                         padding: "10px 11px",
                         display: "grid",
                         gap: 7,

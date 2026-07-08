@@ -22,7 +22,7 @@ const ALERT_STYLE: Record<AlertLevel, { bg: string; border: string; color: strin
   strong:     { bg: "var(--color-danger-soft, rgba(220,38,38,.08))", border: "var(--color-danger)", color: "var(--color-danger)" },
   moderate:   { bg: "var(--color-warn-soft)", border: "var(--color-warn-border)", color: "var(--color-warn-text)" },
   info:       { bg: "var(--color-info-soft)", border: "var(--color-info-border)", color: "var(--color-info-text)" },
-  suggestion: { bg: "var(--color-surface-muted, #F3F4F6)", border: "var(--color-border)", color: "var(--color-text-muted)" },
+  suggestion: { bg: "var(--color-surface-muted, var(--color-surface-subtle))", border: "var(--color-border)", color: "var(--color-text-muted)" },
 };
 
 const ALERT_KIND_LABEL: Record<DietAlert["kind"], string> = {

@@ -331,7 +331,7 @@ export default function WorkoutPlayerPage() {
             borderRadius: 14,
             border: "1px solid rgba(255,122,122,.35)",
             background: "rgba(255,122,122,.08)",
-            color: "#1F2937",
+            color: "var(--color-text)",
             fontWeight: 700,
           }}
         >
@@ -358,7 +358,7 @@ export default function WorkoutPlayerPage() {
       </div>
 
       {/* Progress bar */}
-      <div style={{ height: 8, background: "#F9FAFB", borderRadius: 999, overflow: "hidden" }}>
+      <div style={{ height: 8, background: "var(--color-surface-raised)", borderRadius: 999, overflow: "hidden" }}>
         <div
           style={{
             height: "100%",
@@ -546,7 +546,7 @@ export default function WorkoutPlayerPage() {
                     padding: "10px 14px",
                     borderRadius: 12,
                     border: `1px solid ${neon.stroke}`,
-                    background: "#F9FAFB",
+                    background: "var(--color-surface-raised)",
                     textDecoration: "none",
                     fontWeight: 600,
                     color: neon.text,
@@ -638,7 +638,7 @@ export default function WorkoutPlayerPage() {
             gap: 10,
           }}
         >
-          <div style={{ fontWeight: 600, color: "#1F2937" }}>Recursos de acessibilidade</div>
+          <div style={{ fontWeight: 600, color: "var(--color-text)" }}>Recursos de acessibilidade</div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             <span
               style={{
@@ -647,8 +647,8 @@ export default function WorkoutPlayerPage() {
                 fontSize: 12,
                 fontWeight: 600,
                 border: "1px solid rgba(255,255,255,.22)",
-                color: "#1F2937",
-                background: accessibility.visual ? neon.primarySoft : "#F9FAFB",
+                color: "var(--color-text)",
+                background: accessibility.visual ? neon.primarySoft : "var(--color-surface-raised)",
               }}
             >
               Visual: {accessibility.visual ? "suportado" : "parcial"}
@@ -660,8 +660,8 @@ export default function WorkoutPlayerPage() {
                 fontSize: 12,
                 fontWeight: 600,
                 border: "1px solid rgba(255,255,255,.22)",
-                color: "#1F2937",
-                background: accessibility.auditory ? neon.primarySoft : "#F9FAFB",
+                color: "var(--color-text)",
+                background: accessibility.auditory ? neon.primarySoft : "var(--color-surface-raised)",
               }}
             >
               Auditiva: {accessibility.auditory ? "suportado" : "parcial"}
@@ -673,15 +673,15 @@ export default function WorkoutPlayerPage() {
                 fontSize: 12,
                 fontWeight: 600,
                 border: "1px solid rgba(255,255,255,.22)",
-                color: "#1F2937",
-                background: accessibility.motor ? neon.primarySoft : "#F9FAFB",
+                color: "var(--color-text)",
+                background: accessibility.motor ? neon.primarySoft : "var(--color-surface-raised)",
               }}
             >
               Motora: {accessibility.motor ? "suportado" : "parcial"}
             </span>
           </div>
           {accessibility.notes.length > 0 ? (
-            <ul style={{ margin: 0, paddingLeft: 20, color: "#1F2937", lineHeight: 1.4 }}>
+            <ul style={{ margin: 0, paddingLeft: 20, color: "var(--color-text)", lineHeight: 1.4 }}>
               {accessibility.notes.map((note) => (
                 <li key={note}>{note}</li>
               ))}

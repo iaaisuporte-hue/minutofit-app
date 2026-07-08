@@ -937,7 +937,7 @@ export default function NutritionPlanViewPage() {
           marginTop: 16,
           padding: "10px 12px",
           borderRadius: 10,
-          background: "var(--color-bg-main, #f9fafb)",
+          background: "var(--color-bg-main, var(--color-surface-raised))",
           border: "1px solid var(--color-border)",
           fontSize: 11.5,
           color: COLORS.muted,

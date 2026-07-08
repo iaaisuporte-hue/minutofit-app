@@ -66,7 +66,7 @@ const ERROR_COPY: Record<string, string> = {
 
 const CARD: React.CSSProperties = {
   background: "var(--color-surface, #fff)",
-  border: "1px solid var(--color-border, #E5E7EB)",
+  border: "1px solid var(--color-border, var(--color-border))",
   borderRadius: "var(--radius-lg, 16px)",
   padding: "var(--space-4, 20px)",
   display: "grid",
@@ -93,9 +93,9 @@ function Pill({
       style={{
         padding: "8px 14px",
         borderRadius: "var(--radius-full, 999px)",
-        border: `1px solid ${active ? "var(--color-primary, #2563EB)" : "var(--color-border, #E5E7EB)"}`,
+        border: `1px solid ${active ? "var(--color-primary, #2563EB)" : "var(--color-border, var(--color-border))"}`,
         background: active ? "var(--color-primary-soft, #EFF6FF)" : "transparent",
-        color: active ? "var(--color-primary, #2563EB)" : "var(--color-text, #111827)",
+        color: active ? "var(--color-primary, #2563EB)" : "var(--color-text, var(--gray-900))",
         fontWeight: 600,
         fontSize: 14,
         cursor: disabled ? "not-allowed" : "pointer",
@@ -242,11 +242,11 @@ export default function RetroWorkoutPage() {
         <button
           type="button"
           onClick={() => navigate(-1)}
-          style={{ background: "none", border: "none", padding: 0, color: "var(--color-text-muted, #6B7280)", cursor: "pointer", justifySelf: "start", fontSize: 14 }}
+          style={{ background: "none", border: "none", padding: 0, color: "var(--color-text-muted, var(--color-text-muted))", cursor: "pointer", justifySelf: "start", fontSize: 14 }}
         >
           ← Voltar
         </button>
-        <h1 style={{ fontSize: 22, fontWeight: 800, color: "var(--color-text, #111827)", margin: 0 }}>
+        <h1 style={{ fontSize: 22, fontWeight: 800, color: "var(--color-text, var(--gray-900))", margin: 0 }}>
           Registrar treino anterior
         </h1>
         <p style={{ color: "var(--color-text-soft, #4B5563)", margin: 0, fontSize: 15 }}>
@@ -257,7 +257,7 @@ export default function RetroWorkoutPage() {
       {/* PASSO 1 — DATA */}
       {step === "date" && (
         <div style={CARD}>
-          <label style={{ fontWeight: 700, color: "var(--color-text, #111827)" }}>Quando foi o treino?</label>
+          <label style={{ fontWeight: 700, color: "var(--color-text, var(--gray-900))" }}>Quando foi o treino?</label>
           <input
             type="date"
             value={performedDate}
@@ -270,13 +270,13 @@ export default function RetroWorkoutPage() {
             style={{
               padding: "10px 12px",
               borderRadius: "var(--radius-md, 10px)",
-              border: "1px solid var(--color-border, #E5E7EB)",
+              border: "1px solid var(--color-border, var(--color-border))",
               fontSize: 16,
-              color: "var(--color-text, #111827)",
+              color: "var(--color-text, var(--gray-900))",
               background: "var(--color-surface, #fff)",
             }}
           />
-          <p style={{ margin: 0, fontSize: 14, color: "var(--color-text-muted, #6B7280)" }}>
+          <p style={{ margin: 0, fontSize: 14, color: "var(--color-text-muted, var(--color-text-muted))" }}>
             {humanDate(performedDate)} · {daysAgo === 1 ? "ontem" : `${daysAgo} dias atrás`}
           </p>
           {!willCountStreak && (
@@ -298,7 +298,7 @@ export default function RetroWorkoutPage() {
       {/* PASSO 2 — QUAL TREINO */}
       {step === "workout" && (
         <div style={CARD}>
-          <label style={{ fontWeight: 700, color: "var(--color-text, #111827)" }}>Qual treino você fez?</label>
+          <label style={{ fontWeight: 700, color: "var(--color-text, var(--gray-900))" }}>Qual treino você fez?</label>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             <Pill active={tab === "plan"} onClick={() => setTab("plan")}>Ficha do personal</Pill>
             <Pill active={tab === "suggested"} onClick={() => setTab("suggested")}>Treino sugerido</Pill>
@@ -314,7 +314,7 @@ export default function RetroWorkoutPage() {
               <div style={{ display: "grid", gap: 10 }}>
                 {plans.map((p) => (
                   <div key={p.id} style={{ display: "grid", gap: 6 }}>
-                    <strong style={{ fontSize: 14, color: "var(--color-text, #111827)" }}>{p.title}</strong>
+                    <strong style={{ fontSize: 14, color: "var(--color-text, var(--gray-900))" }}>{p.title}</strong>
                     <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                       {p.days.map((d) => (
                         <Pill
@@ -359,7 +359,7 @@ export default function RetroWorkoutPage() {
       {step === "summary" && (
         <div style={{ display: "grid", gap: "var(--space-4, 20px)" }}>
           <div style={CARD}>
-            <label style={{ fontWeight: 700, color: "var(--color-text, #111827)" }}>Como foi o treino?</label>
+            <label style={{ fontWeight: 700, color: "var(--color-text, var(--gray-900))" }}>Como foi o treino?</label>
 
             <span style={mutedText}>Você completou o treino?</span>
             <div style={{ display: "flex", gap: 8 }}>
@@ -374,7 +374,7 @@ export default function RetroWorkoutPage() {
               ))}
             </div>
 
-            <label style={{ display: "flex", gap: 8, alignItems: "center", color: "var(--color-text, #111827)", fontSize: 14 }}>
+            <label style={{ display: "flex", gap: 8, alignItems: "center", color: "var(--color-text, var(--gray-900))", fontSize: 14 }}>
               <input type="checkbox" checked={hadDiscomfort} onChange={(e) => setHadDiscomfort(e.target.checked)} />
               Senti dor ou desconforto
             </label>
@@ -409,13 +409,13 @@ export default function RetroWorkoutPage() {
 
           {/* Mensagem de honestidade */}
           <div style={{ ...CARD, background: "var(--color-primary-soft, #EFF6FF)", border: "1px solid var(--color-primary, #2563EB)" }}>
-            <strong style={{ color: "var(--color-text, #111827)", fontSize: 16 }}>Você realmente realizou este treino?</strong>
+            <strong style={{ color: "var(--color-text, var(--gray-900))", fontSize: 16 }}>Você realmente realizou este treino?</strong>
             <p style={{ margin: 0, color: "var(--color-text-soft, #4B5563)", fontSize: 14, lineHeight: 1.5 }}>
               Seja honesto com você mesmo. O S2Core usa seus registros para acompanhar sua evolução, ajustar
               recomendações e projetar seus resultados. Registrar um treino que não aconteceu pode prejudicar sua
               própria jornada.
             </p>
-            <label style={{ display: "flex", gap: 10, alignItems: "flex-start", color: "var(--color-text, #111827)", fontSize: 15, fontWeight: 600, cursor: "pointer" }}>
+            <label style={{ display: "flex", gap: 10, alignItems: "flex-start", color: "var(--color-text, var(--gray-900))", fontSize: 15, fontWeight: 600, cursor: "pointer" }}>
               <input type="checkbox" checked={honesty} onChange={(e) => setHonesty(e.target.checked)} style={{ marginTop: 3 }} />
               Confirmo que realizei este treino de verdade.
             </label>
@@ -472,9 +472,9 @@ const primaryBtn: React.CSSProperties = {
 const secondaryBtn: React.CSSProperties = {
   padding: "12px 18px",
   borderRadius: "var(--radius-md, 10px)",
-  border: "1px solid var(--color-border, #E5E7EB)",
+  border: "1px solid var(--color-border, var(--color-border))",
   background: "transparent",
-  color: "var(--color-text, #111827)",
+  color: "var(--color-text, var(--gray-900))",
   fontWeight: 600,
   fontSize: 15,
   cursor: "pointer",
@@ -483,14 +483,14 @@ const secondaryBtn: React.CSSProperties = {
 const inputStyle: React.CSSProperties = {
   padding: "10px 12px",
   borderRadius: "var(--radius-md, 10px)",
-  border: "1px solid var(--color-border, #E5E7EB)",
+  border: "1px solid var(--color-border, var(--color-border))",
   fontSize: 15,
-  color: "var(--color-text, #111827)",
+  color: "var(--color-text, var(--gray-900))",
   background: "var(--color-surface, #fff)",
   width: "100%",
 };
 
 const mutedText: React.CSSProperties = {
   fontSize: 13,
-  color: "var(--color-text-muted, #6B7280)",
+  color: "var(--color-text-muted, var(--color-text-muted))",
 };

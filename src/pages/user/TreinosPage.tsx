@@ -59,9 +59,9 @@ function CardAction({
     width: "fit-content",
     padding: "9px 16px",
     borderRadius: 10,
-    border: locked ? "1px solid #E5E7EB" : "none",
+    border: locked ? "1px solid var(--color-border)" : "none",
     background: locked ? "#FFFFFF" : "#7B9919",
-    color: locked ? "#9CA3AF" : "#FFFFFF",
+    color: locked ? "var(--color-text-subtle)" : "#FFFFFF",
     fontWeight: 600,
     fontSize: 13,
     cursor: locked ? "not-allowed" : "pointer",
@@ -89,7 +89,7 @@ function HubCard({
   return (
     <div
       style={{
-        border: `1px solid ${card.recommended ? "rgba(123,153,25,0.3)" : "#E5E7EB"}`,
+        border: `1px solid ${card.recommended ? "rgba(123,153,25,0.3)" : "var(--color-border)"}`,
         borderRadius: 16,
         padding: 20,
         background: card.recommended ? "rgba(123,153,25,0.04)" : "#FFFFFF",
@@ -102,7 +102,7 @@ function HubCard({
       <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "flex-start" }}>
         <div style={{ display: "grid", gap: 6 }}>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
-            <span style={{ padding: "3px 10px", borderRadius: 999, border: "1px solid #E5E7EB", background: "#F9FAFB", fontSize: 12, fontWeight: 500, color: "#6B7280" }}>
+            <span style={{ padding: "3px 10px", borderRadius: 999, border: "1px solid var(--color-border)", background: "var(--color-surface-raised)", fontSize: 12, fontWeight: 500, color: "var(--color-text-muted)" }}>
               {card.badge}
             </span>
             {card.recommended && (
@@ -111,16 +111,16 @@ function HubCard({
               </span>
             )}
           </div>
-          <div style={{ fontSize: 18, fontWeight: 700, color: "#1F2937" }}>{card.title}</div>
-          <div style={{ color: "#6B7280", fontSize: 14, lineHeight: 1.5 }}>{card.subtitle}</div>
+          <div style={{ fontSize: 18, fontWeight: 700, color: "var(--color-text)" }}>{card.title}</div>
+          <div style={{ color: "var(--color-text-muted)", fontSize: 14, lineHeight: 1.5 }}>{card.subtitle}</div>
         </div>
 
         <span style={{
           borderRadius: 999,
           padding: "4px 10px",
-          border: `1px solid ${card.locked ? "rgba(245,158,11,0.3)" : "#E5E7EB"}`,
-          background: card.locked ? "rgba(245,158,11,0.08)" : "#F9FAFB",
-          color: card.locked ? "#B45309" : "#9CA3AF",
+          border: `1px solid ${card.locked ? "rgba(245,158,11,0.3)" : "var(--color-border)"}`,
+          background: card.locked ? "rgba(245,158,11,0.08)" : "var(--color-surface-raised)",
+          color: card.locked ? "#B45309" : "var(--color-text-subtle)",
           fontWeight: 500,
           fontSize: 12,
           whiteSpace: "nowrap",
@@ -129,7 +129,7 @@ function HubCard({
         </span>
       </div>
 
-      <div style={{ color: "#6B7280", fontSize: 14, lineHeight: 1.6 }}>{card.description}</div>
+      <div style={{ color: "var(--color-text-muted)", fontSize: 14, lineHeight: 1.6 }}>{card.description}</div>
 
       {card.locked && card.lockedText && (
         <div style={{
@@ -224,7 +224,7 @@ export default function TreinosPage() {
   }, [yesterdayGroups]);
 
   return (
-    <div style={{ display: "grid", gap: 20, color: "#1F2937" }}>
+    <div style={{ display: "grid", gap: 20, color: "var(--color-text)" }}>
       {/* Header */}
       <div>
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
@@ -234,9 +234,9 @@ export default function TreinosPage() {
             style={{
               padding: "8px 14px",
               borderRadius: 10,
-              border: "1px solid #E5E7EB",
-              background: "#FFFFFF",
-              color: "#6B7280",
+              border: "1px solid var(--color-border)",
+              background: "var(--color-surface)",
+              color: "var(--color-text-muted)",
               cursor: "pointer",
               fontWeight: 500,
               fontSize: 14,
@@ -245,15 +245,15 @@ export default function TreinosPage() {
           >
             ← Voltar
           </button>
-          <span style={{ padding: "4px 10px", borderRadius: 999, border: "1px solid #E5E7EB", background: "#F9FAFB", fontSize: 12, fontWeight: 500, color: "#6B7280" }}>
+          <span style={{ padding: "4px 10px", borderRadius: 999, border: "1px solid var(--color-border)", background: "var(--color-surface-raised)", fontSize: 12, fontWeight: 500, color: "var(--color-text-muted)" }}>
             Plano {PLAN_LABEL[currentPlan]}
           </span>
         </div>
 
-        <h1 style={{ fontSize: 24, fontWeight: 700, color: "#1F2937", margin: 0, letterSpacing: "-0.02em" }}>
+        <h1 style={{ fontSize: 24, fontWeight: 700, color: "var(--color-text)", margin: 0, letterSpacing: "-0.02em" }}>
           Hub de treino
         </h1>
-        <p style={{ color: "#6B7280", fontSize: 15, margin: "8px 0 0", lineHeight: 1.6, maxWidth: 680 }}>
+        <p style={{ color: "var(--color-text-muted)", fontSize: 15, margin: "8px 0 0", lineHeight: 1.6, maxWidth: 680 }}>
           Escolha o melhor formato para hoje. A IA decide a sessão, casa para execução rápida — academia e consultoria nos planos mais completos.
         </p>
       </div>
@@ -264,18 +264,18 @@ export default function TreinosPage() {
           <div style={{ fontSize: 11, color: "#5E7412", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>
             Melhor ponto de partida
           </div>
-          <div style={{ fontSize: 15, fontWeight: 600, color: "#1F2937" }}>Treino sugerido com IA</div>
-          <div style={{ color: "#6B7280", fontSize: 13, lineHeight: 1.5 }}>
+          <div style={{ fontSize: 15, fontWeight: 600, color: "var(--color-text)" }}>Treino sugerido com IA</div>
+          <div style={{ color: "var(--color-text-muted)", fontSize: 13, lineHeight: 1.5 }}>
             Monte o treino antes de abrir vídeos ou o tracker.
           </div>
         </div>
 
-        <div style={{ borderRadius: 14, padding: 16, border: "1px solid #E5E7EB", background: "#F9FAFB", display: "grid", gap: 4 }}>
-          <div style={{ fontSize: 11, color: "#9CA3AF", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+        <div style={{ borderRadius: 14, padding: 16, border: "1px solid var(--color-border)", background: "var(--color-surface-raised)", display: "grid", gap: 4 }}>
+          <div style={{ fontSize: 11, color: "var(--color-text-subtle)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>
             Recuperação
           </div>
-          <div style={{ fontSize: 15, fontWeight: 600, color: "#1F2937" }}>Regra diária</div>
-          <div style={{ color: "#6B7280", fontSize: 13, lineHeight: 1.5 }}>{recoveryMessage}</div>
+          <div style={{ fontSize: 15, fontWeight: 600, color: "var(--color-text)" }}>Regra diária</div>
+          <div style={{ color: "var(--color-text-muted)", fontSize: 13, lineHeight: 1.5 }}>{recoveryMessage}</div>
         </div>
       </div>
 

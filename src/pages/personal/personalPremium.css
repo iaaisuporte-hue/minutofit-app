@@ -386,8 +386,8 @@
   border-color: var(--color-danger-border);
 }
 .pp-pill--info {
-  background: var(--color-info-soft, rgba(6, 182, 212, 0.12));
-  border-color: var(--color-info-border, rgba(6, 182, 212, 0.35));
+  background: var(--color-info-soft, rgba(123, 153, 25, 0.12));
+  border-color: var(--color-info-border, rgba(123, 153, 25, 0.35));
 }
 
 /* Brand pill — usa primary-soft (verde CoreFit) para destaque institucional */

@@ -268,7 +268,7 @@ function ToggleSwitch({ checked, onChange, disabled }: { checked: boolean; onCha
       <span style={{
         position: 'absolute', top: 3, left: checked ? 21 : 3,
         width: 20, height: 20, borderRadius: '50%',
-        background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,.3)',
+        background: 'var(--color-surface)', boxShadow: '0 1px 3px rgba(0,0,0,.3)',
         transition: 'left 0.2s',
       }} />
     </button>

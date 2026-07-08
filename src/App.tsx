@@ -17,6 +17,7 @@ import AcademyApp from "./pages/AcademyApp";
 import AcceptInvitationPage from "./pages/AcceptInvitationPage";
 import DirectInviteAcceptPage from "./pages/DirectInviteAcceptPage";
 import CookieConsentBanner from "./components/CookieConsentBanner";
+import ThemeToggle from "./components/ThemeToggle";
 import PrivacyPolicyPage from "./pages/PrivacyPolicyPage";
 import WaitlistPage from "./pages/WaitlistPage";
 import { NativeAppBridge } from "./lib/NativeAppBridge";
@@ -28,6 +29,7 @@ export default function App() {
       <FeatureFlagsProvider>
         <NativeAppBridge />
         <CookieConsentBanner />
+        <ThemeToggle />
         <Routes>
           <Route path="/privacidade" element={<PrivacyPolicyPage />} />
           <Route path="/lista-de-espera" element={<WaitlistPage />} />

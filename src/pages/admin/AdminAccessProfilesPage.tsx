@@ -276,7 +276,7 @@ export default function AdminAccessProfilesPage() {
                               width: 16,
                               height: 16,
                               borderRadius: "50%",
-                              background: "#FFFFFF",
+                              background: "var(--color-surface)",
                               transition: "left 0.2s",
                             }}
                           />

@@ -331,7 +331,7 @@ export default function OnboardingPage() {
                 style={{
                   height: 10,
                   borderRadius: 999,
-                  background: "#F9FAFB",
+                  background: "var(--color-surface-raised)",
                   overflow: "hidden",
                 }}
               >

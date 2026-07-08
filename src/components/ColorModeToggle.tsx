@@ -49,7 +49,7 @@ export default function ColorModeToggle() {
         borderRadius: 999,
         border: enabled ? "1px solid rgba(255,200,87,.65)" : "1px solid rgba(123,153,25,.28)",
         background: enabled ? "rgba(27,47,75,.95)" : "rgba(249,250,251,.95)",
-        color: "#1F2937",
+        color: "var(--color-text)",
         padding: "10px 14px",
         fontWeight: 600,
         fontSize: 12,

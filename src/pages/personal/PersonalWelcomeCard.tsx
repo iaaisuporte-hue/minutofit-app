@@ -62,7 +62,7 @@ export function PersonalWelcomeCard({ firstName, hasStudents, hasPlan, hasChecki
         marginBottom: 12,
       }}
     >
-      <div style={{ height: 3, background: "var(--gradient-primary, linear-gradient(90deg,#7B9919,#06b6d4))" }} />
+      <div style={{ height: 3, background: "var(--gradient-primary)" }} />
       <div style={{ padding: 20, display: "grid", gap: 16 }}>
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
           <div style={{ display: "grid", gap: 4 }}>

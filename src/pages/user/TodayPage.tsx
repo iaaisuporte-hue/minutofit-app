@@ -105,7 +105,7 @@ const SURFACE = {
   warning: "var(--color-warn)",
   shadow: "var(--shadow-lg)",
   heroGlow:
-    "radial-gradient(circle at 0% 0%, rgba(123,153,25,0.18), transparent 34%), radial-gradient(circle at 100% 0%, rgba(6,182,212,0.16), transparent 30%)",
+    "radial-gradient(circle at 0% 0%, rgba(123,153,25,0.18), transparent 34%), radial-gradient(circle at 100% 0%, rgba(123,153,25,0.16), transparent 30%)",
 } as const;
 
 function SectionEyebrow({ children }: { children: React.ReactNode }) {
@@ -128,7 +128,7 @@ function ActionButton({
   const styles =
     variant === "primary"
       ? {
-          background: "linear-gradient(135deg, #7B9919, #06B6D4)",
+          background: "var(--gradient-primary)",
           color: "#FFFFFF",
           border: "none",
           boxShadow: "0 14px 34px rgba(123,153,25,0.18)",
@@ -938,7 +938,7 @@ export default function TodayPage() {
                               className={`today-group-button${active ? " is-active" : ""}${disabled ? " is-disabled" : ""}`}
                               style={{
                                 borderColor: active ? "rgba(123,153,25,0.4)" : SURFACE.border,
-                                background: active ? "rgba(123,153,25,0.08)" : disabled ? "#F8FAFC" : SURFACE.card,
+                                background: active ? "rgba(123,153,25,0.08)" : disabled ? "var(--color-bg-main)" : SURFACE.card,
                                 color: disabled ? SURFACE.mutedSoft : SURFACE.text,
                               }}
                             >
@@ -963,8 +963,8 @@ export default function TodayPage() {
                             exit={{ opacity: 0 }}
                             className="today-feedback-banner"
                             style={{
-                              background: scoreImpactPreview ? "rgba(6,182,212,0.06)" : "#F8FAFC",
-                              borderColor: scoreImpactPreview ? "rgba(6,182,212,0.25)" : SURFACE.border,
+                              background: scoreImpactPreview ? "rgba(123,153,25,0.06)" : "var(--color-bg-main)",
+                              borderColor: scoreImpactPreview ? "rgba(123,153,25,0.25)" : SURFACE.border,
                               color: scoreImpactPreview ? SURFACE.info : SURFACE.muted,
                               fontWeight: scoreImpactPreview ? 700 : 500,
                             }}

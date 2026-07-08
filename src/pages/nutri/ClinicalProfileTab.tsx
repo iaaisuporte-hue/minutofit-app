@@ -232,7 +232,7 @@ export default function ClinicalProfileTab({ patientId }: { patientId: number })
                       fontSize: 13,
                       fontWeight: 500,
                       color: COLORS.text,
-                      background: "var(--color-surface-muted, #F3F4F6)",
+                      background: "var(--color-surface-muted, var(--color-surface-subtle))",
                       border: "1px solid var(--color-border)",
                       borderRadius: 999,
                       padding: "4px 10px",

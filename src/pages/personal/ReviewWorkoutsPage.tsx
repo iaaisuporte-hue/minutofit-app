@@ -598,7 +598,7 @@ export default function ReviewWorkoutsPage() {
                   </div>
 
                   <div style={{ color: COLORS.muted, fontSize: 13, lineHeight: 1.45 }}>
-                    Objetivo: <b style={{ color: "#1F2937" }}>{item.goal}</b> • Criado há <b>{ageH}h</b>
+                    Objetivo: <b style={{ color: "var(--color-text)" }}>{item.goal}</b> • Criado há <b>{ageH}h</b>
                     {inactiveDays != null ? (
                       <>
                         {" "}

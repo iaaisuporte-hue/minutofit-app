@@ -21,7 +21,7 @@ export function MetabolicInsights({ recommendations, loading }: Props) {
   if (!loading && recommendations.length === 0) return null;
 
   return (
-    <div style={{ background: '#FFFFFF', borderRadius: 'var(--radius-card)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-sm)', padding: 20 }}>
+    <div style={{ background: 'var(--color-surface)', borderRadius: 'var(--radius-card)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-sm)', padding: 20 }}>
       <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 12 }}>
         Como subir seu score hoje
       </div>

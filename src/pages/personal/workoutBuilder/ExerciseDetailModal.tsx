@@ -96,7 +96,7 @@ export function ExerciseDetailModal({ exerciseId, alreadyAdded, onAdd, onClose }
         style={{
           position: "relative",
           zIndex: 1,
-          background: "#FFFFFF",
+          background: "var(--color-surface)",
           borderRadius: 14,
           boxShadow: "0 20px 60px rgba(15,23,42,0.2)",
           width: "100%",
@@ -117,7 +117,7 @@ export function ExerciseDetailModal({ exerciseId, alreadyAdded, onAdd, onClose }
             borderBottom: `1px solid ${WB.border}`,
             position: "sticky",
             top: 0,
-            background: "#FFFFFF",
+            background: "var(--color-surface)",
             zIndex: 2,
           }}
         >
@@ -227,7 +227,7 @@ export function ExerciseDetailModal({ exerciseId, alreadyAdded, onAdd, onClose }
                       textDecoration: "none",
                       fontSize: 13,
                       fontWeight: 600,
-                      background: "#F8FAFC",
+                      background: "var(--color-bg-main)",
                     }}
                   >
                     Assistir no YouTube
@@ -267,7 +267,7 @@ export function ExerciseDetailModal({ exerciseId, alreadyAdded, onAdd, onClose }
                         fontSize: 11,
                         fontWeight: 600,
                         color: WB.text,
-                        background: "#F8FAFC",
+                        background: "var(--color-bg-main)",
                         whiteSpace: "nowrap",
                       }}
                     >
@@ -351,7 +351,7 @@ export function ExerciseDetailModal({ exerciseId, alreadyAdded, onAdd, onClose }
               justifyContent: "flex-end",
               position: "sticky",
               bottom: 0,
-              background: "#FFFFFF",
+              background: "var(--color-surface)",
             }}
           >
             <WbButton variant="ghost" onClick={onClose}>Fechar</WbButton>

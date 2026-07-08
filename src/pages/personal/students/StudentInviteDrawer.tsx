@@ -143,7 +143,7 @@ export function StudentInviteDrawer({ open, onClose, onInviteCreated }: Props) {
                 padding: "8px 10px",
                 borderRadius: 8,
                 border: `1px solid ${COLORS.border}`,
-                background: "#F9FAFB",
+                background: "var(--color-surface-raised)",
                 color: COLORS.text,
               }}
               onFocus={(e) => e.target.select()}

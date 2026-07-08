@@ -53,14 +53,14 @@ function WorkoutBuilderPlaceholder() {
         borderRadius: 16,
         background: "#171717",
         padding: 16,
-        color: "#1F2937",
+        color: "var(--color-text)",
       }}
     >
       <div style={{ fontWeight: 700, fontSize: 18 }}>Workout Builder</div>
-      <div style={{ marginTop: 8, color: "#6B7280", fontSize: 13, lineHeight: 1.35 }}>
+      <div style={{ marginTop: 8, color: "var(--color-text-muted)", fontSize: 13, lineHeight: 1.35 }}>
         {studentId ? (
           <>
-            Aluno selecionado: <b style={{ color: "#1F2937" }}>{studentId}</b>
+            Aluno selecionado: <b style={{ color: "var(--color-text)" }}>{studentId}</b>
           </>
         ) : (
           <>

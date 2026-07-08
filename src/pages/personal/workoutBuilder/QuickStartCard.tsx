@@ -63,7 +63,7 @@ export function QuickStartCard({
       style={{
         borderRadius: 12,
         border: `1px solid ${WB.border}`,
-        background: "var(--color-surface, #F8FAFC)",
+        background: "var(--color-surface, var(--color-bg-main))",
         overflow: "hidden",
         marginBottom: 4,
       }}
@@ -164,7 +164,7 @@ export function QuickStartCard({
                     padding: "9px 11px",
                     borderRadius: 9,
                     border: `1px solid ${WB.border}`,
-                    background: "#FFFFFF",
+                    background: "var(--color-surface)",
                     display: "flex",
                     gap: 10,
                     alignItems: "center",

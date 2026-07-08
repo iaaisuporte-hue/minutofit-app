@@ -43,8 +43,8 @@ function Pill({ children }: { children: React.ReactNode }) {
         border: `1px solid ${COLORS.border}`,
         fontSize: 11,
         fontWeight: 600,
-        background: "#F9FAFB",
-        color: "#1F2937",
+        background: "var(--color-surface-raised)",
+        color: "var(--color-text)",
         lineHeight: "1",
         display: "inline-flex",
         alignItems: "center",
@@ -111,9 +111,9 @@ function ExtraYoutubeModal({
             whileHover={shouldReduceMotion ? undefined : subtleHoverScale}
             whileTap={shouldReduceMotion ? undefined : subtleTapScale}
             style={{
-              background: "#F3F4F6",
+              background: "var(--color-surface-subtle)",
               border: "none",
-              color: "#1F2937",
+              color: "var(--color-text)",
               borderRadius: 8,
               width: 36,
               height: 36,
@@ -163,8 +163,8 @@ function ExtraYoutubeModal({
                 <Play size={18} color="#5E7412" fill="#5E7412" />
               </div>
               <div>
-                <div style={{ fontWeight: 600, color: "#1F2937" }}>{video.title}</div>
-                <div style={{ fontSize: 12, color: "#6B7280", marginTop: 4 }}>{video.duration}</div>
+                <div style={{ fontWeight: 600, color: "var(--color-text)" }}>{video.title}</div>
+                <div style={{ fontSize: 12, color: "var(--color-text-muted)", marginTop: 4 }}>{video.duration}</div>
               </div>
             </motion.a>
           ))}
@@ -176,7 +176,7 @@ function ExtraYoutubeModal({
             paddingTop: 16,
             borderTop: "1px solid rgba(255,255,255,.10)",
             fontSize: 12,
-            color: "#6B7280",
+            color: "var(--color-text-muted)",
           }}
         >
           Lista curada de treinos mais longos. Toque em um item para abrir no YouTube.
@@ -195,8 +195,8 @@ function AccessibilityPill({ label, supported }: { label: string; supported: boo
         border: `1px solid ${supported ? "rgba(123,153,25,.36)" : COLORS.border}`,
         fontSize: 11,
         fontWeight: 600,
-        background: supported ? "rgba(123,153,25,.12)" : "#F3F4F6",
-        color: supported ? "#5E7412" : "#6B7280",
+        background: supported ? "rgba(123,153,25,.12)" : "var(--color-surface-subtle)",
+        color: supported ? "#5E7412" : "var(--color-text-muted)",
         lineHeight: "1",
         display: "inline-flex",
         alignItems: "center",
@@ -271,7 +271,7 @@ export default function HomeWorkoutsPage() {
             padding: 18,
             display: "grid",
             gap: 12,
-            background: "#F9FAFB",
+            background: "var(--color-surface-raised)",
             boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.05)",
           }}
         >
@@ -298,7 +298,7 @@ export default function HomeWorkoutsPage() {
                   borderRadius: 12,
                   border: `1px solid ${COLORS.border}`,
                   background: "transparent",
-                  color: "#1F2937",
+                  color: "var(--color-text)",
                   cursor: "pointer",
                   fontWeight: 700,
                   fontSize: 14,
@@ -474,7 +474,7 @@ export default function HomeWorkoutsPage() {
                         style={{
                           padding: "12px 14px",
                           borderRadius: 14,
-                          border: `1px solid ${disabled ? "#F3F4F6" : COLORS.borderStrong}`,
+                          border: `1px solid ${disabled ? "var(--color-surface-subtle)" : COLORS.borderStrong}`,
                           background: disabled ? "#FAFAFA" : "#7B9919",
                           color: disabled ? COLORS.mutedSoft : "#FFFFFF",
                           fontWeight: 700,

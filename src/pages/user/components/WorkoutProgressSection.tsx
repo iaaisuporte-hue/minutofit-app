@@ -64,9 +64,9 @@ function ExerciseRow({ ex }: { ex: ExerciseProgression }) {
         <div style={{ width: "100%", height: 180 }}>
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={chartData} margin={{ top: 8, right: 12, bottom: 4, left: -16 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border, #E5E7EB)" vertical={false} />
-              <XAxis dataKey="date" tick={{ fontSize: 11, fill: "var(--color-text-muted, #6B7280)" }} tickLine={false} axisLine={false} />
-              <YAxis width={40} tick={{ fontSize: 11, fill: "var(--color-text-muted, #6B7280)" }} tickLine={false} axisLine={false} unit="kg" />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border, var(--color-border))" vertical={false} />
+              <XAxis dataKey="date" tick={{ fontSize: 11, fill: "var(--color-text-muted, var(--color-text-muted))" }} tickLine={false} axisLine={false} />
+              <YAxis width={40} tick={{ fontSize: 11, fill: "var(--color-text-muted, var(--color-text-muted))" }} tickLine={false} axisLine={false} unit="kg" />
               <Tooltip formatter={(value) => [`${value} kg`, "Carga"]} labelStyle={{ fontSize: 12 }} contentStyle={{ fontSize: 12, borderRadius: 8 }} />
               <Line type="monotone" dataKey="kg" stroke="var(--color-primary, #5E7412)" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
             </LineChart>

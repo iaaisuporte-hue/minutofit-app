@@ -299,7 +299,7 @@ export default function SuggestedTrainingPage() {
             ].map((stat) => (
               <div
                 key={stat.label}
-                style={{ padding: 14, borderRadius: 14, border: `1px solid ${COLORS.border}`, background: "#F9FAFB", display: "grid", gap: 6 }}
+                style={{ padding: 14, borderRadius: 14, border: `1px solid ${COLORS.border}`, background: "var(--color-surface-raised)", display: "grid", gap: 6 }}
               >
                 <span style={fieldLabel}>{stat.label}</span>
                 <span style={{ color: COLORS.text, fontSize: 16, fontWeight: 700, lineHeight: 1.25 }}>{stat.value}</span>
@@ -379,7 +379,7 @@ export default function SuggestedTrainingPage() {
                               padding: "6px 10px",
                               borderRadius: 10,
                               border: `1px solid ${COLORS.border}`,
-                              background: "#FFFFFF",
+                              background: "var(--color-surface)",
                               color: COLORS.text,
                               fontWeight: 600,
                               fontSize: 12,
@@ -487,7 +487,7 @@ export default function SuggestedTrainingPage() {
           <div style={{ fontSize: 16, fontWeight: 700, color: "#B91C1C" }}>Alertas do dia</div>
           <div style={{ display: "grid", gap: 8 }}>
             {recommendation.warnings.map((warning) => (
-              <div key={warning} style={{ padding: 12, borderRadius: 12, border: `1px solid ${COLORS.redBorder}`, background: "#FFFFFF", color: "#7F1D1D", fontSize: 13, lineHeight: 1.5 }}>
+              <div key={warning} style={{ padding: 12, borderRadius: 12, border: `1px solid ${COLORS.redBorder}`, background: "var(--color-surface)", color: "#7F1D1D", fontSize: 13, lineHeight: 1.5 }}>
                 {warning}
               </div>
             ))}

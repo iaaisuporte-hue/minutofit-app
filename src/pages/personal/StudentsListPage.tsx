@@ -350,7 +350,7 @@ export default function StudentsListPage() {
                 padding: 12,
                 borderRadius: 12,
                 border: `1px solid ${COLORS.border}`,
-                background: "#FFFFFF",
+                background: "var(--color-surface)",
                 display: "grid",
                 gap: 6,
               }}
@@ -497,7 +497,7 @@ export default function StudentsListPage() {
                       padding: "10px 12px",
                       borderRadius: 10,
                       border: `1px solid ${COLORS.border}`,
-                      background: "#FFFFFF",
+                      background: "var(--color-surface)",
                       display: "flex",
                       gap: 12,
                       alignItems: "center",
@@ -532,7 +532,7 @@ export default function StudentsListPage() {
                               padding: "4px 8px",
                               borderRadius: 6,
                               border: `1px solid ${COLORS.border}`,
-                              background: "#F9FAFB",
+                              background: "var(--color-surface-raised)",
                               color: COLORS.muted,
                             }}
                             onFocus={(e) => e.target.select()}
@@ -579,7 +579,7 @@ export default function StudentsListPage() {
         >
           <div
             style={{
-              background: "#FFFFFF",
+              background: "var(--color-surface)",
               borderRadius: 16,
               padding: 28,
               maxWidth: 440,

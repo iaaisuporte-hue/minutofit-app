@@ -1,9 +1,14 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="S2Core">
-  <rect width="64" height="64" rx="14" fill="#0a1a0e"/>
-  <rect width="64" height="4" rx="2" fill="#22C55E"/>
-  <text x="32" y="45" text-anchor="middle"
-    font-family="system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif"
-    font-size="26" font-weight="900" letter-spacing="-0.02em">
-    <tspan fill="#ffffff">S2</tspan><tspan fill="#22C55E">C</tspan>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img" aria-label="S2CORE">
+  <rect width="200" height="200" rx="44" fill="#0A0A0A"/>
+  <g fill="none" stroke-width="8" stroke-linecap="round">
+    <path d="M107.3,30.4 A70,70 0 0 1 169.6,92.7" stroke="#7B9919"/>
+    <path d="M169.6,107.3 A70 70 0 0 1 107.3,169.6" stroke="#F5F5F5"/>
+    <path d="M92.7,169.6 A70 70 0 0 1 30.4,107.3" stroke="#7B9919"/>
+    <path d="M30.4,92.7 A70 70 0 0 1 92.7,30.4" stroke="#F5F5F5"/>
+  </g>
+  <text x="100" y="102" text-anchor="middle" dominant-baseline="central"
+    font-family="'Manrope','Segoe UI',system-ui,-apple-system,Arial,sans-serif"
+    font-weight="800" font-size="76" letter-spacing="-3">
+    <tspan fill="#F5F5F5">S</tspan><tspan fill="#7B9919">2</tspan>
   </text>
 </svg>

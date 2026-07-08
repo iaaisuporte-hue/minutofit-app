@@ -47,7 +47,7 @@ function Skeleton() {
 }
 
 const tooltipStyle: React.CSSProperties = {
-  background: '#fff',
+  background: 'var(--color-surface)',
   border: '1px solid var(--color-border)',
   borderRadius: 8,
   fontSize: 12,
@@ -68,8 +68,8 @@ function ActualLastDot(props: { cx?: number; cy?: number; payload?: { isForecast
         }
         .meta-dot-ring { animation: metaDotPulse 1.8s ease-out infinite; }
       `}</style>
-      <circle className="meta-dot-ring" cx={cx} cy={cy} r={4} fill="#06B6D4" />
-      <circle cx={cx} cy={cy} r={4} fill="#06B6D4" stroke="#fff" strokeWidth={2} />
+      <circle className="meta-dot-ring" cx={cx} cy={cy} r={4} fill="#8E8E8E" />
+      <circle cx={cx} cy={cy} r={4} fill="#8E8E8E" stroke="#fff" strokeWidth={2} />
     </g>
   );
 }
@@ -82,7 +82,7 @@ function MarkerDot(props: {
   const { cx, cy, payload } = props;
   if (!payload?.markerKind || payload.isForecast || cx == null || cy == null) return null;
 
-  const fill = payload.markerKind === 'workout' ? '#7B9919' : payload.markerKind === 'condition' ? '#06B6D4' : '#F97316';
+  const fill = payload.markerKind === 'workout' ? '#7B9919' : payload.markerKind === 'condition' ? '#8E8E8E' : '#F97316';
   const label = payload.markerKind === 'workout' ? 'W' : payload.markerKind === 'condition' ? 'C' : '!';
 
   return (
@@ -111,7 +111,7 @@ export function MetabolicChart({ data, loading, forecast, markers, days = 14, on
   return (
     <div
       style={{
-        background: '#FFFFFF',
+        background: 'var(--color-surface)',
         borderRadius: 'var(--radius-card)',
         border: '1px solid var(--color-border)',
         boxShadow: 'var(--shadow-sm)',
@@ -177,7 +177,7 @@ export function MetabolicChart({ data, loading, forecast, markers, days = 14, on
             />
             <Tooltip
               contentStyle={tooltipStyle}
-              cursor={{ stroke: '#06B6D4', strokeWidth: 1, strokeDasharray: '4 2' }}
+              cursor={{ stroke: '#8E8E8E', strokeWidth: 1, strokeDasharray: '4 2' }}
               formatter={(value, name, item) => {
                 const numeric = typeof value === 'number' ? value : Number(value ?? 0);
                 if (name === 'scoreWithActivity') return [numeric, 'Amanhã com atividade'];
@@ -196,7 +196,7 @@ export function MetabolicChart({ data, loading, forecast, markers, days = 14, on
             <Line
               type="monotone"
               dataKey="score"
-              stroke="#06B6D4"
+              stroke="#8E8E8E"
               strokeWidth={2}
               dot={(props) => (
                 <>
@@ -204,7 +204,7 @@ export function MetabolicChart({ data, loading, forecast, markers, days = 14, on
                   <MarkerDot {...props} />
                 </>
               )}
-              activeDot={{ r: 6, fill: '#06B6D4', strokeWidth: 0 }}
+              activeDot={{ r: 6, fill: '#8E8E8E', strokeWidth: 0 }}
             />
             <Line
               type="monotone"
@@ -235,9 +235,9 @@ export function MetabolicChart({ data, loading, forecast, markers, days = 14, on
           {markers.slice(-3).map((marker) => {
             const isWorkout = marker.kind === 'workout';
             const isCondition = marker.kind === 'condition';
-            const border = isWorkout ? 'rgba(123,153,25,0.25)' : isCondition ? 'rgba(6,182,212,0.25)' : 'rgba(249,115,22,0.25)';
-            const bg = isWorkout ? 'rgba(123,153,25,0.07)' : isCondition ? 'rgba(6,182,212,0.07)' : 'rgba(249,115,22,0.08)';
-            const color = isWorkout ? '#5E7412' : isCondition ? '#0891b2' : '#c2410c';
+            const border = isWorkout ? 'rgba(123,153,25,0.25)' : isCondition ? 'rgba(142,142,142,0.25)' : 'rgba(249,115,22,0.25)';
+            const bg = isWorkout ? 'rgba(123,153,25,0.07)' : isCondition ? 'rgba(142,142,142,0.07)' : 'rgba(249,115,22,0.08)';
+            const color = isWorkout ? '#5E7412' : isCondition ? '#6B7280' : '#c2410c';
             const markerLabel = isWorkout ? 'Treino registrado' : isCondition ? 'Check-in registrado' : 'Queda por inatividade';
             return (
               <span

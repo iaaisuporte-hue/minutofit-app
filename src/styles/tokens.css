@@ -48,14 +48,14 @@
   --color-secondary:            #7B9919;
   --color-cta-text:             #F5F5F5;
 
-  /* ── Accent / Tech layer (cyan — data, insights, metabolism) ── */
-  --color-accent:               #06B6D4;
-  --color-accent-hover:         #0891B2;
-  --color-accent-deep:          #164E63;
-  --color-accent-soft:          rgba(6, 182, 212, 0.10);
-  --color-accent-soft-strong:   rgba(6, 182, 212, 0.18);
-  --color-accent-glow:          rgba(6, 182, 212, 0.14);
-  --color-accent-border:        rgba(6, 182, 212, 0.28);
+  /* ── Accent (dados/insights) — alinhado à marca oliva, sem cyan ── */
+  --color-accent:               #5E7412;
+  --color-accent-hover:         #4A5C0E;
+  --color-accent-deep:          #3A480B;
+  --color-accent-soft:          rgba(123, 153, 25, 0.10);
+  --color-accent-soft-strong:   rgba(123, 153, 25, 0.16);
+  --color-accent-glow:          rgba(123, 153, 25, 0.14);
+  --color-accent-border:        rgba(123, 153, 25, 0.28);
 
   /* ── Brand gradient (use sparingly — highlights + key cards) ─ */
   --gradient-primary:           linear-gradient(135deg, #91B51E, #5E7412);
@@ -115,7 +115,7 @@
   --shadow-sm:     0 1px 2px rgba(0, 0, 0, 0.04);
   --shadow-md:     0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 16px rgba(0, 0, 0, 0.04);
   --shadow-lg:     0 4px 8px rgba(0, 0, 0, 0.04), 0 12px 28px rgba(0, 0, 0, 0.05);
-  --shadow-accent: 0 4px 20px rgba(6, 182, 212, 0.18);
+  --shadow-accent: 0 4px 20px rgba(123, 153, 25, 0.16);
 
   /* ── Transitions ──────────────────────────────────────────── */
   --transition-fast: 150ms ease;
@@ -267,4 +267,36 @@ html[data-color-mode="daltonic"] {
   --action-primary:         #1D6FD8;   /* branco ~4.5:1 ✓ */
   --action-primary-hover:   #1A63C9;
   --action-primary-pressed: #14508F;
+}
+
+/* ── Tema escuro (S2CORE) — html[data-theme="dark"] ─────────────
+   Só redefine superfície/texto/borda; a marca oliva #7B9919 segue
+   (6:1 sobre preto). Beta: telas com cores literais claras precisam
+   de polish (ver docs/design-system). ───────────────────────────── */
+html[data-theme="dark"] {
+  --color-bg-main:          #0A0A0A;
+  --color-surface:          #16181A;
+  --color-surface-raised:   #1E211C;
+  --color-surface-subtle:   #262A20;
+
+  --color-text:             #F5F5F5;
+  --color-text-muted:       #A7A9A0;
+  --color-text-subtle:      #74766C;
+
+  --color-border:           rgba(245, 245, 245, 0.12);
+  --color-border-subtle:    rgba(245, 245, 245, 0.07);
+
+  --gray-900:               #F5F5F5;   /* alias de texto escuro → claro no dark */
+  --gray-100:               #262A20;
+
+  /* Texto semântico legível sobre fundo escuro */
+  --color-success-text:     #A9CC2E;
+  --color-danger-text:      #F87171;
+  --color-warn-text:        #FBBF24;
+  --color-warn-text-strong: #FCD34D;
+  --color-info-text:        #93C5FD;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 1px 3px rgba(0, 0, 0, 0.5), 0 4px 16px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 4px 8px rgba(0, 0, 0, 0.4), 0 12px 28px rgba(0, 0, 0, 0.5);
 }

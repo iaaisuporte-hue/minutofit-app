@@ -20,8 +20,8 @@ import { useFeatureFlags } from "../../../auth/FeatureFlagsContext";
 const STATUS_META: Record<WorkoutSessionStatus, { label: string; color: string }> = {
   completed: { label: "Concluído", color: "var(--color-success-text, #5E7412)" },
   partial: { label: "Parcial", color: "var(--color-warn, #D97706)" },
-  abandoned: { label: "Incompleto", color: "var(--color-text-muted, #6B7280)" },
-  started: { label: "Em andamento", color: "var(--color-text-muted, #6B7280)" },
+  abandoned: { label: "Incompleto", color: "var(--color-text-muted, var(--color-text-muted))" },
+  started: { label: "Em andamento", color: "var(--color-text-muted, var(--color-text-muted))" },
 };
 
 const SOURCE_LABEL: Record<WorkoutSessionSource, string> = {
@@ -113,7 +113,7 @@ function SetsDetail({ detail }: { detail: WorkoutSessionDetail }) {
                   key={si}
                   className="metabolic-eyebrow"
                   style={{
-                    color: skipped ? "var(--color-text-muted, #6B7280)" : "var(--color-text-soft, #4B5563)",
+                    color: skipped ? "var(--color-text-muted, var(--color-text-muted))" : "var(--color-text-soft, #4B5563)",
                     textDecoration: skipped ? "line-through" : "none",
                   }}
                 >
@@ -204,8 +204,8 @@ function SessionRow({ session }: { session: WorkoutSessionListItem }) {
                 style={{
                   fontSize: 11,
                   fontWeight: 700,
-                  color: "var(--color-text-muted, #6B7280)",
-                  border: "1px solid var(--color-border, #E5E7EB)",
+                  color: "var(--color-text-muted, var(--color-text-muted))",
+                  border: "1px solid var(--color-border, var(--color-border))",
                   borderRadius: "var(--radius-full, 999px)",
                   padding: "1px 8px",
                   whiteSpace: "nowrap",
@@ -248,7 +248,7 @@ function RetroEntryButton() {
         justifySelf: "start",
         padding: "8px 14px",
         borderRadius: "var(--radius-full, 999px)",
-        border: "1px solid var(--color-border, #E5E7EB)",
+        border: "1px solid var(--color-border, var(--color-border))",
         background: "transparent",
         color: "var(--color-primary, #2563EB)",
         fontWeight: 600,

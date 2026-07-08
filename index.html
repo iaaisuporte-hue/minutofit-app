@@ -9,6 +9,10 @@
           if (localStorage.getItem("corefit_color_mode") === "daltonic") {
             document.documentElement.setAttribute("data-color-mode", "daltonic");
           }
+          var t = localStorage.getItem("corefit_theme");
+          if (t === "dark" || t === "light") {
+            document.documentElement.setAttribute("data-theme", t);
+          }
         } catch (_) {}
       })();
     </script>
