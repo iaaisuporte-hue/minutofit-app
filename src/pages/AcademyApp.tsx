@@ -133,7 +133,7 @@ export default function AcademyApp() {
           )
         ) : (
           <>
-            <CoreFitLogo />
+            <CoreFitLogo width={178} />
             <div className="shellSubtitle" title={academyLabel} style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "100%" }}>{academyLabel}</div>
           </>
         )}

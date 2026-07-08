@@ -223,7 +223,7 @@ export default function UserApp() {
         sidebar={
           <>
             <div style={{ padding: "8px 4px 16px" }}>
-              <CoreFitLogo width={148} />
+              <CoreFitLogo width={178} />
               <div className="shellSubtitle" style={{ marginTop: 8 }}>{firstName}</div>
             </div>
 
