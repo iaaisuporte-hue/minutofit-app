@@ -222,8 +222,8 @@ export default function UserApp() {
         mobileHeader={mobileMessagesIcon}
         sidebar={
           <>
-            <div style={{ padding: "8px 4px 16px" }}>
-              <CoreFitLogo width={178} />
+            <div style={{ padding: "8px 12px 16px" }}>
+              <CoreFitLogo width={112} />
               <div className="shellSubtitle" style={{ marginTop: 8 }}>{firstName}</div>
             </div>
 

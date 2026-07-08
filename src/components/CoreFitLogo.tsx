@@ -18,7 +18,7 @@ const WORDMARK_FONT =
  *   e o slogan ficam sempre oliva. Assets em /public são nomes legados.
  * - `mark`: símbolo (anel + S2) em tile escuro fixo — não inverte de propósito.
  */
-export default function CoreFitLogo({ width = 178, variant = "horizontal", className, style }: Props) {
+export default function CoreFitLogo({ width = 112, variant = "horizontal", className, style }: Props) {
   if (variant === "mark") {
     return (
       <img
@@ -33,10 +33,12 @@ export default function CoreFitLogo({ width = 178, variant = "horizontal", class
     );
   }
 
-  const h = Math.round(width * (56 / 264));
+  // viewBox recortado ao conteúdo + alinhado à esquerda: o SVG não reserva
+  // espaço vazio e o glifo começa na borda esquerda (alinha com o menu).
+  const h = Math.round(width * (50 / 150));
   return (
     <svg
-      viewBox="0 0 264 56"
+      viewBox="0 0 150 50"
       width={width}
       height={h}
       role="img"
@@ -45,9 +47,8 @@ export default function CoreFitLogo({ width = 178, variant = "horizontal", class
       style={{ display: "block", color: "var(--color-text)", ...style }}
     >
       <text
-        x="132"
-        y="37"
-        textAnchor="middle"
+        x="0"
+        y="33"
         fontFamily={WORDMARK_FONT}
         fontSize="34"
         fontWeight="800"
@@ -58,14 +59,13 @@ export default function CoreFitLogo({ width = 178, variant = "horizontal", class
         <tspan fill="currentColor">core</tspan>
       </text>
       <text
-        x="133"
-        y="51"
-        textAnchor="middle"
+        x="1"
+        y="46"
         fontFamily={WORDMARK_FONT}
-        fontSize="7.5"
+        fontSize="7"
         fontWeight="600"
         fill="#7B9919"
-        letterSpacing="3"
+        letterSpacing="2.2"
       >
         MORE THAN TRAINING
       </text>

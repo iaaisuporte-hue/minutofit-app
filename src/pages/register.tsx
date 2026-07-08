@@ -162,7 +162,7 @@ export default function RegisterPage() {
         noValidate
       >
         <div className="auth-logo">
-          <CoreFitLogo width={168} />
+          <CoreFitLogo width={96} />
         </div>
 
         <h1 className="auth-title">Criar conta</h1>

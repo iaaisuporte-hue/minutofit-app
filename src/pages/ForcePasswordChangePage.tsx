@@ -44,7 +44,7 @@ export default function ForcePasswordChangePage() {
     <main className="auth-page">
       <form className="auth-card" onSubmit={onSubmit} noValidate>
         <div className="auth-logo">
-          <CoreFitLogo width={168} />
+          <CoreFitLogo width={96} />
         </div>
 
         <h1 className="auth-title">Troque sua senha temporária</h1>

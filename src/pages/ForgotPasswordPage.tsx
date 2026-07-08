@@ -7,7 +7,7 @@ export default function ForgotPasswordPage() {
     <main className="auth-page">
       <div className="auth-card">
         <div className="auth-logo">
-          <CoreFitLogo width={168} />
+          <CoreFitLogo width={96} />
         </div>
 
         <h1 className="auth-title">Recuperar acesso</h1>

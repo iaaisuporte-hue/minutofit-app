@@ -133,7 +133,7 @@ export default function LoginPage() {
               style={{ height: 48, maxWidth: 200, objectFit: "contain" }}
             />
           ) : (
-            <CoreFitLogo width={168} />
+            <CoreFitLogo width={96} />
           )}
         </div>
 

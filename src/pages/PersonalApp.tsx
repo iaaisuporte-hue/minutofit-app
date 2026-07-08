@@ -146,9 +146,9 @@ export default function PersonalApp() {
       sidebar={
         <>
           {/* Cabeçalho da sidebar: logo + ícone de mensagens */}
-          <div style={{ padding: "8px 4px 16px", display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
+          <div style={{ padding: "8px 12px 16px", display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
             <div>
-              <CoreFitLogo width={178} />
+              <CoreFitLogo width={112} />
               <div className="shellSubtitle" style={{ marginTop: 8 }}>Personal</div>
             </div>
 

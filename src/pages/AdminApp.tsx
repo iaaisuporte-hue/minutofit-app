@@ -87,8 +87,8 @@ export default function AdminApp() {
     <AppShell
       sidebar={
         <>
-          <div style={{ padding: "8px 4px 16px" }}>
-            <CoreFitLogo width={178} />
+          <div style={{ padding: "8px 12px 16px" }}>
+            <CoreFitLogo width={112} />
           </div>
 
           <div className="navStack" style={{ gap: "var(--space-4)" }}>
