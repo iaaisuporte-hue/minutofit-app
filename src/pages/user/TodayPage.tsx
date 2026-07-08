@@ -105,7 +105,7 @@ const SURFACE = {
   warning: "var(--color-warn)",
   shadow: "var(--shadow-lg)",
   heroGlow:
-    "radial-gradient(circle at 0% 0%, rgba(34,197,94,0.18), transparent 34%), radial-gradient(circle at 100% 0%, rgba(6,182,212,0.16), transparent 30%)",
+    "radial-gradient(circle at 0% 0%, rgba(123,153,25,0.18), transparent 34%), radial-gradient(circle at 100% 0%, rgba(6,182,212,0.16), transparent 30%)",
 } as const;
 
 function SectionEyebrow({ children }: { children: React.ReactNode }) {
@@ -128,10 +128,10 @@ function ActionButton({
   const styles =
     variant === "primary"
       ? {
-          background: "linear-gradient(135deg, #22C55E, #06B6D4)",
+          background: "linear-gradient(135deg, #7B9919, #06B6D4)",
           color: "#FFFFFF",
           border: "none",
-          boxShadow: "0 14px 34px rgba(34,197,94,0.18)",
+          boxShadow: "0 14px 34px rgba(123,153,25,0.18)",
         }
       : variant === "secondary"
         ? {
@@ -554,8 +554,8 @@ export default function TodayPage() {
               style={{
                 padding: "8px 12px",
                 borderRadius: 8,
-                background: "rgba(34,197,94,0.07)",
-                border: "1px solid rgba(34,197,94,0.18)",
+                background: "rgba(123,153,25,0.07)",
+                border: "1px solid rgba(123,153,25,0.18)",
                 fontSize: 12,
                 color: "var(--color-text-muted)",
                 marginBottom: 8,
@@ -937,8 +937,8 @@ export default function TodayPage() {
                               whileTap={disabled ? undefined : { scale: 0.985 }}
                               className={`today-group-button${active ? " is-active" : ""}${disabled ? " is-disabled" : ""}`}
                               style={{
-                                borderColor: active ? "rgba(34,197,94,0.4)" : SURFACE.border,
-                                background: active ? "rgba(34,197,94,0.08)" : disabled ? "#F8FAFC" : SURFACE.card,
+                                borderColor: active ? "rgba(123,153,25,0.4)" : SURFACE.border,
+                                background: active ? "rgba(123,153,25,0.08)" : disabled ? "#F8FAFC" : SURFACE.card,
                                 color: disabled ? SURFACE.mutedSoft : SURFACE.text,
                               }}
                             >

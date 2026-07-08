@@ -66,7 +66,7 @@ export function SessionQuickLog({ studentId, studentName, onSaved }: Props) {
           alignItems: "center",
           gap: 6,
           fontSize: 12,
-          color: savedStatus === "absent" ? "var(--color-danger, #dc2626)" : "var(--color-success, #16a34a)",
+          color: savedStatus === "absent" ? "var(--color-danger, #dc2626)" : "var(--color-success, #5E7412)",
           fontWeight: 600,
         }}
       >
@@ -99,9 +99,9 @@ export function SessionQuickLog({ studentId, studentName, onSaved }: Props) {
                 fontSize: 11,
                 padding: "3px 9px",
                 borderRadius: 999,
-                border: `1px solid ${selectedTags.includes(t.key) ? "var(--color-primary, #16a34a)" : "var(--color-border)"}`,
-                background: selectedTags.includes(t.key) ? "rgba(22,163,74,0.08)" : "transparent",
-                color: selectedTags.includes(t.key) ? "var(--color-primary, #16a34a)" : "var(--color-text-muted)",
+                border: `1px solid ${selectedTags.includes(t.key) ? "var(--color-primary, #5E7412)" : "var(--color-border)"}`,
+                background: selectedTags.includes(t.key) ? "rgba(123,153,25,0.08)" : "transparent",
+                color: selectedTags.includes(t.key) ? "var(--color-primary, #5E7412)" : "var(--color-text-muted)",
                 cursor: "pointer",
                 fontWeight: selectedTags.includes(t.key) ? 600 : 400,
               }}
@@ -163,9 +163,9 @@ export function SessionQuickLog({ studentId, studentName, onSaved }: Props) {
           fontSize: 11,
           padding: "3px 10px",
           borderRadius: 999,
-          border: "1px solid rgba(22,163,74,0.4)",
-          background: "rgba(22,163,74,0.06)",
-          color: "var(--color-success, #16a34a)",
+          border: "1px solid rgba(123,153,25,0.4)",
+          background: "rgba(123,153,25,0.06)",
+          color: "var(--color-success, #5E7412)",
           cursor: "pointer",
           fontWeight: 600,
         }}

@@ -196,7 +196,7 @@ export async function composeWorkoutImage({ focus, dayName, backgroundFile, form
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("canvas indisponível");
 
-  const primary = cssVar("--color-primary", "#22c55e");
+  const primary = cssVar("--color-primary", "#7B9919");
 
   // 1) Fundo: foto (cover) ou gradiente
   if (backgroundFile) {

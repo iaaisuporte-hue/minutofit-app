@@ -215,7 +215,7 @@ export default function StudentsListPage() {
         {
           key: "evolving",
           width: `${(base.evolving / total) * 100}%`,
-          bg: "linear-gradient(135deg, rgba(46,204,113,.95), rgba(34,197,94,.82))",
+          bg: "linear-gradient(135deg, rgba(46,204,113,.95), rgba(123,153,25,.82))",
         },
         {
           key: "attention",

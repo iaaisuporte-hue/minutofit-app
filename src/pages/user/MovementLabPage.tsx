@@ -156,7 +156,7 @@ function describeCameraError(err: unknown): { kind: string; message: string } {
 }
 
 // Skeleton colors by form score range (must be literal values, not CSS vars)
-const SKELETON_COLOR_HIGH = "#22C55E";
+const SKELETON_COLOR_HIGH = "#7B9919";
 const SKELETON_COLOR_MID = "#F59E0B";
 const SKELETON_COLOR_LOW = "#DC2626";
 

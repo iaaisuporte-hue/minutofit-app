@@ -60,7 +60,7 @@ function CardAction({
     padding: "9px 16px",
     borderRadius: 10,
     border: locked ? "1px solid #E5E7EB" : "none",
-    background: locked ? "#FFFFFF" : "#22C55E",
+    background: locked ? "#FFFFFF" : "#7B9919",
     color: locked ? "#9CA3AF" : "#FFFFFF",
     fontWeight: 600,
     fontSize: 13,
@@ -89,10 +89,10 @@ function HubCard({
   return (
     <div
       style={{
-        border: `1px solid ${card.recommended ? "rgba(34,197,94,0.3)" : "#E5E7EB"}`,
+        border: `1px solid ${card.recommended ? "rgba(123,153,25,0.3)" : "#E5E7EB"}`,
         borderRadius: 16,
         padding: 20,
-        background: card.recommended ? "rgba(34,197,94,0.04)" : "#FFFFFF",
+        background: card.recommended ? "rgba(123,153,25,0.04)" : "#FFFFFF",
         boxShadow: "0 1px 3px rgba(0,0,0,0.05), 0 4px 12px rgba(0,0,0,0.04)",
         display: "grid",
         gap: 14,
@@ -106,7 +106,7 @@ function HubCard({
               {card.badge}
             </span>
             {card.recommended && (
-              <span style={{ padding: "3px 10px", borderRadius: 999, border: "1px solid rgba(34,197,94,0.3)", background: "rgba(34,197,94,0.08)", fontSize: 12, fontWeight: 600, color: "#16A34A" }}>
+              <span style={{ padding: "3px 10px", borderRadius: 999, border: "1px solid rgba(123,153,25,0.3)", background: "rgba(123,153,25,0.08)", fontSize: 12, fontWeight: 600, color: "#5E7412" }}>
                 ✨ Melhor escolha hoje
               </span>
             )}
@@ -260,8 +260,8 @@ export default function TreinosPage() {
 
       {/* Context cards */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 10 }}>
-        <div style={{ borderRadius: 14, padding: 16, border: "1px solid rgba(34,197,94,0.25)", background: "rgba(34,197,94,0.04)", display: "grid", gap: 4 }}>
-          <div style={{ fontSize: 11, color: "#16A34A", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+        <div style={{ borderRadius: 14, padding: 16, border: "1px solid rgba(123,153,25,0.25)", background: "rgba(123,153,25,0.04)", display: "grid", gap: 4 }}>
+          <div style={{ fontSize: 11, color: "#5E7412", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>
             Melhor ponto de partida
           </div>
           <div style={{ fontSize: 15, fontWeight: 600, color: "#1F2937" }}>Treino sugerido com IA</div>

@@ -37,7 +37,7 @@ export default function AdminPersonalDetailsPage() {
     return (
       <div style={{ display: "grid", gap: 12, color: COLORS.text }}>
         <div style={{ fontSize: 24, fontWeight: 700 }}>Personal não encontrado</div>
-        <Link to="/app/admin/personals" style={{ color: "#22C55E" }}>
+        <Link to="/app/admin/personals" style={{ color: "#7B9919" }}>
           Voltar para personals
         </Link>
       </div>
@@ -57,7 +57,7 @@ export default function AdminPersonalDetailsPage() {
           gap: 8,
         }}
       >
-        <Link to="/app/admin/personals" style={{ color: "#22C55E", textDecoration: "none", fontWeight: 600, width: "fit-content" }}>
+        <Link to="/app/admin/personals" style={{ color: "#7B9919", textDecoration: "none", fontWeight: 600, width: "fit-content" }}>
           ← Voltar para personals
         </Link>
         <div style={{ fontSize: 30, fontWeight: 700 }}>{personal.name ?? "—"}</div>

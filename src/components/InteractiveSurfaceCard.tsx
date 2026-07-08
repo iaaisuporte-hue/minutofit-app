@@ -72,7 +72,7 @@ export default function InteractiveSurfaceCard({
             borderRadius: "inherit",
             pointerEvents: "none",
             background:
-              "radial-gradient(circle at var(--glow-x, 50%) var(--glow-y, 50%), rgba(34,197,94,0.06) 0%, transparent 55%)",
+              "radial-gradient(circle at var(--glow-x, 50%) var(--glow-y, 50%), rgba(123,153,25,0.06) 0%, transparent 55%)",
             ["--glow-x" as string]: glowXPercent,
             ["--glow-y" as string]: glowYPercent,
           }}

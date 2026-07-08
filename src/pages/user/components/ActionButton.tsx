@@ -17,10 +17,10 @@ export function ActionButton({
   const styles =
     variant === "primary"
       ? {
-          background: "linear-gradient(135deg, #22C55E, #06B6D4)",
+          background: "linear-gradient(135deg, #7B9919, #06B6D4)",
           color: "#FFFFFF",
           border: "none",
-          boxShadow: "0 14px 34px rgba(34,197,94,0.18)",
+          boxShadow: "0 14px 34px rgba(123,153,25,0.18)",
         }
       : variant === "secondary"
         ? {

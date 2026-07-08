@@ -197,7 +197,7 @@ export default function AdminAccessProfilesPage() {
                   padding: "12px 14px",
                   borderRadius: 14,
                   border: `1px solid ${!selectedPlanId || saving ? COLORS.border : COLORS.borderStrong}`,
-                  background: !selectedPlanId || saving ? COLORS.panelSoft : "#22C55E",
+                  background: !selectedPlanId || saving ? COLORS.panelSoft : "#7B9919",
                   color: !selectedPlanId || saving ? COLORS.muted : "#FFFFFF",
                   fontWeight: 700,
                   cursor: !selectedPlanId || saving ? "not-allowed" : "pointer",
@@ -254,7 +254,7 @@ export default function AdminAccessProfilesPage() {
                           {feature.description ? (
                             <div style={{ color: COLORS.muted, fontSize: 12, lineHeight: 1.4 }}>{feature.description}</div>
                           ) : null}
-                          <div style={{ color: "#22C55E", fontSize: 11, fontWeight: 600 }}>{feature.key}</div>
+                          <div style={{ color: "#7B9919", fontSize: 11, fontWeight: 600 }}>{feature.key}</div>
                         </div>
                         <div
                           style={{
@@ -262,7 +262,7 @@ export default function AdminAccessProfilesPage() {
                             width: 40,
                             height: 22,
                             borderRadius: 999,
-                            background: checked ? "#22C55E" : COLORS.border,
+                            background: checked ? "#7B9919" : COLORS.border,
                             position: "relative",
                             transition: "background 0.2s",
                           }}

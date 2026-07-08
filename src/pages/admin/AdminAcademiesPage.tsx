@@ -69,7 +69,7 @@ export default function AdminAcademiesPage() {
 
   // Create form
   const [creating, setCreating]   = useState(false);
-  const [form, setForm]           = useState({ slug: "", legalName: "", displayName: "", primaryColor: "#22c55e" });
+  const [form, setForm]           = useState({ slug: "", legalName: "", displayName: "", primaryColor: "#7B9919" });
   const [ownerForm, setOwnerForm] = useState<OwnerForm>(EMPTY_OWNER);
   const [formError, setFormError] = useState<string | null>(null);
   const [saving, setSaving]       = useState(false);
@@ -78,7 +78,7 @@ export default function AdminAcademiesPage() {
 
   // Branding edit for existing academy
   const [brandingTargetId, setBrandingTargetId] = useState<number | null>(null);
-  const [brandingColor, setBrandingColor]       = useState("#22c55e");
+  const [brandingColor, setBrandingColor]       = useState("#7B9919");
   const [brandingSaving, setBrandingSaving]     = useState(false);
   const [brandingError, setBrandingError]       = useState<string | null>(null);
 
@@ -166,7 +166,7 @@ export default function AdminAcademiesPage() {
       setCreatedAcademy(data.data.academy);
       setCreatedOwner(data.data.owner ?? null);
       setCreating(false);
-      setForm({ slug: "", legalName: "", displayName: "", primaryColor: "#22c55e" });
+      setForm({ slug: "", legalName: "", displayName: "", primaryColor: "#7B9919" });
       setOwnerForm(EMPTY_OWNER);
       await load();
     } catch (err: any) {
@@ -453,7 +453,7 @@ export default function AdminAcademiesPage() {
                   onChange={(e) => setForm((f) => ({ ...f, primaryColor: e.target.value }))}
                   disabled={saving}
                   style={{ width: 44, height: 36, padding: 2, border: "1px solid var(--color-border)", borderRadius: "var(--radius-sm)", cursor: "pointer" }} />
-                <input className="input" style={{ flex: 1 }} placeholder="#22c55e" value={form.primaryColor}
+                <input className="input" style={{ flex: 1 }} placeholder="#7B9919" value={form.primaryColor}
                   onChange={(e) => setForm((f) => ({ ...f, primaryColor: e.target.value }))} disabled={saving} />
               </div>
               <span className="field-hint">Define as cores do subdomínio da academia (ex: botões, links).</span>
@@ -585,7 +585,7 @@ export default function AdminAcademiesPage() {
                       <button
                         className="btn btn-sm btn-ghost"
                         title="Editar cor primária"
-                        onClick={() => { setBrandingTargetId(a.id); setBrandingColor(a.primary_color ?? "#22c55e"); setBrandingError(null); }}
+                        onClick={() => { setBrandingTargetId(a.id); setBrandingColor(a.primary_color ?? "#7B9919"); setBrandingError(null); }}
                         style={{ display: "flex", alignItems: "center", gap: 4 }}
                       >
                         <span style={{ width: 12, height: 12, borderRadius: "50%", background: a.primary_color ?? "var(--color-primary)", display: "inline-block", border: "1px solid var(--color-border)" }} />
@@ -614,7 +614,7 @@ export default function AdminAcademiesPage() {
                 <input type="color" value={brandingColor} onChange={(e) => setBrandingColor(e.target.value)} disabled={brandingSaving}
                   style={{ width: 44, height: 36, padding: 2, border: "1px solid var(--color-border)", borderRadius: "var(--radius-sm)", cursor: "pointer" }} />
                 <input className="input" style={{ flex: 1 }} value={brandingColor}
-                  onChange={(e) => setBrandingColor(e.target.value)} disabled={brandingSaving} placeholder="#22c55e" />
+                  onChange={(e) => setBrandingColor(e.target.value)} disabled={brandingSaving} placeholder="#7B9919" />
               </div>
               <span className="field-hint">Aplicada automaticamente no subdomínio da academia.</span>
             </div>

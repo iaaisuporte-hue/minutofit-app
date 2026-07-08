@@ -27,7 +27,7 @@ function Avatar({ photo, name }: { photo: string | null; name: string }) {
         width: 40,
         height: 40,
         borderRadius: "50%",
-        background: "linear-gradient(135deg, rgba(34,197,94,0.18), rgba(6,182,212,0.18))",
+        background: "linear-gradient(135deg, rgba(123,153,25,0.18), rgba(6,182,212,0.18))",
         color: SURFACE.text,
         display: "grid",
         placeItems: "center",

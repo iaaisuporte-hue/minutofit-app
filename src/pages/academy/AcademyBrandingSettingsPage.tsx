@@ -69,8 +69,8 @@ interface BrandingForm {
 
 const EMPTY: BrandingForm = {
   displayName: "",
-  primaryColor: "#22c55e",
-  secondaryColor: "#22c55e",
+  primaryColor: "#7B9919",
+  secondaryColor: "#7B9919",
   accentColor: "#06b6d4",
   welcomeMessage: "",
   logoUrl: "",

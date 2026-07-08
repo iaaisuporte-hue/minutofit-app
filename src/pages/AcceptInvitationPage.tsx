@@ -85,7 +85,7 @@ export default function AcceptInvitationPage() {
           <div
             style={{
               width: 56, height: 56, borderRadius: "var(--radius-md)",
-              background: "var(--color-primary)", display: "inline-flex",
+              background: "var(--action-primary)", display: "inline-flex",
               alignItems: "center", justifyContent: "center",
               fontWeight: 700, color: "#fff", fontSize: "var(--text-xl)",
               marginBottom: "var(--space-3)",

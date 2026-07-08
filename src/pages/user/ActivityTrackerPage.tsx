@@ -212,7 +212,7 @@ function MapViewer({ coordinates }: { coordinates: Array<{ lat: number; lng: num
         />
         <Polyline
           positions={coordinates.map((c) => [c.lat, c.lng])}
-          pathOptions={{ color: "#22C55E", weight: 5, opacity: 0.92 }}
+          pathOptions={{ color: "#7B9919", weight: 5, opacity: 0.92 }}
         />
         <Marker position={startPoint}><Popup>Início</Popup></Marker>
         <Marker position={center}><Popup>Posição atual</Popup></Marker>
@@ -237,7 +237,7 @@ function HistoryMapViewer({ coordinates }: { coordinates: Array<{ lat: number; l
         />
         <Polyline
           positions={coordinates.map((c) => [c.lat, c.lng])}
-          pathOptions={{ color: "#22C55E", weight: 5, opacity: 0.92 }}
+          pathOptions={{ color: "#7B9919", weight: 5, opacity: 0.92 }}
         />
         <Marker position={startPoint}><Popup>Início</Popup></Marker>
         <Marker position={center}><Popup>Posição atual</Popup></Marker>

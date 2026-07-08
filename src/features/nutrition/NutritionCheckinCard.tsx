@@ -143,10 +143,10 @@ export function NutritionCheckinCard() {
       <div
         className="today-card"
         style={{
-          background: "var(--color-success-soft, rgba(34,197,94,.08))",
+          background: "var(--color-success-soft, rgba(123,153,25,.08))",
           borderRadius: 16,
           padding: "16px 20px",
-          border: "1.5px solid var(--color-success, #22C55E)",
+          border: "1.5px solid var(--color-success, #7B9919)",
         }}
       >
         <div
@@ -163,7 +163,7 @@ export function NutritionCheckinCard() {
               style={{
                 fontSize: 12,
                 fontWeight: 600,
-                color: "var(--color-success, #22C55E)",
+                color: "var(--color-success, #7B9919)",
                 marginBottom: 2,
                 textTransform: "uppercase",
                 letterSpacing: "0.04em",
@@ -285,8 +285,8 @@ export function NutritionCheckinCard() {
             gap: 8,
             padding: "8px 10px",
             borderRadius: 8,
-            background: "rgba(34,197,94,.08)",
-            border: "1px solid rgba(34,197,94,.2)",
+            background: "rgba(123,153,25,.08)",
+            border: "1px solid rgba(123,153,25,.2)",
             fontSize: 12,
             color: COLORS.text,
             lineHeight: 1.45,

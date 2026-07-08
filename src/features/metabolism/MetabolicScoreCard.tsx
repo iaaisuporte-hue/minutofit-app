@@ -205,7 +205,7 @@ export function MetabolicScoreCard({ data, loading, error, derivedStatus, foreca
 
           {/* Label qualitativo principal + trend */}
           <div style={{ display: 'grid', gap: 8 }}>
-            <div style={{ fontSize: isMobile ? 24 : 28, fontWeight: 700, color: 'var(--color-text)', letterSpacing: '-0.02em', lineHeight: 1.1 }}>
+            <div style={{ fontFamily: 'var(--font-brand)', fontSize: isMobile ? 24 : 28, fontWeight: 700, color: 'var(--color-text)', letterSpacing: '-0.02em', lineHeight: 1.1 }}>
               {energyStatus.energyLabel}
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>

@@ -24,7 +24,7 @@ export default function AdminNutriDetailsPage() {
     return (
       <div style={{ display: "grid", gap: 12, color: COLORS.text }}>
         <div style={{ fontSize: 24, fontWeight: 700 }}>Nutricionista não encontrado</div>
-        <Link to="/app/admin/nutris" style={{ color: "#22C55E" }}>
+        <Link to="/app/admin/nutris" style={{ color: "#7B9919" }}>
           Voltar para nutris
         </Link>
       </div>
@@ -44,7 +44,7 @@ export default function AdminNutriDetailsPage() {
           gap: 8,
         }}
       >
-        <Link to="/app/admin/nutris" style={{ color: "#22C55E", textDecoration: "none", fontWeight: 600, width: "fit-content" }}>
+        <Link to="/app/admin/nutris" style={{ color: "#7B9919", textDecoration: "none", fontWeight: 600, width: "fit-content" }}>
           ← Voltar para nutris
         </Link>
         <div style={{ fontSize: 30, fontWeight: 700 }}>{nutri.name ?? "—"}</div>

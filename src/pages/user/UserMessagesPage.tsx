@@ -335,7 +335,7 @@ export default function UserMessagesPage() {
                         height: 18,
                         padding: "0 6px",
                         borderRadius: 9,
-                        background: "var(--color-primary)",
+                        background: "var(--action-primary)",
                         color: "var(--color-cta-text, #FFFFFF)",
                         fontSize: 10,
                         fontWeight: 700,

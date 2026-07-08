@@ -66,7 +66,7 @@ export function WbButton({
         fontWeight: 650,
         fontSize: 13,
         lineHeight: 1,
-        boxShadow: isPrimary ? "0 8px 18px rgba(22, 163, 74, 0.14)" : "none",
+        boxShadow: isPrimary ? "0 8px 18px rgba(123, 153, 25, 0.14)" : "none",
         opacity: disabled ? 0.55 : 1,
       }}
     >
@@ -95,8 +95,8 @@ export function FeedbackBanner({
   message: string;
   onDismiss?: () => void;
 }) {
-  const bg = kind === "success" ? "rgba(34, 197, 94, 0.14)" : "rgba(220, 38, 38, 0.14)";
-  const border = kind === "success" ? "rgba(34, 197, 94, 0.26)" : "rgba(248, 113, 113, 0.32)";
+  const bg = kind === "success" ? "rgba(123, 153, 25, 0.14)" : "rgba(220, 38, 38, 0.14)";
+  const border = kind === "success" ? "rgba(123, 153, 25, 0.26)" : "rgba(248, 113, 113, 0.32)";
   return (
     <div
       role="status"

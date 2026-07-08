@@ -118,7 +118,7 @@ export function CockpitTabWeek({ data }: Props) {
                     borderRadius: "50%",
                     margin: "4px auto",
                     background: day.workedOut
-                      ? "#22C55E"
+                      ? "#7B9919"
                       : day.hadGps
                         ? "#60A5FA"
                         : "rgba(0,0,0,.10)",

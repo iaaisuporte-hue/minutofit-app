@@ -82,7 +82,7 @@ function MarkerDot(props: {
   const { cx, cy, payload } = props;
   if (!payload?.markerKind || payload.isForecast || cx == null || cy == null) return null;
 
-  const fill = payload.markerKind === 'workout' ? '#22C55E' : payload.markerKind === 'condition' ? '#06B6D4' : '#F97316';
+  const fill = payload.markerKind === 'workout' ? '#7B9919' : payload.markerKind === 'condition' ? '#06B6D4' : '#F97316';
   const label = payload.markerKind === 'workout' ? 'W' : payload.markerKind === 'condition' ? 'C' : '!';
 
   return (
@@ -209,11 +209,11 @@ export function MetabolicChart({ data, loading, forecast, markers, days = 14, on
             <Line
               type="monotone"
               dataKey="scoreWithActivity"
-              stroke="#22C55E"
+              stroke="#7B9919"
               strokeWidth={2}
               strokeDasharray="6 4"
               dot={false}
-              activeDot={{ r: 5, fill: '#22C55E', strokeWidth: 0 }}
+              activeDot={{ r: 5, fill: '#7B9919', strokeWidth: 0 }}
               connectNulls
             />
             <Line
@@ -235,9 +235,9 @@ export function MetabolicChart({ data, loading, forecast, markers, days = 14, on
           {markers.slice(-3).map((marker) => {
             const isWorkout = marker.kind === 'workout';
             const isCondition = marker.kind === 'condition';
-            const border = isWorkout ? 'rgba(34,197,94,0.25)' : isCondition ? 'rgba(6,182,212,0.25)' : 'rgba(249,115,22,0.25)';
-            const bg = isWorkout ? 'rgba(34,197,94,0.07)' : isCondition ? 'rgba(6,182,212,0.07)' : 'rgba(249,115,22,0.08)';
-            const color = isWorkout ? '#15803d' : isCondition ? '#0891b2' : '#c2410c';
+            const border = isWorkout ? 'rgba(123,153,25,0.25)' : isCondition ? 'rgba(6,182,212,0.25)' : 'rgba(249,115,22,0.25)';
+            const bg = isWorkout ? 'rgba(123,153,25,0.07)' : isCondition ? 'rgba(6,182,212,0.07)' : 'rgba(249,115,22,0.08)';
+            const color = isWorkout ? '#5E7412' : isCondition ? '#0891b2' : '#c2410c';
             const markerLabel = isWorkout ? 'Treino registrado' : isCondition ? 'Check-in registrado' : 'Queda por inatividade';
             return (
               <span

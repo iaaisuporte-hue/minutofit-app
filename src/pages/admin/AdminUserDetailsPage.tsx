@@ -156,7 +156,7 @@ function ChangePlanModal({
               padding: "12px 14px",
               borderRadius: 14,
               border: `1px solid ${COLORS.borderStrong}`,
-              background: !selectedId || saving ? COLORS.panelSoft : "#22C55E",
+              background: !selectedId || saving ? COLORS.panelSoft : "#7B9919",
               color: !selectedId || saving ? COLORS.muted : "#FFFFFF",
               fontWeight: 700,
               cursor: !selectedId || saving ? "not-allowed" : "pointer",
@@ -268,8 +268,8 @@ function SetPasswordModal({
             <div
               style={{
                 borderRadius: 12,
-                border: `1px solid rgba(34,197,94,.4)`,
-                background: "rgba(34,197,94,.08)",
+                border: `1px solid rgba(123,153,25,.4)`,
+                background: "rgba(123,153,25,.08)",
                 padding: 14,
                 fontSize: 14,
                 color: COLORS.text,
@@ -351,12 +351,12 @@ function SetPasswordModal({
                         width: 8,
                         height: 8,
                         borderRadius: "50%",
-                        background: ok ? "#22C55E" : COLORS.border,
+                        background: ok ? "#7B9919" : COLORS.border,
                         flexShrink: 0,
                         transition: "background .15s",
                       }}
                     />
-                    <span style={{ color: ok ? "#22C55E" : COLORS.muted }}>{label}</span>
+                    <span style={{ color: ok ? "#7B9919" : COLORS.muted }}>{label}</span>
                   </div>
                 ))}
               </div>
@@ -392,7 +392,7 @@ function SetPasswordModal({
                   padding: "12px 14px",
                   borderRadius: 14,
                   border: `1px solid ${COLORS.borderStrong}`,
-                  background: !isValid || saving ? COLORS.panelSoft : "#22C55E",
+                  background: !isValid || saving ? COLORS.panelSoft : "#7B9919",
                   color: !isValid || saving ? COLORS.muted : "#FFFFFF",
                   fontWeight: 700,
                   cursor: !isValid || saving ? "not-allowed" : "pointer",
@@ -685,7 +685,7 @@ export default function AdminUserDetailsPage() {
           }}
         >
           <div style={{ fontWeight: 700 }}>{error}</div>
-          <Link to="/app/admin/users" style={{ color: "#22C55E", marginTop: 8, display: "inline-block" }}>
+          <Link to="/app/admin/users" style={{ color: "#7B9919", marginTop: 8, display: "inline-block" }}>
             Voltar para alunos
           </Link>
         </div>
@@ -697,7 +697,7 @@ export default function AdminUserDetailsPage() {
     return (
       <div style={{ display: "grid", gap: 12, color: COLORS.text }}>
         <div style={{ fontSize: 24, fontWeight: 700 }}>Aluno não encontrado</div>
-        <Link to="/app/admin/users" style={{ color: "#22C55E" }}>
+        <Link to="/app/admin/users" style={{ color: "#7B9919" }}>
           Voltar para alunos
         </Link>
       </div>
@@ -751,7 +751,7 @@ export default function AdminUserDetailsPage() {
             gap: 8,
           }}
         >
-          <Link to="/app/admin/users" style={{ color: "#22C55E", textDecoration: "none", fontWeight: 600, width: "fit-content" }}>
+          <Link to="/app/admin/users" style={{ color: "#7B9919", textDecoration: "none", fontWeight: 600, width: "fit-content" }}>
             ← Voltar para alunos
           </Link>
           <div style={{ fontSize: 30, fontWeight: 700 }}>{user.name || "Sem nome"}</div>
@@ -907,9 +907,9 @@ export default function AdminUserDetailsPage() {
                   style={{
                     padding: "10px 12px",
                     borderRadius: 12,
-                    border: `1px solid ${active ? "#22C55E" : COLORS.border}`,
-                    background: active ? "rgba(34,197,94,.12)" : COLORS.panelSoft,
-                    color: active ? "#22C55E" : COLORS.muted,
+                    border: `1px solid ${active ? "#7B9919" : COLORS.border}`,
+                    background: active ? "rgba(123,153,25,.12)" : COLORS.panelSoft,
+                    color: active ? "#7B9919" : COLORS.muted,
                     fontWeight: 600,
                     fontSize: 13,
                     cursor: productActionKey ? "not-allowed" : "pointer",
@@ -920,7 +920,7 @@ export default function AdminUserDetailsPage() {
                     transition: "all .15s",
                   }}
                 >
-                  <span style={{ width: 8, height: 8, borderRadius: "50%", background: active ? "#22C55E" : COLORS.border, flexShrink: 0 }} />
+                  <span style={{ width: 8, height: 8, borderRadius: "50%", background: active ? "#7B9919" : COLORS.border, flexShrink: 0 }} />
                   {PRODUCT_LABELS[key]}
                 </button>
               ))}

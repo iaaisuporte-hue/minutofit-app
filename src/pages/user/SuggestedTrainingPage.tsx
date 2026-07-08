@@ -96,7 +96,7 @@ function ChoicePill({
 
 function getLevelVisual(level: ReadinessLevel) {
   if (level === "green") {
-    return { label: "Prontidão alta", background: "rgba(34,197,94,.12)", border: COLORS.borderStrong, color: COLORS.lime };
+    return { label: "Prontidão alta", background: "rgba(123,153,25,.12)", border: COLORS.borderStrong, color: COLORS.lime };
   }
   if (level === "yellow") {
     return { label: "Prontidão ajustada", background: COLORS.yellowSoft, border: COLORS.yellowBorder, color: "#B45309" };
@@ -274,7 +274,7 @@ export default function SuggestedTrainingPage() {
             padding: 14,
             borderRadius: 14,
             border: `1px solid ${COLORS.borderStrong}`,
-            background: "rgba(34,197,94,.10)",
+            background: "rgba(123,153,25,.10)",
             color: COLORS.text,
             fontWeight: 600,
           }}
@@ -344,7 +344,7 @@ export default function SuggestedTrainingPage() {
                           padding: "12px 14px",
                           borderRadius: 14,
                           border: `1px solid ${checked ? COLORS.borderStrong : COLORS.border}`,
-                          background: checked ? "rgba(34,197,94,.10)" : "#FAFAFA",
+                          background: checked ? "rgba(123,153,25,.10)" : "#FAFAFA",
                         }}
                       >
                         <button
@@ -413,7 +413,7 @@ export default function SuggestedTrainingPage() {
               padding: 16,
               borderRadius: 16,
               border: `1px solid ${COLORS.borderStrong}`,
-              background: "rgba(34,197,94,.08)",
+              background: "rgba(123,153,25,.08)",
             }}
           >
             <div style={{ display: "grid", gap: 4 }}>

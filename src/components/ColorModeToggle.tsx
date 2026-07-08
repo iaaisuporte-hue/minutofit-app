@@ -47,7 +47,7 @@ export default function ColorModeToggle() {
         bottom: 14,
         zIndex: 2000,
         borderRadius: 999,
-        border: enabled ? "1px solid rgba(255,200,87,.65)" : "1px solid rgba(34,197,94,.28)",
+        border: enabled ? "1px solid rgba(255,200,87,.65)" : "1px solid rgba(123,153,25,.28)",
         background: enabled ? "rgba(27,47,75,.95)" : "rgba(249,250,251,.95)",
         color: "#1F2937",
         padding: "10px 14px",

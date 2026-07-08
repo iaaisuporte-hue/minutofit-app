@@ -179,7 +179,7 @@ export function ShareWorkoutModal({ focus, dayName, stats, onClose }: Props) {
                 padding: "8px 10px",
                 borderRadius: 10,
                 border: `1px solid ${format === fmt ? "var(--color-primary)" : "var(--color-border)"}`,
-                background: format === fmt ? "var(--color-primary-soft, rgba(22,163,74,0.10))" : "transparent",
+                background: format === fmt ? "var(--color-primary-soft, rgba(123,153,25,0.10))" : "transparent",
                 color: "var(--color-text)",
                 fontWeight: 700,
                 fontSize: 13,
@@ -223,7 +223,7 @@ export function ShareWorkoutModal({ focus, dayName, stats, onClose }: Props) {
             disabled={!image || composing || sharing}
             style={{
               width: "100%", padding: "13px 16px", minHeight: 48, borderRadius: 12,
-              border: "none", background: "var(--color-primary)", color: "#fff",
+              border: "none", background: "var(--action-primary)", color: "#fff",
               fontWeight: 700, fontSize: 15,
               cursor: !image || composing || sharing ? "not-allowed" : "pointer",
               opacity: !image || composing || sharing ? 0.75 : 1,

@@ -4,10 +4,15 @@ import { BrowserRouter } from "react-router-dom";
 import * as Sentry from "@sentry/react";
 import App from "./App";
 import { isNativeApp } from "./lib/platform";
-import "@fontsource/inter/400.css";
-import "@fontsource/inter/500.css";
-import "@fontsource/inter/600.css";
-import "@fontsource/inter/700.css";
+// S2CORE type system: Manrope (interface) + Exo 2 (marca/score/display)
+import "@fontsource/manrope/400.css";
+import "@fontsource/manrope/500.css";
+import "@fontsource/manrope/600.css";
+import "@fontsource/manrope/700.css";
+import "@fontsource/manrope/800.css";
+import "@fontsource/exo-2/500.css";
+import "@fontsource/exo-2/600.css";
+import "@fontsource/exo-2/700.css";
 import "./styles/globals.css";
 import "./styles/components.css";
 

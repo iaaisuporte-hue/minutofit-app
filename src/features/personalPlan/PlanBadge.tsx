@@ -19,9 +19,9 @@ const STYLE: Record<PersonalPlan, React.CSSProperties> = {
     border: "1px solid rgba(99,102,241,0.25)",
   },
   pro: {
-    background: "rgba(34,197,94,0.1)",
+    background: "rgba(123,153,25,0.1)",
     color: "rgb(21,128,61)",
-    border: "1px solid rgba(34,197,94,0.3)",
+    border: "1px solid rgba(123,153,25,0.3)",
   },
 };
 

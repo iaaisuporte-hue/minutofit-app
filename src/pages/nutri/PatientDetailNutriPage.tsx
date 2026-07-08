@@ -454,7 +454,7 @@ function PlanTab({ patientId }: { patientId: number }) {
 // ---------------------------------------------------------------------------
 
 const HEATMAP_COLORS: Record<MealCheckinStatus | "none", string> = {
-  done:        "var(--color-success, #22C55E)",
+  done:        "var(--color-success, #7B9919)",
   partial:     "var(--color-warn, #F59E0B)",
   substituted: "var(--color-primary)",
   delayed:     "var(--color-warn, #F59E0B)",
@@ -539,8 +539,8 @@ function computeAdherenceIntel(
 
 function AdherenceNarrative({ pct }: { pct: number }) {
   const cfg =
-    pct >= 80 ? { label: "Constância excelente", color: "var(--color-success,#22C55E)" }
-    : pct >= 60 ? { label: "Boa constância",       color: "var(--color-success,#22C55E)" }
+    pct >= 80 ? { label: "Constância excelente", color: "var(--color-success,#7B9919)" }
+    : pct >= 60 ? { label: "Boa constância",       color: "var(--color-success,#7B9919)" }
     : pct >= 40 ? { label: "Constância moderada",  color: "var(--color-warn,#F59E0B)" }
     : pct >= 20 ? { label: "Constância baixa",     color: "var(--color-warn,#F59E0B)" }
     :             { label: "Adesão muito baixa",    color: "var(--color-danger,#EF4444)" };
@@ -613,13 +613,13 @@ function AdherenceTab({ patientId }: { patientId: number }) {
   const intel = computeAdherenceIntel(heatmap.checkins, heatmap.meals, dates);
 
   const TREND_LABEL: Record<"up" | "down" | "stable", { icon: string; text: string; color: string }> = {
-    up:     { icon: "↑", text: "Melhorando",     color: "var(--color-success,#22C55E)" },
+    up:     { icon: "↑", text: "Melhorando",     color: "var(--color-success,#7B9919)" },
     down:   { icon: "↓", text: "Em queda",       color: "var(--color-danger,#EF4444)" },
     stable: { icon: "→", text: "Estável",         color: "var(--color-text-muted)" },
   };
 
   const barColor =
-    adherePct >= 70 ? "var(--color-success,#22C55E)"
+    adherePct >= 70 ? "var(--color-success,#7B9919)"
     : adherePct >= 40 ? "var(--color-warn,#F59E0B)"
     : "var(--color-danger,#EF4444)";
 
@@ -657,7 +657,7 @@ function AdherenceTab({ patientId }: { patientId: number }) {
         <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
           <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
             <span style={{ fontSize: 10, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.06em" }}>Sequência atual</span>
-            <span style={{ fontSize: 16, fontWeight: 700, color: intel.streak > 0 ? "var(--color-success,#22C55E)" : COLORS.muted }}>
+            <span style={{ fontSize: 16, fontWeight: 700, color: intel.streak > 0 ? "var(--color-success,#7B9919)" : COLORS.muted }}>
               {intel.streak} {intel.streak === 1 ? "dia" : "dias"}
             </span>
           </div>
@@ -803,7 +803,7 @@ function AdherenceTab({ patientId }: { patientId: number }) {
               .sort((a, b) => a.pct - b.pct)
               .map(({ meal, pct }) => {
                 const isWeakest = intel.weakest?.meal.id === meal.id;
-                const barC = pct >= 70 ? "var(--color-success,#22C55E)" : pct >= 40 ? "var(--color-warn,#F59E0B)" : "var(--color-danger,#EF4444)";
+                const barC = pct >= 70 ? "var(--color-success,#7B9919)" : pct >= 40 ? "var(--color-warn,#F59E0B)" : "var(--color-danger,#EF4444)";
                 return (
                   <div key={meal.id}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
@@ -862,7 +862,7 @@ function LegacyAdherenceTab({ patientId }: { patientId: number }) {
   const adherePct = Math.round(((fullCount + partialCount * 0.5) / 7) * 100);
   const ICON: Record<string, string> = { full: "✓", partial: "─", skipped: "○" };
   const COLOR: Record<string, string> = {
-    full: "var(--color-success, #22C55E)",
+    full: "var(--color-success, #7B9919)",
     partial: "var(--color-warn, #F59E0B)",
     skipped: COLORS.danger,
   };
@@ -1403,7 +1403,7 @@ function VozTab({ patientId }: { patientId: number }) {
               <div style={{ display: 'flex', gap: 12, fontSize: 12, color: COLORS.muted }}>
                 <span>{formatDateShort(n.publishedAt)}</span>
                 {n.readAt ? (
-                  <span style={{ color: 'var(--color-success,#22C55E)' }}>
+                  <span style={{ color: 'var(--color-success,#7B9919)' }}>
                     Lida em {formatDateShort(n.readAt)}
                   </span>
                 ) : (

@@ -24,7 +24,7 @@ function AdherenceBar({ pct }: { pct: number | null }) {
   const value = pct ?? 0;
   const color =
     value >= 70
-      ? "var(--color-success, #22c55e)"
+      ? "var(--color-success, #7B9919)"
       : value >= 40
       ? "var(--color-warning, #f59e0b)"
       : "var(--color-danger, #ef4444)";

@@ -57,7 +57,7 @@ export function MetabolicInsights({ recommendations, loading }: Props) {
                       padding: '6px 14px',
                       borderRadius: 8,
                       border: 'none',
-                      background: 'var(--color-primary)',
+                      background: 'var(--action-primary)',
                       color: '#fff',
                       fontSize: 12,
                       fontWeight: 600,

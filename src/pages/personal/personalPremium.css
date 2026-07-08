@@ -118,10 +118,10 @@
 }
 
 .pp-btn--primary {
-  border-color: rgba(22, 163, 74, 0.28);
-  background: var(--color-primary);
+  border-color: rgba(123, 153, 25, 0.28);
+  background: var(--action-primary);
   color: #fff;
-  box-shadow: 0 8px 18px rgba(22, 163, 74, 0.14);
+  box-shadow: 0 8px 18px rgba(123, 153, 25, 0.14);
 }
 
 .pp-btn--ghost {
@@ -538,7 +538,7 @@
 
 .pp-metabo-card--high {
   background: var(--color-success-soft, rgba(236, 253, 245, 0.95));
-  border-color: rgba(34, 197, 94, 0.22);
+  border-color: rgba(123, 153, 25, 0.22);
 }
 
 .pp-metabo-card--moderate {
@@ -772,8 +772,8 @@
 }
 
 .pp-week-day[data-active="true"] {
-  border-color: rgba(22, 163, 74, 0.22);
-  background: rgba(22, 163, 74, 0.07);
+  border-color: rgba(123, 153, 25, 0.22);
+  background: rgba(123, 153, 25, 0.07);
 }
 
 .pp-drawer--inline {
@@ -812,7 +812,7 @@
 
 .pp-search-field:focus-within {
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 4px var(--color-primary-glow, rgba(34, 197, 94, 0.18)), var(--shadow-sm);
+  box-shadow: 0 0 0 4px var(--color-primary-glow, rgba(123, 153, 25, 0.18)), var(--shadow-sm);
 }
 
 .pp-search-input {
@@ -896,7 +896,7 @@
 
 .pp-pulse-chip[aria-pressed="true"] {
   border-color: var(--color-primary);
-  background: rgba(22, 163, 74, 0.08);
+  background: rgba(123, 153, 25, 0.08);
   color: var(--color-text-primary);
 }
 
@@ -1158,7 +1158,7 @@
 }
 
 .pp-risk-chip-ok {
-  background: rgba(var(--color-success-rgb, 34,197,94), 0.12);
+  background: rgba(var(--color-success-rgb, 123,153,25), 0.12);
   color: var(--color-success);
 }
 
@@ -1198,7 +1198,7 @@
 }
 
 .pp-risk-action-btn:hover {
-  background: var(--color-primary);
+  background: var(--action-primary);
   color: #fff;
   border-color: var(--color-primary);
 }
@@ -1206,7 +1206,7 @@
 /* ── Recognition Card (Máquina de Reconhecimento) ───────── */
 
 .pp-recognition-card {
-  border: 1px solid rgba(var(--color-success-rgb, 34,197,94), 0.25);
+  border: 1px solid rgba(var(--color-success-rgb, 123,153,25), 0.25);
   background: var(--color-surface);
   border-radius: var(--radius-lg, 14px);
   padding: 16px;
@@ -1222,8 +1222,8 @@
   font-size: 11px;
   font-weight: 600;
   white-space: nowrap;
-  background: rgba(var(--color-success-rgb, 34,197,94), 0.12);
-  color: var(--color-success, #16a34a);
+  background: rgba(var(--color-success-rgb, 123,153,25), 0.12);
+  color: var(--color-success, #5E7412);
 }
 
 /* ── Insights Strip ────────────────────────────────────── */
@@ -1319,7 +1319,7 @@
 
 .pp-template-chip.active,
 .pp-template-chip:hover {
-  background: var(--color-primary);
+  background: var(--action-primary);
   color: #fff;
   border-color: var(--color-primary);
 }

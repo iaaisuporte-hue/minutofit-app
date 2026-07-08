@@ -14,7 +14,7 @@ interface LogEntry {
 }
 
 const LEVEL_DOT: Record<string, string> = {
-  green:  'var(--color-success, #22c55e)',
+  green:  'var(--color-success, #7B9919)',
   yellow: 'var(--color-warn, #f0a500)',
   red:    'var(--color-danger, #e53e3e)',
 };
@@ -260,7 +260,7 @@ function ToggleSwitch({ checked, onChange, disabled }: { checked: boolean; onCha
       disabled={disabled}
       style={{
         width: 44, height: 26, borderRadius: 13,
-        background: checked ? 'var(--color-primary, #22c55e)' : 'var(--color-border, #ccc)',
+        background: checked ? 'var(--color-primary, #7B9919)' : 'var(--color-border, #ccc)',
         border: 'none', cursor: disabled ? 'not-allowed' : 'pointer',
         position: 'relative', transition: 'background 0.2s', flexShrink: 0,
       }}

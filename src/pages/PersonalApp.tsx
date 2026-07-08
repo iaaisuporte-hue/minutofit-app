@@ -130,7 +130,7 @@ export default function PersonalApp() {
             <MessagesIcon />
           </span>
           {unreadCount > 0 && (
-            <span style={{ position: "absolute", top: 2, right: 2, minWidth: 16, height: 16, borderRadius: 999, background: "var(--color-primary)", color: "#fff", fontSize: 10, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 3px", lineHeight: 1 }}>
+            <span style={{ position: "absolute", top: 2, right: 2, minWidth: 16, height: 16, borderRadius: 999, background: "var(--action-primary)", color: "#fff", fontSize: 10, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 3px", lineHeight: 1 }}>
               {unreadCount > 9 ? "9+" : unreadCount}
             </span>
           )}
@@ -172,7 +172,7 @@ export default function PersonalApp() {
                         minWidth: 16,
                         height: 16,
                         borderRadius: 999,
-                        background: "var(--color-primary)",
+                        background: "var(--action-primary)",
                         color: "#fff",
                         fontSize: 10,
                         fontWeight: 700,

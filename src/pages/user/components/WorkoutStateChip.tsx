@@ -8,8 +8,8 @@ export type WorkoutChipState = "personal_base" | "adapted" | "suggested" | "acad
 const CHIPS: Record<WorkoutChipState, { label: string; bg: string; border: string }> = {
   personal_base: {
     label: "Plano base",
-    bg: "var(--color-primary-soft, rgba(34,197,94,.10))",
-    border: "rgba(34,197,94,.22)",
+    bg: "var(--color-primary-soft, rgba(123,153,25,.10))",
+    border: "rgba(123,153,25,.22)",
   },
   adapted: {
     // Âmbar: comunica "mudou por causa do seu check-in", não erro.
@@ -19,13 +19,13 @@ const CHIPS: Record<WorkoutChipState, { label: string; bg: string; border: strin
   },
   suggested: {
     label: "Sugerido para hoje",
-    bg: "var(--color-primary-soft, rgba(34,197,94,.10))",
-    border: "rgba(34,197,94,.22)",
+    bg: "var(--color-primary-soft, rgba(123,153,25,.10))",
+    border: "rgba(123,153,25,.22)",
   },
   academy: {
     label: "Na sua academia",
-    bg: "var(--color-primary-soft, rgba(34,197,94,.10))",
-    border: "rgba(34,197,94,.22)",
+    bg: "var(--color-primary-soft, rgba(123,153,25,.10))",
+    border: "rgba(123,153,25,.22)",
   },
 };
 

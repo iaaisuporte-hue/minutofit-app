@@ -49,10 +49,10 @@ function formatCountdown(mins: number): string {
 const STATUS_COLORS: Record<MealStatus, string> = {
   upcoming:      "var(--color-border)",
   due_now:       COLORS.primary,
-  done:          "var(--color-success, #22C55E)",
+  done:          "var(--color-success, #7B9919)",
   partial:       "var(--color-warn, #F59E0B)",
   skipped:       "var(--color-border)",
-  substituted:   "var(--color-success, #22C55E)",
+  substituted:   "var(--color-success, #7B9919)",
   delayed:       "var(--color-warn, #F59E0B)",
   missed_window: "var(--color-border)",
   no_time:       "var(--color-border)",
@@ -471,9 +471,9 @@ function MealDrawer({
               gap: 8,
               padding: "10px 14px",
               borderRadius: 10,
-              background: "var(--color-success-soft, rgba(34,197,94,.08))",
-              border: "1px solid var(--color-success, #22C55E)",
-              color: "var(--color-success, #22C55E)",
+              background: "var(--color-success-soft, rgba(123,153,25,.08))",
+              border: "1px solid var(--color-success, #7B9919)",
+              color: "var(--color-success, #7B9919)",
               fontSize: 14,
               fontWeight: 600,
             }}
@@ -859,8 +859,8 @@ export default function NutritionPlanViewPage() {
               <span style={{
                 fontSize: 12, fontWeight: 700,
                 padding: "3px 10px", borderRadius: 99,
-                background: "var(--color-success-soft, rgba(34,197,94,.1))",
-                color: "var(--color-success, #22C55E)",
+                background: "var(--color-success-soft, rgba(123,153,25,.1))",
+                color: "var(--color-success, #7B9919)",
               }}>
                 {timeline.streak} {timeline.streak === 1 ? "dia em sequência" : "dias em sequência"}
               </span>

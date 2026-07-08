@@ -442,7 +442,7 @@ export default function RetroWorkoutPage() {
       {/* PASSO 4 — SUCESSO */}
       {step === "done" && result && (
         <div style={{ ...CARD, textAlign: "center" }}>
-          <strong style={{ fontSize: 18, color: "var(--color-success-text, #16A34A)" }}>Treino registrado ✓</strong>
+          <strong style={{ fontSize: 18, color: "var(--color-success-text, #5E7412)" }}>Treino registrado ✓</strong>
           <p style={{ margin: 0, color: "var(--color-text-soft, #4B5563)", fontSize: 15, lineHeight: 1.5 }}>
             {result.countedForStreak
               ? `Registrado no seu histórico e sua sequência está de pé${result.streak != null ? `: ${result.streak} ${result.streak === 1 ? "dia" : "dias"}` : ""}.`
@@ -462,7 +462,7 @@ const primaryBtn: React.CSSProperties = {
   padding: "12px 18px",
   borderRadius: "var(--radius-md, 10px)",
   border: "none",
-  background: "var(--color-primary, #2563EB)",
+  background: "var(--action-primary, #5E7412)",
   color: "var(--color-cta-text, #fff)",
   fontWeight: 700,
   fontSize: 15,

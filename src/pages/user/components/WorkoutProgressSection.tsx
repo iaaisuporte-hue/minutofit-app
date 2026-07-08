@@ -25,7 +25,7 @@ function Sparkline({ values }: { values: number[] }) {
     .join(" ");
   return (
     <svg width={w} height={h} aria-hidden="true" style={{ display: "block", flexShrink: 0 }}>
-      <polyline points={pts} fill="none" stroke="var(--color-primary, #16A34A)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <polyline points={pts} fill="none" stroke="var(--color-primary, #5E7412)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -54,7 +54,7 @@ function ExerciseRow({ ex }: { ex: ExerciseProgression }) {
         <Sparkline values={ex.points.map((p) => p.maxLoadKg)} />
         <div style={{ textAlign: "right", flexShrink: 0 }}>
           <div style={{ fontWeight: 700, color: "var(--color-text)" }}>{ex.firstLoadKg} → {ex.lastLoadKg} kg</div>
-          <div style={{ fontSize: 12, fontWeight: 700, color: up ? "var(--color-success-text, #16A34A)" : flat ? "var(--color-text-muted)" : "var(--color-warn, #D97706)" }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: up ? "var(--color-success-text, #5E7412)" : flat ? "var(--color-text-muted)" : "var(--color-warn, #D97706)" }}>
             {up ? "▲" : flat ? "→" : "▼"} {up ? "+" : ""}{ex.deltaKg} kg
           </div>
         </div>
@@ -68,7 +68,7 @@ function ExerciseRow({ ex }: { ex: ExerciseProgression }) {
               <XAxis dataKey="date" tick={{ fontSize: 11, fill: "var(--color-text-muted, #6B7280)" }} tickLine={false} axisLine={false} />
               <YAxis width={40} tick={{ fontSize: 11, fill: "var(--color-text-muted, #6B7280)" }} tickLine={false} axisLine={false} unit="kg" />
               <Tooltip formatter={(value) => [`${value} kg`, "Carga"]} labelStyle={{ fontSize: 12 }} contentStyle={{ fontSize: 12, borderRadius: 8 }} />
-              <Line type="monotone" dataKey="kg" stroke="var(--color-primary, #16A34A)" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+              <Line type="monotone" dataKey="kg" stroke="var(--color-primary, #5E7412)" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
             </LineChart>
           </ResponsiveContainer>
         </div>

@@ -62,7 +62,7 @@ export function PersonalWelcomeCard({ firstName, hasStudents, hasPlan, hasChecki
         marginBottom: 12,
       }}
     >
-      <div style={{ height: 3, background: "var(--gradient-primary, linear-gradient(90deg,#22c55e,#06b6d4))" }} />
+      <div style={{ height: 3, background: "var(--gradient-primary, linear-gradient(90deg,#7B9919,#06b6d4))" }} />
       <div style={{ padding: 20, display: "grid", gap: 16 }}>
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
           <div style={{ display: "grid", gap: 4 }}>
@@ -106,7 +106,7 @@ export function PersonalWelcomeCard({ firstName, hasStudents, hasPlan, hasChecki
               <div
                 style={{
                   width: 20, height: 20, borderRadius: "50%", flexShrink: 0, marginTop: 2,
-                  background: step.done ? "var(--color-success, #22c55e)" : "var(--color-border)",
+                  background: step.done ? "var(--color-success, #7B9919)" : "var(--color-border)",
                   display: "flex", alignItems: "center", justifyContent: "center",
                 }}
               >

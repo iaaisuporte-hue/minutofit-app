@@ -225,8 +225,8 @@ export default function NetworkProfilePage() {
         className="card cardPad"
         style={{
           marginBottom: 20,
-          background: isPublished ? "rgba(34,197,94,.08)" : "var(--color-surface-raised)",
-          border: `1.5px solid ${isPublished ? "var(--color-success,#22C55E)" : "var(--color-border)"}`,
+          background: isPublished ? "rgba(123,153,25,.08)" : "var(--color-surface-raised)",
+          border: `1.5px solid ${isPublished ? "var(--color-success,#7B9919)" : "var(--color-border)"}`,
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
@@ -241,7 +241,7 @@ export default function NetworkProfilePage() {
               fontWeight: 700,
               textTransform: "uppercase",
               letterSpacing: "0.06em",
-              color: isPublished ? "var(--color-success,#22C55E)" : COLORS.muted,
+              color: isPublished ? "var(--color-success,#7B9919)" : COLORS.muted,
               marginBottom: 2,
             }}
           >
@@ -491,7 +491,7 @@ export default function NetworkProfilePage() {
           <div style={{ fontSize: 12, color: COLORS.danger }}>{saveError}</div>
         )}
         {saveSuccess && (
-          <div style={{ fontSize: 12, color: "var(--color-success,#22C55E)" }}>
+          <div style={{ fontSize: 12, color: "var(--color-success,#7B9919)" }}>
             Alterações salvas com sucesso.
           </div>
         )}

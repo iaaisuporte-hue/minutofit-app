@@ -93,7 +93,7 @@ function ExtraYoutubeModal({
           width: "100%",
           maxHeight: "min(80vh, 640px)",
           overflow: "auto",
-          border: "1px solid rgba(34,197,94,.16)",
+          border: "1px solid rgba(123,153,25,.16)",
           boxShadow: "0 24px 60px rgba(0,0,0,.4)",
         }}
         onClick={(e) => e.stopPropagation()}
@@ -141,8 +141,8 @@ function ExtraYoutubeModal({
                 display: "flex",
                 gap: 12,
                 padding: 12,
-                background: "rgba(34,197,94,.08)",
-                border: "1px solid rgba(34,197,94,.24)",
+                background: "rgba(123,153,25,.08)",
+                border: "1px solid rgba(123,153,25,.24)",
                 borderRadius: 12,
                 textDecoration: "none",
                 cursor: "pointer",
@@ -153,14 +153,14 @@ function ExtraYoutubeModal({
                   width: 36,
                   height: 36,
                   borderRadius: 8,
-                  background: "rgba(34,197,94,.16)",
+                  background: "rgba(123,153,25,.16)",
                   display: "grid",
                   placeItems: "center",
                   flexShrink: 0,
                 }}
                 aria-hidden
               >
-                <Play size={18} color="#16A34A" fill="#16A34A" />
+                <Play size={18} color="#5E7412" fill="#5E7412" />
               </div>
               <div>
                 <div style={{ fontWeight: 600, color: "#1F2937" }}>{video.title}</div>
@@ -192,11 +192,11 @@ function AccessibilityPill({ label, supported }: { label: string; supported: boo
       style={{
         padding: "6px 10px",
         borderRadius: 999,
-        border: `1px solid ${supported ? "rgba(34,197,94,.36)" : COLORS.border}`,
+        border: `1px solid ${supported ? "rgba(123,153,25,.36)" : COLORS.border}`,
         fontSize: 11,
         fontWeight: 600,
-        background: supported ? "rgba(34,197,94,.12)" : "#F3F4F6",
-        color: supported ? "#15803D" : "#6B7280",
+        background: supported ? "rgba(123,153,25,.12)" : "#F3F4F6",
+        color: supported ? "#5E7412" : "#6B7280",
         lineHeight: "1",
         display: "inline-flex",
         alignItems: "center",
@@ -282,7 +282,7 @@ export default function HomeWorkoutsPage() {
               inset: -24,
               y: heroMeshY,
               background:
-                "radial-gradient(circle at 18% 24%, rgba(34,197,94,.12), transparent 45%), radial-gradient(circle at 84% 20%, rgba(34,197,94,.12), transparent 42%)",
+                "radial-gradient(circle at 18% 24%, rgba(123,153,25,.12), transparent 45%), radial-gradient(circle at 84% 20%, rgba(123,153,25,.12), transparent 42%)",
               pointerEvents: "none",
             }}
           />
@@ -466,7 +466,7 @@ export default function HomeWorkoutsPage() {
                         whileTap={disabled ? undefined : subtleTapScale}
                         animate={
                           !disabled && shouldUsePulse
-                            ? { boxShadow: ["0 8px 18px rgba(34,197,94,.18)", "0 10px 22px rgba(34,197,94,.28)", "0 8px 18px rgba(34,197,94,.18)"] }
+                            ? { boxShadow: ["0 8px 18px rgba(123,153,25,.18)", "0 10px 22px rgba(123,153,25,.28)", "0 8px 18px rgba(123,153,25,.18)"] }
                             : undefined
                         }
                         transition={!disabled && shouldUsePulse ? { duration: 2.8, repeat: Infinity, ease: "easeInOut" } : undefined}
@@ -475,7 +475,7 @@ export default function HomeWorkoutsPage() {
                           padding: "12px 14px",
                           borderRadius: 14,
                           border: `1px solid ${disabled ? "#F3F4F6" : COLORS.borderStrong}`,
-                          background: disabled ? "#FAFAFA" : "#22C55E",
+                          background: disabled ? "#FAFAFA" : "#7B9919",
                           color: disabled ? COLORS.mutedSoft : "#FFFFFF",
                           fontWeight: 700,
                           cursor: disabled ? "not-allowed" : "pointer",
@@ -495,7 +495,7 @@ export default function HomeWorkoutsPage() {
                             padding: "12px 14px",
                             borderRadius: 14,
                             border: `1px solid ${COLORS.borderStrong}`,
-                            background: "rgba(34,197,94,.10)",
+                            background: "rgba(123,153,25,.10)",
                             color: COLORS.text,
                             fontWeight: 700,
                             cursor: "pointer",
@@ -516,7 +516,7 @@ export default function HomeWorkoutsPage() {
                             padding: "12px 14px",
                             borderRadius: 14,
                             border: `1px solid ${COLORS.borderStrong}`,
-                            background: "rgba(34,197,94,.10)",
+                            background: "rgba(123,153,25,.10)",
                             color: COLORS.text,
                             fontWeight: 700,
                             cursor: "pointer",

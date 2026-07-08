@@ -241,7 +241,7 @@ function ActivityBlock({ activity }: { activity?: StudentActivity }) {
   const adherence = activity.adherence30dPct;
   const barColor =
     adherence == null ? "var(--color-border)"
-    : adherence >= 70 ? "var(--color-success, #22c55e)"
+    : adherence >= 70 ? "var(--color-success, #7B9919)"
     : adherence >= 40 ? "var(--color-warning, #f59e0b)"
     : "var(--color-danger, #ef4444)";
 

@@ -16,7 +16,7 @@ const STATUS_LABEL: Record<SubscriptionStatus, string> = {
 
 const STATUS_COLOR: Record<SubscriptionStatus, string> = {
   pending_payment: 'var(--color-warn,#f59e0b)',
-  active: 'var(--color-success,#22C55E)',
+  active: 'var(--color-success,#7B9919)',
   paused: 'var(--color-warn,#f59e0b)',
   cancelled: 'var(--color-text-muted)',
   expired: 'var(--color-text-muted)',

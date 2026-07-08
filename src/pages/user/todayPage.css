@@ -139,7 +139,7 @@
 }
 
 .today-reward-pill {
-  background: rgba(34, 197, 94, 0.08);
+  background: rgba(123, 153, 25, 0.08);
 }
 
 .today-tag {
@@ -176,7 +176,7 @@
 .today-progress-fill {
   height: 100%;
   border-radius: 999px;
-  background: linear-gradient(90deg, #22c55e, #06b6d4);
+  background: linear-gradient(90deg, #7B9919, #06b6d4);
 }
 
 .today-footnote,
@@ -199,7 +199,7 @@
 }
 
 .today-compact-stat-accent {
-  background: rgba(34, 197, 94, 0.06);
+  background: rgba(123, 153, 25, 0.06);
 }
 
 .today-compact-stat-value {
@@ -241,7 +241,7 @@
 }
 
 .today-quick-action-card-highlight {
-  background: linear-gradient(140deg, rgba(6, 182, 212, 0.08), rgba(34, 197, 94, 0.08));
+  background: linear-gradient(140deg, rgba(6, 182, 212, 0.08), rgba(123, 153, 25, 0.08));
 }
 
 .today-quick-action-title {
@@ -270,7 +270,7 @@
 }
 
 .today-forecast-metric-positive {
-  background: rgba(34, 197, 94, 0.05);
+  background: rgba(123, 153, 25, 0.05);
 }
 
 .today-forecast-label,
@@ -301,7 +301,7 @@
 
 .today-impact-preview {
   padding: 14px 16px;
-  background: rgba(34, 197, 94, 0.05);
+  background: rgba(123, 153, 25, 0.05);
   display: grid;
   gap: 6px;
   transition: transform 0.22s ease, box-shadow 0.22s ease, background 0.22s ease;
@@ -336,7 +336,7 @@
 }
 
 .today-group-button.is-active {
-  box-shadow: 0 10px 22px rgba(34, 197, 94, 0.1);
+  box-shadow: 0 10px 22px rgba(123, 153, 25, 0.1);
 }
 
 .today-group-button.is-disabled {
@@ -405,7 +405,7 @@
 .today-workout-impact {
   font-size: 12px;
   font-weight: 700;
-  color: #16a34a;
+  color: #5E7412;
 }
 
 .today-workout-metric {
@@ -449,7 +449,7 @@
   height: 8px;
   margin-top: 6px;
   border-radius: 999px;
-  background: linear-gradient(135deg, #22c55e, #06b6d4);
+  background: linear-gradient(135deg, #7B9919, #06b6d4);
   flex: 0 0 auto;
 }
 

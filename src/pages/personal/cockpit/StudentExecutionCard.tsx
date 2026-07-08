@@ -31,7 +31,7 @@ export function StudentExecutionCard({ studentId }: { studentId: string }) {
   if (!summary || summary.total === 0) return null;
 
   const adh = summary.adherencePct;
-  const adhColor = adh == null ? "var(--color-text-muted)" : adh >= 80 ? "var(--color-success-text, #16A34A)" : adh >= 50 ? "var(--color-warn, #D97706)" : "var(--color-danger, #DC2626)";
+  const adhColor = adh == null ? "var(--color-text-muted)" : adh >= 80 ? "var(--color-success-text, #5E7412)" : adh >= 50 ? "var(--color-warn, #D97706)" : "var(--color-danger, #DC2626)";
 
   // Desconforto relatado nas sessões recentes (P1-3) — movimentos distintos.
   const recentDiscomfort = Array.from(

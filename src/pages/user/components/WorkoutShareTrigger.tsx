@@ -43,7 +43,7 @@ export function WorkoutShareTrigger({ focus, dayName, stats, variant = "ghost", 
   };
   const style: React.CSSProperties =
     variant === "primary"
-      ? { ...base, border: "none", background: "var(--color-primary)", color: "var(--color-cta-text, #fff)" }
+      ? { ...base, border: "none", background: "var(--action-primary)", color: "var(--color-cta-text, #fff)" }
       : { ...base, border: "1px solid var(--color-border)", background: "transparent", color: "var(--color-text)" };
 
   return (

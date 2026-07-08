@@ -95,7 +95,7 @@ export function InstallPrompt() {
           height: 36,
           borderRadius: 9,
           background: "rgba(29,185,84,0.1)",
-          color: "var(--color-primary, #1DB954)",
+          color: "var(--color-primary, #7B9919)",
           flexShrink: 0,
         }}
       >
@@ -113,7 +113,7 @@ export function InstallPrompt() {
           flexShrink: 0,
           padding: "7px 14px",
           borderRadius: 8,
-          background: "var(--color-primary, #1DB954)",
+          background: "var(--action-primary, #5E7412)",
           color: "#fff",
           fontSize: 13,
           fontWeight: 600,

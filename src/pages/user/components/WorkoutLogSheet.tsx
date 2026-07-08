@@ -66,7 +66,7 @@ const inputStyle: CSSProperties = {
 };
 const primaryBtn: CSSProperties = {
   flex: 1, padding: "12px 16px", borderRadius: 12, border: "none",
-  background: "var(--color-primary, #16A34A)", color: "var(--color-cta-text, #fff)",
+  background: "var(--action-primary, #5E7412)", color: "var(--color-cta-text, #fff)",
   fontWeight: 700, fontSize: 15, cursor: "pointer", minHeight: 44,
 };
 const ghostBtn: CSSProperties = {
@@ -75,8 +75,8 @@ const ghostBtn: CSSProperties = {
 };
 const pill = (active: boolean): CSSProperties => ({
   flex: 1, padding: "7px 6px", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer",
-  border: `1px solid ${active ? "var(--color-primary, #16A34A)" : "var(--color-border, #E5E7EB)"}`,
-  background: active ? "var(--color-primary-soft, rgba(34,197,94,.12))" : "transparent",
+  border: `1px solid ${active ? "var(--color-primary, #5E7412)" : "var(--color-border, #E5E7EB)"}`,
+  background: active ? "var(--color-primary-soft, rgba(123,153,25,.12))" : "transparent",
   color: active ? "var(--color-text, #0A130D)" : "var(--color-text-muted, #6B7280)",
 });
 

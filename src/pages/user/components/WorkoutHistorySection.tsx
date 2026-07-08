@@ -18,7 +18,7 @@ import { useFeatureFlags } from "../../../auth/FeatureFlagsContext";
 // WorkoutProgressSection.
 
 const STATUS_META: Record<WorkoutSessionStatus, { label: string; color: string }> = {
-  completed: { label: "Concluído", color: "var(--color-success-text, #16A34A)" },
+  completed: { label: "Concluído", color: "var(--color-success-text, #5E7412)" },
   partial: { label: "Parcial", color: "var(--color-warn, #D97706)" },
   abandoned: { label: "Incompleto", color: "var(--color-text-muted, #6B7280)" },
   started: { label: "Em andamento", color: "var(--color-text-muted, #6B7280)" },
@@ -34,7 +34,7 @@ const SOURCE_LABEL: Record<WorkoutSessionSource, string> = {
 };
 
 const READINESS_COLOR: Record<ReadinessLevel, string> = {
-  green: "var(--color-success-text, #16A34A)",
+  green: "var(--color-success-text, #5E7412)",
   yellow: "var(--color-warn, #D97706)",
   red: "var(--color-danger, #DC2626)",
 };

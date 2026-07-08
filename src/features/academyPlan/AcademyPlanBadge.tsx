@@ -13,9 +13,9 @@ export function AcademyPlanBadge({ plan }: { plan: AcademySaasPlan }) {
         fontWeight: 800,
         letterSpacing: "0.06em",
         textTransform: "uppercase",
-        color: isPro ? "var(--color-success-text, #15803d)" : "var(--color-text-muted)",
-        background: isPro ? "var(--color-success-soft, rgba(34,197,94,.12))" : "var(--color-surface-2, rgba(0,0,0,.05))",
-        border: `1px solid ${isPro ? "var(--color-success-border, rgba(34,197,94,.3))" : "var(--color-border)"}`,
+        color: isPro ? "var(--color-success-text, #5E7412)" : "var(--color-text-muted)",
+        background: isPro ? "var(--color-success-soft, rgba(123,153,25,.12))" : "var(--color-surface-2, rgba(0,0,0,.05))",
+        border: `1px solid ${isPro ? "var(--color-success-border, rgba(123,153,25,.3))" : "var(--color-border)"}`,
       }}
     >
       {isPro ? "Pro" : "Free"}
