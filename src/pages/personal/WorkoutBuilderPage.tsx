@@ -786,7 +786,7 @@ export default function WorkoutBuilderPage() {
                                 borderRadius: 6,
                                 overflow: "hidden",
                                 flexShrink: 0,
-                                background: "#F1F5F9",
+                                background: "var(--color-surface-subtle)",
                               }}
                             >
                               <img
@@ -834,7 +834,7 @@ export default function WorkoutBuilderPage() {
                             width: 40,
                             height: 40,
                             borderRadius: 6,
-                            background: "#F1F5F9",
+                            background: "var(--color-surface-subtle)",
                             flexShrink: 0,
                             display: "grid",
                             placeItems: "center",

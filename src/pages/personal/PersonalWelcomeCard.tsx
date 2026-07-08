@@ -98,8 +98,8 @@ export function PersonalWelcomeCard({ firstName, hasStudents, hasPlan, hasChecki
                 gap: 12,
                 padding: "12px 14px",
                 borderRadius: 10,
-                border: `1px solid ${step.done ? "var(--color-success-soft, #dcfce7)" : "var(--color-border)"}`,
-                background: step.done ? "var(--color-success-soft, #f0fdf4)" : "transparent",
+                border: `1px solid ${step.done ? "var(--color-success-soft, var(--color-success-soft))" : "var(--color-border)"}`,
+                background: step.done ? "var(--color-success-soft, var(--color-success-soft))" : "transparent",
                 opacity: step.done ? 0.7 : 1,
               }}
             >

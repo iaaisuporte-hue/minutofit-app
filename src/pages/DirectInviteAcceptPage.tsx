@@ -10,12 +10,12 @@ const FIELD_STYLE: React.CSSProperties = {
   width: "100%",
   padding: "10px 12px",
   borderRadius: 10,
-  border: "1px solid #E2E8F0",
+  border: "1px solid var(--color-border)",
   fontSize: 14,
   outline: "none",
   boxSizing: "border-box",
   fontFamily: "inherit",
-  color: "#1E293B",
+  color: "var(--color-text)",
   background: "var(--color-surface)",
 };
 
@@ -150,7 +150,7 @@ export default function DirectInviteAcceptPage() {
     return (
       <div style={pageStyle}>
         <div style={cardStyle}>
-          <div style={{ fontWeight: 700, fontSize: 20, color: "#1E293B" }}>Convite inválido</div>
+          <div style={{ fontWeight: 700, fontSize: 20, color: "var(--color-text)" }}>Convite inválido</div>
           <div style={{ color: "#64748B", fontSize: 14, lineHeight: 1.6 }}>
             {infoError || "Este link de convite não existe ou já expirou."}
           </div>
@@ -179,7 +179,7 @@ export default function DirectInviteAcceptPage() {
     return (
       <div style={pageStyle}>
         <div style={cardStyle}>
-          <div style={{ fontWeight: 700, fontSize: 20, color: "#1E293B" }}>
+          <div style={{ fontWeight: 700, fontSize: 20, color: "var(--color-text)" }}>
             {inviteInfo.status === "accepted" ? "Convite já aceito" : "Convite expirado"}
           </div>
           <div style={{ color: "#64748B", fontSize: 14, lineHeight: 1.6 }}>
@@ -229,7 +229,7 @@ export default function DirectInviteAcceptPage() {
             Convite de {professionalLabel}
           </div>
           <div
-            style={{ fontWeight: 750, fontSize: 22, color: "#1E293B", lineHeight: 1.2 }}
+            style={{ fontWeight: 750, fontSize: 22, color: "var(--color-text)", lineHeight: 1.2 }}
           >
             {professionalName} te convidou para acompanhamento{" "}
             {inviteType === "nutri" ? "nutricional" : "personal"}
@@ -239,12 +239,12 @@ export default function DirectInviteAcceptPage() {
           {existingAccountEmail ? (
             <div
               style={{
-                background: "#EFF6FF",
+                background: "var(--color-info-soft)",
                 border: "1px solid #BFDBFE",
                 borderRadius: 10,
                 padding: "10px 14px",
                 fontSize: 13,
-                color: "#1E40AF",
+                color: "var(--color-info-text)",
                 textAlign: "left",
                 lineHeight: 1.5,
               }}
@@ -340,7 +340,7 @@ export default function DirectInviteAcceptPage() {
               style={{
                 color: "#DC2626",
                 fontSize: 13,
-                background: "#FEF2F2",
+                background: "var(--color-danger-soft)",
                 border: "1px solid #FECACA",
                 borderRadius: 8,
                 padding: "8px 12px",

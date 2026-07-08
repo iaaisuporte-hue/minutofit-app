@@ -325,7 +325,7 @@ export default function HomeWorkoutsPage() {
               style={{
                 borderRadius: 16,
                 border: `1px solid ${COLORS.border}`,
-                background: "#FAFAFA",
+                background: "var(--color-surface-raised)",
                 padding: 14,
                 color: COLORS.muted,
                 fontSize: 13,

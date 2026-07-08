@@ -87,7 +87,7 @@ export function CockpitTabAiSummary({ studentId }: Props) {
             padding: "12px 14px",
             border: "1px solid var(--color-danger-border, #fca5a5)",
             borderRadius: 10,
-            background: "var(--color-danger-soft, #fef2f2)",
+            background: "var(--color-danger-soft, var(--color-danger-soft))",
             color: "var(--color-danger-text, #dc2626)",
             fontSize: 13,
           }}

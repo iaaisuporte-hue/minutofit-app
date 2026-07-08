@@ -834,7 +834,7 @@ export default function StudentCompliancePanel() {
                   padding: "12px 14px",
                   borderRadius: 12,
                   border: `1px solid ${neon.border}`,
-                  background: "#FAFAFA",
+                  background: "var(--color-surface-raised)",
                   color: neon.text,
                   fontSize: 16,
                   minHeight: 44,

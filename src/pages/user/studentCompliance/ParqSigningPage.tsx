@@ -50,7 +50,7 @@ export default function ParqSigningPage() {
                 marginTop: 12,
                 padding: '10px 14px',
                 borderRadius: 10,
-                background: '#fef2f2',
+                background: 'var(--color-danger-soft)',
                 border: '1px solid #fca5a5',
                 color: '#991b1b',
                 fontSize: 13,

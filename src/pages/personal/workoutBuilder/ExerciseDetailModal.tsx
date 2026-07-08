@@ -165,7 +165,7 @@ export function ExerciseDetailModal({ exerciseId, alreadyAdded, onAdd, onClose }
                       height: 240,
                       borderRadius: 10,
                       overflow: "hidden",
-                      background: "#F1F5F9",
+                      background: "var(--color-surface-subtle)",
                       flexShrink: 0,
                     }}
                   >
@@ -238,7 +238,7 @@ export function ExerciseDetailModal({ exerciseId, alreadyAdded, onAdd, onClose }
                   style={{
                     height: 120,
                     borderRadius: 10,
-                    background: "#F1F5F9",
+                    background: "var(--color-surface-subtle)",
                     display: "grid",
                     placeItems: "center",
                     color: WB.muted,

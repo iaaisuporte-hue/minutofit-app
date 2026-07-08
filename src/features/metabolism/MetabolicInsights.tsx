@@ -40,7 +40,7 @@ export function MetabolicInsights({ recommendations, loading }: Props) {
                 padding: '14px 16px',
                 borderRadius: 12,
                 border: '1px solid var(--color-border)',
-                background: '#FAFAFA',
+                background: 'var(--color-surface-raised)',
                 display: 'grid',
                 gap: 4,
               }}

@@ -234,7 +234,7 @@ export default function AdminAcademyDetailPage() {
 
       {/* Reset password result */}
       {resetResult && (
-        <div className="card" style={{ marginBottom: "var(--space-5)", borderColor: "var(--color-success)", background: "var(--color-success-bg, #f0fdf4)" }}>
+        <div className="card" style={{ marginBottom: "var(--space-5)", borderColor: "var(--color-success)", background: "var(--color-success-bg, var(--color-success-soft))" }}>
           <p style={{ margin: "0 0 var(--space-2) 0", fontWeight: 600 }}>
             Nova senha gerada para {resetResult.name} ({resetResult.email})
           </p>
@@ -261,7 +261,7 @@ export default function AdminAcademyDetailPage() {
 
       {/* Owner result after assign */}
       {ownerResult && (
-        <div className="card" style={{ marginBottom: "var(--space-5)", borderColor: "var(--color-success)", background: "var(--color-success-bg, #f0fdf4)" }}>
+        <div className="card" style={{ marginBottom: "var(--space-5)", borderColor: "var(--color-success)", background: "var(--color-success-bg, var(--color-success-soft))" }}>
           <p style={{ margin: "0 0 var(--space-1) 0", fontWeight: 600 }}>Dono atribuído: {ownerResult.name} ({ownerResult.email})</p>
           {ownerResult.tempPassword && (
             <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", marginTop: "var(--space-2)" }}>

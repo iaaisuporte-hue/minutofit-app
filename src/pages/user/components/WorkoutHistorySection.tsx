@@ -319,7 +319,7 @@ export function WorkoutHistorySection() {
             margin: 0,
             fontSize: 13,
             color: "var(--color-text-soft, #4B5563)",
-            background: "var(--color-warn-soft, #FEF3C7)",
+            background: "var(--color-warn-soft, var(--color-warn-soft))",
             border: "1px solid var(--color-warn, #D97706)",
             borderRadius: "var(--radius-md, 10px)",
             padding: "10px 12px",

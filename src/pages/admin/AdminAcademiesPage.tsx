@@ -364,7 +364,7 @@ export default function AdminAcademiesPage() {
 
       {/* Created owner success banner */}
       {createdOwner && (
-        <div className="card" style={{ marginBottom: "var(--space-5)", borderColor: "var(--color-success)", background: "var(--color-success-bg, #f0fdf4)" }}>
+        <div className="card" style={{ marginBottom: "var(--space-5)", borderColor: "var(--color-success)", background: "var(--color-success-bg, var(--color-success-soft))" }}>
           <div className="card-header" style={{ paddingBottom: "var(--space-2)" }}>
             <h3 className="card-title" style={{ color: "var(--color-success)" }}>
               Academia "{createdAcademy?.display_name}" criada com sucesso
@@ -397,7 +397,7 @@ export default function AdminAcademiesPage() {
 
       {/* Assign-owner result banner */}
       {assignResult && (
-        <div className="card" style={{ marginBottom: "var(--space-5)", borderColor: "var(--color-success)", background: "var(--color-success-bg, #f0fdf4)" }}>
+        <div className="card" style={{ marginBottom: "var(--space-5)", borderColor: "var(--color-success)", background: "var(--color-success-bg, var(--color-success-soft))" }}>
           <p style={{ margin: 0 }}>
             <strong>Dono atribuído:</strong> {assignResult.name} ({assignResult.email})
           </p>

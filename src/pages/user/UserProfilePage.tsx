@@ -250,7 +250,7 @@ function drawEvolutionShareCard(opts: {
     ctx.font = "600 32px system-ui, -apple-system, sans-serif";
     ctx.fillText("Score metabólico", 72, 400);
 
-    ctx.fillStyle = "#e2e8f0";
+    ctx.fillStyle = "var(--color-border)";
     ctx.font = "600 34px system-ui, -apple-system, sans-serif";
     ctx.fillText(`30 dias: ${opts.trend30Label}`, 72, 520);
 

@@ -332,7 +332,7 @@ export default function StudentsListPage() {
             overflow: "hidden",
             borderRadius: 999,
             border: `1px solid ${COLORS.border}`,
-            background: "#FAFAFA",
+            background: "var(--color-surface-raised)",
           }}
         >
           {statusSummary.segments.map((segment) =>

@@ -18,7 +18,7 @@ export default function ComplianceBanner() {
   const isExpired = clearance.reason === "expired";
 
   const borderColor = isExpired ? "var(--color-danger-border, #fca5a5)" : "var(--color-warn-border)";
-  const bgColor = isExpired ? "var(--color-danger-soft, #fef2f2)" : "var(--color-warn-soft)";
+  const bgColor = isExpired ? "var(--color-danger-soft, var(--color-danger-soft))" : "var(--color-warn-soft)";
   const textStrong = isExpired ? "var(--color-danger, #dc2626)" : "var(--color-warn-text)";
   const textBody = isExpired ? "var(--color-danger-text-strong, #991b1b)" : "var(--color-warn-text-strong)";
 

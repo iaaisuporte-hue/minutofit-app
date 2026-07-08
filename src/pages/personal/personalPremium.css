@@ -13,7 +13,7 @@
   --color-surface-subtle: #ECF3F7;
 
   /* Bordas com leve toque cyan — visíveis sem serem pesadas */
-  --color-border-subtle: #DCE7EE;
+  --color-border-subtle: var(--color-border);
   --color-border: #C9D7E0;
 
   --color-text-tertiary: #4A5A6A;

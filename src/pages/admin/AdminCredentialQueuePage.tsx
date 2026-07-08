@@ -13,7 +13,7 @@ function StatusBadge({ status }: { status: string }) {
     approved: { bg: "#14532d", text: "#86efac" },
     rejected: { bg: "#7f1d1d", text: "#fca5a5" },
   };
-  const c = colors[status] ?? { bg: "#374151", text: "#d1d5db" };
+  const c = colors[status] ?? { bg: "#374151", text: "var(--color-border)" };
   return (
     <span style={{
       padding: "2px 8px", borderRadius: 6, fontSize: 11, fontWeight: 600,

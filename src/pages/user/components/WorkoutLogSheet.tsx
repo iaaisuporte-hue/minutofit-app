@@ -61,7 +61,7 @@ const rowStyle: CSSProperties = {
   padding: "10px 12px", borderRadius: 10, border: "1px solid var(--color-border, var(--color-border))",
 };
 const inputStyle: CSSProperties = {
-  width: 60, padding: "8px 10px", borderRadius: 8, border: "1px solid var(--color-border-strong, #D1D5DB)",
+  width: 60, padding: "8px 10px", borderRadius: 8, border: "1px solid var(--color-border-strong, var(--color-border))",
   fontSize: 14, textAlign: "right",
 };
 const primaryBtn: CSSProperties = {
