@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { ExternalLink } from "lucide-react";
+import { STUDENT_BILLING_ENABLED } from "../../../config/features";
 import { RelationshipTimeline } from "../../../features/personalRetention/RelationshipTimeline";
 import { QuickActionsMenu } from "../../../features/personalRetention/QuickActionsMenu";
 import {
@@ -265,7 +266,10 @@ function SubscriptionSection({ studentId, studentEmail }: { studentId: string; s
 export function CockpitTabRelationship({ studentId, studentName, studentEmail }: Props) {
   return (
     <div style={{ padding: "4px 0" }}>
-      <SubscriptionSection studentId={studentId} studentEmail={studentEmail} />
+      {/* Cobrança de aluno congelada na V1 (STUDENT_BILLING_ENABLED) — oculta. */}
+      {STUDENT_BILLING_ENABLED && (
+        <SubscriptionSection studentId={studentId} studentEmail={studentEmail} />
+      )}
 
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
         <span style={{ fontSize: 13, fontWeight: 600, color: "var(--color-text-primary)" }}>

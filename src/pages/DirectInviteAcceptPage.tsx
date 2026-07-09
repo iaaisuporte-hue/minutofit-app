@@ -3,6 +3,11 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { fetchDirectInviteInfo, acceptDirectInvite } from "../services/personalDirectInvitesApi";
 import { fetchNutriDirectInviteInfo, acceptNutriDirectInvite } from "../services/nutriDirectInvitesApi";
 import { setTokens } from "../services/authTokens";
+import {
+  SCOPE_LABELS,
+  DIRECT_INVITE_SCOPES_PERSONAL,
+  DIRECT_INVITE_SCOPES_NUTRI,
+} from "../features/team/types";
 
 type InviteType = "personal" | "nutri";
 
@@ -212,6 +217,8 @@ export default function DirectInviteAcceptPage() {
 
   const professionalLabel = inviteType === "nutri" ? "nutricionista" : "personal";
   const professionalName = inviteInfo.professionalName || inviteInfo.personalName;
+  const grantedScopes =
+    inviteType === "nutri" ? DIRECT_INVITE_SCOPES_NUTRI : DIRECT_INVITE_SCOPES_PERSONAL;
 
   return (
     <div style={pageStyle}>
@@ -259,6 +266,48 @@ export default function DirectInviteAcceptPage() {
                 : "Crie sua conta ou use sua conta existente para se conectar."}
             </div>
           )}
+        </div>
+
+        {/* Consentimento informado (LGPD art. 8º §4): o aceite concede a este
+            profissional acesso aos dados abaixo. Espelha DIRECT_INVITE_SCOPES_*
+            do backend. O aluno pode revogar cada item depois em Minha Equipe. */}
+        <div
+          style={{
+            background: "var(--color-bg-main)",
+            border: "1px solid var(--color-border)",
+            borderRadius: 12,
+            padding: "14px 16px",
+            display: "grid",
+            gap: 10,
+            textAlign: "left",
+          }}
+        >
+          <div style={{ fontSize: 13, fontWeight: 700, color: "var(--color-text)" }}>
+            Ao aceitar, você compartilha com {professionalName}:
+          </div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+            {grantedScopes.map((scope) => (
+              <span
+                key={scope}
+                style={{
+                  fontSize: 12,
+                  fontWeight: 600,
+                  color: "var(--color-text)",
+                  background: "var(--color-surface)",
+                  border: "1px solid var(--color-border)",
+                  borderRadius: 999,
+                  padding: "4px 10px",
+                }}
+              >
+                {SCOPE_LABELS[scope]}
+              </span>
+            ))}
+          </div>
+          <div style={{ fontSize: 12, color: "#64748B", lineHeight: 1.5 }}>
+            Só o profissional que você autorizar vê esses dados. Você pode rever ou
+            revogar cada permissão a qualquer momento em{" "}
+            <strong>Perfil → Minha Equipe</strong>.
+          </div>
         </div>
 
         <form onSubmit={(e) => void handleSubmit(e)} style={{ display: "grid", gap: 12 }}>

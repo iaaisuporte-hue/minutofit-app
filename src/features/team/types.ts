@@ -36,6 +36,20 @@ export const SCOPE_LABELS: Record<ConsentScope, string> = {
 export const DEFAULT_SCOPES_PERSONAL: ConsentScope[] = ['profile', 'workouts', 'daily_checkins'];
 export const DEFAULT_SCOPES_NUTRI: ConsentScope[] = ['profile', 'daily_checkins', 'nutrition'];
 
+// Escopos concedidos automaticamente ao ACEITAR um convite direto (link) de um
+// profissional. Espelho de `DIRECT_INVITE_SCOPES_*` em
+// `backend/src/services/consentService.ts` — mantê-los em sincronia. Exibidos na
+// tela de aceite (consentimento informado, LGPD art. 8º §4); o aluno pode
+// revogar qualquer um depois em Perfil → Minha Equipe.
+export const DIRECT_INVITE_SCOPES_PERSONAL: ConsentScope[] = [
+  'profile', 'workouts', 'daily_checkins', 'metabolic', 'sleep',
+  'body_metrics', 'parq_anamnese', 'activity_logs', 'chat_history',
+];
+export const DIRECT_INVITE_SCOPES_NUTRI: ConsentScope[] = [
+  'profile', 'nutrition', 'clinical_nutrition', 'daily_checkins', 'metabolic',
+  'body_metrics', 'parq_anamnese', 'chat_history',
+];
+
 // Todos os escopos que o aluno PODE conceder a cada papel. Usado pelo gerenciador
 // de consentimento para também listar escopos sensíveis que nunca são concedidos
 // por padrão (ex.: `body_photos`), permitindo ao aluno ligá-los conscientemente.

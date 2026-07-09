@@ -19,6 +19,7 @@ import DirectInviteAcceptPage from "./pages/DirectInviteAcceptPage";
 import CookieConsentBanner from "./components/CookieConsentBanner";
 import ThemeToggle from "./components/ThemeToggle";
 import PrivacyPolicyPage from "./pages/PrivacyPolicyPage";
+import TermsOfUsePage from "./pages/TermsOfUsePage";
 import WaitlistPage from "./pages/WaitlistPage";
 import { NativeAppBridge } from "./lib/NativeAppBridge";
 
@@ -32,6 +33,7 @@ export default function App() {
         <ThemeToggle />
         <Routes>
           <Route path="/privacidade" element={<PrivacyPolicyPage />} />
+          <Route path="/termos" element={<TermsOfUsePage />} />
           <Route path="/lista-de-espera" element={<WaitlistPage />} />
           <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="/login" element={<Login />} />

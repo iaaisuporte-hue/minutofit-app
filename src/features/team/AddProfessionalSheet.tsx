@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { COLORS } from '../../styles/colors';
 import { isNativeApp } from '../../lib/platform';
+import { STUDENT_BILLING_ENABLED } from '../../config/features';
 import type { ConsentScope, NetworkProfessional, OfferingPeriod, ProfessionalRole, PublicOffering } from './types';
 import { DEFAULT_SCOPES_NUTRI, DEFAULT_SCOPES_PERSONAL, SCOPE_LABELS } from './types';
 import {
@@ -283,7 +284,7 @@ export function AddProfessionalSheet({ onSuccess, onClose, initialRole = 'person
                   Ocultado no app empacotado (Capacitor): política das lojas proíbe
                   venda de conteúdo digital fora de IAP/Play Billing. Vínculo por
                   convite/código (gratuito) permanece. Contratação paga fica na web. */}
-              {!isNativeApp() && (loadingOfferings || offerings.length > 0) && (
+              {STUDENT_BILLING_ENABLED && !isNativeApp() && (loadingOfferings || offerings.length > 0) && (
                 <div>
                   <div style={{ fontSize: 13, fontWeight: 700, color: COLORS.text, marginBottom: 8 }}>
                     Planos pagos disponíveis

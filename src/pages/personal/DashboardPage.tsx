@@ -29,6 +29,7 @@ import { InsightsStrip } from "../../features/personalRetention/InsightsStrip";
 import { RecognitionCard } from "../../features/personalRetention/RecognitionCard";
 import { IncomingRequestsPanel } from "../../features/team";
 import { FinancePanel } from "../../features/personalRetention/FinancePanel";
+import { STUDENT_BILLING_ENABLED } from "../../config/features";
 import { PersonalWelcomeCard } from "./PersonalWelcomeCard";
 import { QuickMessageModal } from "../../features/personalRetention/QuickMessageModal";
 import { SessionQuickLog } from "../../features/personalRetention/SessionQuickLog";
@@ -194,7 +195,10 @@ export default function DashboardPage() {
   const [recognizingMilestone, setRecognizingMilestone] = useState<RecognitionMilestone | null>(null);
   const [isDemoMode, setIsDemoMode] = useState(false);
   const [demoCTAOpen, setDemoCTAOpen] = useState(false);
-  const activeTab = searchParams.get("tab") === "financeiro" ? "financeiro" : "carteira";
+  // Cobrança de aluno congelada na V1 (STUDENT_BILLING_ENABLED): a aba/painel
+  // financeiro fica inacessível mesmo via ?tab=financeiro na URL.
+  const activeTab =
+    STUDENT_BILLING_ENABLED && searchParams.get("tab") === "financeiro" ? "financeiro" : "carteira";
 
   const loadDashboard = useCallback(async () => {
     try {
@@ -735,8 +739,9 @@ export default function DashboardPage() {
         </>
       ) : null}
 
-      {/* Financeiro: acesso discreto, fora do fluxo principal */}
-      {students.length > 0 ? (
+      {/* Financeiro: acesso discreto, fora do fluxo principal.
+          Oculto na V1 — cobrança de aluno congelada (STUDENT_BILLING_ENABLED). */}
+      {STUDENT_BILLING_ENABLED && students.length > 0 ? (
         <div style={{ textAlign: "right", marginTop: 4 }}>
           <button
             type="button"

@@ -63,6 +63,8 @@ export interface RegisterPayload {
   };
   /** Token Cloudflare Turnstile (obrigatório quando o site usa CAPTCHA no cadastro). */
   captchaToken?: string;
+  /** Aceite dos Termos de Uso + Política de Privacidade (obrigatório — LGPD art. 8º). */
+  acceptedTerms: boolean;
 }
 
 export async function submitStudentCompliance(payload: {
