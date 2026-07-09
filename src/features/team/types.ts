@@ -47,7 +47,7 @@ export const DIRECT_INVITE_SCOPES_PERSONAL: ConsentScope[] = [
 ];
 export const DIRECT_INVITE_SCOPES_NUTRI: ConsentScope[] = [
   'profile', 'nutrition', 'clinical_nutrition', 'daily_checkins', 'metabolic',
-  'body_metrics', 'parq_anamnese', 'chat_history',
+  'body_metrics', 'parq_anamnese',
 ];
 
 // Todos os escopos que o aluno PODE conceder a cada papel. Usado pelo gerenciador
@@ -58,9 +58,12 @@ export const MANAGEABLE_SCOPES_PERSONAL: ConsentScope[] = [
   'profile', 'workouts', 'daily_checkins', 'metabolic', 'sleep',
   'body_metrics', 'body_photos', 'activity_logs', 'parq_anamnese', 'sports', 'chat_history',
 ];
+// chat_history fora da lista do nutri: não há chat bidirecional com nutri (só
+// "Voz" unidirecional), então oferecer o escopo confundiria. Também removido do
+// auto-grant do convite direto (DIRECT_INVITE_SCOPES_NUTRI) — nutri nunca recebe.
 export const MANAGEABLE_SCOPES_NUTRI: ConsentScope[] = [
   'profile', 'nutrition', 'clinical_nutrition', 'daily_checkins', 'metabolic',
-  'sleep', 'body_metrics', 'body_photos', 'parq_anamnese', 'chat_history',
+  'sleep', 'body_metrics', 'body_photos', 'parq_anamnese',
 ];
 
 export interface ConsentEntry {

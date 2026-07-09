@@ -67,7 +67,7 @@ function pillStyle(active: boolean, neon: NeonTheme) {
     padding: "10px 12px",
     borderRadius: 999,
     border: `1px solid ${active ? neon.accentBorder : neon.border}`,
-    background: active ? neon.accentSoft : "#FAFAFA",
+    background: active ? neon.accentSoft : neon.panel2,
     color: neon.text,
     cursor: "pointer" as const,
     fontWeight: 600,

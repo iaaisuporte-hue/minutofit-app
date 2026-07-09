@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { COLORS } from "../../styles/colors";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
 import {
@@ -1464,10 +1464,16 @@ const TABS: TabName[] = ["Plano", "Perfil", "Adesão", "Contexto", "Evolução",
 export default function PatientDetailNutriPage() {
   const { patientId } = useParams<{ patientId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const [tab, setTab] = useState<TabName>("Plano");
 
   const id = Number(patientId);
   if (!Number.isFinite(id)) return null;
+
+  // Nome vem do state da navegação (lista de pacientes). Em deep-link/refresh o
+  // state some → fallback para o identificador.
+  const patientName =
+    (location.state as { patientName?: string } | null)?.patientName ?? `Paciente #${id}`;
 
   return (
     <div style={{ padding: "24px 0", maxWidth: 720 }}>
@@ -1490,7 +1496,7 @@ export default function PatientDetailNutriPage() {
           ‹
         </button>
         <h1 style={{ fontSize: 20, fontWeight: 700, color: COLORS.text, margin: 0 }}>
-          Paciente #{id}
+          {patientName}
         </h1>
       </div>
 

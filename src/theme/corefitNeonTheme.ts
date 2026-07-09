@@ -103,7 +103,7 @@ export function useNeonTheme(): NeonTheme {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setTheme(getNeonTheme());
     const mo = new MutationObserver(() => setTheme(getNeonTheme()));
-    mo.observe(document.documentElement, { attributes: true, attributeFilter: ["data-color-mode"] });
+    mo.observe(document.documentElement, { attributes: true, attributeFilter: ["data-color-mode", "data-theme"] });
     return () => mo.disconnect();
   }, []);
   return theme;

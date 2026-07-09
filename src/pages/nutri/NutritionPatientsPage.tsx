@@ -105,7 +105,7 @@ export default function NutritionPatientsPage() {
             <button
               key={p.id}
               type="button"
-              onClick={() => navigate(`${p.id}`)}
+              onClick={() => navigate(`${p.id}`, { state: { patientName: p.name } })}
               style={{
                 all: "unset",
                 display: "flex",

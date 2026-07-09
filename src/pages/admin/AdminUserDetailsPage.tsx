@@ -505,7 +505,9 @@ function DeleteUserModal({
         >
           Você está prestes a excluir <b>{displayName}</b> ({userEmail}). Esta ação é permanente.
           <br />
-          Histórico relacional e dados comportamentais serão removidos. Fichas e registros de treino são preservados.
+          Os dados pessoais, de treino, dieta, check-ins e fotos são excluídos. Registros financeiros
+          são anonimizados e retidos por obrigação legal. Conteúdo criado por profissionais (fichas,
+          notas técnicas, revisões) é preservado de forma desvinculada.
         </div>
 
         <div style={{ display: "grid", gap: 6 }}>
