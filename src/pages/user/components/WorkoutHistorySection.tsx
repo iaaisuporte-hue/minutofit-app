@@ -261,15 +261,18 @@ function RetroEntryButton() {
   );
 }
 
+const PAGE_SIZE = 6;
+
 export function WorkoutHistorySection() {
   const { hasFeature } = useFeatureFlags();
   const canRetro = hasFeature("retro_workout_enabled");
   const [sessions, setSessions] = useState<WorkoutSessionListItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [visible, setVisible] = useState(PAGE_SIZE);
 
   useEffect(() => {
     let cancelled = false;
-    listWorkoutSessions(30)
+    listWorkoutSessions(100)
       .then((rows) => {
         if (!cancelled) setSessions(rows);
       })
@@ -333,11 +336,67 @@ export function WorkoutHistorySection() {
       {loading ? (
         <p className="metabolic-section-copy">Carregando seus treinos...</p>
       ) : (
-        <div className="metabolic-history-list">
-          {sessions.map((s) => (
-            <SessionRow key={s.id} session={s} />
-          ))}
-        </div>
+        <>
+          <div className="metabolic-history-list">
+            {sessions.slice(0, visible).map((s) => (
+              <SessionRow key={s.id} session={s} />
+            ))}
+          </div>
+
+          {sessions.length > PAGE_SIZE && (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: "var(--space-3)",
+                flexWrap: "wrap",
+              }}
+            >
+              <span className="metabolic-eyebrow">
+                Mostrando {Math.min(visible, sessions.length)} de {sessions.length}
+              </span>
+              <div style={{ display: "flex", gap: "var(--space-2)" }}>
+                {visible < sessions.length && (
+                  <button
+                    type="button"
+                    onClick={() => setVisible((v) => Math.min(v + PAGE_SIZE, sessions.length))}
+                    style={{
+                      padding: "7px 14px",
+                      borderRadius: "var(--radius-full, 999px)",
+                      border: "1px solid var(--color-border)",
+                      background: "transparent",
+                      color: "var(--color-primary)",
+                      fontWeight: 600,
+                      fontSize: 13,
+                      cursor: "pointer",
+                    }}
+                  >
+                    Ver mais {Math.min(PAGE_SIZE, sessions.length - visible)}
+                  </button>
+                )}
+                {visible > PAGE_SIZE && (
+                  <button
+                    type="button"
+                    onClick={() => setVisible(PAGE_SIZE)}
+                    style={{
+                      padding: "7px 14px",
+                      borderRadius: "var(--radius-full, 999px)",
+                      border: "1px solid var(--color-border)",
+                      background: "transparent",
+                      color: "var(--color-text-muted)",
+                      fontWeight: 600,
+                      fontSize: 13,
+                      cursor: "pointer",
+                    }}
+                  >
+                    Ver menos
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+        </>
       )}
     </section>
   );
