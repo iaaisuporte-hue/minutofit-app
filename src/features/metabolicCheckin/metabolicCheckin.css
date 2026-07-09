@@ -50,6 +50,12 @@
   padding: var(--space-3);
 }
 
+/* Histórico mais compacto — não ocupar tela demais */
+.metabolic-history-item {
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3);
+}
+
 .metabolic-trend-value {
   font-size: var(--text-2xl);
   font-weight: var(--font-bold);
@@ -117,7 +123,7 @@
 
 .metabolic-history-list {
   display: grid;
-  gap: var(--space-3);
+  gap: var(--space-2);
 }
 
 .metabolic-history-metrics {

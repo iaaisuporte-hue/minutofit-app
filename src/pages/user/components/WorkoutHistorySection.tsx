@@ -156,7 +156,7 @@ function SessionRow({ session }: { session: WorkoutSessionListItem }) {
   if (session.sessionRpe != null) metaParts.push(`Esforço ${session.sessionRpe}/10`);
 
   return (
-    <article className="metabolic-history-item" style={{ display: "grid", gap: 10 }}>
+    <article className="metabolic-history-item" style={{ display: "grid", gap: 6 }}>
       <button
         type="button"
         onClick={toggle}
@@ -303,7 +303,7 @@ export function WorkoutHistorySection() {
   const showRetroNudge = canRetro && retroRecent >= 3;
 
   return (
-    <section className="metabolic-history-page" style={{ display: "grid", gap: "var(--space-4)" }}>
+    <section className="metabolic-history-page" style={{ display: "grid", gap: "var(--space-3)" }}>
       <div style={{ display: "grid", gap: "var(--space-2)" }}>
         <div style={{ display: "grid", gap: "var(--space-1)" }}>
           <div className="metabolic-eyebrow">Linha do tempo</div>
