@@ -19,6 +19,9 @@ import {
 import "./todayPage.css";
 import { SportProfileSection } from "../../features/sport/components/SportProfileSection";
 import { AccountDataSection } from "../../features/account/AccountDataSection";
+import { ProfileNavList, type ProfileNavSection } from "../../features/profile/ProfileNavList";
+import { useTheme } from "../../lib/useTheme";
+import { Activity, Users, BookOpen, Target, Sun, Moon } from "lucide-react";
 import { useProfessionalContext } from "../../features/professionalVoice";
 import { COLORS } from "../../styles/colors";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
@@ -334,7 +337,8 @@ export default function UserProfilePage({ onLogout }: Props) {
   const { user, branding, academies, accessProfile, getUser } = useAuth();
   const { data: metabolismData } = useMetabolism();
   const { data: gamification } = useGamificationSummary();
-  const { planName } = useFeatureFlags();
+  const { planName, hasFeature } = useFeatureFlags();
+  const { isDark, toggle: toggleTheme } = useTheme();
   const isMobile = useIsMobile(720);
   const { shouldReduceMotion } = useTodayMotionSafe({ isMobile });
   const toast = useToast();
@@ -451,6 +455,50 @@ export default function UserProfilePage({ onLogout }: Props) {
     if (!accountSummary.weight) missing.push("seu peso");
     return deriveProfileTeaser({ band: derivedEnergy?.band, trend: metabolismData.trend, missing });
   }, [metabolismData, derivedEnergy, accountSummary]);
+
+  // Hub de navegação secundária (Perfil) — casa dos destinos que sumiam no
+  // mobile (sidebar oculta). Substitui o antigo menu "⋯".
+  const themePill = (
+    <span
+      style={{
+        fontSize: "var(--text-xs)",
+        fontWeight: "var(--font-semibold)",
+        color: COLORS.muted,
+        border: `1px solid ${COLORS.border}`,
+        borderRadius: "var(--radius-pill)",
+        padding: "2px 10px",
+      }}
+    >
+      {isDark ? "Escuro" : "Claro"}
+    </span>
+  );
+  const navSections: ProfileNavSection[] = [
+    {
+      title: "Minha rede",
+      items: [{ label: "Minha equipe", icon: <Users size={18} />, to: "/app/user/equipe" }],
+    },
+    {
+      title: "Atividade e conhecimento",
+      items: [
+        { label: "Atividades", icon: <Activity size={18} />, to: "/app/user/activities" },
+        ...(hasFeature("suggested_training")
+          ? [{ label: "Treino do dia", icon: <Target size={18} />, to: "/app/user/suggested-training" }]
+          : []),
+        { label: "Glossário", icon: <BookOpen size={18} />, to: "/app/user/glossario" },
+      ],
+    },
+    {
+      title: "Aplicativo",
+      items: [
+        {
+          label: "Aparência",
+          icon: isDark ? <Moon size={18} /> : <Sun size={18} />,
+          onClick: toggleTheme,
+          right: themePill,
+        },
+      ],
+    },
+  ];
 
   return (
     <motion.div
@@ -685,6 +733,10 @@ export default function UserProfilePage({ onLogout }: Props) {
         <Card flat>
           <SportProfileSection />
         </Card>
+      </motion.div>
+
+      <motion.div variants={sectionRevealVariants}>
+        <ProfileNavList sections={navSections} />
       </motion.div>
 
       <motion.div variants={sectionRevealVariants}>

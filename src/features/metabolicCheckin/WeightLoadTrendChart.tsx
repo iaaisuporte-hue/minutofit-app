@@ -79,7 +79,7 @@ export function WeightLoadTrendChart({ records, stats, cutoff }: {
           Carga em índice base 100 (100 = sua carga no início do período). A leitura é a direção das linhas, não o número de um dia isolado.
         </p>
       </div>
-      <div style={{ width: '100%', height: 240 }}>
+      <div className="chart-slot" style={{ height: 240 }}>
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={rows} margin={{ top: 8, right: 8, bottom: 4, left: -12 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />

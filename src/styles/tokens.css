@@ -145,6 +145,9 @@
   --maxw-content: 1060px;
   --maxw-wide:    1180px;
   --maxw-auth:    400px;
+  /* Altura do bottom nav mobile (sem a safe-area). Fonte da verdade para a
+     altura da nav E para a reserva de padding do conteúdo — mantêm-se em sincronia. */
+  --bottom-nav-h: 64px;
 
   /* ── Z-index ──────────────────────────────────────────────── */
   --z-dropdown: 100;

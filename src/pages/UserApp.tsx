@@ -3,7 +3,6 @@ import { NavLink, Navigate, Route, Routes, useLocation, useNavigate } from "reac
 import { useAuth } from "../auth/AuthContext";
 import AppShell from "../layout/AppShell";
 import MobileBottomNav from "../layout/MobileBottomNav";
-import { UserMobileMenu, type MobileMenuItem } from "../layout/UserMobileMenu";
 import { useFeatureFlags } from "../auth/FeatureFlagsContext";
 import CoreFitLogo from "../components/CoreFitLogo";
 import { fetchChatConversations } from "../services/messagesApi";
@@ -154,6 +153,7 @@ function SettingsRedirect() {
 
 export default function UserApp() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { logout, user } = useAuth();
   const firstName = user?.name?.split(" ")[0] || "Aluno";
   const { hasFeature, loading, planName } = useFeatureFlags();
@@ -217,22 +217,17 @@ export default function UserApp() {
     </NavLink>
   ) : undefined;
 
-  // Menu "⋯" do topo mobile: destinos secundários que no desktop moram na
-  // sidebar (oculta em retrato) + logout — acessíveis de qualquer tela.
-  const mobileMenuItems: MobileMenuItem[] = [
-    ...(showTracker ? [{ label: "Atividades", to: `${USER_BASE}/activities` }] : []),
-    ...(showSuggestedTrainingNav ? [{ label: "Treino do dia", to: `${USER_BASE}/suggested-training` }] : []),
-    { label: "Minha equipe", to: `${USER_BASE}/equipe` },
-    { label: "Glossário", to: `${USER_BASE}/glossario` },
-    { label: "Configurações", to: `${USER_BASE}/settings` },
-    { label: "Sair da conta", onClick: handleLogout, danger: true },
-  ];
-
+  // Header mobile: logo só na Hoje (identidade), Mensagens à direita. Os destinos
+  // secundários agora moram no Perfil-hub (ProfileNavList) — sem menu "⋯".
+  const onTodayRoute =
+    location.pathname === `${USER_BASE}/today` || location.pathname === USER_BASE;
   const mobileHeader = (
-    <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
-      {mobileMessagesIcon}
-      <UserMobileMenu items={mobileMenuItems} />
-    </div>
+    <>
+      <span style={{ display: "flex", alignItems: "center", minWidth: 0 }}>
+        {onTodayRoute ? <CoreFitLogo width={88} /> : null}
+      </span>
+      {mobileMessagesIcon ?? <span />}
+    </>
   );
 
   return (

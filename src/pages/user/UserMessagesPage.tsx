@@ -362,7 +362,7 @@ export default function UserMessagesPage() {
         ...cardStyle,
         display: "grid",
         gridTemplateRows: "auto 1fr auto",
-        minHeight: isMobile ? "calc(100vh - 220px)" : 480,
+        minHeight: isMobile ? "calc(100dvh - 220px)" : 480,
         overflow: "hidden",
       }}
     >

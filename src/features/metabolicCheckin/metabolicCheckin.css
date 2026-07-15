@@ -12,6 +12,9 @@
 .metabolic-trend-strip,
 .metabolic-history-page {
   padding: var(--space-5);
+  /* Seções são netas de .container (o guard min-width:0 de lá só alcança filhos
+     diretos) — sem isto, gráficos/grids internos estouram a largura no mobile. */
+  min-width: 0;
 }
 
 .metabolic-section-title {
@@ -38,7 +41,7 @@
 
 .metabolic-trend-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(150px, 100%), 1fr));
   gap: var(--space-3);
 }
 
@@ -86,7 +89,7 @@
 
 .metabolic-form-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr));
   gap: var(--space-3);
 }
 
@@ -240,14 +243,24 @@
 
 .metabolic-metric-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  /* min(130px,100%) impede que o piso de 130px estoure containers estreitos. */
+  grid-template-columns: repeat(auto-fit, minmax(min(130px, 100%), 1fr));
   gap: var(--space-3);
+}
+
+/* No mobile: grade fixa de 2 colunas (comparação rápida dos indicadores de
+   saúde > carrossel). minmax(0,1fr) deixa as colunas encolherem sob o conteúdo. */
+@media (max-width: 720px) {
+  .metabolic-metric-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 .metabolic-metric {
   display: grid;
   gap: 2px;
   align-content: start;
+  min-width: 0;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   background: var(--color-surface-raised);
@@ -270,6 +283,7 @@
   color: var(--color-text);
   font-size: var(--text-xl);
   font-weight: var(--font-bold);
+  overflow-wrap: anywhere;
 }
 
 .metabolic-metric.is-empty .metabolic-metric-value {

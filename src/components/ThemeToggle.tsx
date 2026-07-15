@@ -1,54 +1,17 @@
-import { useEffect, useState } from "react";
+import { useTheme } from "../lib/useTheme";
 
 /**
- * Alterna tema claro/escuro da S2CORE.
- * Grava em localStorage("corefit_theme") e seta html[data-theme].
- * Mantido em sync com o script inline de no-flash em index.html.
+ * FAB de tema claro/escuro (desktop). No mobile (≤720px) ele é ocultado via CSS
+ * (`.theme-toggle-fab`) porque brigava com o bottom nav — no app do aluno a troca
+ * de tema mora em Perfil › Aparência. A lógica vive em `useTheme`.
  */
-export const THEME_KEY = "corefit_theme";
-type Theme = "light" | "dark";
-
-function readInitialTheme(): Theme {
-  try {
-    const stored = localStorage.getItem(THEME_KEY);
-    if (stored === "dark" || stored === "light") return stored;
-  } catch {
-    /* ignore */
-  }
-  // Beta: default claro (opt-in). Não seguimos o SO ainda para não
-  // surpreender usuários de SO escuro com telas em polish.
-  return "light";
-}
-
-function applyTheme(theme: Theme) {
-  document.documentElement.setAttribute("data-theme", theme);
-}
-
 export default function ThemeToggle() {
-  const [theme, setTheme] = useState<Theme>("light");
-
-  useEffect(() => {
-    const initial = readInitialTheme();
-    setTheme(initial);
-    applyTheme(initial);
-  }, []);
-
-  function toggle() {
-    const next: Theme = theme === "dark" ? "light" : "dark";
-    setTheme(next);
-    applyTheme(next);
-    try {
-      localStorage.setItem(THEME_KEY, next);
-    } catch {
-      /* ignore */
-    }
-  }
-
-  const isDark = theme === "dark";
+  const { isDark, toggle } = useTheme();
 
   return (
     <button
       type="button"
+      className="theme-toggle-fab"
       onClick={toggle}
       aria-label={isDark ? "Mudar para tema claro" : "Mudar para tema escuro"}
       title={isDark ? "Tema escuro (toque para claro)" : "Tema claro (toque para escuro)"}
