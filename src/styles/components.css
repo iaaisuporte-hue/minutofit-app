@@ -710,14 +710,6 @@ html[data-color-mode="daltonic"] .navLinkActive {
   display: none;
 }
 
-/* FAB de tema (ThemeToggle): só desktop. No mobile brigava com o bottom nav;
-   a troca de tema mora em Perfil › Aparência. !important vence o display inline. */
-@media (max-width: 720px) {
-  .theme-toggle-fab {
-    display: none !important;
-  }
-}
-
 @media (max-width: 720px) {
   .mobileTopBar {
     display: flex;

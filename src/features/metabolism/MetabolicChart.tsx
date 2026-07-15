@@ -26,6 +26,9 @@ interface Props {
   markers: HistoryMarker[];
   days?: number;
   onDaysChange?: (days: number) => void;
+  /** Quando fornecido, mostra um botão "Ver evolução" no topo-direito do card
+   *  (entrada para a página de evolução, já que ela saiu do bottom nav). */
+  onSeeMore?: () => void;
 }
 
 function formatDate(iso: string): string {
@@ -95,7 +98,7 @@ function MarkerDot(props: {
   );
 }
 
-export function MetabolicChart({ data, loading, forecast, markers, days = 14, onDaysChange }: Props) {
+export function MetabolicChart({ data, loading, forecast, markers, days = 14, onDaysChange, onSeeMore }: Props) {
   if (!loading && data.length === 0) return null;
 
   const markerMap = new Map(markers.map((marker) => [marker.date, marker]));
@@ -118,9 +121,20 @@ export function MetabolicChart({ data, loading, forecast, markers, days = 14, on
         padding: '20px 20px 12px',
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
-          Histórico metabólico
+      <div style={{ display: 'grid', gap: 12, marginBottom: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+            Histórico metabólico
+          </div>
+          {onSeeMore && (
+            <button
+              type="button"
+              onClick={onSeeMore}
+              style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--color-primary)', fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap' }}
+            >
+              Ver evolução →
+            </button>
+          )}
         </div>
         {onDaysChange && (
           <div style={{ display: 'flex', background: 'var(--color-bg-main)', borderRadius: 8, padding: 2, gap: 1, border: '1px solid var(--color-border)' }}>

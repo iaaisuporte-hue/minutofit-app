@@ -663,6 +663,7 @@ export default function TodayPage() {
           markers={markers}
           days={historyDays}
           onDaysChange={setHistoryDays}
+          onSeeMore={() => navigate("/app/user/estado-metabolico")}
         />
         {hasWeeklyLoopInsights && <WeeklyLoopCard condition={dailyCondition} />}
         <MovementLabEntryCard source="today" />

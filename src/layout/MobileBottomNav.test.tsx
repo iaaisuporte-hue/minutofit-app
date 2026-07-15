@@ -12,7 +12,7 @@ describe("MobileBottomNav", () => {
         <MobileBottomNav baseUrl="/app/user" />
       </MemoryRouter>,
     );
-    for (const label of ["Hoje", "Treino", "Alimentação", "Evolução", "Perfil"]) {
+    for (const label of ["Hoje", "Treino", "Alimentação", "Tracker", "Perfil"]) {
       expect(screen.getByText(label)).toBeInTheDocument();
     }
     // Nenhum item a mais (ex.: "Sair", "Atividades", "Mensagens" saíram do nav).

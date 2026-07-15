@@ -20,8 +20,7 @@ import "./todayPage.css";
 import { SportProfileSection } from "../../features/sport/components/SportProfileSection";
 import { AccountDataSection } from "../../features/account/AccountDataSection";
 import { ProfileNavList, type ProfileNavSection } from "../../features/profile/ProfileNavList";
-import { useTheme } from "../../lib/useTheme";
-import { Activity, Users, BookOpen, Target, Sun, Moon } from "lucide-react";
+import { Users, BookOpen, Target, TrendingUp } from "lucide-react";
 import { useProfessionalContext } from "../../features/professionalVoice";
 import { COLORS } from "../../styles/colors";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
@@ -338,7 +337,6 @@ export default function UserProfilePage({ onLogout }: Props) {
   const { data: metabolismData } = useMetabolism();
   const { data: gamification } = useGamificationSummary();
   const { planName, hasFeature } = useFeatureFlags();
-  const { isDark, toggle: toggleTheme } = useTheme();
   const isMobile = useIsMobile(720);
   const { shouldReduceMotion } = useTodayMotionSafe({ isMobile });
   const toast = useToast();
@@ -456,22 +454,9 @@ export default function UserProfilePage({ onLogout }: Props) {
     return deriveProfileTeaser({ band: derivedEnergy?.band, trend: metabolismData.trend, missing });
   }, [metabolismData, derivedEnergy, accountSummary]);
 
-  // Hub de navegação secundária (Perfil) — casa dos destinos que sumiam no
-  // mobile (sidebar oculta). Substitui o antigo menu "⋯".
-  const themePill = (
-    <span
-      style={{
-        fontSize: "var(--text-xs)",
-        fontWeight: "var(--font-semibold)",
-        color: COLORS.muted,
-        border: `1px solid ${COLORS.border}`,
-        borderRadius: "var(--radius-pill)",
-        padding: "2px 10px",
-      }}
-    >
-      {isDark ? "Escuro" : "Claro"}
-    </span>
-  );
+  // Hub de navegação secundária (Perfil) — casa dos destinos fora do bottom nav.
+  // Substitui o antigo menu "⋯". Evolução (estado metabólico) mora aqui (saiu do
+  // nav, que agora tem Tracker); o tema volta ao FAB (ThemeToggle), não aqui.
   const navSections: ProfileNavSection[] = [
     {
       title: "Minha rede",
@@ -480,22 +465,11 @@ export default function UserProfilePage({ onLogout }: Props) {
     {
       title: "Atividade e conhecimento",
       items: [
-        { label: "Atividades", icon: <Activity size={18} />, to: "/app/user/activities" },
+        { label: "Minha evolução", icon: <TrendingUp size={18} />, to: "/app/user/estado-metabolico" },
         ...(hasFeature("suggested_training")
           ? [{ label: "Treino do dia", icon: <Target size={18} />, to: "/app/user/suggested-training" }]
           : []),
         { label: "Glossário", icon: <BookOpen size={18} />, to: "/app/user/glossario" },
-      ],
-    },
-    {
-      title: "Aplicativo",
-      items: [
-        {
-          label: "Aparência",
-          icon: isDark ? <Moon size={18} /> : <Sun size={18} />,
-          onClick: toggleTheme,
-          right: themePill,
-        },
       ],
     },
   ];

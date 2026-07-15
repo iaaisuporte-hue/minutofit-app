@@ -24,9 +24,9 @@ const AlimentacaoIcon = () => (
   </svg>
 );
 
-const EvolucaoIcon = () => (
+const TrackerIcon = () => (
   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" /><polyline points="16 7 22 7 22 13" />
+    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
   </svg>
 );
 
@@ -43,17 +43,19 @@ interface Props {
 
 /**
  * Navegação principal do aluno — 5 abas FIXAS (Hoje · Treino · Alimentação ·
- * Evolução · Perfil), padrão Whoop/Strava. As abas nunca são ocultadas por
+ * Tracker · Perfil), padrão Whoop/Strava. As abas nunca são ocultadas por
  * vínculo/plano: o conteúdo de cada destino é que se adapta (estados abertos
  * e educativos). Mensagens vive como ícone no topo (AppShell.mobileHeader),
- * não como aba; logout vive dentro do Perfil.
+ * não como aba; logout vive dentro do Perfil. A Evolução (estado metabólico)
+ * é alcançada pelo botão "Ver evolução" no card de histórico da Hoje e pelo
+ * Perfil-hub.
  */
 export default function MobileBottomNav({ baseUrl }: Props) {
   const items: NavItem[] = [
     { to: `${baseUrl}/today`, label: "Hoje", icon: <HomeIcon /> },
     { to: `${baseUrl}/plano`, label: "Treino", icon: <TreinoIcon /> },
     { to: `${baseUrl}/plano-alimentar`, label: "Alimentação", icon: <AlimentacaoIcon /> },
-    { to: `${baseUrl}/estado-metabolico`, label: "Evolução", icon: <EvolucaoIcon /> },
+    { to: `${baseUrl}/activities`, label: "Tracker", icon: <TrackerIcon /> },
     { to: `${baseUrl}/profile`, label: "Perfil", icon: <ProfileIcon /> },
   ];
 

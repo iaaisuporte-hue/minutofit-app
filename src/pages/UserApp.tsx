@@ -246,11 +246,11 @@ export default function UserApp() {
               <MenuLink to={`${USER_BASE}/today`} label="Hoje" iconKey="home" />
               <MenuLink to={`${USER_BASE}/plano`} label="Treino" iconKey="workouts" />
               <MenuLink to={`${USER_BASE}/plano-alimentar`} label="Alimentação" iconKey="nutrition" />
-              <MenuLink to={`${USER_BASE}/estado-metabolico`} label="Evolução" iconKey="evolution" />
+              <MenuLink to={`${USER_BASE}/activities`} label="Tracker" iconKey="tracker" />
               <MenuLink to={`${USER_BASE}/profile`} label="Perfil" iconKey="profile" />
               {/* Atalhos secundários (só desktop tem espaço) */}
+              <MenuLink to={`${USER_BASE}/estado-metabolico`} label="Minha evolução" iconKey="evolution" />
               {showSuggestedTrainingNav && <MenuLink to={`${USER_BASE}/suggested-training`} label="Treino do dia" iconKey="target" />}
-              {showTracker && <MenuLink to={`${USER_BASE}/activities`} label="Atividades" iconKey="tracker" />}
               {canMessages && <MenuLink to={`${USER_BASE}/messages`} label="Mensagens" iconKey="messages" />}
               <MenuLink to={`${USER_BASE}/equipe`} label="Minha equipe" iconKey="team" />
             </div>
