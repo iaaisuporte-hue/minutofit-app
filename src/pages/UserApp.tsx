@@ -3,6 +3,7 @@ import { NavLink, Navigate, Route, Routes, useLocation, useNavigate } from "reac
 import { useAuth } from "../auth/AuthContext";
 import AppShell from "../layout/AppShell";
 import MobileBottomNav from "../layout/MobileBottomNav";
+import { UserMobileMenu, type MobileMenuItem } from "../layout/UserMobileMenu";
 import { useFeatureFlags } from "../auth/FeatureFlagsContext";
 import CoreFitLogo from "../components/CoreFitLogo";
 import { fetchChatConversations } from "../services/messagesApi";
@@ -216,10 +217,28 @@ export default function UserApp() {
     </NavLink>
   ) : undefined;
 
+  // Menu "⋯" do topo mobile: destinos secundários que no desktop moram na
+  // sidebar (oculta em retrato) + logout — acessíveis de qualquer tela.
+  const mobileMenuItems: MobileMenuItem[] = [
+    ...(showTracker ? [{ label: "Atividades", to: `${USER_BASE}/activities` }] : []),
+    ...(showSuggestedTrainingNav ? [{ label: "Treino do dia", to: `${USER_BASE}/suggested-training` }] : []),
+    { label: "Minha equipe", to: `${USER_BASE}/equipe` },
+    { label: "Glossário", to: `${USER_BASE}/glossario` },
+    { label: "Configurações", to: `${USER_BASE}/settings` },
+    { label: "Sair da conta", onClick: handleLogout, danger: true },
+  ];
+
+  const mobileHeader = (
+    <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
+      {mobileMessagesIcon}
+      <UserMobileMenu items={mobileMenuItems} />
+    </div>
+  );
+
   return (
       <AppShell
         bottomNav={<MobileBottomNav baseUrl={USER_BASE} />}
-        mobileHeader={mobileMessagesIcon}
+        mobileHeader={mobileHeader}
         sidebar={
           <>
             <div style={{ padding: "8px 12px 16px" }}>
