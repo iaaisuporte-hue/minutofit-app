@@ -16,6 +16,13 @@
   --color-border-subtle: var(--color-border);
   --color-border: #C9D7E0;
 
+  /* Texto escuro fixo: o canvas força superfícies claras sempre, então os
+     tokens de texto também precisam ser os do tema CLARO — senão, com o tema
+     global em dark, o texto herda o claro (#F5F5F5) e some sobre o card branco.
+     Só as 3 bases; -primary/-secondary derivam via var(). */
+  --color-text: #1F2937;
+  --color-text-muted: #6B7280;
+  --color-text-subtle: #9CA3AF;
   --color-text-tertiary: #4A5A6A;
   --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
   --shadow-md: 0 8px 24px rgba(6, 95, 130, 0.08);
