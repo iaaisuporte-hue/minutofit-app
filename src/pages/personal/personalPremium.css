@@ -16,14 +16,26 @@
   --color-border-subtle: var(--color-border);
   --color-border: #C9D7E0;
 
-  /* Texto escuro fixo: o canvas força superfícies claras sempre, então os
-     tokens de texto também precisam ser os do tema CLARO — senão, com o tema
-     global em dark, o texto herda o claro (#F5F5F5) e some sobre o card branco.
-     Só as 3 bases; -primary/-secondary derivam via var(). */
+  /* Texto escuro fixo: o canvas força superfícies claras sempre (ilha "premium
+     light" tipo Oura/Linear), então os tokens de texto também precisam ser os do
+     tema CLARO — senão, com o tema global em dark, o texto some sobre o card branco.
+     IMPORTANTE: custom property com var() é resolvida NO elemento onde é declarada.
+     Os componentes leem os ALIASES --color-text-primary/-secondary (definidos no
+     :root como var(--color-text)/var(--color-text-muted)); redeclarar só as bases
+     aqui NÃO re-resolve os aliases herdados do :root dark. Por isso redeclaramos os
+     próprios aliases neste escopo, para que resolvam contra as bases claras acima. */
   --color-text: #1F2937;
   --color-text-muted: #6B7280;
   --color-text-subtle: #9CA3AF;
   --color-text-tertiary: #4A5A6A;
+  --color-text-primary: var(--color-text);
+  --color-text-secondary: var(--color-text-muted);
+  /* Texto semântico ancorado ao claro (chips de Finance/Risco/técnica sobre branco) */
+  --color-success-text: #5E7412;
+  --color-danger-text: #B91C1C;
+  --color-warn-text: #B45309;
+  --color-warn-text-strong: #92400E;
+  --color-info-text: #2563EB;
   --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
   --shadow-md: 0 8px 24px rgba(6, 95, 130, 0.08);
 
