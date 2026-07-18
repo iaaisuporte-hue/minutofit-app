@@ -30,6 +30,7 @@
   --color-text:                 #1F2937;
   --color-text-muted:           #6B7280;
   --color-text-subtle:          #9CA3AF;
+  --color-text-tertiary:        #4A5A6A;
 
   /* ── Text aliases (nomes alternativos, não quebram consumidores atuais) ── */
   --color-text-primary:         var(--color-text);
@@ -285,6 +286,7 @@ html[data-theme="dark"] {
   --color-text:             #F5F5F5;
   --color-text-muted:       #A7A9A0;
   --color-text-subtle:      #74766C;
+  --color-text-tertiary:    #8B8D84;
 
   --color-border:           rgba(245, 245, 245, 0.12);
   --color-border-subtle:    rgba(245, 245, 245, 0.07);

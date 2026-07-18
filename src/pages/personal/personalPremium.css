@@ -2,53 +2,30 @@
  * Área Personal — canvas da camada de insights/metabolismo.
  * Fundo cyan-soft alinhado ao accent token do DS; cartões brancos; :root global intacto.
  */
+/* Estrutura do canvas — vale nos DOIS temas. O fundo usa var(--color-bg-main),
+   que resolve claro no tema claro (override abaixo) e escuro (#0A0A0A) no dark. */
 .personal-app-canvas {
-  /* Camada accent (data/insights/metabolism) — fundo da área Personal */
-  --color-bg-main: #F2F8FB;
-  --color-bg: var(--color-bg-main);
-
-  /* Cartões brancos — leitura premium tipo Oura/Linear */
-  --color-surface: #FFFFFF;
-  --color-surface-raised: #F6FAFC;
-  --color-surface-subtle: #ECF3F7;
-
-  /* Bordas com leve toque cyan — visíveis sem serem pesadas */
-  --color-border-subtle: var(--color-border);
-  --color-border: #C9D7E0;
-
-  /* Texto escuro fixo: o canvas força superfícies claras sempre (ilha "premium
-     light" tipo Oura/Linear), então os tokens de texto também precisam ser os do
-     tema CLARO — senão, com o tema global em dark, o texto some sobre o card branco.
-     IMPORTANTE: custom property com var() é resolvida NO elemento onde é declarada.
-     Os componentes leem os ALIASES --color-text-primary/-secondary (definidos no
-     :root como var(--color-text)/var(--color-text-muted)); redeclarar só as bases
-     aqui NÃO re-resolve os aliases herdados do :root dark. Por isso redeclaramos os
-     próprios aliases neste escopo, para que resolvam contra as bases claras acima. */
-  --color-text: #1F2937;
-  --color-text-muted: #6B7280;
-  --color-text-subtle: #9CA3AF;
-  --color-text-tertiary: #4A5A6A;
-  --color-text-primary: var(--color-text);
-  --color-text-secondary: var(--color-text-muted);
-  /* Texto semântico ancorado ao claro (chips de Finance/Risco/técnica sobre branco) */
-  --color-success-text: #5E7412;
-  --color-danger-text: #B91C1C;
-  --color-warn-text: #B45309;
-  --color-warn-text-strong: #92400E;
-  --color-info-text: #2563EB;
-  /* Ação ancorada ao claro (oliva deep): no dark o :root troca p/ azul, mas a
-     ilha Personal é sempre clara — CTAs seguem oliva. WCAG AA com texto branco. */
-  --action-primary: #5E7412;
-  --action-primary-hover: #62781A;
-  --action-primary-pressed: #4A5C0E;
-  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
-  --shadow-md: 0 8px 24px rgba(6, 95, 130, 0.08);
-
   min-height: 100%;
   background: var(--color-bg-main);
   border-radius: var(--radius-lg, 14px);
   padding: var(--space-3);
   box-sizing: border-box;
+}
+
+/* "Premium light" (cyan-soft, cartões brancos, tipo Oura/Linear) — SOMENTE no
+   tema claro. No DARK o canvas não sobrescreve nada: herda os tokens escuros
+   globais (surface #16181A, texto claro), deixando a área Personal escura como
+   o resto do app (aluno). --color-text-tertiary agora é token global. */
+html:not([data-theme="dark"]) .personal-app-canvas {
+  --color-bg-main: #F2F8FB;
+  --color-bg: var(--color-bg-main);
+  --color-surface: #FFFFFF;
+  --color-surface-raised: #F6FAFC;
+  --color-surface-subtle: #ECF3F7;
+  --color-border-subtle: var(--color-border);
+  --color-border: #C9D7E0;
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
+  --shadow-md: 0 8px 24px rgba(6, 95, 130, 0.08);
 }
 
 @media (max-width: 979px) {
@@ -432,7 +409,7 @@
   border-radius: 20px;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 4px 12px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-md);
 }
 
 /* Callout (caixa contextual com tom semântico — usado em ConsultingStudents) */
@@ -459,7 +436,7 @@
   border: 1px solid var(--color-border);
   border-radius: 16px;
   background: var(--color-surface);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 4px 12px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-md);
   transition: border-color 0.18s ease;
 }
 .pp-student-card:hover {
@@ -566,13 +543,13 @@
 }
 
 .pp-metabo-card--moderate {
-  background: rgba(239, 246, 255, 0.65);
-  border-color: rgba(96, 165, 250, 0.25);
+  background: var(--color-info-soft);
+  border-color: var(--color-info-border);
 }
 
 .pp-metabo-card--low {
-  background: rgba(255, 247, 237, 0.75);
-  border-color: rgba(245, 158, 11, 0.25);
+  background: var(--color-warn-soft);
+  border-color: var(--color-warn-border);
 }
 
 .pp-metabo-card__score {
@@ -1311,7 +1288,7 @@
   padding: 24px;
   width: 100%;
   max-width: 520px;
-  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.18);
+  box-shadow: var(--shadow-lg);
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -1454,7 +1431,7 @@
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: 10px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  box-shadow: var(--shadow-lg);
   z-index: 100;
   min-width: 200px;
   overflow: hidden;
@@ -1554,7 +1531,7 @@
   padding: 24px;
   width: 100%;
   max-width: 420px;
-  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.18);
+  box-shadow: var(--shadow-lg);
   display: flex;
   flex-direction: column;
   gap: 14px;

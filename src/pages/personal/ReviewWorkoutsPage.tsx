@@ -558,7 +558,7 @@ export default function ReviewWorkoutsPage() {
                   border: `1px solid ${COLORS.border}`,
                   borderRadius: 18,
                   background: COLORS.card,
-                  boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.05)",
+                  boxShadow: "var(--shadow-md)",
                   padding: 14,
                   display: "flex",
                   justifyContent: "space-between",
@@ -659,7 +659,7 @@ export default function ReviewWorkoutsPage() {
               border: `1px solid ${COLORS.border}`,
               background: COLORS.panel,
               color: COLORS.text,
-              boxShadow: "0 22px 70px rgba(15,23,42,.18)",
+              boxShadow: "var(--shadow-lg)",
               overflow: "hidden",
             }}
           >

@@ -98,7 +98,7 @@ export function ExerciseDetailModal({ exerciseId, alreadyAdded, onAdd, onClose }
           zIndex: 1,
           background: "var(--color-surface)",
           borderRadius: 14,
-          boxShadow: "0 20px 60px rgba(15,23,42,0.2)",
+          boxShadow: "var(--shadow-lg)",
           width: "100%",
           maxWidth: 480,
           maxHeight: "90vh",

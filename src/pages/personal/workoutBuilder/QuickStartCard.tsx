@@ -32,7 +32,7 @@ export function QuickStartCard({
     padding: "7px 10px",
     borderRadius: 8,
     border: `1px solid ${WB.border}`,
-    background: "rgba(255,255,255,0.85)",
+    background: "var(--color-surface)",
     color: WB.text,
     outline: "none",
     fontSize: 13,
@@ -73,7 +73,7 @@ export function QuickStartCard({
         style={{
           display: "flex",
           borderBottom: `1px solid ${WB.border}`,
-          background: "rgba(248,250,252,0.8)",
+          background: "var(--color-surface-subtle)",
         }}
       >
         <button type="button" style={tabBtn(activeTab === "ai")} onClick={() => setActiveTab("ai")}>
@@ -120,7 +120,7 @@ export function QuickStartCard({
                       padding: "4px 9px",
                       borderRadius: 999,
                       border: `1px solid ${WB.border}`,
-                      background: "rgba(255,255,255,0.7)",
+                      background: "var(--color-surface)",
                       color: WB.text,
                       cursor: "pointer",
                       fontWeight: 600,

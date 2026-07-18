@@ -121,7 +121,7 @@ export function CockpitTabWeek({ data }: Props) {
                       ? "#7B9919"
                       : day.hadGps
                         ? "#60A5FA"
-                        : "rgba(0,0,0,.10)",
+                        : "var(--color-surface-subtle)",
                   }}
                 />
                 <div style={{ fontSize: 10, color: COLORS.muted }}>{day.checkedIn ? "ok" : "—"}</div>

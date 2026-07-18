@@ -586,7 +586,7 @@ export default function StudentsListPage() {
               width: "100%",
               display: "grid",
               gap: 16,
-              boxShadow: "0 20px 60px rgba(0,0,0,.18)",
+              boxShadow: "var(--shadow-lg)",
             }}
           >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>

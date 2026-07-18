@@ -183,7 +183,7 @@ export default function WorkoutLibraryPage() {
     padding: "9px 11px",
     borderRadius: 10,
     border: `1px solid ${WB.border}`,
-    background: "rgba(255,255,255,0.88)",
+    background: "var(--color-surface)",
     color: WB.text,
     outline: "none",
     width: "100%",

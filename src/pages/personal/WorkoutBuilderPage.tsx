@@ -543,7 +543,7 @@ export default function WorkoutBuilderPage() {
     padding: "5px 10px",
     borderRadius: 999,
     border: `1px solid ${active ? WB.borderStrong : WB.border}`,
-    background: active ? "rgba(15,23,42,0.05)" : "transparent",
+    background: active ? "var(--color-surface-subtle)" : "transparent",
     color: WB.text,
     cursor: "pointer",
     fontWeight: 650,
@@ -556,12 +556,12 @@ export default function WorkoutBuilderPage() {
     padding: "5px 10px",
     borderRadius: 8,
     border: `1px solid ${active ? WB.borderStrong : "transparent"}`,
-    background: active ? "#FFFFFF" : "transparent",
+    background: active ? "var(--color-surface)" : "transparent",
     color: WB.text,
     cursor: "pointer",
     fontWeight: 650,
     fontSize: 12,
-    boxShadow: active ? "0 1px 2px rgba(15,23,42,0.06)" : "none",
+    boxShadow: active ? "var(--shadow-sm)" : "none",
   });
 
   const iconBtn = (disabled: boolean): React.CSSProperties => ({
@@ -629,7 +629,7 @@ export default function WorkoutBuilderPage() {
           <span style={{ fontSize: 11, fontWeight: 600, color: WB.muted, textTransform: "uppercase", letterSpacing: "0.04em" }}>
             Frequência
           </span>
-          <div style={{ display: "flex", gap: 2, border: `1px solid ${WB.border}`, borderRadius: 10, background: "rgba(241,245,249,.92)", padding: 3 }}>
+          <div style={{ display: "flex", gap: 2, border: `1px solid ${WB.border}`, borderRadius: 10, background: "var(--color-surface-subtle)", padding: 3 }}>
             {(["semana_util", "4", "5", "6"] as const).map((v) => (
               <button key={v} type="button" style={freqBtn(weekPreset === v)} onClick={() => applyWeekPreset(v)}>
                 {v === "semana_util" ? "Útil" : `${v}x`}
