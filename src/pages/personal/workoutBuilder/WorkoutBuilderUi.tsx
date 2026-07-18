@@ -60,7 +60,7 @@ export function WbButton({
         padding: "8px 11px",
         borderRadius: 10,
         border: isPrimary ? `1px solid ${WB.primaryBorder}` : `1px solid ${WB.border}`,
-        background: isPrimary ? WB.primary : "rgba(255,255,255,0.72)",
+        background: isPrimary ? WB.ctaBg : "rgba(255,255,255,0.72)",
         color: isPrimary ? WB.ctaText : WB.text,
         cursor: disabled ? "not-allowed" : "pointer",
         fontWeight: 650,
