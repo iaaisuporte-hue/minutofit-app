@@ -174,6 +174,17 @@ export default function WorkoutLibraryPage() {
     navigate(path);
   }
 
+  // Criar treino/protocolo do zero. Respeita o seletor "Aluno (destino)": com aluno
+  // selecionado, abre o builder já apontado para ele; sem aluno, abre o builder
+  // standalone (protocolo/template reutilizável). Sem ?protocol → ficha em branco.
+  function createNew() {
+    navigate(
+      selectedStudentId
+        ? `${BUILDER_BASE}/${selectedStudentId}/workouts/builder`
+        : "/app/personal/builder"
+    );
+  }
+
   function refreshAfterUsageChange() {
     void loadProtocols();
   }
@@ -205,6 +216,11 @@ export default function WorkoutLibraryPage() {
               Modelos da plataforma, da academia e seus protocolos privados — favoritos sobem na lista. Use o builder
               para aplicar ao aluno com contexto vivo.
             </div>
+          </div>
+          <div style={{ flexShrink: 0 }}>
+            <WbButton variant="primary" type="button" onClick={createNew}>
+              Criar treino
+            </WbButton>
           </div>
         </div>
         <div className="pp-panel__body" style={{ display: "grid", gap: 16 }}>
