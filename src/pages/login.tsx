@@ -192,6 +192,7 @@ export default function LoginPage() {
         <div className="auth-links">
           <Link to="/forgot-password">Esqueci minha senha</Link>
           <Link to="/register">Criar conta</Link>
+          <Link to="/cadastro-personal">Sou personal — criar conta grátis</Link>
           <Link to="/privacidade">Privacidade e cookies</Link>
         </div>
       </form>

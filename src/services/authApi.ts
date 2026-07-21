@@ -67,6 +67,21 @@ export interface RegisterPayload {
   acceptedTerms: boolean;
 }
 
+/** Cadastro de personal: sem PAR-Q (é triagem de aluno), com CREF opcional. */
+export interface RegisterPersonalPayload {
+  name: string;
+  cpf: string;
+  phone: string;
+  email: string;
+  password: string;
+  /** CREF declarado. Texto livre, não verificado pela plataforma. */
+  registryCode?: string;
+  /** Token Cloudflare Turnstile (obrigatório quando o site usa CAPTCHA no cadastro). */
+  captchaToken?: string;
+  /** Aceite dos Termos de Uso + Política de Privacidade (obrigatório — LGPD art. 8º). */
+  acceptedTerms: boolean;
+}
+
 export async function submitStudentCompliance(payload: {
   healthFlags: {
     sem_historico_hipertensao: boolean;
@@ -144,6 +159,38 @@ export async function registerWithPassword(payload: RegisterPayload): Promise<Au
   }
 
   const response = await fetch(`${API_URL}/auth/register`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+
+  const data = await parseJson(response);
+  if (!response.ok) {
+    const err = new Error(data?.error || "Nao foi possivel criar sua conta.") as Error & {
+      status?: number;
+      code?: string;
+    };
+    err.status = response.status;
+    if (typeof data?.code === "string") err.code = data.code;
+    throw err;
+  }
+
+  return data.data;
+}
+
+/** Cadastro público de personal trainer (Spec 026). A role é fixada pelo backend. */
+export async function registerPersonalWithPassword(
+  payload: RegisterPersonalPayload,
+): Promise<AuthApiSuccess> {
+  const { captchaToken, ...rest } = payload;
+  const body: Record<string, unknown> = { ...rest };
+  if (captchaToken) {
+    body.captchaToken = captchaToken;
+  }
+
+  const response = await fetch(`${API_URL}/auth/register-personal`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

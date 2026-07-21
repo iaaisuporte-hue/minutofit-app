@@ -6,6 +6,7 @@ import ProtectedRoute from "./auth/ProtectedRoute";
 import { ToastProvider } from "./components/Toast";
 import Login from "./pages/login";
 import Register from "./pages/register";
+import RegisterPersonal from "./pages/register-personal";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ProfileCompletionPage from "./pages/ProfileCompletionPage";
 import ForcePasswordChangePage from "./pages/ForcePasswordChangePage";
@@ -38,6 +39,7 @@ export default function App() {
           <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/cadastro-personal" element={<RegisterPersonal />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route
             path="/force-password-change"

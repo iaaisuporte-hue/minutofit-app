@@ -5,11 +5,13 @@ import {
   loginWithPassword,
   loginWithProvider,
   registerWithPassword,
+  registerPersonalWithPassword,
   fetchUserAcademies,
   switchAcademy as apiSwitchAcademy,
   type AuthApiUser,
   type AuthApiHealthFlags,
   type RegisterPayload,
+  type RegisterPersonalPayload,
   type AcademyForUser,
   type AcademyBranding,
 } from "../services/authApi";
@@ -85,6 +87,7 @@ type OAuthLoginResult = { ok: true; role: Role; email: string; id: string; requi
 type AuthContextType = AuthState & {
   login: (email: string, password: string) => LoginResult;
   register: (payload: RegisterPayload) => RegisterResult;
+  registerPersonal: (payload: RegisterPersonalPayload) => RegisterResult;
   loginWithOAuth: (provider: 'google' | 'apple', idToken: string, userData?: { name?: string; email?: string }) => Promise<OAuthLoginResult>;
   logout: () => void;
   getUser: () => Promise<AuthUser | null>;
@@ -366,6 +369,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       register: async (payload) => {
         try {
           const data = await registerWithPassword(payload);
+          setTokens(data.accessToken, data.refreshToken);
+
+          setState({
+            isAuthenticated: true,
+            role: data.user.role,
+            email: data.user.email,
+            id: data.user.id?.toString(),
+            user: data.user,
+            profileCompleted: data.user.profileCompleted,
+            accessProfile: data.user.accessProfile ?? null,
+            permissions: data.user.permissions ?? [],
+            products: decodeJwtProducts(getAccessToken()),
+          });
+
+          return {
+            ok: true as const,
+            role: data.user.role,
+            email: data.user.email,
+            id: data.user.id?.toString(),
+            requiresProfileCompletion: !data.user.profileCompleted,
+          };
+        } catch (err: unknown) {
+          const e = err as { message?: string; code?: string };
+          return {
+            ok: false as const,
+            message: e.message || "Nao foi possivel criar sua conta.",
+            ...(typeof e.code === "string" ? { code: e.code } : {}),
+          };
+        }
+      },
+
+      registerPersonal: async (payload) => {
+        try {
+          const data = await registerPersonalWithPassword(payload);
           setTokens(data.accessToken, data.refreshToken);
 
           setState({
