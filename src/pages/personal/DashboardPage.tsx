@@ -27,7 +27,7 @@ import {
 import { Bell } from "lucide-react";
 import { InsightsStrip } from "../../features/personalRetention/InsightsStrip";
 import { RecognitionCard } from "../../features/personalRetention/RecognitionCard";
-import { IncomingRequestsPanel } from "../../features/team";
+import { IncomingRequestsPanel, NetworkVisibilityBanner } from "../../features/team";
 import { FinancePanel } from "../../features/personalRetention/FinancePanel";
 import { STUDENT_BILLING_ENABLED } from "../../config/features";
 import { PersonalWelcomeCard } from "./PersonalWelcomeCard";
@@ -413,6 +413,8 @@ export default function DashboardPage() {
           </button>
         </div>
       ) : null}
+
+      {!loading && !error && <NetworkVisibilityBanner role="personal" />}
 
       {!loading && !error && (
         <PersonalWelcomeCard

@@ -2,7 +2,7 @@ import { NavLink, Navigate, Route, Routes } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import AppShell from "../layout/AppShell";
 import CoreFitLogo from "../components/CoreFitLogo";
-import { IncomingRequestsPanel } from "../features/team";
+import { IncomingRequestsPanel, NetworkVisibilityBanner } from "../features/team";
 import NutritionPatientsPage from "./nutri/NutritionPatientsPage";
 import PatientDetailNutriPage from "./nutri/PatientDetailNutriPage";
 import CreatePlanPage from "./nutri/CreatePlanPage";
@@ -11,6 +11,7 @@ import NetworkProfilePage from "./professional/NetworkProfilePage";
 function ConvitesPage() {
   return (
     <div style={{ padding: "24px 0" }}>
+      <NetworkVisibilityBanner role="nutri" />
       <IncomingRequestsPanel role="nutri" />
     </div>
   );

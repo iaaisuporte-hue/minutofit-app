@@ -76,7 +76,7 @@ export default function AdminApp() {
   const operationItems: Array<{ to: string; label: string; permission: AppPermission }> = [
     { to: "/app/admin/finance",    label: "Financeiro",  permission: "admin.finance" },
     { to: "/app/admin/academies",  label: "Academias",   permission: "admin.accessProfiles" },
-    { to: "/app/admin/credential-queue", label: "Credenciais",  permission: "admin.personals" },
+    { to: "/app/admin/credential-queue", label: "Rede de Profissionais",  permission: "admin.personals" },
     { to: "/app/admin/audit",      label: "Auditoria",   permission: "admin.audit" },
   ];
 

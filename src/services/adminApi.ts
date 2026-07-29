@@ -526,25 +526,31 @@ export async function revokePersonalAssignment(userId: number, assignmentId: num
 }
 
 // ---------------------------------------------------------------------------
-// P0-4: Fila de credenciais pendentes
+// P0-4: Estado da Rede de Profissionais (credenciamento + visibilidade)
 // ---------------------------------------------------------------------------
-export interface PendingCredentialRow {
+export interface NetworkProfessionalRow {
   professional_id: number;
   name: string | null;
   email: string;
   role: string;
+  professional_code: string | null;
+  /** false = nunca criou o perfil em /app/personal/meu-perfil (admin não pode criar por ele) */
+  has_profile: boolean;
+  /** true = passa nos 4 predicados da busca do aluno; é o único status que importa */
+  discoverable: boolean;
   credential_code: string | null;
-  credential_status: string;
-  publication_status: string;
-  admin_enabled: boolean;
+  credential_status: string | null;
+  publication_status: string | null;
+  admin_enabled: boolean | null;
+  availability_status: string | null;
   review_notes: string | null;
-  updated_at: string;
+  updated_at: string | null;
   active_students: number;
 }
 
-export async function fetchPendingCredentials(): Promise<PendingCredentialRow[] | null> {
+export async function fetchNetworkProfessionals(): Promise<NetworkProfessionalRow[] | null> {
   if (!getAccessToken()) return null;
-  const response = await authFetch(`${API_URL}/admin/professionals/pending-review`);
+  const response = await authFetch(`${API_URL}/admin/professionals/network-status`);
   if (!response.ok) return null;
   const data = await parseJson(response);
   return data?.data ?? null;

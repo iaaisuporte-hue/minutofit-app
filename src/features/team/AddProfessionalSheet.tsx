@@ -253,7 +253,22 @@ export function AddProfessionalSheet({ onSuccess, onClose, initialRole = 'person
               <div style={{ display: 'grid', gap: 8 }}>
                 {loadingNetwork && <div style={{ padding: 14, color: COLORS.muted, fontSize: 13, textAlign: 'center' }}>Carregando curadoria…</div>}
                 {!loadingNetwork && networkError && <div style={{ padding: 14, borderRadius: 8, border: `1px solid ${COLORS.border}`, color: COLORS.muted, fontSize: 13, lineHeight: 1.5 }}>{networkError}</div>}
-                {!loadingNetwork && !networkError && professionals.length === 0 && <div style={{ padding: 14, borderRadius: 8, border: `1px dashed ${COLORS.border}`, color: COLORS.muted, fontSize: 13, lineHeight: 1.5 }}>Ainda não há profissionais validados para este acompanhamento.</div>}
+                {/* Rede vazia não pode ser beco sem saída: a maioria dos alunos chega aqui
+                    já com o contato do profissional. Promovemos o caminho manual (e-mail /
+                    código), que resolve mesmo com a curadoria ainda sem ninguém publicado. */}
+                {!loadingNetwork && !networkError && professionals.length === 0 && (
+                  <div style={{ padding: 14, borderRadius: 8, border: `1px dashed ${COLORS.border}`, display: 'grid', gap: 10 }}>
+                    <div style={{ color: COLORS.muted, fontSize: 13, lineHeight: 1.5 }}>
+                      Ainda não há {roleLabel(role).toLowerCase()} na nossa curadoria aberta.
+                      Se você já tem um em mente, conecte direto pelo e-mail ou pelo código dele.
+                    </div>
+                    {step === 'browse' && (
+                      <button type="button" onClick={() => setStep('manual')} style={{ padding: 10, borderRadius: 8, border: 'none', background: COLORS.primary, color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+                        Conectar pelo e-mail ou código
+                      </button>
+                    )}
+                  </div>
+                )}
                 {!loadingNetwork && professionals.map((pro) => (
                   <button key={pro.professionalId} type="button" onClick={() => chooseNetworkProfessional(pro)} style={{ textAlign: 'left', padding: 12, borderRadius: 8, border: `1px solid ${COLORS.border}`, background: COLORS.panelDeep, color: COLORS.text, cursor: 'pointer' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
@@ -266,9 +281,12 @@ export function AddProfessionalSheet({ onSuccess, onClose, initialRole = 'person
                 ))}
               </div>
 
-              <button type="button" onClick={() => setStep(step === 'manual' ? 'browse' : 'manual')} style={{ background: 'transparent', border: `1px solid ${COLORS.border}`, borderRadius: 8, color: COLORS.muted, padding: 9, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
-                {step === 'manual' ? 'Voltar para rede curada' : 'Tenho código ou e-mail de um profissional'}
-              </button>
+              {/* Com a rede vazia o CTA já está no bloco acima — evita dois botões iguais. */}
+              {!(step === 'browse' && !loadingNetwork && !networkError && professionals.length === 0) && (
+                <button type="button" onClick={() => setStep(step === 'manual' ? 'browse' : 'manual')} style={{ background: 'transparent', border: `1px solid ${COLORS.border}`, borderRadius: 8, color: COLORS.muted, padding: 9, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+                  {step === 'manual' ? 'Voltar para rede curada' : 'Tenho código ou e-mail de um profissional'}
+                </button>
+              )}
 
               {step === 'manual' && (
                 <div style={{ display: 'grid', gap: 8 }}>
