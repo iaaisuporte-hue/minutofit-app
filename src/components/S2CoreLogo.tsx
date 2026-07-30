@@ -18,7 +18,7 @@ const WORDMARK_FONT =
  *   e o slogan ficam sempre oliva. Assets em /public são nomes legados.
  * - `mark`: símbolo (anel + S2) em tile escuro fixo — não inverte de propósito.
  */
-export default function CoreFitLogo({ width = 112, variant = "horizontal", className, style }: Props) {
+export default function S2CoreLogo({ width = 112, variant = "horizontal", className, style }: Props) {
   if (variant === "mark") {
     return (
       <img

@@ -4,7 +4,7 @@ import { useAuth } from "../auth/AuthContext";
 import AppShell from "../layout/AppShell";
 import MobileBottomNav from "../layout/MobileBottomNav";
 import { useFeatureFlags } from "../auth/FeatureFlagsContext";
-import CoreFitLogo from "../components/CoreFitLogo";
+import S2CoreLogo from "../components/S2CoreLogo";
 import { fetchChatConversations } from "../services/messagesApi";
 
 import { useTodayUserState } from "./user/hooks/useTodayUserState";
@@ -224,7 +224,7 @@ export default function UserApp() {
   const mobileHeader = (
     <>
       <span style={{ display: "flex", alignItems: "center", minWidth: 0 }}>
-        {onTodayRoute ? <CoreFitLogo width={88} /> : null}
+        {onTodayRoute ? <S2CoreLogo width={88} /> : null}
       </span>
       {mobileMessagesIcon ?? <span />}
     </>
@@ -237,7 +237,7 @@ export default function UserApp() {
         sidebar={
           <>
             <div style={{ padding: "8px 12px 16px" }}>
-              <CoreFitLogo width={112} />
+              <S2CoreLogo width={112} />
               <div className="shellSubtitle" style={{ marginTop: 8 }}>{firstName}</div>
             </div>
 

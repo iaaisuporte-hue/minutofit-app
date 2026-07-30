@@ -1,7 +1,7 @@
 import { NavLink, Navigate, Route, Routes, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import AppShell from "../layout/AppShell";
-import CoreFitLogo from "../components/CoreFitLogo";
+import S2CoreLogo from "../components/S2CoreLogo";
 import AdminDashboardPage from "./admin/AdminDashboardPage";
 import AdminUsersPage from "./admin/AdminUsersPage";
 import AdminUserDetailsPage from "./admin/AdminUserDetailsPage";
@@ -88,7 +88,7 @@ export default function AdminApp() {
       sidebar={
         <>
           <div style={{ padding: "8px 12px 16px" }}>
-            <CoreFitLogo width={112} />
+            <S2CoreLogo width={112} />
           </div>
 
           <div className="navStack" style={{ gap: "var(--space-4)" }}>

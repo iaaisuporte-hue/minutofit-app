@@ -5,10 +5,12 @@ import {
   fetchAdminPlatformHealth,
   fetchAdminLoopMetrics,
   fetchAdminPmfMetrics,
+  fetchAdminPilotMetrics,
   type AdminDashboardMetrics,
   type AdminPlatformHealth,
   type AdminLoopMetrics,
   type AdminPmfMetrics,
+  type AdminPilotMetrics,
 } from "../../services/adminApi";
 
 // ── Helpers ───────────────────────────────────────────────────────
@@ -95,26 +97,44 @@ export default function AdminDashboardPage() {
   const [healthData, setHealthData]   = useState<AdminPlatformHealth | null>(null);
   const [loopData, setLoopData]       = useState<AdminLoopMetrics | null>(null);
   const [pmfData, setPmfData]         = useState<AdminPmfMetrics | null>(null);
+  const [pilotData, setPilotData]     = useState<AdminPilotMetrics | null>(null);
   const [loading, setLoading]         = useState(true);
   const [error, setError]             = useState<string | null>(null);
+  const [panelErrors, setPanelErrors] = useState<{ panel: string; message: string }[]>([]);
   const [alertFilter, setAlertFilter] = useState<"all" | "critical" | "attention">("all");
 
   async function loadAll() {
     setLoading(true);
     setError(null);
+    const failures: { panel: string; message: string }[] = [];
+
+    // Um painel que falha não derruba o dashboard — mas a falha PRECISA aparecer.
+    // Engolir o erro em silêncio manteve o painel de PMF quebrado por semanas
+    // sem ninguém notar (query H2 com erro de sintaxe devolvendo 500).
+    function track<T>(panel: string, p: Promise<T>): Promise<T | null> {
+      return p.catch((err: unknown) => {
+        failures.push({ panel, message: err instanceof Error ? err.message : String(err) });
+        return null;
+      });
+    }
+
     try {
-      const [metrics, health, loop, pmf] = await Promise.all([
+      const [metrics, health, loop, pmf, pilot] = await Promise.all([
         fetchAdminDashboardMetrics(),
-        fetchAdminPlatformHealth().catch(() => null),
-        fetchAdminLoopMetrics(30).catch(() => null),
-        fetchAdminPmfMetrics().catch(() => null),
+        track("Saúde da plataforma", fetchAdminPlatformHealth()),
+        track("Métricas do loop", fetchAdminLoopMetrics(30)),
+        track("Métricas de PMF", fetchAdminPmfMetrics()),
+        track("Estado do piloto", fetchAdminPilotMetrics()),
       ]);
       setMetricsData(metrics);
       setHealthData(health);
       setLoopData(loop);
       setPmfData(pmf);
+      setPilotData(pilot);
+      setPanelErrors(failures);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Falha ao carregar dashboard.");
+      setPanelErrors(failures);
     } finally {
       setLoading(false);
     }
@@ -243,6 +263,31 @@ export default function AdminDashboardPage() {
         >
           <div className="dash-section-title">Não foi possível carregar o dashboard</div>
           <div className="dash-section-sub">{error}</div>
+          <button type="button" onClick={() => void loadAll()} className="dash-btn-ghost" style={{ marginTop: "var(--space-3)" }}>
+            Tentar novamente
+          </button>
+        </div>
+      )}
+
+      {/* ── Painéis que falharam ──────────────────────────────────── */}
+      {!loading && panelErrors.length > 0 && (
+        <div
+          className="dash-section"
+          style={{ borderColor: "var(--color-warn-border)", background: "var(--color-warn-soft)" }}
+        >
+          <div className="dash-section-title">
+            {panelErrors.length === 1 ? "Um painel não carregou" : `${panelErrors.length} painéis não carregaram`}
+          </div>
+          <div className="dash-section-sub">
+            O restante do dashboard está atualizado. Estes indicadores estão indisponíveis:
+          </div>
+          <ul style={{ margin: "var(--space-3) 0 0", paddingLeft: "var(--space-4)" }}>
+            {panelErrors.map((f) => (
+              <li key={f.panel} className="dash-section-sub">
+                <strong>{f.panel}</strong> — {f.message}
+              </li>
+            ))}
+          </ul>
           <button type="button" onClick={() => void loadAll()} className="dash-btn-ghost" style={{ marginTop: "var(--space-3)" }}>
             Tentar novamente
           </button>
@@ -402,6 +447,64 @@ export default function AdminDashboardPage() {
             </div>
           )}
 
+          {/* ── Bloco 1b2: Estado do piloto (Spec 028) ────────────── */}
+          {pilotData && (
+            <div className="dash-operational-block">
+              <div className="dash-operational-header">
+                <span className="dash-eyebrow" style={{ marginBottom: 0 }}>Uso real</span>
+                <span className="dash-operational-title">Estado do piloto</span>
+              </div>
+              <div className="dash-kpi-grid">
+                <div className="dash-kpi-item">
+                  <div className="dash-kpi-item-label">Ativos hoje</div>
+                  <div className={`dash-kpi-item-value${pilotData.dau > 0 ? " dash-kpi-item-value--ok" : ""}`}>
+                    {pilotData.dau}
+                  </div>
+                  <div className="dash-kpi-item-note">
+                    {pilotData.wau} na semana · {pilotData.mau} no mês
+                  </div>
+                </div>
+
+                <div className="dash-kpi-item">
+                  <div className="dash-kpi-item-label">Stickiness (DAU/MAU)</div>
+                  <div className="dash-kpi-item-value">
+                    {pilotData.dauMauRatio !== null ? `${pilotData.dauMauRatio}%` : "—"}
+                  </div>
+                  <div className="dash-kpi-item-note">quanto do mês usa no dia</div>
+                </div>
+
+                <div className="dash-kpi-item">
+                  <div className="dash-kpi-item-label">Retenção D30 · personal</div>
+                  <div className="dash-kpi-item-value">
+                    {pilotData.retention.personalD30 !== null ? `${pilotData.retention.personalD30}%` : "—"}
+                  </div>
+                  <div className="dash-kpi-item-note">
+                    aluno {pilotData.retention.studentD30 !== null ? `${pilotData.retention.studentD30}%` : "—"} · coorte ≥30d de conta
+                  </div>
+                </div>
+              </div>
+
+              <div className="dash-kpi-grid" style={{ marginTop: "var(--space-3)" }}>
+                {pilotData.activationFunnel.map((s, i) => {
+                  const base = pilotData.activationFunnel[0]?.count ?? 0;
+                  // active_7d é corte ortogonal, não degrau — % do funil não se aplica.
+                  const showPct = base > 0 && s.step !== "active_7d";
+                  return (
+                    <div key={s.step} className="dash-kpi-item">
+                      <div className="dash-kpi-item-label">
+                        {s.step === "active_7d" ? s.label : `${i + 1}. ${s.label}`}
+                      </div>
+                      <div className="dash-kpi-item-value">{s.count}</div>
+                      <div className="dash-kpi-item-note">
+                        {showPct ? `${Math.round((s.count / base) * 100)}% dos cadastros` : "personais"}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* ── Bloco 1c: Validação PMF ───────────────────────────── */}
           {pmfData && (
             <div className="dash-operational-block">
@@ -413,11 +516,11 @@ export default function AdminDashboardPage() {
                 {/* H1: Personal paga? */}
                 <div className="dash-kpi-item">
                   <div className="dash-kpi-item-label">H1 · Personal paga mensal</div>
-                  <div className={`dash-kpi-item-value${pmfData.h1_personal_billing.active_subs > 0 ? " dash-kpi-item-value--ok" : ""}`}>
-                    {pmfData.h1_personal_billing.active_subs} ativas
+                  <div className={`dash-kpi-item-value${pmfData.h1_personal_billing.paying_active > 0 ? " dash-kpi-item-value--ok" : ""}`}>
+                    {pmfData.h1_personal_billing.paying_active} pagantes
                   </div>
                   <div className="dash-kpi-item-note">
-                    {pmfData.h1_personal_billing.pending_subs} pend. · {pmfData.h1_personal_billing.personals_with_plan} personais · {formatCurrency(pmfData.h1_personal_billing.mrr_cents / 100)} MRR
+                    {pmfData.h1_personal_billing.pending_checkout} checkout pend. · {pmfData.h1_personal_billing.lapsed} perdidas · {formatCurrency(pmfData.h1_personal_billing.mrr_cents / 100)} MRR
                   </div>
                 </div>
 
@@ -442,10 +545,10 @@ export default function AdminDashboardPage() {
                 <div className="dash-kpi-item">
                   <div className="dash-kpi-item-label">H3 · Plataforma ativa</div>
                   <div className="dash-kpi-item-value">
-                    {pmfData.h3_platform_counts.corefit_app_active}
+                    {pmfData.h3_platform_counts.app_memberships_active}
                   </div>
                   <div className="dash-kpi-item-note">
-                    app ativos · {pmfData.h3_platform_counts.personal_billing_active} billing personal · {pmfData.h3_platform_counts.academies_active} academias
+                    app ativos · {pmfData.h3_platform_counts.personals_paying} personais pagantes · {pmfData.h3_platform_counts.academies_active} academias
                   </div>
                 </div>
 

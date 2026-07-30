@@ -19,7 +19,7 @@ import { hasPermission as checkPermission, resolvePermissions, type AccessProfil
 import { SESSION_EXPIRED_EVENT } from "../services/apiBase";
 import { clearTokens as clearStoredTokens, getAccessToken, getRefreshToken, setTokens } from "../services/authTokens";
 import { API_URL } from "../services/apiBase";
-import { extractTenantSlug, fetchBranding, applyBranding, removeBranding } from "../services/tenantHost";
+import { extractTenantSlug, fetchBranding, applyBranding, removeBranding, currentRootDomain } from "../services/tenantHost";
 import { hydrateOnboardingFromUser } from "../pages/user/onboarding/onboardingStorage";
 
 export type Role = "user" | "personal" | "nutri" | "admin";
@@ -109,7 +109,7 @@ function normalizeEmail(email: string) {
  * Picks the active academy from the list.
  * On a tenant subdomain, finds the academy whose slug matches the hostname.
  * Em login geral (app.corefit.com.br) com >1 academia: prioriza a
- * "CoreFit Direto" (slug `corefit-direto`) — é a área pessoal do aluno
+ * "S2Core Direto" (slug `corefit-direto`) — é a área pessoal do aluno
  * MaaS. Para entrar como dono/equipe de outra academia, usar o subdomínio
  * próprio (ex: phgym.corefit.com.br).
  */
@@ -275,7 +275,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           permission
         ),
       hasProduct: (productKey: string) => {
-        if (state.role === 'admin') return true; // CoreFit admin bypasses all product gates
+        if (state.role === 'admin') return true; // S2Core admin bypasses all product gates
         // Academy staff profiles implicitly hold the 'academia' product even if
         // user_products was not yet seeded (e.g. seed missing in production).
         if (
@@ -296,11 +296,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
           // FE-1.7.3: hard redirect to the academy's subdomain so browser storage is isolated.
           // In dev (no subdomain routing), fall back to SPA navigation.
+          // Redireciona para o MESMO domínio raiz que serviu a página (s2core.com.br
+          // ou o legado corefit.com.br) — hardcodar a marca aqui fazia o switch cair
+          // no fallback de dev em produção, perdendo o isolamento de storage.
           const slug = data.activeAcademy?.slug;
-          const isProd = window.location.hostname.endsWith('.corefit.com.br') ||
-                         window.location.hostname === 'corefit.com.br';
-          if (slug && isProd) {
-            window.location.href = `https://${slug}.corefit.com.br/app/academy/dashboard`;
+          const rootDomain = currentRootDomain();
+          if (slug && rootDomain) {
+            window.location.href = `https://${slug}.${rootDomain}/app/academy/dashboard`;
             return { ok: true as const };
           }
 

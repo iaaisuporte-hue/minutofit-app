@@ -13,7 +13,7 @@ import {
   normalizePhone,
   getStrongPasswordError,
 } from "../utils/validators";
-import CoreFitLogo from "../components/CoreFitLogo";
+import S2CoreLogo from "../components/S2CoreLogo";
 
 type RegisterForm = {
   name: string;
@@ -168,7 +168,7 @@ export default function RegisterPage() {
         noValidate
       >
         <div className="auth-logo">
-          <CoreFitLogo width={96} />
+          <S2CoreLogo width={96} />
         </div>
 
         <h1 className="auth-title">Criar conta</h1>

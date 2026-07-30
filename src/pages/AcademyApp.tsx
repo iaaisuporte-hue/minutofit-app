@@ -2,7 +2,7 @@ import React from "react";
 import { NavLink, Navigate, Outlet, Route, Routes, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import AppShell from "../layout/AppShell";
-import CoreFitLogo from "../components/CoreFitLogo";
+import S2CoreLogo from "../components/S2CoreLogo";
 import { ProductGate } from "../components/ProductGate";
 import { EmptyState } from "../components/EmptyState";
 import type { AppPermission } from "../auth/accessControl";
@@ -133,7 +133,7 @@ export default function AcademyApp() {
           )
         ) : (
           <>
-            <CoreFitLogo width={112} />
+            <S2CoreLogo width={112} />
             <div className="shellSubtitle" title={academyLabel} style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "100%" }}>{academyLabel}</div>
           </>
         )}

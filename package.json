@@ -1,5 +1,5 @@
 {
-  "name": "corefit-app",
+  "name": "s2core-app",
   "private": true,
   "version": "0.1.0",
   "description": "Frontend web CoreFit (React + Vite) — aluno, login e cadastro.",

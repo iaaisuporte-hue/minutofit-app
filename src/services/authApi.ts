@@ -151,6 +151,35 @@ export async function loginWithPassword(email: string, password: string): Promis
   return data.data;
 }
 
+/** Pede o e-mail de redefinição de senha. Resposta é sempre uniforme no backend
+ *  (sem enumeração), então aqui só distinguimos sucesso de erro de validação. */
+export async function forgotPassword(email: string): Promise<void> {
+  const response = await fetch(`${API_URL}/auth/forgot-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email }),
+  });
+  const data = await parseJson(response);
+  if (!response.ok) {
+    throw new Error(data?.error || "Não foi possível enviar o e-mail de redefinição.");
+  }
+}
+
+/** Redefine a senha usando o token recebido por e-mail. */
+export async function resetPassword(token: string, newPassword: string): Promise<void> {
+  const response = await fetch(`${API_URL}/auth/reset-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token, newPassword }),
+  });
+  const data = await parseJson(response);
+  if (!response.ok) {
+    const err = new Error(data?.error || "Não foi possível redefinir a senha.") as Error & { code?: string };
+    if (typeof data?.code === "string") err.code = data.code;
+    throw err;
+  }
+}
+
 export async function registerWithPassword(payload: RegisterPayload): Promise<AuthApiSuccess> {
   const { captchaToken, ...rest } = payload;
   const body: Record<string, unknown> = { ...rest };

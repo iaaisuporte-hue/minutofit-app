@@ -6,7 +6,10 @@ import type { WorkoutProtocol } from "./workoutProtocolsApi";
 export type AdminDashboardMetrics = {
   totalUsers: number;
   activeSubscriptions: number;
+  /** Receita recorrente real da V1: SaaS do personal + SaaS da academia. */
   mrr: number;
+  /** Composição do MRR. `legacyB2c` fica FORA de `mrr` — funil B2C desativado. */
+  mrrBreakdown?: { personal: number; academy: number; legacyB2c: number };
   totalRevenue: number;
   tierBreakdown: Array<{ name: string; count: string | number }>;
 };
@@ -309,19 +312,26 @@ export interface AdminLoopMetrics {
   dailyCheckinUsers: Array<{ day: string; users: number }>;
 }
 
+// Métricas de produto NÃO podem falhar em silêncio: se a query quebrar, o
+// dashboard precisa dizer isso em vez de mostrar um painel vazio indistinguível
+// de "ainda não há dados".
 export async function fetchAdminLoopMetrics(days = 30): Promise<AdminLoopMetrics | null> {
   if (!getAccessToken()) return null;
   const response = await authFetch(`${API_URL}/admin/dashboard/loop-metrics?days=${days}`);
-  if (!response.ok) return null;
   const data = await parseJson(response);
+  if (!response.ok) {
+    throw new Error(data?.error || "Nao foi possivel carregar metricas do loop.");
+  }
   return data?.data as AdminLoopMetrics ?? null;
 }
 
 export interface AdminPmfMetrics {
   h1_personal_billing: {
-    active_subs: number;
-    pending_subs: number;
-    personals_with_plan: number;
+    paying_active: number;
+    trial_active: number;
+    pending_checkout: number;
+    lapsed: number;
+    personals_with_row: number;
     mrr_cents: number;
   };
   h2_adaptive_adherence: {
@@ -331,8 +341,8 @@ export interface AdminPmfMetrics {
     control_checkin_pct: number | null;
   };
   h3_platform_counts: {
-    corefit_app_active: number;
-    personal_billing_active: number;
+    app_memberships_active: number;
+    personals_paying: number;
     academies_active: number;
   };
   h4_checkin_sustainability: {
@@ -344,11 +354,33 @@ export interface AdminPmfMetrics {
   };
 }
 
+/** Spec 028 — telemetria de uso: DAU/MAU, retenção D30 e funil de ativação. */
+export interface AdminPilotMetrics {
+  dau: number;
+  wau: number;
+  mau: number;
+  dauMauRatio: number | null;
+  retention: { personalD30: number | null; studentD30: number | null };
+  activationFunnel: Array<{ step: string; label: string; count: number }>;
+}
+
+export async function fetchAdminPilotMetrics(): Promise<AdminPilotMetrics | null> {
+  if (!getAccessToken()) return null;
+  const response = await authFetch(`${API_URL}/admin/dashboard/pilot-metrics`);
+  const data = await parseJson(response);
+  if (!response.ok) {
+    throw new Error(data?.error || "Nao foi possivel carregar metricas do piloto.");
+  }
+  return data?.data as AdminPilotMetrics ?? null;
+}
+
 export async function fetchAdminPmfMetrics(): Promise<AdminPmfMetrics | null> {
   if (!getAccessToken()) return null;
   const response = await authFetch(`${API_URL}/admin/dashboard/pmf-metrics`);
-  if (!response.ok) return null;
   const data = await parseJson(response);
+  if (!response.ok) {
+    throw new Error(data?.error || "Nao foi possivel carregar metricas de PMF.");
+  }
   return data?.data as AdminPmfMetrics ?? null;
 }
 

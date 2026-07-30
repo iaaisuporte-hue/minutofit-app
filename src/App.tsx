@@ -8,6 +8,7 @@ import Login from "./pages/login";
 import Register from "./pages/register";
 import RegisterPersonal from "./pages/register-personal";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
 import ProfileCompletionPage from "./pages/ProfileCompletionPage";
 import ForcePasswordChangePage from "./pages/ForcePasswordChangePage";
 import UserApp from "./pages/UserApp";
@@ -41,6 +42,7 @@ export default function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/cadastro-personal" element={<RegisterPersonal />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route
             path="/force-password-change"
             element={

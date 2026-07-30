@@ -1,5 +1,5 @@
 /**
- * API client para a biblioteca global de exercícios CoreFit.
+ * API client para a biblioteca global de exercícios S2Core.
  * Substitui/complementa o exerciseCatalogApi (legado).
  */
 

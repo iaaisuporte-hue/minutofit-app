@@ -14,7 +14,7 @@ interface Props {
 /**
  * Modal de confirmação estilizado. Substitui window.confirm() nativo,
  * mantendo a mesma semântica (bloqueia ação até decisão) sem quebrar a
- * identidade visual premium do CoreFit.
+ * identidade visual premium do S2Core.
  */
 export function ConfirmDialog({
   open,

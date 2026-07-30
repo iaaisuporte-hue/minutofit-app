@@ -11,9 +11,32 @@
 
 import { API_URL } from './apiBase';
 
-const SUBDOMAIN_REGEX = /^([a-z0-9][a-z0-9-]{1,61}[a-z0-9])\.corefit\.com\.br$/i;
+/**
+ * Domínios raiz que servem tenants. `s2core.com.br` é a marca atual;
+ * `corefit.com.br` permanece durante a transição — derrubá-lo quebraria o
+ * acesso de quem já tem link/bookmark do subdomínio antigo.
+ *
+ * O host é input de UX, NUNCA de autorização: o tenant válido continua vindo do
+ * `activeAcademyId` assinado no JWT (ver "Resolução de tenant" no CLAUDE.md).
+ */
+export const TENANT_ROOT_DOMAINS = ['s2core.com.br', 'corefit.com.br'] as const;
+
+const SUBDOMAIN_REGEX = new RegExp(
+  `^([a-z0-9][a-z0-9-]{1,61}[a-z0-9])\\.(${TENANT_ROOT_DOMAINS.map((d) => d.replace(/\./g, '\\.')).join('|')})$`,
+  'i',
+);
 const RESERVED = new Set(['app', 'www', 'api', 'admin', 'cdn', 'static', 'assets', 'mail', 'dev', 'staging', 'test', 'localhost']);
 const STYLE_ELEMENT_ID = 'academy-branding';
+
+/**
+ * Domínio raiz que está servindo a página, ou null fora de produção.
+ * Usado para montar redirects de troca de academia sem hardcodar a marca.
+ */
+export function currentRootDomain(): string | null {
+  if (typeof window === 'undefined') return null;
+  const host = window.location.hostname.toLowerCase();
+  return TENANT_ROOT_DOMAINS.find((d) => host === d || host.endsWith(`.${d}`)) ?? null;
+}
 
 export interface AcademyBrandingPublic {
   displayName?: string | null;

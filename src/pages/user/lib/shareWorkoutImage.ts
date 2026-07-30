@@ -6,7 +6,7 @@
 // Separados de propósito: o share() precisa de gesto do usuário e é chamado a
 // partir do botão "Compartilhar" do preview. Restrito ao mobile por capacidade.
 
-const BRAND = "S2Core"; // marca pública do app (domínio corefit.com.br)
+const BRAND = "S2Core"; // marca pública do app (domínio s2core.com.br)
 
 type ShareableNavigator = Navigator & {
   canShare?: (data?: ShareData) => boolean;

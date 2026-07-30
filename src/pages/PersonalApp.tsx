@@ -4,7 +4,7 @@ import { NavLink, Navigate, Route, Routes, useNavigate, useParams } from "react-
 import { useAuth } from "../auth/AuthContext";
 import AppShell from "../layout/AppShell";
 import PersonalMobileBottomNav from "../layout/PersonalMobileBottomNav";
-import CoreFitLogo from "../components/CoreFitLogo";
+import S2CoreLogo from "../components/S2CoreLogo";
 import { fetchChatConversations } from "../services/messagesApi";
 import "./personal/personalPremium.css";
 import { PlanBadge } from "../features/personalPlan/PlanBadge";
@@ -148,7 +148,7 @@ export default function PersonalApp() {
           {/* Cabeçalho da sidebar: logo + ícone de mensagens */}
           <div style={{ padding: "8px 12px 16px", display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
             <div>
-              <CoreFitLogo width={112} />
+              <S2CoreLogo width={112} />
               <div className="shellSubtitle" style={{ marginTop: 8 }}>Personal</div>
             </div>
 
