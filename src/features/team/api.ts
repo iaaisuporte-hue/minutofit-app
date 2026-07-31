@@ -123,7 +123,12 @@ export async function listIncomingRequests(role: ProfessionalRole): Promise<Prof
 
 export async function acceptRequest(requestId: string): Promise<void> {
   const res = await authFetch(`${BASE}/incoming-requests/${requestId}/accept`, { method: 'POST' });
-  if (!res.ok) throw new Error('accept_failed');
+  if (!res.ok) {
+    // Spec 029 — limite de alunos do plano. A solicitação continua `pending`,
+    // então basta fazer upgrade e aceitar de novo.
+    const payload = await res.json().catch(() => null);
+    throw new Error(payload?.error === 'student_limit_reached' ? 'student_limit_reached' : 'accept_failed');
+  }
 }
 
 export async function rejectRequest(requestId: string, reason?: string): Promise<void> {

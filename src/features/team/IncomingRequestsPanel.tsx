@@ -40,8 +40,15 @@ export function IncomingRequestsPanel({ role, onCountChange }: Props) {
       setRequests((prev) => prev.filter((r) => r.id !== req.id));
       onCountChange?.(requests.length - 1);
       setToast({ message: `${req.studentName ?? 'Aluno'} adicionado(a) à sua carteira.`, kind: 'success' });
-    } catch {
-      setToast({ message: 'Não foi possível aceitar a solicitação.', kind: 'error' });
+    } catch (err) {
+      // A solicitação continua pendente — depois do upgrade, é só aceitar de novo.
+      const limitReached = err instanceof Error && err.message === 'student_limit_reached';
+      setToast({
+        message: limitReached
+          ? 'Você atingiu o limite de 3 alunos do plano gratuito. Faça upgrade para o Pro e aceite a solicitação — ela continua aguardando.'
+          : 'Não foi possível aceitar a solicitação.',
+        kind: 'error',
+      });
     } finally {
       setProcessing(null);
     }

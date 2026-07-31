@@ -63,6 +63,9 @@ export default function DirectInviteAcceptPage() {
   const [phone, setPhone] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  /** Spec 029 — profissional no limite do plano. Não é erro do formulário: o
+   *  aluno não tem o que corrigir, só voltar depois do upgrade. */
+  const [limitReached, setLimitReached] = useState<string | null>(null);
 
   // When backend returns userExists=true, show login-only form
   const [existingAccountEmail, setExistingAccountEmail] = useState<string | null>(null);
@@ -88,6 +91,7 @@ export default function DirectInviteAcceptPage() {
     if (!token) return;
     setSubmitting(true);
     setSubmitError(null);
+    setLimitReached(null);
     setExistingAccountEmail(null);
 
     try {
@@ -106,9 +110,12 @@ export default function DirectInviteAcceptPage() {
       setTokens(result.accessToken, result.refreshToken);
       navigate("/app/user/today", { replace: true });
     } catch (e: unknown) {
-      const err = e as { message?: string; userExists?: boolean; email?: string };
-      // Backend returns 401 with userExists=true when password is wrong for existing account
-      if (err && typeof err === "object" && "userExists" in err && err.userExists) {
+      const err = e as { message?: string; userExists?: boolean; email?: string; code?: string };
+      if (err?.code === "PERSONAL_STUDENT_LIMIT_REACHED") {
+        // O convite continua válido — o mesmo link funciona após o upgrade.
+        setLimitReached(err.message ?? "Este profissional atingiu o limite de alunos do plano atual.");
+      } else if (err && typeof err === "object" && "userExists" in err && err.userExists) {
+        // Backend returns 401 with userExists=true when password is wrong for existing account
         setExistingAccountEmail(err.email ?? email);
         setSubmitError(
           "Esta conta já existe. Insira a senha da sua conta existente para aceitar o convite."
@@ -384,13 +391,32 @@ export default function DirectInviteAcceptPage() {
             />
           </div>
 
+          {limitReached ? (
+            <div
+              style={{
+                color: "var(--color-warn-text)",
+                fontSize: 13,
+                background: "var(--color-warn-soft)",
+                border: "1px solid var(--color-warn-border)",
+                borderRadius: 8,
+                padding: "10px 12px",
+                lineHeight: 1.4,
+              }}
+            >
+              {limitReached}
+              <div style={{ marginTop: 6, opacity: 0.85 }}>
+                Seu convite continua válido — guarde este link.
+              </div>
+            </div>
+          ) : null}
+
           {submitError ? (
             <div
               style={{
-                color: "#DC2626",
+                color: "var(--color-danger)",
                 fontSize: 13,
                 background: "var(--color-danger-soft)",
-                border: "1px solid #FECACA",
+                border: "1px solid var(--color-danger-border)",
                 borderRadius: 8,
                 padding: "8px 12px",
                 lineHeight: 1.4,

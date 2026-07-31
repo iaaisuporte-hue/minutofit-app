@@ -82,11 +82,14 @@ export async function acceptDirectInvite(
   });
   const data = await parseJson(response);
   if (!response.ok) {
-    const err: Error & { userExists?: boolean; email?: string } = new Error(
+    const err: Error & { userExists?: boolean; email?: string; code?: string } = new Error(
       data?.error || "Não foi possível aceitar o convite."
     );
     err.userExists = data?.userExists ?? false;
     err.email = data?.email;
+    // Spec 029 — `PERSONAL_STUDENT_LIMIT_REACHED` não é erro do formulário:
+    // a UI trata como aviso, não como falha de validação.
+    err.code = data?.code;
     throw err;
   }
   return data.data;

@@ -37,6 +37,22 @@ export default function ParqSigningPage() {
     >
       <div style={{ maxWidth: 680, width: '100%' }}>
         <div style={{ marginBottom: 24 }}>
+          {/* F3 — chegando do onboarding, este é o passo 2 de 2. Quem cai aqui
+              por outro caminho (banner, guard de rota) não vê o contador. */}
+          {clearance.reason === 'incomplete_health_flags' && (
+            <div
+              style={{
+                fontSize: 11,
+                fontWeight: 600,
+                color: 'var(--color-primary)',
+                textTransform: 'uppercase',
+                letterSpacing: '0.08em',
+                marginBottom: 8,
+              }}
+            >
+              Passo 2 de 2
+            </div>
+          )}
           <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0 }}>
             Triagem de saúde e PAR-Q
           </h1>
@@ -51,8 +67,8 @@ export default function ParqSigningPage() {
                 padding: '10px 14px',
                 borderRadius: 10,
                 background: 'var(--color-danger-soft)',
-                border: '1px solid #fca5a5',
-                color: '#991b1b',
+                border: '1px solid var(--color-danger-border)',
+                color: 'var(--color-danger-text, var(--color-danger))',
                 fontSize: 13,
                 fontWeight: 500,
               }}

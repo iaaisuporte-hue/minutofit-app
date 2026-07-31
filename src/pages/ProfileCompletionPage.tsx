@@ -13,7 +13,12 @@ const FITNESS_GOALS = ["Perda de Peso", "Ganho de Massa", "Manutenção", "Flexi
 function nextPathByRole(role: Role) {
   switch (role) {
     case "user":
-      return "/app/user/today";
+      // Spec/F3 — o aluno segue direto para o PAR-Q (passo 2 de 2) em vez de
+      // cair na Hoje com todos os CTAs de treino travados. A clearance exige as
+      // 5 health flags + PAR-Q assinado, e o cadastro público não coleta nada
+      // disso: sem este encadeamento, todo usuário novo esbarra no lock no
+      // primeiro treino. `ParqSigningPage` já redireciona sozinho ao concluir.
+      return "/app/user/parq?returnTo=%2Fapp%2Fuser%2Ftoday";
     case "personal":
       return "/app/personal";
     case "nutri":
@@ -190,7 +195,7 @@ export default function ProfileCompletionPage() {
               marginBottom: 8,
             }}
           >
-            Passo final
+            {auth.role === "user" ? "Passo 1 de 2" : "Passo final"}
           </div>
           <h1
             className="pc-title"
