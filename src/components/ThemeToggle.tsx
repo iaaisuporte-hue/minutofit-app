@@ -2,8 +2,12 @@ import { useTheme } from "../lib/useTheme";
 
 /**
  * FAB de tema claro/escuro (desktop). No mobile (≤720px) ele é ocultado via CSS
- * (`.theme-toggle-fab`) porque brigava com o bottom nav — no app do aluno a troca
- * de tema mora em Perfil › Aparência. A lógica vive em `useTheme`.
+ * (`.theme-toggle-fab`, em `components.css`) porque brigava com o bottom nav —
+ * no app do aluno a troca de tema mora em Perfil › Aparência. A lógica vive em
+ * `useTheme`.
+ *
+ * Os estilos ficam na CLASSE, não inline: inline eles venciam por
+ * especificidade e a ocultação no mobile nunca chegava a valer (QA 02/ago/2026).
  */
 export default function ThemeToggle() {
   const { isDark, toggle } = useTheme();
@@ -15,23 +19,6 @@ export default function ThemeToggle() {
       onClick={toggle}
       aria-label={isDark ? "Mudar para tema claro" : "Mudar para tema escuro"}
       title={isDark ? "Tema escuro (toque para claro)" : "Tema claro (toque para escuro)"}
-      style={{
-        position: "fixed",
-        right: 16,
-        bottom: "calc(84px + env(safe-area-inset-bottom, 0px))",
-        zIndex: 150,
-        width: 44,
-        height: 44,
-        borderRadius: 999,
-        border: "1px solid var(--color-border-strong)",
-        background: "var(--color-surface)",
-        color: "var(--color-primary)",
-        display: "grid",
-        placeItems: "center",
-        cursor: "pointer",
-        boxShadow: "var(--shadow-md)",
-        transition: "border-color 150ms ease, transform 150ms ease",
-      }}
     >
       {isDark ? (
         // sol — está escuro, toque para clarear

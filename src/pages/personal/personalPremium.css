@@ -142,6 +142,22 @@ html:not([data-theme="dark"]) .personal-app-canvas {
   font-size: 12px;
 }
 
+/* Em aparelho de toque, os controles compactos do painel (32px de altura) e os
+   chips de filtro (28px) ficavam abaixo dos 44px do WCAG 2.5.5. O ajuste vale
+   só para `pointer: coarse` — no desktop a densidade continua a mesma, que é o
+   ponto do modificador `--sm`. QA mobile 02/ago/2026. */
+@media (pointer: coarse) {
+  .pp-btn--sm {
+    min-height: 44px;
+    padding: 10px 14px;
+  }
+
+  .pp-pulse-chip {
+    min-height: 44px;
+    padding: 10px 16px;
+  }
+}
+
 .pp-btn--warn {
   border-color: var(--color-warn-border);
   background: var(--color-warn-soft);

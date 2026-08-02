@@ -63,6 +63,13 @@ export type { AcademyForUser, AcademyBranding };
 
 type AuthState = {
   isAuthenticated: boolean;
+  /**
+   * true enquanto a sessão guardada está sendo validada contra /auth/me.
+   * Existe porque `isAuthenticated` nasce false: sem distinguir "ainda não sei"
+   * de "não está logado", o ProtectedRoute redirecionava no boot e o destino do
+   * deep link / F5 se perdia (QA mobile 02/ago/2026).
+   */
+  bootstrapping: boolean;
   role: Role | null;
   email: string | null;
   id: string | null;
@@ -170,6 +177,7 @@ function decodeJwtProducts(token: string | null): string[] {
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<AuthState>({
     isAuthenticated: false,
+    bootstrapping: Boolean(getAccessToken()),
     role: null,
     email: null,
     id: null,
@@ -212,6 +220,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
           setState({
             isAuthenticated: true,
+            bootstrapping: false,
             role: finalUser.role,
             email: finalUser.email,
             id: finalUser.id?.toString(),
@@ -226,13 +235,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           });
         } else {
           clearStoredTokens();
-          setState({ isAuthenticated: false, role: null, email: null, id: null, accessProfile: null, permissions: [], activeAcademyId: null, academies: [], branding: null });
+          setState({ isAuthenticated: false, bootstrapping: false, role: null, email: null, id: null, accessProfile: null, permissions: [], activeAcademyId: null, academies: [], branding: null });
         }
       } catch (err) {
         console.error("Error restoring session:", err);
         if (cancelled) return;
         clearStoredTokens();
-        setState({ isAuthenticated: false, role: null, email: null, id: null, accessProfile: null, permissions: [], activeAcademyId: null, academies: [], branding: null });
+        setState({ isAuthenticated: false, bootstrapping: false, role: null, email: null, id: null, accessProfile: null, permissions: [], activeAcademyId: null, academies: [], branding: null });
       }
     })();
 
@@ -246,6 +255,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       clearStoredTokens();
       setState({
         isAuthenticated: false,
+        bootstrapping: false,
         role: null,
         email: null,
         id: null,
@@ -341,6 +351,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
           setState({
             isAuthenticated: true,
+            bootstrapping: false,
             role: finalUser.role,
             email: finalUser.email,
             id: finalUser.id?.toString(),
@@ -375,6 +386,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
           setState({
             isAuthenticated: true,
+            bootstrapping: false,
             role: data.user.role,
             email: data.user.email,
             id: data.user.id?.toString(),
@@ -409,6 +421,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
           setState({
             isAuthenticated: true,
+            bootstrapping: false,
             role: data.user.role,
             email: data.user.email,
             id: data.user.id?.toString(),
@@ -445,6 +458,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // Update state
           setState({
             isAuthenticated: true,
+            bootstrapping: false,
             role: user.role,
             email: user.email,
             id: user.id?.toString(),
@@ -491,6 +505,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         removeBranding(); // FE-1.7.3: clean up injected academy CSS on logout
         setState({
           isAuthenticated: false,
+          bootstrapping: false,
           role: null,
           email: null,
           id: null,

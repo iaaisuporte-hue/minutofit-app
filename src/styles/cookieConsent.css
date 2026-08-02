@@ -29,6 +29,40 @@
   }
 }
 
+/* Telas baixas: o banner não pode comer a tela inteira. A 320x568 ele chegava a
+   465px de altura (82% da viewport) e cobria o botão "Entrar". O texto passa a
+   rolar dentro do próprio banner; os botões ficam fixos e sempre visíveis. */
+@media (max-width: 719px) {
+  .cookie-consent__inner {
+    max-height: 62vh;
+    grid-template-rows: minmax(0, 1fr) auto;
+  }
+
+  .cookie-consent__text {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+}
+
+/* Espaço reservado no fim da página enquanto o banner está na tela — a altura
+   real é publicada pelo componente em `--cookie-consent-h`.
+
+   O padding vai na PÁGINA, não no body: o body tem altura fixa e rolagem
+   própria (`globals.css`), então padding nele não gera rolagem nenhuma. Já em
+   `.auth-page`, que é `min-height: 100vh` + `place-items: center`, reservar o
+   rodapé faz o cartão se centralizar no espaço ACIMA do banner — e o botão
+   "Entrar" deixa de nascer embaixo dele. */
+html.has-cookie-consent .auth-page {
+  padding-bottom: calc(var(--cookie-consent-h, 0px) + var(--space-5));
+}
+
+/* Demais telas (layout de app, com o próprio scroller) só precisam do respiro
+   no fim do conteúdo. */
+html.has-cookie-consent body {
+  padding-bottom: var(--cookie-consent-h, 0px);
+}
+
 .cookie-consent__title {
   margin: 0 0 6px;
   font-size: 15px;

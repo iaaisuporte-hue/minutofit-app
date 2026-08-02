@@ -169,6 +169,15 @@
   transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
 }
 
+/* Toque: 28px de altura ficava abaixo dos 44px do WCAG 2.5.5. Só em
+   `pointer: coarse` — no desktop os chips seguem compactos. QA 02/ago/2026. */
+@media (pointer: coarse) {
+  .metabolic-period-chip {
+    min-height: 44px;
+    padding: 8px 16px;
+  }
+}
+
 .metabolic-period-chip:hover {
   border-color: var(--color-text-subtle);
 }

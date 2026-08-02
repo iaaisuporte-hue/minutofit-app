@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   readCookieConsent,
@@ -13,10 +13,42 @@ import "../styles/cookieConsent.css";
 export default function CookieConsentBanner() {
   const [visible, setVisible] = useState(false);
   const [analytics, setAnalytics] = useState(false);
+  const innerRef = useRef<HTMLDivElement | null>(null);
 
   const sync = useCallback(() => {
     setVisible(readCookieConsent() === null);
   }, []);
+
+  // Reserva, no fim da página, a altura que o banner ocupa. Sem isso, em telas
+  // baixas (≤360x740) o banner cobria o botão "Entrar" do login — 308px de
+  // sobreposição a 320x568 — e, como a página não tinha o que rolar, o usuário
+  // tocava num botão visível e nada acontecia, sem nenhuma pista do porquê
+  // (QA mobile 02/ago/2026). Com o espaço reservado a página passa a rolar e a
+  // ação sai de baixo do banner.
+  useEffect(() => {
+    const root = document.documentElement;
+    if (!visible) {
+      root.classList.remove("has-cookie-consent");
+      root.style.removeProperty("--cookie-consent-h");
+      return;
+    }
+    root.classList.add("has-cookie-consent");
+    const el = innerRef.current;
+    const medir = () => {
+      const h = el?.getBoundingClientRect().height ?? 0;
+      root.style.setProperty("--cookie-consent-h", `${Math.ceil(h) + 24}px`);
+    };
+    medir();
+    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(medir) : null;
+    if (ro && el) ro.observe(el);
+    window.addEventListener("resize", medir);
+    return () => {
+      ro?.disconnect();
+      window.removeEventListener("resize", medir);
+      root.classList.remove("has-cookie-consent");
+      root.style.removeProperty("--cookie-consent-h");
+    };
+  }, [visible]);
 
   useEffect(() => {
     sync();
@@ -45,7 +77,7 @@ export default function CookieConsentBanner() {
       aria-labelledby="cookie-consent-title"
       aria-describedby="cookie-consent-desc"
     >
-      <div className="cookie-consent__inner">
+      <div className="cookie-consent__inner" ref={innerRef}>
         <div className="cookie-consent__text">
           <h2 id="cookie-consent-title" className="cookie-consent__title">
             Cookies e privacidade (LGPD)
