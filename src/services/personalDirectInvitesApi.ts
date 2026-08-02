@@ -38,7 +38,16 @@ export async function createDirectInvite(opts: {
     body: JSON.stringify({ invitedEmail: opts.invitedEmail || null, invitedName: opts.invitedName || null }),
   });
   const data = await parseJson(response);
-  if (!response.ok) throw new Error(data?.error || "Não foi possível criar o convite.");
+  if (!response.ok) {
+    // Preserva `code`/`upgradeRequired` para a UI diferenciar "bateu no limite
+    // do plano" (momento de oferecer o Pro) de uma falha genérica.
+    const err: Error & { code?: string; upgradeRequired?: string } = new Error(
+      data?.error || "Não foi possível criar o convite."
+    );
+    err.code = data?.code;
+    err.upgradeRequired = data?.upgradeRequired;
+    throw err;
+  }
   return data.data as DirectInvite;
 }
 

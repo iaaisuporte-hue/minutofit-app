@@ -1,4 +1,5 @@
-export type MetabolicStatus = 'low' | 'moderate' | 'high';
+// 'onboarding' = conta nova sem sinal ainda; espelha o backend (metabolic.types.ts).
+export type MetabolicStatus = 'onboarding' | 'low' | 'moderate' | 'high';
 export type MetabolicTrend = 'up' | 'down' | 'stable';
 
 export interface MetabolicFactor {

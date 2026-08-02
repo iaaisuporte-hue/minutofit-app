@@ -1,7 +1,84 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { usePhysicalActivityClearance } from '../../../auth/usePhysicalActivityClearance';
+import { useAuth } from '../../../auth/AuthContext';
+import { declareParqMedicalRelease } from '../../../services/authApi';
 import StudentCompliancePanel from './StudentCompliancePanel';
+
+/**
+ * Estado `medical_clearance_required`: o aluno respondeu "sim" a alguma pergunta
+ * do PAR-Q. Antes isso não bloqueava nada — a resposta era gravada como evidência
+ * e o treino liberava igual. Agora bloqueia, mas com saída: o aluno procura
+ * avaliação médica e volta para declarar que obteve a liberação. Sem essa saída
+ * o único caminho seria voltar no formulário e responder "não", que é pior.
+ */
+function MedicalReleaseBlock() {
+  const { getUser } = useAuth();
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [confirmed, setConfirmed] = useState(false);
+
+  async function handleDeclare() {
+    setError(null);
+    setSaving(true);
+    try {
+      await declareParqMedicalRelease();
+      await getUser();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Não foi possível registrar.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div
+      style={{
+        marginTop: 12,
+        padding: '14px 16px',
+        borderRadius: 10,
+        background: 'var(--color-warn-soft)',
+        border: '1px solid var(--color-warn-border)',
+        display: 'grid',
+        gap: 10,
+      }}
+    >
+      <div style={{ fontSize: 14, fontWeight: 600 }}>
+        Antes de treinar, converse com um médico
+      </div>
+      <div style={{ fontSize: 13, lineHeight: 1.5, color: 'var(--color-text-muted)' }}>
+        Você respondeu “sim” a pelo menos uma pergunta do PAR-Q. Isso não impede que
+        você treine — significa que uma avaliação médica deve vir antes, para que o
+        treino seja seguro para o seu caso. Quando tiver a liberação de um
+        profissional de saúde, confirme abaixo para continuar.
+      </div>
+      <label style={{ display: 'grid', gridTemplateColumns: '22px minmax(0, 1fr)', gap: 10, alignItems: 'start', fontSize: 13 }}>
+        <input
+          type="checkbox"
+          checked={confirmed}
+          onChange={(ev) => setConfirmed(ev.target.checked)}
+          disabled={saving}
+        />
+        <span>
+          Declaro que fui avaliado por um profissional de saúde e estou liberado
+          para praticar atividade física.
+        </span>
+      </label>
+      {error && (
+        <div style={{ fontSize: 13, color: 'var(--color-danger)' }}>{error}</div>
+      )}
+      <button
+        type="button"
+        className="btnPrimary"
+        onClick={() => void handleDeclare()}
+        disabled={!confirmed || saving}
+        style={{ justifySelf: 'start' }}
+      >
+        {saving ? 'Registrando…' : 'Registrar liberação e continuar'}
+      </button>
+    </div>
+  );
+}
 
 /**
  * Focused full-page PAR-Q signing flow.
@@ -60,6 +137,7 @@ export default function ParqSigningPage() {
             Para usar os recursos de treino, preencha a triagem de saúde e assine o PAR-Q abaixo.
             Isso garante sua segurança e é exigido por boas práticas de atividade física.
           </p>
+          {clearance.reason === 'medical_clearance_required' && <MedicalReleaseBlock />}
           {clearance.reason === 'expired' && (
             <div
               style={{

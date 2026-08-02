@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
 import { DrawerShell } from "../../../components/overlay/DrawerShell";
 import { createDirectInvite } from "../../../services/personalDirectInvitesApi";
+import { UpgradeToProButton } from "../../../features/personalPlan/UpgradeToProButton";
 import { COLORS } from "../../../styles/colors";
 
 type Props = {
@@ -15,6 +16,8 @@ export function StudentInviteDrawer({ open, onClose, onInviteCreated }: Props) {
   const [inviteName, setInviteName] = useState("");
   const [inviteLoading, setInviteLoading] = useState(false);
   const [inviteError, setInviteError] = useState<string | null>(null);
+  /** true quando o erro é "bateu no limite do plano" — vira CTA, não falha. */
+  const [inviteLimitReached, setInviteLimitReached] = useState(false);
   const [createdInviteUrl, setCreatedInviteUrl] = useState<string | null>(null);
   const inviteUrlRef = useRef<HTMLInputElement>(null);
 
@@ -30,7 +33,7 @@ export function StudentInviteDrawer({ open, onClose, onInviteCreated }: Props) {
   }
 
   async function handleCreateInvite() {
-    setInviteLoading(true); setInviteError(null);
+    setInviteLoading(true); setInviteError(null); setInviteLimitReached(false);
     try {
       const result = await createDirectInvite({
         invitedEmail: inviteEmail || undefined,
@@ -39,6 +42,8 @@ export function StudentInviteDrawer({ open, onClose, onInviteCreated }: Props) {
       setCreatedInviteUrl(result.inviteUrl);
       onInviteCreated?.();
     } catch (e) {
+      const err = e as Error & { code?: string };
+      setInviteLimitReached(err?.code === "STUDENT_LIMIT_REACHED");
       setInviteError(e instanceof Error ? e.message : "Não foi possível criar o convite.");
     } finally {
       setInviteLoading(false);
@@ -101,15 +106,20 @@ export function StudentInviteDrawer({ open, onClose, onInviteCreated }: Props) {
           {inviteError ? (
             <div
               style={{
-                color: COLORS.danger,
+                color: inviteLimitReached ? COLORS.text : COLORS.danger,
                 fontSize: 13,
-                background: COLORS.dangerBg,
-                border: `1px solid ${COLORS.dangerBorder}`,
+                background: inviteLimitReached ? COLORS.panelDeep : COLORS.dangerBg,
+                border: `1px solid ${inviteLimitReached ? COLORS.border : COLORS.dangerBorder}`,
                 borderRadius: 8,
                 padding: "8px 12px",
+                display: "flex",
+                flexDirection: "column",
+                gap: 8,
+                alignItems: "flex-start",
               }}
             >
-              {inviteError}
+              <span>{inviteError}</span>
+              {inviteLimitReached ? <UpgradeToProButton variant="solid" /> : null}
             </div>
           ) : null}
 

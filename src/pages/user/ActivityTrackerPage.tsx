@@ -585,6 +585,9 @@ export default function ActivityTrackerPage() {
         : `${insightPrefix}${signal.insight}${confirmSuffix} Registrada na sua leitura do dia.`
     );
 
+    // O check-in é o que leva a atividade para streak/XP/score. Falhar aqui em
+    // silêncio (era só um console.error) fazia o aluno terminar a corrida vendo
+    // "registrada na sua leitura do dia" enquanto nada tinha sido contabilizado.
     try {
       await persistGamificationCheckin({
         source: "activity",
@@ -598,6 +601,9 @@ export default function ActivityTrackerPage() {
       });
     } catch (error) {
       console.error("Failed to persist activity gamification:", error);
+      setRewardMessage(
+        `${insightPrefix}${signal.insight}${confirmSuffix} A atividade ficou salva no aparelho, mas ainda não entrou na sua leitura do dia — abra o Tracker de novo quando estiver online.`
+      );
     }
     addWorkoutHistoryEntry({
       workoutId: `activity-${endActivity.id}`,

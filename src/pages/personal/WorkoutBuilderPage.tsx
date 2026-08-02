@@ -493,8 +493,12 @@ export default function WorkoutBuilderPage() {
     //   alto risco / pouca atividade → começar com o menor (4×)
     //   alta aderência e baixo risco → manter intensidade (6×)
     //   caso intermediário → 5×
-    const startGentle = signal.riskScore >= 70 || signal.workouts7d <= 1;
-    const highEngagement = signal.riskScore <= 30 && signal.workouts7d >= 5;
+    // riskScore null = aluno em onboarding, sem histórico para pontuar. Trata-se
+    // como "sem sinal": nem conservador por risco, nem agressivo por engajamento
+    // (comparar null direto coagiria para 0 e o classificaria como baixo risco).
+    const risk = signal.riskScore;
+    const startGentle = (risk !== null && risk >= 70) || signal.workouts7d <= 1;
+    const highEngagement = risk !== null && risk <= 30 && signal.workouts7d >= 5;
     const derivedPreset: WeekPreset = startGentle ? "4" : highEngagement ? "6" : "5";
     applyWeekPreset(derivedPreset);
   }, [selectedStudentId, studentSignals, students, searchParams, applyWeekPreset]);

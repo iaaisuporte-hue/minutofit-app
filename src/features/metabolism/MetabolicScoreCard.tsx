@@ -21,6 +21,9 @@ interface Props {
 }
 
 const STATUS_LABEL: Record<string, string> = {
+  // Conta nova sem sinal: não é "baixo", é ausência de leitura. Antes o aluno
+  // recém-cadastrado via "Pedindo recuperação" antes de fazer qualquer coisa.
+  onboarding: 'Calibrando',
   low: 'Pedindo recuperação',
   moderate: 'Equilibrado',
   high: 'Em alta',
@@ -180,7 +183,13 @@ export function MetabolicScoreCard({ data, loading, error, derivedStatus, foreca
   const trend = TREND_META[data.trend];
   const progressPct = `${Math.max(0, Math.min(100, data.score))}%`;
   const topFactors = [...data.factors].sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta)).slice(0, 5);
-  const energyStatus = derivedStatus ?? { energyLabel: STATUS_LABEL[data.status] ?? data.status, metabolicState: 'Ativo' };
+  // No estado de onboarding o `derivedStatus` (derivado do número) não vale: o
+  // score é um placeholder, então o rótulo tem que vir do status, não da faixa.
+  const isOnboarding = data.status === 'onboarding';
+  const energyStatus =
+    isOnboarding || !derivedStatus
+      ? { energyLabel: STATUS_LABEL[data.status] ?? data.status, metabolicState: isOnboarding ? 'Calibrando' : 'Ativo' }
+      : derivedStatus;
   const stateContext = data.interpretation?.hint ?? getStateContext(energyStatus.metabolicState, data.trend);
 
   const bodyTrends = trendStrip && !trendStrip.loading ? computeMetabolicTrends(trendStrip.records) : [];
@@ -339,6 +348,14 @@ export function MetabolicScoreCard({ data, loading, error, derivedStatus, foreca
                   </div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
+                  {/* Durante a calibragem não existe número para mostrar — o score
+                      é placeholder. Exibir "45/100" seria inventar uma leitura. */}
+                  {isOnboarding ? (
+                    <div style={{ maxWidth: 200, fontSize: 13, color: 'var(--color-text-muted)', lineHeight: 1.5 }}>
+                      Ainda calibrando. Seu score aparece depois dos primeiros registros.
+                    </div>
+                  ) : (
+                    <>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, justifyContent: 'flex-end' }}>
                     <div className="metaScoreValue" style={{ fontSize: isMobile ? 40 : 48 }}>{animatedScore}</div>
                     <div style={{ fontSize: 11, color: 'var(--color-text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', display: 'flex', alignItems: 'center', gap: 3 }}>
@@ -354,6 +371,8 @@ export function MetabolicScoreCard({ data, loading, error, derivedStatus, foreca
                   <div style={{ height: 6, borderRadius: 999, background: 'var(--color-surface-subtle)', overflow: 'hidden', minWidth: 120, marginTop: 4 }}>
                     <div style={{ height: '100%', width: progressPct, borderRadius: 999, background: 'var(--gradient-primary)', transition: 'width 0.6s ease' }} />
                   </div>
+                    </>
+                  )}
                 </div>
               </div>
 

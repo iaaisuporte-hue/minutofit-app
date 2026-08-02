@@ -335,11 +335,15 @@ export default function StudentCompliancePanel() {
   const [typedName, setTypedName] = useState("");
   const [typedAccept, setTypedAccept] = useState(false);
 
-  const [healthFlags, setHealthFlags] = useState<Record<HealthField, boolean>>({
-    sem_historico_hipertensao: false,
-    sem_historico_cardiaco: false,
-    sem_restricao_medica_exercicio: false,
-    apto_para_atividade_fisica: false,
+  // `null` = ainda não respondeu — diferente de `false` ("tenho essa condição").
+  // Com checkbox opt-in os dois estados eram indistinguíveis, e o padrão
+  // (desmarcado) seria lido como condição declarada: um aluno saudável apressado
+  // acabaria classificado com 4 condições e mandado para a liberação médica.
+  const [healthFlags, setHealthFlags] = useState<Record<HealthField, boolean | null>>({
+    sem_historico_hipertensao: null,
+    sem_historico_cardiaco: null,
+    sem_restricao_medica_exercicio: null,
+    apto_para_atividade_fisica: null,
     aceita_responsabilidade_informacoes: false,
   });
 
@@ -385,11 +389,12 @@ export default function StudentCompliancePanel() {
 
     if (user.healthFlags) {
       const h = user.healthFlags;
+      const tri = (v: unknown): boolean | null => (typeof v === "boolean" ? v : null);
       setHealthFlags({
-        sem_historico_hipertensao: !!h.semHistoricoHipertensao,
-        sem_historico_cardiaco: !!h.semHistoricoCardiaco,
-        sem_restricao_medica_exercicio: !!h.semRestricaoMedicaExercicio,
-        apto_para_atividade_fisica: !!h.aptoParaAtividadeFisica,
+        sem_historico_hipertensao: tri(h.semHistoricoHipertensao),
+        sem_historico_cardiaco: tri(h.semHistoricoCardiaco),
+        sem_restricao_medica_exercicio: tri(h.semRestricaoMedicaExercicio),
+        apto_para_atividade_fisica: tri(h.aptoParaAtividadeFisica),
         aceita_responsabilidade_informacoes: !!h.aceitaResponsabilidadeInformacoes,
       });
     }
@@ -423,10 +428,18 @@ export default function StudentCompliancePanel() {
   }
 
   const validationError = useMemo(() => {
-    if (!healthFlags.sem_historico_hipertensao) return "Marque todas as declarações de saúde (primeiro bloco).";
-    if (!healthFlags.sem_historico_cardiaco) return "Marque todas as declarações de saúde (primeiro bloco).";
-    if (!healthFlags.sem_restricao_medica_exercicio) return "Marque todas as declarações de saúde (primeiro bloco).";
-    if (!healthFlags.apto_para_atividade_fisica) return "Confirme aptidão para atividade física.";
+    // Exigimos RESPOSTA nas 4 condições, não que a resposta seja "sim": responder
+    // "tenho" é válido e leva à liberação médica (antes, o botão só habilitava
+    // com tudo marcado, então a única forma de usar o app era declarar-se
+    // saudável). O aceite continua obrigatório — sem ele a evidência não vale.
+    if (
+      healthFlags.sem_historico_hipertensao === null ||
+      healthFlags.sem_historico_cardiaco === null ||
+      healthFlags.sem_restricao_medica_exercicio === null ||
+      healthFlags.apto_para_atividade_fisica === null
+    ) {
+      return "Responda todas as declarações de saúde (Sim ou Não).";
+    }
     if (!healthFlags.aceita_responsabilidade_informacoes) return "Aceite a declaração de responsabilidade.";
     if (!isFreePlan) {
       if (!onb.trainingPlace) return "Escolha onde você treina.";
@@ -484,10 +497,20 @@ export default function StudentCompliancePanel() {
 
     const parqAnswers = PARQ_ITEMS.map((q) => ({ id: q.id, yes: parq[q.id] === true }));
 
+    // `validationError` já garantiu que nenhuma das 4 condições está em null;
+    // o cast estreita o tipo para o contrato da API (que só aceita boolean).
+    const healthFlagsAnswered = {
+      sem_historico_hipertensao: healthFlags.sem_historico_hipertensao === true,
+      sem_historico_cardiaco: healthFlags.sem_historico_cardiaco === true,
+      sem_restricao_medica_exercicio: healthFlags.sem_restricao_medica_exercicio === true,
+      apto_para_atividade_fisica: healthFlags.apto_para_atividade_fisica === true,
+      aceita_responsabilidade_informacoes: healthFlags.aceita_responsabilidade_informacoes === true,
+    };
+
     setSaving(true);
     try {
       await submitStudentCompliance({
-        healthFlags,
+        healthFlags: healthFlagsAnswered,
         onboardingAnswers,
         parqAnswers,
         parqSignatureDataUrl: dataUrl,
@@ -575,25 +598,54 @@ export default function StudentCompliancePanel() {
       <form onSubmit={(e) => void handleSubmit(e)} style={{ display: "grid", gap: 18 }}>
         <section style={{ display: "grid", gap: 10 }}>
           <div style={{ fontWeight: 600 }}>Declarações de saúde</div>
+          <div style={{ fontSize: 13, color: neon.muted, lineHeight: 1.5 }}>
+            Responda com sinceridade. Dizer que tem alguma condição não impede de
+            continuar — só pedimos uma liberação médica antes de liberar os treinos.
+          </div>
           {(
             [
-              ["sem_historico_hipertensao", "Sem histórico de hipertensão."],
-              ["sem_historico_cardiaco", "Sem histórico cardíaco relevante."],
-              ["sem_restricao_medica_exercicio", "Sem restrição médica atual para exercícios."],
-              ["apto_para_atividade_fisica", "Declaro que estou apto para iniciar atividade física."],
-              ["aceita_responsabilidade_informacoes", "Confirmo que as informações são verdadeiras e de minha responsabilidade."],
+              ["sem_historico_hipertensao", "Você tem histórico de hipertensão?"],
+              ["sem_historico_cardiaco", "Você tem histórico cardíaco relevante?"],
+              ["sem_restricao_medica_exercicio", "Você tem alguma restrição médica atual para exercícios?"],
+              ["apto_para_atividade_fisica", "Existe algum motivo para você NÃO estar apto a iniciar atividade física?"],
             ] as const
           ).map(([key, label]) => (
-            <label key={key} style={{ display: "grid", gridTemplateColumns: "22px minmax(0, 1fr)", gap: 10, alignItems: "start" }}>
-              <input
-                type="checkbox"
-                checked={healthFlags[key]}
-                onChange={(ev) => setHealthFlags((h) => ({ ...h, [key]: ev.target.checked }))}
-                disabled={saving || locked}
-              />
-              <span>{label}</span>
-            </label>
+            /* Sim/Não explícito, mesmo padrão do PAR-Q logo abaixo. A pergunta é
+               feita na afirmativa ("você TEM?"), então "Sim" grava a flag como
+               false — a coluna guarda "sem histórico de X". */
+            <div key={key} style={{ display: "grid", gap: 8 }}>
+              <div style={{ fontSize: 13, lineHeight: 1.4 }}>{label}</div>
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                <button
+                  type="button"
+                  disabled={saving || locked}
+                  aria-pressed={healthFlags[key] === true}
+                  onClick={() => setHealthFlags((h) => ({ ...h, [key]: true }))}
+                  style={{ ...pillStyle(healthFlags[key] === true, neon), touchAction: "manipulation" }}
+                >
+                  {healthFlags[key] === true ? "✓ " : ""}Não
+                </button>
+                <button
+                  type="button"
+                  disabled={saving || locked}
+                  aria-pressed={healthFlags[key] === false}
+                  onClick={() => setHealthFlags((h) => ({ ...h, [key]: false }))}
+                  style={{ ...pillStyle(healthFlags[key] === false, neon), touchAction: "manipulation" }}
+                >
+                  {healthFlags[key] === false ? "✓ " : ""}Sim
+                </button>
+              </div>
+            </div>
           ))}
+          <label style={{ display: "grid", gridTemplateColumns: "22px minmax(0, 1fr)", gap: 10, alignItems: "start", marginTop: 4 }}>
+            <input
+              type="checkbox"
+              checked={healthFlags.aceita_responsabilidade_informacoes === true}
+              onChange={(ev) => setHealthFlags((h) => ({ ...h, aceita_responsabilidade_informacoes: ev.target.checked }))}
+              disabled={saving || locked}
+            />
+            <span>Confirmo que as informações são verdadeiras e de minha responsabilidade.</span>
+          </label>
         </section>
 
         {!isFreePlan ? (

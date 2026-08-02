@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react';
+import { dayKey } from '../../lib/appDay';
 
 export type DailyFeeling = 'tired' | 'normal' | 'energized';
 export type NutritionLevel = 'poor' | 'ok' | 'good';
@@ -28,8 +29,10 @@ export interface DailyConditionState {
 
 const STORAGE_KEY = 'daily_condition_v1';
 
+// Dia do aluno, não dia UTC — ver lib/appDay.ts. Com toISOString() a condição
+// diária "expirava" às 21h (BRT) e o app pedia um novo check-in no mesmo dia.
 function todayISO(): string {
-  return new Date().toISOString().slice(0, 10);
+  return dayKey();
 }
 
 function readFromStorage(): DailyCondition | null {

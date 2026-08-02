@@ -5,6 +5,11 @@ export type ClearanceReason =
   | 'never_signed'
   | 'expired'
   | 'incomplete_health_flags'
+  /**
+   * Respondeu "sim" no PAR-Q ou declarou uma condição de saúde. Não é bloqueio
+   * definitivo: o aluno declara a liberação médica obtida e segue.
+   */
+  | 'medical_clearance_required'
   | 'not_applicable';
 
 export interface PhysicalActivityClearance {

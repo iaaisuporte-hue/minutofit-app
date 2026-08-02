@@ -8,15 +8,32 @@ type Props = {
   onOpenProfile: (student: PersonalDashboardStudent) => void;
 };
 
-function daysSince(iso: string | null): number {
-  if (!iso) return 999;
+/** `null` = nunca treinou. Sem sentinela: 999 já vazou para a UI antes. */
+function daysSince(iso: string | null): number | null {
+  if (!iso) return null;
   return Math.floor((Date.now() - new Date(iso).getTime()) / (1000 * 60 * 60 * 24));
 }
 
-function riskLabel(risk: string): string {
-  if (risk === "critico") return "Crítico";
-  if (risk === "alerta") return "Alerta";
+/**
+ * O rótulo vem do MESMO número mostrado no chip.
+ *
+ * Antes o texto vinha de `s.risk` (campo legado, com carência de onboarding) e
+ * o número de `s.riskScore` (sem carência): o aluno recém-cadastrado aparecia
+ * como "100 OK" dentro do card "Alunos em risco". Uma fonte só elimina a
+ * contradição.
+ */
+function riskLabelFromScore(score: number | null): string {
+  if (score === null) return "Sem dados";
+  if (score >= 75) return "Crítico";
+  if (score >= 55) return "Alerta";
   return "OK";
+}
+
+function riskChipClass(score: number | null): string {
+  if (score === null) return "pp-risk-chip pp-risk-chip-ok";
+  if (score >= 75) return "pp-risk-chip pp-risk-chip-critico";
+  if (score >= 55) return "pp-risk-chip pp-risk-chip-alerta";
+  return "pp-risk-chip pp-risk-chip-ok";
 }
 
 export function AtRiskCard({ students, onMessage, onFollowUp, onOpenProfile }: Props) {
@@ -38,13 +55,7 @@ export function AtRiskCard({ students, onMessage, onFollowUp, onOpenProfile }: P
 
       {students.map((s) => {
         const dias = daysSince(s.lastWorkoutISO);
-        const diasLabel = dias >= 999 ? "nunca" : dias === 1 ? "1 dia" : `${dias} dias`;
-        const chipClass =
-          s.risk === "critico"
-            ? "pp-risk-chip pp-risk-chip-critico"
-            : s.risk === "alerta"
-            ? "pp-risk-chip pp-risk-chip-alerta"
-            : "pp-risk-chip pp-risk-chip-ok";
+        const chipClass = riskChipClass(s.riskScore);
 
         return (
           <div key={s.id} className="pp-risk-row">
@@ -57,10 +68,14 @@ export function AtRiskCard({ students, onMessage, onFollowUp, onOpenProfile }: P
             </button>
 
             <div className="pp-risk-row-meta">
-              <span className="pp-risk-row-stat">Sem treino há {diasLabel}</span>
+              <span className="pp-risk-row-stat">
+                {dias === null
+                  ? "Ainda não treinou"
+                  : `Sem treino há ${dias === 1 ? "1 dia" : `${dias} dias`}`}
+              </span>
               <span className={chipClass}>
                 <span className="pp-risk-chip-score">{s.riskScore ?? "--"}</span>
-                {riskLabel(s.risk)}
+                {riskLabelFromScore(s.riskScore)}
               </span>
               <span className="pp-risk-row-stat">{s.workouts7d}×/sem</span>
             </div>

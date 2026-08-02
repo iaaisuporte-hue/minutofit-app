@@ -158,9 +158,13 @@ export default function UserApp() {
   const firstName = user?.name?.split(" ")[0] || "Aluno";
   const { hasFeature, loading, planName } = useFeatureFlags();
   const canMessages = hasFeature("messages");
-  const showTracker = true;
-  // Lab de Movimento: gated pela flag `movement_lab` (habilitada no Free em beta).
-  // Desligar a flag no plano remove os cards de entrada e bloqueia a rota — kill-switch.
+  // Tracker: era `true` fixo, então o item aparecia no menu de quem não tinha a
+  // feature — a corrida gravava, mas o check-in de streak/XP tomava 403. Agora
+  // segue a flag, com o mesmo fail-open das demais enquanto /me/features não chegou.
+  const canTracker = hasFeature("tracker");
+  const showTracker = canTracker || loading || planName === null;
+  // Lab de Movimento: gated pela flag `movement_lab`. Desligar a flag no plano
+  // remove os cards de entrada e bloqueia a rota — kill-switch.
   const canMovementLab = hasFeature("movement_lab");
   // Falha aberta enquanto as flags não resolveram (planName null = pré-fetch ou fetch
   // falhou) para não rebater visitas por URL direta/bookmark antes do /me/features chegar.

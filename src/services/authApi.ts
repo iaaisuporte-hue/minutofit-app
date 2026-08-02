@@ -109,6 +109,24 @@ export async function submitStudentCompliance(payload: {
   return data.data.user as AuthApiUser;
 }
 
+/**
+ * Aluno declara ter obtido liberação médica para atividade física.
+ * Única saída do estado `medical_clearance_required` (PAR-Q com algum "sim").
+ */
+export async function declareParqMedicalRelease(): Promise<AuthApiUser> {
+  const response = await authFetch(`${API_URL}/auth/parq-medical-release`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+  });
+
+  const data = await parseJson(response);
+  if (!response.ok) {
+    throw new Error(data?.error || "Nao foi possivel registrar a liberacao medica.");
+  }
+
+  return data.data.user as AuthApiUser;
+}
+
 export async function changePassword(payload: { currentPassword: string; newPassword: string }): Promise<AuthApiUser> {
   const response = await authFetch(`${API_URL}/auth/change-password`, {
     method: "POST",

@@ -1,4 +1,5 @@
 import { readWorkoutHistory } from "./workoutHistory";
+import { dayKey } from "../../lib/appDay";
 
 export type DailyCheckin = {
   dateKey: string;
@@ -22,8 +23,10 @@ const ACTIVITY_KEY = "activities";
 const STREAK_KEY = "workout_streak_v1";
 const STREAK_LAST_KEY = "workout_streak_lastday_v1";
 
+// Dia do aluno, não dia UTC — ver lib/appDay.ts. Precisa casar com o
+// `date_key` que o backend grava, senão streak local e do servidor divergem.
 function todayKey(date = new Date()) {
-  return date.toISOString().slice(0, 10);
+  return dayKey(date);
 }
 
 function sameWeek(reference: Date, isoDate: string) {
