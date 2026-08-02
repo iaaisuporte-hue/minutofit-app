@@ -117,13 +117,10 @@ export default function RegisterPersonalPage() {
       const emailTaken =
         result.code === "EMAIL_ALREADY_REGISTERED" ||
         (msg.includes("email") && (msg.includes("ja cadastrado") || msg.includes("já cadastrado")));
-      const cpfTaken =
-        result.code === "CPF_ALREADY_REGISTERED" ||
-        (msg.includes("cpf") && (msg.includes("ja cadastrado") || msg.includes("já cadastrado")));
+      // Ver register.tsx: conflito de CPF/telefone volta genérico do backend
+      // (REGISTRATION_CONFLICT) para não confirmar existência de conta.
       if (emailTaken) {
         setEmailAlreadyRegistered(true);
-      } else if (cpfTaken) {
-        setError("Este CPF já possui conta no S2Core. Faça login ou use outro CPF.");
       } else {
         setError(result.message);
       }

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { Suspense, lazy, useEffect, useState } from "react";
 import { NavLink, Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import AppShell from "../layout/AppShell";
@@ -13,14 +13,18 @@ import UpgradePlanPage from "./user/UpgradePlanPage";
 import { isNativeApp } from "../lib/platform";
 import WorkoutPlayerPage from "./user/WorkoutPlayerPage";
 import WorkoutSessionPage from "./user/WorkoutSessionPage";
-import ActivityTrackerPage from "./user/ActivityTrackerPage";
+
+// Tracker e Lab carregam as duas bibliotecas mais pesadas do app — leaflet
+// (mapa) e MediaPipe Pose. São duas telas entre ~20, e quem nunca corre nem
+// abre o Lab não deve pagar o download nem o parse delas ao entrar no app.
+const ActivityTrackerPage = lazy(() => import("./user/ActivityTrackerPage"));
+const MovementLabPage = lazy(() => import("./user/MovementLabPage"));
 
 // ✅ NOVAS PÁGINAS
 import TodayPage from "./user/TodayPage";
 import UserMessagesPage from "./user/UserMessagesPage";
 import UserProfilePage from "./user/UserProfilePage";
 import MetabolicStatePage from "./user/MetabolicStatePage";
-import MovementLabPage from "./user/MovementLabPage";
 import RetroWorkoutPage from "./user/RetroWorkoutPage";
 import MyWorkoutPlansPage from "./user/MyWorkoutPlansPage";
 
@@ -37,6 +41,7 @@ import NutritionPlanViewPage from "./user/NutritionPlanViewPage";
 import MeuPlanoPage from "./user/MeuPlanoPage";
 import SportHomePage from "./user/sport/SportHomePage";
 import RequireClearance from "../auth/RequireClearance";
+import RouteFallback from "../components/RouteFallback";
 import ParqSigningPage from "./user/studentCompliance/ParqSigningPage";
 
 const USER_BASE = "/app/user" as const;
@@ -280,6 +285,10 @@ export default function UserApp() {
         >
           <div>
             <ComplianceBanner />
+            {/* Boundary local: enquanto o chunk do Tracker/Lab baixa, a navegação
+                e o cabeçalho continuam na tela. Sem ela o fallback subiria até o
+                Suspense do App e o shell inteiro piscaria. */}
+            <Suspense fallback={<RouteFallback />}>
             <Routes>
               {/* ✅ INDEX seguro */}
               <Route index element={<RedirectToDefault />} />
@@ -444,6 +453,7 @@ export default function UserApp() {
               {/* ✅ FALLBACK seguro */}
               <Route path="*" element={<RedirectToDefault />} />
             </Routes>
+            </Suspense>
           </div>
         </div>
       </AppShell>

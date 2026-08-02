@@ -1,3 +1,4 @@
+import { Suspense, lazy } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { AuthProvider } from "./auth/AuthContext";
 import { FeatureFlagsProvider } from "./auth/FeatureFlagsContext";
@@ -11,11 +12,6 @@ import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import ProfileCompletionPage from "./pages/ProfileCompletionPage";
 import ForcePasswordChangePage from "./pages/ForcePasswordChangePage";
-import UserApp from "./pages/UserApp";
-import PersonalApp from "./pages/PersonalApp";
-import NutriApp from "./pages/NutriApp";
-import AdminApp from "./pages/AdminApp";
-import AcademyApp from "./pages/AcademyApp";
 import AcceptInvitationPage from "./pages/AcceptInvitationPage";
 import DirectInviteAcceptPage from "./pages/DirectInviteAcceptPage";
 import CookieConsentBanner from "./components/CookieConsentBanner";
@@ -24,6 +20,19 @@ import PrivacyPolicyPage from "./pages/PrivacyPolicyPage";
 import TermsOfUsePage from "./pages/TermsOfUsePage";
 import WaitlistPage from "./pages/WaitlistPage";
 import { NativeAppBridge } from "./lib/NativeAppBridge";
+import RouteFallback from "./components/RouteFallback";
+
+// As cinco áreas autenticadas entram sob demanda. Antes tudo virava UM bundle de
+// 2,19 MB (600 KB gzip) sem nenhum corte: quem abria o /login baixava o mapa do
+// Tracker (leaflet), os gráficos da Evolução (recharts) e as telas de admin,
+// academia e nutri — e pagava o parse de tudo antes do primeiro pixel. Como cada
+// pessoa vive em UMA dessas áreas, cortar aqui é o ponto de maior alavancagem:
+// a rota pública passa a carregar só o que ela usa.
+const UserApp = lazy(() => import("./pages/UserApp"));
+const PersonalApp = lazy(() => import("./pages/PersonalApp"));
+const NutriApp = lazy(() => import("./pages/NutriApp"));
+const AdminApp = lazy(() => import("./pages/AdminApp"));
+const AcademyApp = lazy(() => import("./pages/AcademyApp"));
 
 export default function App() {
   return (
@@ -33,6 +42,7 @@ export default function App() {
         <NativeAppBridge />
         <CookieConsentBanner />
         <ThemeToggle />
+        <Suspense fallback={<RouteFallback />}>
         <Routes>
           <Route path="/privacidade" element={<PrivacyPolicyPage />} />
           <Route path="/termos" element={<TermsOfUsePage />} />
@@ -121,6 +131,7 @@ export default function App() {
 
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
+        </Suspense>
       </FeatureFlagsProvider>
     </AuthProvider>
     </ToastProvider>
