@@ -66,7 +66,7 @@ export default function PersonalQuickSearch({ students, onSelect, placeholder }:
             >
               <span className="pp-search-result__name">{s.name}</span>
               <span className="pp-search-result__meta">
-                Aderência {s.adherencePct}% · {s.workouts7d} treinos/7d
+                Frequência {s.adherencePct}% · {s.workouts7d} treinos/7d
               </span>
             </button>
           ))}

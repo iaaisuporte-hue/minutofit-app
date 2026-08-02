@@ -74,7 +74,7 @@ export function buildStudentNarrative(student: PersonalDashboardStudent): Studen
       studentId: student.id,
       studentName: student.name,
       tone: "watch",
-      headline: `Aderência em ${student.adherencePct}% — ajustar treino pode reengajar.`,
+      headline: `Frequência em ${student.adherencePct}% da meta do mês — ajustar treino pode reengajar.`,
     };
   }
 
@@ -86,7 +86,7 @@ export function buildStudentNarrative(student: PersonalDashboardStudent): Studen
       studentId: student.id,
       studentName: student.name,
       tone: "positive",
-      headline: `Em boa fase — streak de ${student.streakDays} dias com aderência em ${student.adherencePct}%.`,
+      headline: `Em boa fase — streak de ${student.streakDays} dias com frequência em ${student.adherencePct}%.`,
     };
   }
 

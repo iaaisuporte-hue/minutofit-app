@@ -718,7 +718,7 @@ export default function ReviewWorkoutsPage() {
                       : ""}
                   </span>
                   <span>
-                    Aderência: <b style={{ color: COLORS.text }}>{studentContext.adherencePct}%</b>
+                    Frequência (30d): <b style={{ color: COLORS.text }}>{studentContext.adherencePct}%</b>
                   </span>
                   <span>
                     Último treino:{" "}

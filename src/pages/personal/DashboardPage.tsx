@@ -507,7 +507,7 @@ export default function DashboardPage() {
 
             {summary ? (
               <div className="pp-corefit-strip">
-                <span>Aderência média <b>{avgAdherence}%</b></span>
+                <span>Frequência média (30d) <b>{avgAdherence}%</b></span>
                 <span>Streak médio <b>{avgStreak}d</b></span>
                 <span>Alunos <b>{students.length}</b></span>
                 {alerts[0] ? (

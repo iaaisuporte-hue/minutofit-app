@@ -63,7 +63,7 @@ export function StudentExecutionCard({ studentId }: { studentId: string }) {
           <div style={{ fontSize: 26, fontWeight: 800, color: adhColor, lineHeight: 1 }}>
             {adh == null ? "—" : `${adh}%`}
           </div>
-          <div style={{ fontSize: 11, color: "var(--color-text-muted)" }}>aderência (séries feitas ÷ prescritas)</div>
+          <div style={{ fontSize: 11, color: "var(--color-text-muted)" }}>execução da ficha (séries feitas ÷ prescritas)</div>
         </div>
         <div style={{ flex: 1, display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}>
           {summary.sessions.slice(0, 6).map((s) => {

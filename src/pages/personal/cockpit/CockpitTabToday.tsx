@@ -248,7 +248,7 @@ export function CockpitTabToday({ data, onTabChange }: Props) {
           <Metric label="Streak" value={`${data.streakDays} dias`} />
         </Surface>
         <Surface>
-          <Metric label="Aderência" value={`${data.adherencePct}%`} />
+          <Metric label="Frequência (30d)" value={`${data.adherencePct}%`} />
         </Surface>
         <Surface>
           <Metric label="XP" value={data.history.xp} />

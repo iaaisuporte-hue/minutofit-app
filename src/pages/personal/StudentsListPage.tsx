@@ -411,7 +411,7 @@ export default function StudentsListPage() {
 
                 <div className="pp-meta">
                   Último treino: <b style={{ color: COLORS.text }}>{fmtDate(s.lastWorkoutISO)}</b> • Último check-in:{" "}
-                  <b style={{ color: COLORS.text }}>{fmtDate(s.lastCheckinISO)}</b> • Aderência:{" "}
+                  <b style={{ color: COLORS.text }}>{fmtDate(s.lastCheckinISO)}</b> • Frequência (30d):{" "}
                   <b style={{ color: COLORS.text }}>{s.adherencePct}%</b>
                 </div>
               </div>

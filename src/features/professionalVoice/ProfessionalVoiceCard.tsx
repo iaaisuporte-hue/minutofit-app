@@ -4,6 +4,7 @@ import { useFeatureFlags } from '../../auth/FeatureFlagsContext';
 import { API_URL } from '../../services/apiBase';
 import { authFetch } from '../../services/apiClient';
 import type { ProfessionalSummary } from './useProfessionalContext';
+import { useLatestReviewFeedback } from './useWorkoutReviewFeedback';
 
 interface Props {
   personal: ProfessionalSummary | null;
@@ -27,6 +28,9 @@ export function ProfessionalVoiceCard({ personal, nutri, criticalSignals = [] }:
   // pra default). Esconde o CTA — o card segue informacional, mantendo a presença do
   // profissional visível (Skill aluno_signal_loop_review).
   const canOpenChat = hasFeature('messages');
+  // O feedback da revisão só chegava até a tela do próprio personal (QA 02/ago/2026,
+  // P1-5) — agora fecha o loop no aluno, junto dos demais toques do profissional.
+  const reviewFeedback = useLatestReviewFeedback();
 
   // "Tem sinal" = observação escrita OU sessão registrada (Veio/Parcial). Ambos provam
   // ao aluno que o profissional o notou. Prioriza quem tem sinal; senão, o personal.
@@ -172,6 +176,42 @@ export function ProfessionalVoiceCard({ personal, nutri, criticalSignals = [] }:
         <p style={{ margin: 0, fontSize: 14, color: 'var(--color-text-muted)' }}>
           {firstName} está acompanhando sua evolução.
         </p>
+      )}
+
+      {reviewFeedback && (
+        // Feedback da revisão da ficha — escrito pelo personal ao aprovar.
+        // Bloco próprio (não substitui a observação): são dois sinais distintos.
+        <div
+          style={{
+            borderTop: '1px solid var(--color-border)',
+            paddingTop: 12,
+            display: 'grid',
+            gap: 4,
+          }}
+        >
+          <span
+            style={{
+              fontSize: 11,
+              fontWeight: 700,
+              textTransform: 'uppercase',
+              letterSpacing: '0.04em',
+              color: 'var(--color-text-muted)',
+            }}
+          >
+            {reviewFeedback.status === 'changes_requested'
+              ? 'Sua ficha voltou com ajustes'
+              : 'Revisão da sua ficha'}
+          </span>
+          <p style={{ margin: 0, fontSize: 14, lineHeight: 1.5, color: 'var(--color-text)' }}>
+            “{reviewFeedback.studentFeedback}”
+          </p>
+          <span style={{ fontSize: 12, color: 'var(--color-text-muted)', fontWeight: 600 }}>
+            {reviewFeedback.title}
+            {reviewFeedback.reviewedAt
+              ? ` · ${formatRelativeDate(reviewFeedback.reviewedAt)}`
+              : ''}
+          </span>
+        </div>
       )}
 
       {canOpenChat && (

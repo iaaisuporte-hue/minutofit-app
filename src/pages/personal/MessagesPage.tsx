@@ -463,7 +463,7 @@ export default function MessagesPage() {
               {studentSnapshot && selectedStudent ? (
                 <div className="mp-context-strip">
                   <span>
-                    Aderência <b>{studentSnapshot.adherencePct}%</b>
+                    Frequência (30d) <b>{studentSnapshot.adherencePct}%</b>
                   </span>
                   <span>
                     Streak <b>{studentSnapshot.streakDays}d</b>
