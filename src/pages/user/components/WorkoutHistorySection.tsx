@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   getWorkoutSessionDetail,
-  listWorkoutSessions,
+  listWorkoutSessionsPage,
   type WorkoutSessionDetail,
   type WorkoutSessionListItem,
   type WorkoutSessionStatus,
@@ -268,13 +268,19 @@ export function WorkoutHistorySection() {
   const canRetro = hasFeature("retro_workout_enabled");
   const [sessions, setSessions] = useState<WorkoutSessionListItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [visible, setVisible] = useState(PAGE_SIZE);
+  const [cursor, setCursor] = useState<string | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
 
+  // Paginação por cursor (Spec 033, P1). Antes o componente puxava 100 sessões
+  // de uma vez e paginava no cliente — um aluno com mais de um ano de treino
+  // batia no teto e simplesmente deixava de ver o histórico antigo.
   useEffect(() => {
     let cancelled = false;
-    listWorkoutSessions(100)
-      .then((rows) => {
-        if (!cancelled) setSessions(rows);
+    listWorkoutSessionsPage(PAGE_SIZE)
+      .then((page) => {
+        if (cancelled) return;
+        setSessions(page.sessions);
+        setCursor(page.nextCursor);
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -283,6 +289,17 @@ export function WorkoutHistorySection() {
       cancelled = true;
     };
   }, []);
+
+  async function loadMore() {
+    if (!cursor || loadingMore) return;
+    setLoadingMore(true);
+    const page = await listWorkoutSessionsPage(PAGE_SIZE, cursor);
+    // Concatena sem deduplicar: o keyset garante que uma sessão nunca aparece em
+    // duas páginas (a ordenação por (performed_at, id) é total).
+    setSessions((prev) => [...prev, ...page.sessions]);
+    setCursor(page.nextCursor);
+    setLoadingMore(false);
+  }
 
   // Sem sessão: com a flag ligada, ainda oferecemos o ponto de entrada retroativo
   // (o aluno pode nunca ter registrado ao vivo); sem a flag, some como antes.
@@ -338,12 +355,12 @@ export function WorkoutHistorySection() {
       ) : (
         <>
           <div className="metabolic-history-list">
-            {sessions.slice(0, visible).map((s) => (
+            {sessions.map((s) => (
               <SessionRow key={s.id} session={s} />
             ))}
           </div>
 
-          {sessions.length > PAGE_SIZE && (
+          {cursor && (
             <div
               style={{
                 display: "flex",
@@ -354,46 +371,26 @@ export function WorkoutHistorySection() {
               }}
             >
               <span className="metabolic-eyebrow">
-                Mostrando {Math.min(visible, sessions.length)} de {sessions.length}
+                {sessions.length} {sessions.length === 1 ? "treino carregado" : "treinos carregados"}
               </span>
-              <div style={{ display: "flex", gap: "var(--space-2)" }}>
-                {visible < sessions.length && (
-                  <button
-                    type="button"
-                    onClick={() => setVisible((v) => Math.min(v + PAGE_SIZE, sessions.length))}
-                    style={{
-                      padding: "7px 14px",
-                      borderRadius: "var(--radius-full, 999px)",
-                      border: "1px solid var(--color-border)",
-                      background: "transparent",
-                      color: "var(--color-primary)",
-                      fontWeight: 600,
-                      fontSize: 13,
-                      cursor: "pointer",
-                    }}
-                  >
-                    Ver mais {Math.min(PAGE_SIZE, sessions.length - visible)}
-                  </button>
-                )}
-                {visible > PAGE_SIZE && (
-                  <button
-                    type="button"
-                    onClick={() => setVisible(PAGE_SIZE)}
-                    style={{
-                      padding: "7px 14px",
-                      borderRadius: "var(--radius-full, 999px)",
-                      border: "1px solid var(--color-border)",
-                      background: "transparent",
-                      color: "var(--color-text-muted)",
-                      fontWeight: 600,
-                      fontSize: 13,
-                      cursor: "pointer",
-                    }}
-                  >
-                    Ver menos
-                  </button>
-                )}
-              </div>
+              <button
+                type="button"
+                onClick={loadMore}
+                disabled={loadingMore}
+                style={{
+                  minHeight: 44,
+                  padding: "7px 16px",
+                  borderRadius: "var(--radius-pill)",
+                  border: "1px solid var(--color-border)",
+                  background: "transparent",
+                  color: "var(--color-primary)",
+                  fontWeight: 600,
+                  fontSize: 13,
+                  cursor: loadingMore ? "wait" : "pointer",
+                }}
+              >
+                {loadingMore ? "Carregando..." : "Ver mais treinos"}
+              </button>
             </div>
           )}
         </>
