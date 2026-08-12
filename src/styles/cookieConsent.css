@@ -24,8 +24,24 @@
 @media (min-width: 720px) {
   .cookie-consent__inner {
     grid-template-columns: 1fr auto;
+    grid-template-areas:
+      "text actions"
+      "check actions";
     align-items: end;
-    gap: var(--space-4, 16px);
+    gap: var(--space-3, 12px) var(--space-4, 16px);
+  }
+
+  .cookie-consent__text {
+    grid-area: text;
+  }
+
+  .cookie-consent__check {
+    grid-area: check;
+  }
+
+  .cookie-consent__actions {
+    grid-area: actions;
+    align-self: end;
   }
 }
 
@@ -35,7 +51,7 @@
 @media (max-width: 719px) {
   .cookie-consent__inner {
     max-height: 62vh;
-    grid-template-rows: minmax(0, 1fr) auto;
+    grid-template-rows: minmax(0, 1fr) auto auto;
   }
 
   .cookie-consent__text {
@@ -43,6 +59,74 @@
     overflow-y: auto;
     overscroll-behavior: contain;
   }
+}
+
+/* Telas curtas (320x568 e afins): o banner tem que caber acima do "Entrar", que
+   termina em y=412 numa viewport de 568. Só a EXPLICAÇÃO rola; a escolha
+   (checkbox) e os botões ficam presos, porque um controle de consentimento que
+   sai da tela não é consentimento. O texto íntegro continua no disclosure e em
+   /privacidade. */
+@media (max-height: 640px) {
+  .cookie-consent__inner {
+    max-height: 42vh;
+    padding: var(--space-3, 12px);
+    gap: 6px;
+  }
+
+  .cookie-consent__desc {
+    display: none;
+  }
+
+  .cookie-consent__details {
+    margin-top: 0;
+  }
+
+  /* O título sai do fluxo visual, não da acessibilidade: `aria-labelledby` do
+     banner continua apontando para ele. São 23px que decidem se o "Entrar"
+     nasce clicável a 320x568. */
+  .cookie-consent__title {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+
+/* O texto longo da LGPD ia inteiro no banner: 377px de altura a 375x812 (46% da
+   tela), com o topo em y=435 — em cima de "Entrar" (y=429) e de TODOS os
+   caminhos de cadastro do login ("Criar conta", "Sou personal"). A reserva de
+   rodapé de 02/ago/2026 não resolvia porque ela depende de `.auth-page` estar
+   centralizada, e abaixo de 720px `components.css` a sobrescreve para
+   `place-items: start center` — o cartão nasce colado no topo e a reserva só
+   vira espaço vazio embaixo. Aqui o texto longo passa a viver num
+   disclosure fechado (continua a um toque, e íntegro em /privacidade), o que
+   derruba a altura do banner e tira a ação de baixo dele. */
+.cookie-consent__details {
+  margin-top: 8px;
+}
+
+.cookie-consent__summary {
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-primary);
+}
+
+.cookie-consent__summary:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm, 6px);
+}
+
+.cookie-consent__details[open] .cookie-consent__summary {
+  margin-bottom: 6px;
 }
 
 /* Espaço reservado no fim da página enquanto o banner está na tela — a altura
@@ -108,6 +192,20 @@ html.has-cookie-consent body {
   flex-wrap: wrap;
   gap: 10px;
   justify-content: flex-end;
+}
+
+/* A 360px os dois botões quebravam em duas linhas e o banner ganhava ~46px de
+   altura justamente na tela onde ele mais atrapalha. Aqui eles dividem a mesma
+   linha. */
+@media (max-width: 719px) {
+  .cookie-consent__actions {
+    flex-wrap: nowrap;
+  }
+
+  .cookie-consent__btn {
+    flex: 1 1 0;
+    padding: 0 10px;
+  }
 }
 
 .cookie-consent__btn {

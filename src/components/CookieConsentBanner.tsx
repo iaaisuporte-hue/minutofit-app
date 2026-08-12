@@ -83,27 +83,38 @@ export default function CookieConsentBanner() {
             Cookies e privacidade (LGPD)
           </h2>
           <p id="cookie-consent-desc" className="cookie-consent__desc">
-            Usamos cookies e armazenamento local estritamente necessários para autenticação, segurança e preferências
-            (ex.: modo de cores). Opcionalmente, com o seu consentimento, podemos usar medições agregadas para melhorar
-            o produto. Você pode alterar a escolha a qualquer momento na página de{" "}
+            Usamos cookies essenciais para login, segurança e preferências. Medição de audiência só com o seu
+            consentimento —{" "}
             <Link to="/privacidade" className="cookie-consent__link">
               Privacidade
             </Link>
             .
           </p>
-          <label className="cookie-consent__check">
-            <input
-              type="checkbox"
-              checked={analytics}
-              onChange={(e) => setAnalytics(e.target.checked)}
-            />
-            <span>Aceitar cookies opcionais de medição de audiência (dados agregados)</span>
-          </label>
-          <p className="cookie-consent__meta">
-            A decisão fica registrada apenas neste dispositivo (armazenamento local), sem envio automático desta escolha
-            para o servidor.
-          </p>
+          <details className="cookie-consent__details">
+            <summary className="cookie-consent__summary">O que isso significa</summary>
+            <p className="cookie-consent__desc">
+              Usamos cookies e armazenamento local estritamente necessários para autenticação, segurança e preferências
+              (ex.: modo de cores). Opcionalmente, com o seu consentimento, podemos usar medições agregadas para
+              melhorar o produto. Você pode alterar a escolha a qualquer momento na página de{" "}
+              <Link to="/privacidade" className="cookie-consent__link">
+                Privacidade
+              </Link>
+              .
+            </p>
+            <p className="cookie-consent__meta">
+              A decisão fica registrada apenas neste dispositivo (armazenamento local), sem envio automático desta
+              escolha para o servidor.
+            </p>
+          </details>
         </div>
+        <label className="cookie-consent__check">
+          <input
+            type="checkbox"
+            checked={analytics}
+            onChange={(e) => setAnalytics(e.target.checked)}
+          />
+          <span>Aceitar cookies opcionais de medição de audiência (dados agregados)</span>
+        </label>
         <div className="cookie-consent__actions">
           <button type="button" className="cookie-consent__btn cookie-consent__btn--secondary" onClick={() => save(false)}>
             Recusar opcionais
