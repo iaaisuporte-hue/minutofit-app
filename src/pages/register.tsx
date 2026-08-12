@@ -12,6 +12,7 @@ import {
   normalizeCpf,
   normalizePhone,
   getStrongPasswordError,
+  getBirthDateError,
 } from "../utils/validators";
 import S2CoreLogo from "../components/S2CoreLogo";
 
@@ -19,6 +20,7 @@ type RegisterForm = {
   name: string;
   cpf: string;
   phone: string;
+  birthDate: string;
   email: string;
   password: string;
   confirmPassword: string;
@@ -28,6 +30,7 @@ const initialState: RegisterForm = {
   name: "",
   cpf: "",
   phone: "",
+  birthDate: "",
   email: "",
   password: "",
   confirmPassword: "",
@@ -59,6 +62,16 @@ export default function RegisterPage() {
   const [emailAlreadyRegistered, setEmailAlreadyRegistered] = useState(false);
   const [isLoading, setIsLoading]   = useState(false);
 
+  // Um formulário não acusa quem ainda não respondeu. Sem estes dois estados a
+  // página de cadastro abria com os 6 campos em vermelho e 4 mensagens de erro
+  // antes de qualquer digitação — a primeira coisa que um visitante novo via era
+  // uma lista do que ele já tinha feito de errado.
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [submitAttempted, setSubmitAttempted] = useState(false);
+
+  const markTouched = (field: string) =>
+    setTouched((prev) => (prev[field] ? prev : { ...prev, [field]: true }));
+
   const errors = useMemo(() => {
     const e: Record<string, string> = {};
 
@@ -71,6 +84,9 @@ export default function RegisterPage() {
 
     if (!form.phone.trim())        e.phone = "Informe seu telefone.";
     else if (!isValidPhone(form.phone)) e.phone = "Telefone inválido.";
+
+    const birthErr = getBirthDateError(form.birthDate);
+    if (birthErr) e.birthDate = birthErr;
 
     if (!form.password)            e.password = "Crie uma senha.";
     else {
@@ -94,6 +110,10 @@ export default function RegisterPage() {
 
   const isValid = Object.keys(errors).length === 0;
 
+  /** Erro de um campo só aparece depois que ele foi tocado ou depois do envio. */
+  const shownError = (field: string): string | undefined =>
+    touched[field] || submitAttempted ? errors[field] : undefined;
+
   function update<K extends keyof RegisterForm>(field: K, value: RegisterForm[K]) {
     setForm((prev) => ({ ...prev, [field]: value }));
   }
@@ -102,6 +122,7 @@ export default function RegisterPage() {
     e.preventDefault();
     setError(null);
     setEmailAlreadyRegistered(false);
+    setSubmitAttempted(true);
 
     if (!isValid) {
       setError("Revise os campos destacados antes de continuar.");
@@ -117,6 +138,7 @@ export default function RegisterPage() {
       password:     form.password,
       captchaToken: captchaToken ?? undefined,
       acceptedTerms,
+      birthDate:    form.birthDate,
     });
 
       if (!result.ok) {
@@ -197,14 +219,15 @@ export default function RegisterPage() {
           <label className="label" htmlFor="reg-name">Nome completo</label>
           <input
             id="reg-name"
-            className={`input${errors.name ? " input-invalid" : ""}`}
+            onBlur={() => markTouched("name")}
+            className={`input${shownError("name") ? " input-invalid" : ""}`}
             value={form.name}
             onChange={(e) => update("name", e.target.value)}
             placeholder="Seu nome"
             autoComplete="name"
             disabled={isLoading}
           />
-          {errors.name && <span className="field-error">{errors.name}</span>}
+          {shownError("name") && <span className="field-error">{shownError("name")}</span>}
         </div>
 
         <div className="auth-two-col">
@@ -212,36 +235,59 @@ export default function RegisterPage() {
             <label className="label" htmlFor="reg-cpf">CPF</label>
             <input
               id="reg-cpf"
-              className={`input${errors.cpf ? " input-invalid" : ""}`}
+            onBlur={() => markTouched("cpf")}
+              className={`input${shownError("cpf") ? " input-invalid" : ""}`}
               value={form.cpf}
               onChange={(e) => update("cpf", formatCpf(e.target.value))}
               placeholder="000.000.000-00"
               autoComplete="off"
               disabled={isLoading}
             />
-            {errors.cpf && <span className="field-error">{errors.cpf}</span>}
+            {shownError("cpf") && <span className="field-error">{shownError("cpf")}</span>}
           </div>
 
           <div className="field">
             <label className="label" htmlFor="reg-phone">Telefone</label>
             <input
               id="reg-phone"
-              className={`input${errors.phone ? " input-invalid" : ""}`}
+            onBlur={() => markTouched("phone")}
+              className={`input${shownError("phone") ? " input-invalid" : ""}`}
               value={form.phone}
               onChange={(e) => update("phone", formatPhone(e.target.value))}
               placeholder="(85) 99999-9999"
               autoComplete="tel"
               disabled={isLoading}
             />
-            {errors.phone && <span className="field-error">{errors.phone}</span>}
+            {shownError("phone") && <span className="field-error">{shownError("phone")}</span>}
           </div>
+        </div>
+
+        {/* 18+ — a plataforma trata dados sensíveis de saúde e não aceita menores. */}
+        <div className="field">
+          <label className="label" htmlFor="reg-birth">Data de nascimento</label>
+          <input
+            id="reg-birth"
+            onBlur={() => markTouched("birthDate")}
+            type="date"
+            className={`input${shownError("birthDate") ? " input-invalid" : ""}`}
+            value={form.birthDate}
+            onChange={(e) => update("birthDate", e.target.value)}
+            autoComplete="bday"
+            disabled={isLoading}
+          />
+          {shownError("birthDate") ? (
+            <span className="field-error">{shownError("birthDate")}</span>
+          ) : (
+            <span className="field-hint">É necessário ter 18 anos ou mais.</span>
+          )}
         </div>
 
         <div className="field">
           <label className="label" htmlFor="reg-email">Email</label>
           <input
             id="reg-email"
-            className={`input${errors.email ? " input-invalid" : ""}`}
+            onBlur={() => markTouched("email")}
+            className={`input${shownError("email") ? " input-invalid" : ""}`}
             type="email"
             value={form.email}
             onChange={(e) => update("email", e.target.value)}
@@ -249,7 +295,7 @@ export default function RegisterPage() {
             autoComplete="email"
             disabled={isLoading}
           />
-          {errors.email && <span className="field-error">{errors.email}</span>}
+          {shownError("email") && <span className="field-error">{shownError("email")}</span>}
         </div>
 
         {/* Senha */}
@@ -258,28 +304,30 @@ export default function RegisterPage() {
             <label className="label" htmlFor="reg-password">Senha</label>
             <input
               id="reg-password"
-              className={`input${errors.password ? " input-invalid" : ""}`}
+            onBlur={() => markTouched("password")}
+              className={`input${shownError("password") ? " input-invalid" : ""}`}
               type="password"
               value={form.password}
               onChange={(e) => update("password", e.target.value)}
               autoComplete="new-password"
               disabled={isLoading}
             />
-            {errors.password && <span className="field-error">{errors.password}</span>}
+            {shownError("password") && <span className="field-error">{shownError("password")}</span>}
           </div>
 
           <div className="field">
             <label className="label" htmlFor="reg-confirm">Confirmar senha</label>
             <input
               id="reg-confirm"
-              className={`input${errors.confirmPassword ? " input-invalid" : ""}`}
+            onBlur={() => markTouched("confirmPassword")}
+              className={`input${shownError("confirmPassword") ? " input-invalid" : ""}`}
               type="password"
               value={form.confirmPassword}
               onChange={(e) => update("confirmPassword", e.target.value)}
               autoComplete="new-password"
               disabled={isLoading}
             />
-            {errors.confirmPassword && <span className="field-error">{errors.confirmPassword}</span>}
+            {shownError("confirmPassword") && <span className="field-error">{shownError("confirmPassword")}</span>}
           </div>
         </div>
 
@@ -298,7 +346,7 @@ export default function RegisterPage() {
               onExpire={() => setCaptcha(null)}
               options={{ theme: "light" }}
             />
-            {errors.captcha && <span className="field-error">{errors.captcha}</span>}
+            {submitAttempted && errors.captcha && <span className="field-error">{errors.captcha}</span>}
           </div>
         ) : import.meta.env.DEV ? (
           <p className="field-hint">
@@ -326,13 +374,17 @@ export default function RegisterPage() {
               incluindo o tratamento dos meus dados de saúde para personalizar meu acompanhamento.
             </span>
           </label>
-          {errors.terms && <span className="field-error">{errors.terms}</span>}
+          {submitAttempted && errors.terms && <span className="field-error">{errors.terms}</span>}
         </div>
 
         <button
           type="submit"
           className="btn btn-primary btn-block"
-          disabled={isLoading || !isValid}
+          /* Só `isLoading` desabilita. Um botão morto não explica por que está
+             morto: com `!isValid` aqui, quem esquecia um campo tocava num botão
+             apagado e não recebia resposta nenhuma. Enviando, os erros aparecem
+             e o alerta diz o que revisar. */
+          disabled={isLoading}
           aria-busy={isLoading}
         >
           {isLoading ? "Criando conta…" : "Criar conta e continuar"}
