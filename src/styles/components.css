@@ -492,6 +492,39 @@ html[data-color-mode="daltonic"] .navLinkActive {
   letter-spacing: -0.01em;
 }
 
+/* Dedo não tem a precisão de um cursor. No mobile os controles das telas de auth
+   — porta de entrada do produto e único caminho de cadastro — vão para 44px de
+   altura: o "Entrar" nascia com 39px e os campos com 41px.
+   Usa a mesma largura de corte do resto do arquivo (e não `pointer: coarse`)
+   porque é o que dá para verificar em navegador; escopado ao cartão de auth
+   porque a varredura equivalente no app autenticado precisa de um QA logado. */
+@media (max-width: 719px) {
+  .auth-card .btn,
+  .auth-card .input {
+    min-height: 44px;
+  }
+
+  .auth-card input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+  }
+}
+
+/* Telas curtas (320x568): alvo de 44px e banner de consentimento disputam a
+   mesma altura, e o "Entrar" fica no meio. Quem cede é o espaçamento do cartão,
+   não o alvo — aperta-se a moldura para o dedo continuar com 44px. */
+@media (max-height: 640px) {
+  .auth-card {
+    padding: var(--space-5);
+    gap: var(--space-3);
+  }
+
+  .auth-subtitle {
+    font-size: var(--text-sm);
+  }
+}
+
 /* ── Auth pages ───────────────────────────────────────────────── */
 .auth-page {
   min-height: 100vh;

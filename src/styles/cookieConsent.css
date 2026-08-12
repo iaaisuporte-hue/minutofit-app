@@ -67,10 +67,14 @@
    sai da tela não é consentimento. O texto íntegro continua no disclosure e em
    /privacidade. */
 @media (max-height: 640px) {
+  .cookie-consent {
+    padding: var(--space-2, 8px);
+  }
+
   .cookie-consent__inner {
     max-height: 42vh;
-    padding: var(--space-3, 12px);
-    gap: 6px;
+    padding: 10px;
+    gap: 4px;
   }
 
   .cookie-consent__desc {
@@ -79,6 +83,20 @@
 
   .cookie-consent__details {
     margin-top: 0;
+  }
+
+  .cookie-consent__summary {
+    min-height: 20px;
+    font-size: 12px;
+  }
+
+  .cookie-consent__check {
+    margin-top: 4px;
+    font-size: 12px;
+  }
+
+  .cookie-consent__btn {
+    min-height: 38px;
   }
 
   /* O título sai do fluxo visual, não da acessibilidade: `aria-labelledby` do
