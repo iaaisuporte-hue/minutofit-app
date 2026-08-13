@@ -20,6 +20,7 @@ import {
   type DraftExercise,
   type SessionDraft,
 } from "./workoutSession/sessionDraft";
+import { findFilledUnchecked, markFilledDone } from "./workoutSession/filledSets";
 import { computeSessionComparison, deriveFatigueInsight } from "./workoutSession/sessionSummary";
 import { WorkoutShareTrigger } from "./components/WorkoutShareTrigger";
 import { PrCelebration, type PrEventSummary } from "../../features/performance/PrCelebration";
@@ -109,6 +110,7 @@ export default function WorkoutSessionPage() {
   const canGuidedLab = hasFeature("movement_lab_guided");
   const [demoName, setDemoName] = useState<string | null>(null);
   const [showExit, setShowExit] = useState(false);
+  const [showUnchecked, setShowUnchecked] = useState(false);
   const [sessionRpe, setSessionRpe] = useState<number | null>(null);
   const [notes, setNotes] = useState("");
   // P1-3: desconforto/dor por exercício (índice na lista) — sinal de recuperação
@@ -272,6 +274,27 @@ export default function WorkoutSessionPage() {
     () => exercises.reduce((a, e) => a + e.sets.filter((s) => s.done).length, 0),
     [exercises],
   );
+
+  /**
+   * Séries em que o aluno DIGITOU algo e não tocou no ✓.
+   *
+   * A regra vive em `filledSets.ts`, pura e testada: é ela que decide se um
+   * trabalho registrado conta ou é descartado, e isso não pode depender de
+   * renderização para ser verificado.
+   */
+  const filledUnchecked = useMemo(() => findFilledUnchecked(exercises), [exercises]);
+
+  /** Marca de uma vez o que já foi preenchido e segue para o resumo. */
+  function markFilledAsDone() {
+    setExercises((prev) => {
+      const next = markFilledDone(prev, Date.now());
+      persist(next, currentIndex, startedAt);
+      return next;
+    });
+    setShowUnchecked(false);
+    // O aluno já tinha pedido para finalizar; marcar era o que faltava.
+    setPhase("summary");
+  }
 
   const current = exercises[currentIndex];
   const currentItem = (resolvedItems ?? [])[currentIndex];
@@ -771,7 +794,11 @@ export default function WorkoutSessionPage() {
           ) : null}
           <button
             className={`ws-btn ${isLast || doneSets > 0 ? "ws-btn-primary" : "ws-btn-ghost"}`}
-            onClick={() => setPhase("summary")}
+            onClick={() => {
+              // O aviso vem ANTES do resumo: depois de salvo, não há desfazer.
+              if (filledUnchecked.length > 0) setShowUnchecked(true);
+              else setPhase("summary");
+            }}
           >
             Finalizar treino
           </button>
@@ -798,6 +825,55 @@ export default function WorkoutSessionPage() {
       ) : null}
 
       {demoName ? <ExerciseDemoModal key={demoName} name={demoName} onClose={() => setDemoName(null)} /> : null}
+
+      {/*
+        Alerta de séries preenchidas e não marcadas.
+        
+        Aparece só quando há trabalho digitado que seria descartado — não é um
+        passo a mais no fluxo de quem usa o ✓ normalmente. A ação principal
+        resolve tudo de uma vez; a secundária deixa seguir, porque o aluno pode
+        ter preenchido uma série que de fato não fez.
+      */}
+      {showUnchecked ? (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="ws-unchecked-title"
+          style={{ position: "fixed", inset: 0, zIndex: 1300, background: "rgba(10,19,13,.5)", display: "flex", alignItems: "flex-end", justifyContent: "center", padding: 12 }}
+          onClick={() => setShowUnchecked(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{ width: "min(480px,100%)", background: "var(--color-surface)", borderRadius: 18, border: "1px solid var(--color-border)", padding: 18, display: "grid", gap: 10 }}
+          >
+            <div id="ws-unchecked-title" style={{ fontWeight: 700, fontSize: 17 }}>
+              {filledUnchecked.length === 1
+                ? "1 série preenchida não está marcada"
+                : `${filledUnchecked.length} séries preenchidas não estão marcadas`}
+            </div>
+            <div style={{ fontSize: 13, color: "var(--color-text-muted)" }}>
+              {doneSets === 0
+                ? "Sem nenhuma série marcada, este treino não conta para sua frequência, XP nem recordes — e a carga que você digitou não é salva."
+                : "O que não estiver marcado não é salvo: a carga e as repetições digitadas nessas séries são descartadas."}
+            </div>
+            <button className="ws-btn ws-btn-primary" onClick={markFilledAsDone}>
+              {filledUnchecked.length === 1 ? "Marcar como feita" : `Marcar as ${filledUnchecked.length} como feitas`}
+            </button>
+            <button className="ws-btn ws-btn-ghost" onClick={() => setShowUnchecked(false)}>
+              Voltar e marcar manualmente
+            </button>
+            <button
+              className="ws-btn ws-btn-ghost"
+              onClick={() => {
+                setShowUnchecked(false);
+                setPhase("summary");
+              }}
+            >
+              Finalizar sem elas
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       {showExit ? (
         <div
