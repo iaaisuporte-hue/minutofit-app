@@ -2,6 +2,7 @@ import * as Sentry from "@sentry/react";
 import { API_URL, parseJson } from "./apiBase";
 import { authFetch } from "./apiClient";
 import { getAccessToken } from "./authTokens";
+import type { PrKind } from "../features/performance/performanceApi";
 
 // Execução real do treino (Spec 010). Best-effort: NUNCA quebra a conclusão do
 // treino — se falhar, registra no Sentry e segue. O streak/XP continua no
@@ -56,6 +57,17 @@ export interface CreateWorkoutSessionResult {
   /** Preenchidos só quando awardGamification=true e contou streak; senão null. */
   streak: number | null;
   xp: number | null;
+  /** Recordes batidos nesta sessão (Spec 033, P2). Vazio quando não houve. */
+  prEvents?: {
+    exerciseId: string;
+    exerciseName: string;
+    kind: PrKind;
+    value: number;
+    previousValue: number | null;
+    isFirst: boolean;
+  }[];
+  /** false em sessão retroativa ou quando só houve estreia — a UI não celebra. */
+  celebrate?: boolean;
 }
 
 export interface ExerciseProgression {
@@ -149,16 +161,41 @@ function mapListItem(r: Record<string, unknown>): WorkoutSessionListItem {
   };
 }
 
-export async function listWorkoutSessions(limit = 30): Promise<WorkoutSessionListItem[]> {
-  if (!getAccessToken()) return [];
+export interface WorkoutSessionPage {
+  sessions: WorkoutSessionListItem[];
+  /** null = não há mais páginas. */
+  nextCursor: string | null;
+}
+
+/**
+ * Página do histórico por cursor (Spec 033, P1).
+ *
+ * `cursor` ausente pede a primeira página (o backend recebe `cursor=first`, que
+ * é o opt-in explícito do modo keyset — sem o parâmetro ele mantém o formato
+ * antigo de array, para não quebrar clientes já publicados).
+ *
+ * Keyset em vez de offset porque `performed_at` se repete: o registro
+ * retroativo ancora a data ao meio-dia, então duas sessões retroativas do mesmo
+ * dia empatam. Só o par (instante, id) ordena de forma estável.
+ */
+export async function listWorkoutSessionsPage(
+  limit = 20,
+  cursor?: string | null,
+): Promise<WorkoutSessionPage> {
+  if (!getAccessToken()) return { sessions: [], nextCursor: null };
   try {
-    const res = await authFetch(`${API_URL}/training/sessions?limit=${limit}`);
-    if (!res.ok) return [];
+    const qs = new URLSearchParams({ limit: String(limit), cursor: cursor ?? "first" });
+    const res = await authFetch(`${API_URL}/training/sessions?${qs.toString()}`);
+    if (!res.ok) return { sessions: [], nextCursor: null };
     const data = await parseJson(res);
-    const rows = (data?.data as Record<string, unknown>[]) ?? [];
-    return rows.map(mapListItem);
-  } catch {
-    return [];
+    const payload = data?.data as { sessions?: Record<string, unknown>[]; nextCursor?: string | null } | null;
+    return {
+      sessions: (payload?.sessions ?? []).map(mapListItem),
+      nextCursor: payload?.nextCursor ?? null,
+    };
+  } catch (err) {
+    Sentry.captureException(err, { tags: { feature: "workout_history", reason: "page" } });
+    return { sessions: [], nextCursor: null };
   }
 }
 

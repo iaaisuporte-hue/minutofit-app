@@ -1,4 +1,5 @@
 import { createWorkoutSession } from "../../../services/workoutSessionApi";
+import type { PrEventSummary } from "../../../features/performance/PrCelebration";
 import { addWorkoutHistoryEntry, type MuscleGroup } from "../workoutHistory";
 
 // Finalizador ÚNICO de uma sessão de treino. Reusado pela ficha (folha pós-treino)
@@ -62,6 +63,9 @@ export interface RegisterSessionParams {
 export interface RegisterSessionResult {
   streak: number | null;
   title: string;
+  /** Recordes desta sessão (Spec 033, P2) — o resumo pós-treino reconhece. */
+  prEvents: PrEventSummary[];
+  celebrate: boolean;
 }
 
 export async function registerWorkoutSession(
@@ -108,5 +112,10 @@ export async function registerWorkoutSession(
     throw new Error("Não foi possível registrar a sessão.");
   }
 
-  return { streak: session.streak, title };
+  return {
+    streak: session.streak,
+    title,
+    prEvents: session.prEvents ?? [],
+    celebrate: session.celebrate === true,
+  };
 }
