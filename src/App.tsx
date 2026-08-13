@@ -18,6 +18,7 @@ import CookieConsentBanner from "./components/CookieConsentBanner";
 import ThemeToggle from "./components/ThemeToggle";
 import PrivacyPolicyPage from "./pages/PrivacyPolicyPage";
 import TermsOfUsePage from "./pages/TermsOfUsePage";
+import DeleteAccountInfoPage from "./pages/DeleteAccountInfoPage";
 import WaitlistPage from "./pages/WaitlistPage";
 import { NativeAppBridge } from "./lib/NativeAppBridge";
 import { AppUpdateBanner } from "./features/pwa/AppUpdateBanner";
@@ -50,6 +51,9 @@ export default function App() {
         <Routes>
           <Route path="/privacidade" element={<PrivacyPolicyPage />} />
           <Route path="/termos" element={<TermsOfUsePage />} />
+          {/* Pública por exigência da política de exclusão de dados do Google
+              Play: alcançável sem instalar o app e sem login. */}
+          <Route path="/excluir-conta" element={<DeleteAccountInfoPage />} />
           <Route path="/lista-de-espera" element={<WaitlistPage />} />
           <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="/login" element={<Login />} />
