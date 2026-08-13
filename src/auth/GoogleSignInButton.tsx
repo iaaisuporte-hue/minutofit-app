@@ -36,6 +36,28 @@ interface Props {
   text?: "signin_with" | "signup_with" | "continue_with";
 }
 
+/**
+ * Largura a pedir ao GIS, a partir do espaço realmente disponível.
+ *
+ * O Google NÃO renderiza o iframe com a largura pedida: ele soma ~20px de
+ * chrome próprio (`margin: -2px -10px` no iframe). Pedindo 320 fixos, o
+ * elemento sai com 340 — e num container de 296px (viewport de 360 menos os
+ * paddings da página e do cartão) ele empurrava a tela inteira, produzindo
+ * scroll horizontal no login e no cadastro a 320 e 360px, as duas larguras
+ * Android mais comuns do Brasil.
+ *
+ * Descontar o chrome aqui é o que faz o botão caber. Os limites são os que o
+ * GIS aceita (200–400); fora deles ele ignora o parâmetro e volta ao padrão,
+ * que é justamente o caso que queríamos evitar.
+ */
+export function gsiWidth(containerWidth: number): number {
+  const CHROME_DO_GOOGLE = 20;
+  const disponivel = Number.isFinite(containerWidth) && containerWidth > 0
+    ? Math.floor(containerWidth) - CHROME_DO_GOOGLE
+    : 320 - CHROME_DO_GOOGLE;
+  return Math.max(200, Math.min(400, disponivel));
+}
+
 export function GoogleSignInButton({ onCredential, text = "continue_with" }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const cbRef = useRef(onCredential);
@@ -61,7 +83,7 @@ export function GoogleSignInButton({ onCredential, text = "continue_with" }: Pro
         g.accounts.id.renderButton(ref.current, {
           theme: "outline",
           size: "large",
-          width: 320,
+          width: gsiWidth(ref.current.clientWidth),
           text,
           shape: "rectangular",
         });
@@ -76,7 +98,16 @@ export function GoogleSignInButton({ onCredential, text = "continue_with" }: Pro
 
   if (native) return <NativeGoogleButton onCredential={onCredential} />;
   if (!CLIENT_ID || failed) return null;
-  return <div ref={ref} style={{ display: "flex", justifyContent: "center" }} />;
+  // `overflow: hidden` é cinto e suspensório: a largura calculada resolve o
+  // caso de hoje, mas o iframe é de terceiro e pode mudar de tamanho sem aviso.
+  // Contendo aqui, o pior caso vira um botão levemente recortado — e não a
+  // página inteira rolando de lado.
+  return (
+    <div
+      ref={ref}
+      style={{ display: "flex", justifyContent: "center", maxWidth: "100%", overflow: "hidden" }}
+    />
+  );
 }
 
 /**
