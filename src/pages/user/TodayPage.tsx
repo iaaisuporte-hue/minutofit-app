@@ -64,6 +64,7 @@ import { NutriVoiceCard } from "../../features/nutrition/NutriVoiceCard";
 import { useNutriVoiceNote } from "../../features/nutrition/useNutriVoiceNote";
 import { useAdaptiveTraining } from "../../features/training/adaptive/useAdaptiveTraining";
 import { AdaptationBanner } from "../../features/training/adaptive/AdaptationBanner";
+import { postTrainingEvent } from "../../services/trainingAdaptiveApi";
 import { WorkoutStateChip } from "./components/WorkoutStateChip";
 import { WeeklyLoopCard, useHasWeeklyLoopInsights } from "../../features/loopVisibility";
 import { MovementLabEntryCard } from "./components/MovementLabEntryCard";
@@ -216,15 +217,27 @@ export default function TodayPage() {
 
   // When adaptation is active, patch the plan days to show adapted items so the card
   // reflects the values the student should actually execute today.
+  /**
+   * O aluno escolheu seguir a prescrição original de hoje?
+   *
+   * Vive só nesta sessão de tela, de propósito: a escolha é sobre o treino de
+   * HOJE, e persistir viraria uma preferência permanente de "ignorar meus
+   * ajustes" que ninguém pediu. Amanhã o check-in é outro.
+   */
+  const [usingOriginal, setUsingOriginal] = useState(false);
+
   const planForCard = useMemo(() => {
     const plan = todayState.activePlan;
+    // Com o override ligado, o card volta a mostrar exatamente o que o
+    // personal prescreveu — que é o que o servidor manda em `originalPlanDay`.
+    if (usingOriginal) return plan;
     if (!plan || !adaptive.data?.adaptationEnabled || adaptive.data.changes.length === 0) return plan;
     const adaptedDay = adaptive.data.adaptedPlanDay;
     const days = plan.days.map(d =>
       d.index === adaptedDay.index ? { ...d, items: adaptedDay.items as typeof d.items } : d
     );
     return { ...plan, days };
-  }, [todayState.activePlan, adaptive.data]);
+  }, [todayState.activePlan, adaptive.data, usingOriginal]);
 
   const streak = gamification?.streak ?? 0;
   const todayCheckedIn = gamification?.todayCheckedIn ?? false;
@@ -596,6 +609,13 @@ export default function TodayPage() {
               exerciseNames={Object.fromEntries(
                 (adaptive.data.adaptedPlanDay?.items ?? []).map(i => [i.exerciseId, i.name])
               )}
+              usingOriginal={usingOriginal}
+              onToggleOriginal={(usar) => {
+                setUsingOriginal(usar);
+                postTrainingEvent(
+                  usar ? 'training.adaptation.declined' : 'training.adaptation.accepted',
+                );
+              }}
             />
           )}
           {/* O card mostra a ficha prescrita; o AdaptationBanner acima já

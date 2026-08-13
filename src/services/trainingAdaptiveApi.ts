@@ -105,16 +105,29 @@ export async function patchAdaptationPolicy(
   return data.data as AdaptationPolicy;
 }
 
-export async function trackAdaptationBannerViewed(payload?: Record<string, unknown>): Promise<void> {
+/**
+ * Evento de UX do treino. Fire-and-forget: telemetria nunca quebra a tela.
+ *
+ * O backend mantém uma allow-list — um `eventType` fora dela é recusado lá, e
+ * é assim que se evita que a instrumentação vire porta de escrita livre.
+ */
+export async function postTrainingEvent(
+  eventType: string,
+  payload?: Record<string, unknown>,
+): Promise<void> {
   try {
     await authFetch(`${API_URL}/training/events`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ eventType: 'training.adaptation.viewed', payload: payload ?? {} }),
+      body: JSON.stringify({ eventType, payload: payload ?? {} }),
     });
   } catch {
     // fire-and-forget; never throws
   }
+}
+
+export async function trackAdaptationBannerViewed(payload?: Record<string, unknown>): Promise<void> {
+  return postTrainingEvent('training.adaptation.viewed', payload);
 }
 
 export async function fetchAdaptationLog(studentId: number, params?: { from?: string; to?: string; limit?: number }) {

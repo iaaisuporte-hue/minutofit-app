@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import type { AdaptationChange, RecoverySuggestion } from '../../../services/trainingAdaptiveApi';
 import { trackAdaptationBannerViewed } from '../../../services/trainingAdaptiveApi';
+import "./adaptation.css";
 
 interface Props {
   changes: AdaptationChange[];
@@ -17,7 +18,13 @@ const FIELD_LABEL: Record<string, string> = {
   technique: 'Técnica',
 };
 
-export function AdaptationBanner({ changes, recoverySuggestion, exerciseNames = {} }: Props) {
+export function AdaptationBanner({
+  changes,
+  recoverySuggestion,
+  exerciseNames = {},
+  usingOriginal = false,
+  onToggleOriginal,
+}: Props & { usingOriginal?: boolean; onToggleOriginal?: (usar: boolean) => void }) {
   const [expanded, setExpanded] = useState(false);
   const trackedRef = useRef(false);
 
@@ -94,6 +101,30 @@ export function AdaptationBanner({ changes, recoverySuggestion, exerciseNames = 
           <strong>Alternativa de recuperação:</strong> {recoverySuggestion.microcopy}
         </div>
       )}
+
+      {/*
+        Override do aluno.
+
+        O ajuste é uma sugestão, não uma tutela: quem sabe se hoje dá para
+        puxar mais é quem está no aparelho. A opção fica DENTRO do banner que
+        explica o ajuste, para que a escolha seja informada — e o texto diz o
+        que muda, em vez de perguntar "tem certeza?".
+
+        O original nunca deixou de existir: ele chega do servidor em
+        `originalPlanDay` e é a prescrição do personal, intocada.
+      */}
+      {onToggleOriginal ? (
+        <button
+          type="button"
+          className="adapt-original-toggle"
+          aria-pressed={usingOriginal}
+          onClick={() => onToggleOriginal(!usingOriginal)}
+        >
+          {usingOriginal
+            ? 'Voltar ao treino ajustado de hoje'
+            : 'Prefiro seguir o treino original'}
+        </button>
+      ) : null}
     </div>
   );
 }
