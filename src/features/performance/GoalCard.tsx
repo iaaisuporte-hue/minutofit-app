@@ -37,7 +37,19 @@ function fmt(n: number | null, unit: string): string {
   return unit === "kg" ? `${v} kg` : unit === "reps" ? `${v} reps` : v;
 }
 
+/**
+ * O rótulo vem do BACKEND (`displayLabel`), não é montado aqui.
+ *
+ * Na P4 esta função construía o texto no cliente. Funcionava até a P5 precisar
+ * da mesma frase em outros dois lugares — a tela do personal e o resumo escrito
+ * —, e três cópias da regra divergem no primeiro ajuste de redação: o personal
+ * passaria a ler sobre uma meta que o aluno não reconhece.
+ *
+ * O fallback existe só para respostas antigas em cache do navegador; some
+ * sozinho no primeiro carregamento novo.
+ */
 export function goalTitle(goal: Goal): string {
+  if (goal.displayLabel) return goal.displayLabel;
   if (goal.kind === "exercise_reps_at_load") {
     return `${goal.exerciseName}: ${fmt(goal.targetValue, "kg")} × ${goal.targetReps} reps`;
   }

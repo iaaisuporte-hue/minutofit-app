@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { useCallback, useEffect, useState } from "react";
 import { COLORS } from "../../styles/colors";
 import { Skeleton } from "../../components/feedback/Skeleton";
@@ -11,12 +11,31 @@ import {
   type PersonalStudentSnapshot,
 } from "../../services/personalDashboardApi";
 import type { CockpitTabId } from "./lib/cockpitActions";
+
+/**
+ * As abas, em ordem de exibição.
+ *
+ * Declarativa desde a P5: antes eram sete botões escritos à mão no JSX e um
+ * `switch` de painéis em outro ponto do arquivo, e acrescentar uma aba pedia
+ * editar os dois — o tipo de duplicação que só aparece quando alguém edita um
+ * lugar e esquece o outro.
+ */
+export const COCKPIT_TABS = [
+  { id: "today", label: "Hoje" },
+  { id: "technical", label: "Técnica" },
+  { id: "relationship", label: "Relacionamento" },
+  { id: "week", label: "Semana" },
+  { id: "evolucao", label: "Evolução" },
+  { id: "performance", label: "Performance" },
+  { id: "ia_summary", label: "IA" },
+] as const;
 import { CockpitTabToday } from "./cockpit/CockpitTabToday";
 import { CockpitTabWeek } from "./cockpit/CockpitTabWeek";
 import { CockpitTabTechnical } from "./cockpit/CockpitTabTechnical";
 import { CockpitTabRelationship } from "./cockpit/CockpitTabRelationship";
 import { CockpitTabEvolucao } from "./cockpit/CockpitTabEvolucao";
 import { CockpitTabAiSummary } from "./cockpit/CockpitTabAiSummary";
+import { CockpitTabPerformance } from "./cockpit/CockpitTabPerformance";
 import "./personalPremium.css";
 
 type TabId = CockpitTabId;
@@ -73,7 +92,31 @@ export default function StudentProfileModal({
   onClose: () => void;
   variant?: "overlay" | "inline";
 }) {
-  const [tab, setTab] = useState<TabId>("today");
+  /**
+   * A aba vive na URL (`?ctab=`), não em estado local.
+   *
+   * Antes da Onda P5 ela era `useState`: abrir o aluno, ir para uma aba e
+   * recarregar devolvia o personal para "Hoje", e não havia como mandar a
+   * alguém o link de uma aba específica. Num app que também roda como PWA, o
+   * recarregamento não é hipótese rara — o Android mata a aba e restaura.
+   *
+   * `ctab` e não `tab`: a página do aluno já usa `?tab=` para outro nível de
+   * navegação (visão geral × fichas), e reaproveitar o nome faria os dois se
+   * atropelarem.
+   */
+  const [searchParams, setSearchParams] = useSearchParams();
+  const rawTab = searchParams.get("ctab");
+  const tab: TabId = COCKPIT_TABS.some((t) => t.id === rawTab) ? (rawTab as TabId) : "today";
+
+  const setTab = useCallback(
+    (next: TabId) => {
+      const params = new URLSearchParams(searchParams);
+      params.set("ctab", next);
+      // `replace` para que voltar não percorra cada aba visitada.
+      setSearchParams(params, { replace: true });
+    },
+    [searchParams, setSearchParams],
+  );
   const [data, setData] = useState<PersonalStudentSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -171,25 +214,19 @@ export default function StudentProfileModal({
       </div>
 
       {!error ? (
-        <div className="pp-tabs">
-          <button type="button" className="pp-tab" aria-selected={tab === "today"} onClick={() => setTab("today")}>
-            Hoje
-          </button>
-          <button type="button" className="pp-tab" aria-selected={tab === "technical"} onClick={() => setTab("technical")}>
-            Técnica
-          </button>
-          <button type="button" className="pp-tab" aria-selected={tab === "relationship"} onClick={() => setTab("relationship")}>
-            Relacionamento
-          </button>
-          <button type="button" className="pp-tab" aria-selected={tab === "week"} onClick={() => setTab("week")}>
-            Semana
-          </button>
-          <button type="button" className="pp-tab" aria-selected={tab === "evolucao"} onClick={() => setTab("evolucao")}>
-            Evolução
-          </button>
-          <button type="button" className="pp-tab" aria-selected={tab === "ia_summary"} onClick={() => setTab("ia_summary")}>
-            IA
-          </button>
+        <div className="pp-tabs" role="tablist">
+          {COCKPIT_TABS.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              role="tab"
+              className="pp-tab"
+              aria-selected={tab === t.id}
+              onClick={() => setTab(t.id)}
+            >
+              {t.label}
+            </button>
+          ))}
         </div>
       ) : null}
 
@@ -238,6 +275,10 @@ export default function StudentProfileModal({
 
       {!loading && !error && tab === "evolucao" ? (
         <CockpitTabEvolucao studentId={studentId} />
+      ) : null}
+
+      {!loading && !error && tab === "performance" ? (
+        <CockpitTabPerformance studentId={studentId} />
       ) : null}
 
       {tab === "ia_summary" ? (

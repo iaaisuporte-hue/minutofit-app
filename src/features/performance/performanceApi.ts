@@ -222,6 +222,8 @@ export interface Goal {
   id: string;
   kind: GoalKind;
   status: GoalStatus;
+  /** Rótulo canônico, derivado no backend. Aluno e personal leem o mesmo texto. */
+  displayLabel: string;
   exerciseId: string | null;
   /** Nome histórico: sobrevive à remoção do exercício do catálogo. */
   exerciseName: string | null;

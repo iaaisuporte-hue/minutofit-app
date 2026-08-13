@@ -22,7 +22,12 @@ export type PerformanceEventType =
   | "performance.goal_created"
   | "performance.goal_viewed"
   | "performance.goal_completed"
-  | "performance.goal_cancelled";
+  | "performance.goal_cancelled"
+  // Onda P5 — visão do personal.
+  | "personal.performance_opened"
+  | "personal.performance_insight_opened"
+  | "personal.performance_ai_summary_requested"
+  | "personal.performance_ai_summary_shown";
 
 export function postPerformanceEvent(
   eventType: PerformanceEventType,

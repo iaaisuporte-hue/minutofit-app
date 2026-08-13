@@ -1040,6 +1040,15 @@ html:not([data-theme="dark"]) .personal-app-canvas {
   /* Tabs com rolagem horizontal + snap (sem quebra em 2+ linhas). */
   .pp-tabs {
     flex-wrap: nowrap;
+    /*
+     * `width: fit-content` (regra base) + `nowrap` fazia o container crescer
+     * junto com o conteúdo, e o `overflow-x` nunca entrava em ação: quem rolava
+     * era a PÁGINA. Ficou latente enquanto as abas cabiam; a sétima (Performance,
+     * Onda P5) passou a estourar em 320, 360 e 390px. Limitar a largura é o que
+     * transfere a rolagem para dentro da barra, que é onde ela foi projetada.
+     */
+    width: 100%;
+    max-width: 100%;
     overflow-x: auto;
     scroll-snap-type: x mandatory;
     -webkit-overflow-scrolling: touch;
@@ -1666,4 +1675,234 @@ html:not([data-theme="dark"]) .personal-app-canvas {
     position: static;
     gap: var(--space-2, 8px);
   }
+}
+
+/* ── Aba Performance do cockpit (Spec 033, P5) ────────────────────────────
+ *
+ * Prefixo `ppf-` (personal performance) para não colidir com `perf-*`, que é
+ * do módulo do aluno: as duas telas mostram os mesmos números, mas com
+ * hierarquia diferente, e compartilhar classe faria uma arrastar a outra.
+ *
+ * Tudo por token — o canvas premium-light do personal redefine `--color-surface`
+ * e companhia no tema claro, então qualquer HEX fixo aqui apareceria errado no
+ * escuro.
+ */
+.ppf-wrap {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.ppf-panel {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+
+.ppf-h3 {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.ppf-muted {
+  margin: 0;
+  color: var(--color-text-tertiary);
+  font-size: var(--text-xs);
+}
+
+.ppf-score-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.ppf-score {
+  font-family: var(--font-brand);
+  font-size: var(--text-3xl);
+  line-height: 1;
+  color: var(--color-text);
+}
+
+.ppf-score-caption {
+  text-align: right;
+}
+
+.ppf-metrics {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-2);
+  margin: 0;
+}
+
+/* Duas colunas só quando cabem: em 320px, lado a lado quebraria os rótulos. */
+@media (min-width: 520px) {
+  .ppf-metrics {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.ppf-metrics dt {
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+}
+
+.ppf-metrics dd {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text);
+}
+
+.ppf-signals {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.ppf-signal {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-left-width: 3px;
+  border-radius: var(--radius-md);
+  background: var(--color-surface-subtle);
+}
+
+/* A cor da borda é REFORÇO: o texto do badge já diz a severidade. */
+.ppf-signal.is-positive {
+  border-left-color: var(--color-success);
+}
+
+.ppf-signal.is-attention {
+  border-left-color: var(--color-warn);
+}
+
+.ppf-signal.is-neutral {
+  border-left-color: var(--color-border-strong);
+}
+
+.ppf-signal-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.ppf-signal-badge {
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.ppf-signal-title {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text);
+}
+
+.ppf-signal-desc {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.ppf-link-btn {
+  justify-self: start;
+  min-height: 44px;
+  padding: 0 var(--space-2);
+  border: none;
+  background: transparent;
+  color: var(--color-accent);
+  font-size: var(--text-xs);
+  cursor: pointer;
+  text-align: left;
+}
+
+.ppf-link-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.ppf-evidence {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--space-1) var(--space-2);
+  margin: 0;
+  font-size: var(--text-xs);
+}
+
+.ppf-evidence > div {
+  display: contents;
+}
+
+.ppf-evidence dt {
+  color: var(--color-text-tertiary);
+}
+
+.ppf-evidence dd {
+  margin: 0;
+  color: var(--color-text);
+  overflow-wrap: anywhere;
+}
+
+.ppf-summary {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px dashed var(--color-border-strong);
+  border-radius: var(--radius-md);
+}
+
+.ppf-summary-text {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text);
+}
+
+.ppf-summary-list {
+  margin: 0;
+  padding-left: var(--space-4);
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.ppf-disclaimer,
+.ppf-note {
+  font-style: italic;
+}
+
+.ppf-goals,
+.ppf-prs {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-2);
+}
+
+.ppf-goal,
+.ppf-pr {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  font-size: var(--text-sm);
+  color: var(--color-text);
+}
+
+.ppf-goal-label,
+.ppf-pr-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
