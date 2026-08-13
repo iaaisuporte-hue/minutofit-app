@@ -30,28 +30,63 @@ export interface ConsistencySummary {
  * Declarado agora para que a P3 seja aditiva — tipar como o literal `null`
  * faria todo `if (score)` compilar contra um `never`.
  */
+export interface ScoreFactor {
+  id: string;
+  label: string;
+  delta: number;
+}
+
 export interface ProgressScoreBlock {
+  /** `null` em onboarding — sem histórico não se afirma número. */
   value: number | null;
   status: "onboarding" | "ok";
-  trend: string;
-  factors: { id: string; label: string; delta: number }[];
-  changes7d: { id: string; label: string; delta: number }[];
+  trend: "up" | "stable" | "down";
+  /** Breakdown: nunca vazio quando há `value`. */
+  factors: ScoreFactor[];
+  /** O que mudou vs. 7 dias atrás. Vazio quando não há comparação. */
+  changes7d: ScoreFactor[];
+  updatedAt: string;
+  formulaVersion: number;
 }
 
 export interface TrainingLoadBlock {
   effortLoad7d: number | null;
-  /** Faixa qualitativa, nunca número cru — não é métrica clínica. */
-  ratioBand: string | null;
+  /** Faixa qualitativa, nunca a razão crua — não é métrica clínica. */
+  ratioBand: "below" | "within" | "above" | "spike" | null;
+  ratioLabel: string | null;
 }
 
 export interface PerformanceOverview {
   gated: boolean;
   freeSummary: { sessions30d: number; activeDays28: number; currentStreak: number };
   consistency: ConsistencySummary;
-  /** `null` até a Onda P3. */
   score: ProgressScoreBlock | null;
-  /** `null` até a Onda P3. */
   load: TrainingLoadBlock | null;
+  /** Frase observacional do período. Nunca atribui causa. */
+  headline: string;
+}
+
+export interface ScoreHistoryResponse {
+  gated: boolean;
+  points: { date: string; score: number }[];
+}
+
+/** Série do Progress Score. Só pontos reais — dia sem snapshot não vira zero. */
+export async function getScoreHistory(
+  days = 90,
+  signal?: AbortSignal,
+): Promise<ScoreHistoryResponse | null> {
+  if (!getAccessToken()) return null;
+  try {
+    const res = await authFetch(`${API_URL}/performance/score/history?days=${days}`, { signal });
+    if (!res.ok) return null;
+    const data = await parseJson(res);
+    return (data?.data as ScoreHistoryResponse) ?? null;
+  } catch (err) {
+    if ((err as Error)?.name === "AbortError") return null;
+    Sentry.captureException(err, { tags: { feature: "performance", reason: "score_history" } });
+    return null;
+  }
 }
 
 export async function getPerformanceOverview(signal?: AbortSignal): Promise<PerformanceOverview | null> {

@@ -473,3 +473,95 @@
   display: inline-flex;
   align-items: center;
 }
+
+/* ── Progress Score (P3) ──────────────────────────────────────────────────
+ *
+ * O card imita a hierarquia do MetabolicScoreCard de propósito: são dois
+ * números na mesma página, e leituras diferentes para coisas parecidas fariam
+ * o aluno gastar atenção decidindo qual olhar primeiro.
+ */
+.perf-score-card {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+
+.perf-score-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.perf-score-value {
+  font-family: var(--font-brand);
+  font-size: var(--text-3xl);
+  line-height: 1;
+  color: var(--color-text);
+}
+
+/* "Calibrando" é palavra, não número: sem o tamanho de display, que gritaria
+   um valor que justamente ainda não existe. */
+.perf-score-value--calibrating {
+  font-size: var(--text-xl);
+  color: var(--color-text-muted);
+}
+
+.perf-score-trend,
+.perf-score-week,
+.perf-score-load {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.perf-score-toggle {
+  justify-self: start;
+  min-height: 44px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-text);
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+
+.perf-score-toggle:hover {
+  background: var(--color-surface-subtle);
+}
+
+.perf-score-factors {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.perf-score-factor {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+/* Cor é reforço, nunca o único sinal: a seta e o texto carregam a direção
+   sozinhos, para daltônicos e para leitor de tela. */
+.perf-score-factor.is-up .perf-score-factor-arrow,
+.perf-score-factor.is-up .perf-score-factor-delta {
+  color: var(--color-success);
+}
+
+.perf-score-factor.is-down .perf-score-factor-arrow,
+.perf-score-factor.is-down .perf-score-factor-delta {
+  color: var(--color-danger);
+}
+
+.perf-score-factor-delta {
+  font-variant-numeric: tabular-nums;
+}

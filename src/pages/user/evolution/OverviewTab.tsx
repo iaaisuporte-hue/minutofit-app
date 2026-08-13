@@ -19,6 +19,8 @@ import { useWorkoutStats } from '../components/useWorkoutStats';
 import { useDailyCondition } from '../../../features/dailyCheckin/useDailyCondition';
 import { ProgressPhotosSection } from '../../../features/progressPhotos/ProgressPhotosSection';
 import { WeekPulseStrip } from '../../../features/performance/WeekPulseStrip';
+import { ProgressScoreSection } from '../../../features/performance/ProgressScoreSection';
+import '../../../features/performance/performance.css';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -148,6 +150,8 @@ export default function OverviewTab() {
       )}
 
       <MetabolicIndicators cards={indicators} onRegister={openRegister} />
+
+      <ProgressScoreSection />
 
       <WeightLoadTrendChart records={records} stats={stats} cutoff={cutoff} />
 

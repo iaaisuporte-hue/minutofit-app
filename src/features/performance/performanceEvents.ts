@@ -15,7 +15,10 @@ export type PerformanceEventType =
   | "performance.exercise_selected"
   | "performance.prs_viewed"
   | "performance.pr_celebrated"
-  | "performance.upgrade_cta_clicked";
+  | "performance.upgrade_cta_clicked"
+  | "performance.score_viewed"
+  | "performance.score_component_opened"
+  | "performance.score_history_viewed";
 
 export function postPerformanceEvent(
   eventType: PerformanceEventType,
