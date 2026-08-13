@@ -55,8 +55,10 @@ export function AdaptationBanner({
       marginBottom: 12,
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+        {/* O título segue a escolha do aluno. Anunciar "ajustado" para quem
+            optou pelo original é o app afirmar o que não fez. */}
         <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-warn, #b35a00)' }}>
-          Treino ajustado para hoje
+          {usingOriginal ? 'Você está seguindo o treino original' : 'Treino ajustado para hoje'}
         </span>
         {changes.length > 0 && (
           <button

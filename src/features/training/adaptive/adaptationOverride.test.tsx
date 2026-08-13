@@ -134,6 +134,34 @@ describe("override do aluno", () => {
     expect(screen.getByText(/Voltar ao treino ajustado/i)).toBeInTheDocument();
   });
 
+  it("com o original ativo, o banner PARA de dizer que ajustou", async () => {
+    // Regressão do ISSUE-004 (/qa, ago/2026): o app anunciava "Treino ajustado
+    // para hoje" para quem tinha acabado de pedir o original — afirmava o que
+    // não fez. Achado em produção, com a conta de demonstração.
+    const { rerender } = render(
+      <AdaptationBanner
+        changes={CHANGES as never}
+        recoverySuggestion={null}
+        exerciseNames={NOMES}
+        usingOriginal={false}
+        onToggleOriginal={vi.fn()}
+      />,
+    );
+    expect(screen.getByText("Treino ajustado para hoje")).toBeInTheDocument();
+
+    rerender(
+      <AdaptationBanner
+        changes={CHANGES as never}
+        recoverySuggestion={null}
+        exerciseNames={NOMES}
+        usingOriginal
+        onToggleOriginal={vi.fn()}
+      />,
+    );
+    expect(screen.queryByText("Treino ajustado para hoje")).not.toBeInTheDocument();
+    expect(screen.getByText(/seguindo o treino original/i)).toBeInTheDocument();
+  });
+
   it("a sugestão de recuperação continua visível junto da escolha", async () => {
     render(
       <AdaptationBanner

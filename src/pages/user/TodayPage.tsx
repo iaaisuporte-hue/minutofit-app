@@ -337,7 +337,12 @@ export default function TodayPage() {
       readinessLevel: adaptive.data?.readiness?.level ?? null,
       recoveryByCondition: conditionState.messagingTone === "recovery",
       hasSession: showPersonalWorkout || showAcademyWorkout || showSuggestedWorkout,
-      adapted: Boolean(adaptive.data?.adaptationEnabled && (adaptive.data?.changes?.length ?? 0) > 0),
+      // `usingOriginal` derruba o rótulo: o chip "Ajustado pelo seu check-in"
+      // ao lado de um treino que o aluno pediu para NÃO ajustar descreveria a
+      // tela errada.
+      adapted: Boolean(
+        !usingOriginal && adaptive.data?.adaptationEnabled && (adaptive.data?.changes?.length ?? 0) > 0,
+      ),
       personalNoPlan: showPersonalEmpty,
       firstName: user?.name?.split(" ")[0] || "",
       personalName: todayState.personal?.name ?? null,
@@ -589,7 +594,9 @@ export default function TodayPage() {
                 const firstName = todayState.personal?.name?.split(" ")[0];
                 return (
                   <>
-                    Ajustamos seu treino com base no seu check-in de hoje
+                    {usingOriginal
+                      ? "Havia um ajuste sugerido pelo seu check-in de hoje, e você escolheu seguir o original"
+                      : "Ajustamos seu treino com base no seu check-in de hoje"}
                     {reasons.length > 0 ? (
                       <>: <strong style={{ fontWeight: 600 }}>{reasons.join(" · ")}</strong>.</>
                     ) : (
