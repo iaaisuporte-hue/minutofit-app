@@ -2,6 +2,7 @@ import * as Sentry from "@sentry/react";
 import { API_URL, parseJson } from "./apiBase";
 import { authFetch } from "./apiClient";
 import { getAccessToken } from "./authTokens";
+import type { PrKind } from "../features/performance/performanceApi";
 
 // Execução real do treino (Spec 010). Best-effort: NUNCA quebra a conclusão do
 // treino — se falhar, registra no Sentry e segue. O streak/XP continua no
@@ -56,6 +57,17 @@ export interface CreateWorkoutSessionResult {
   /** Preenchidos só quando awardGamification=true e contou streak; senão null. */
   streak: number | null;
   xp: number | null;
+  /** Recordes batidos nesta sessão (Spec 033, P2). Vazio quando não houve. */
+  prEvents?: {
+    exerciseId: string;
+    exerciseName: string;
+    kind: PrKind;
+    value: number;
+    previousValue: number | null;
+    isFirst: boolean;
+  }[];
+  /** false em sessão retroativa ou quando só houve estreia — a UI não celebra. */
+  celebrate?: boolean;
 }
 
 export interface ExerciseProgression {

@@ -34,7 +34,7 @@ const GoalsTab = lazy(() => import('./evolution/GoalsTab'));
 export const EVOLUTION_TABS = [
   { id: 'visao-geral', label: 'Visão geral' },
   { id: 'progressao', label: 'Progressão' },
-  { id: 'recordes', label: 'Recordes', soon: true },
+  { id: 'recordes', label: 'Recordes' },
   { id: 'consistencia', label: 'Consistência' },
   { id: 'metas', label: 'Metas', soon: true },
   { id: 'historico', label: 'Histórico' },

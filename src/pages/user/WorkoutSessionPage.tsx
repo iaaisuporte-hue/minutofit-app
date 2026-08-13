@@ -22,6 +22,8 @@ import {
 } from "./workoutSession/sessionDraft";
 import { computeSessionComparison, deriveFatigueInsight } from "./workoutSession/sessionSummary";
 import { WorkoutShareTrigger } from "./components/WorkoutShareTrigger";
+import { PrCelebration, type PrEventSummary } from "../../features/performance/PrCelebration";
+import "../../features/performance/performance.css";
 import "./workoutSession/workoutSession.css";
 
 // ── helpers de parsing (espelham o backend p/ contagem de séries / rest) ──
@@ -113,6 +115,7 @@ export default function WorkoutSessionPage() {
   // capturado no resumo, sem poluir as linhas de série. Alimenta workout_set_logs.discomfort.
   const [discomfortEx, setDiscomfortEx] = useState<Set<number>>(() => new Set());
   const [finishing, setFinishing] = useState(false);
+  const [prEvents, setPrEvents] = useState<PrEventSummary[]>([]);
   const [saved, setSaved] = useState(false);
 
   const adaptive = useAdaptiveTraining(true);
@@ -370,7 +373,7 @@ export default function WorkoutSessionPage() {
     setFinishing(true);
     const { sets, status } = buildSessionPayload();
     try {
-      await registerWorkoutSession({
+      const outcome = await registerWorkoutSession({
         planId: plan.id,
         planTitle: plan.title,
         selectedGroup: plan.selected_group,
@@ -389,6 +392,9 @@ export default function WorkoutSessionPage() {
         sessionRpe,
         notes: notes.trim() || null,
       });
+      // Recordes desta sessão (Spec 033, P2). O servidor já decidiu o que é
+      // conquista e o que é estreia — a tela só reconhece.
+      if (outcome.celebrate) setPrEvents(outcome.prEvents);
     } catch {
       /* gamificação best-effort; segue mesmo assim */
     }
@@ -580,6 +586,8 @@ export default function WorkoutSessionPage() {
               Treino salvo — agora mostre sua evolução
             </div>
           )}
+
+          {saved && prEvents.length > 0 ? <PrCelebration events={prEvents} /> : null}
 
           <div className="ws-actions">
             {saved ? (

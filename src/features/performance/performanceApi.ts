@@ -68,6 +68,91 @@ export async function getPerformanceOverview(signal?: AbortSignal): Promise<Perf
   }
 }
 
+// ── Recordes e progressão (P2) ─────────────────────────────────────────────
+
+export type PrKind = "max_load" | "best_e1rm" | "session_volume" | "max_reps";
+
+export interface PrRecord {
+  /** `null` quando o exercício saiu do catálogo — o recorde continua valendo. */
+  exerciseId: string | null;
+  exerciseName: string;
+  kind: PrKind;
+  value: number;
+  reps: number | null;
+  loadKg: number | null;
+  previousValue: number | null;
+  /** Estreia da categoria: linha de base, não conquista. */
+  isFirst: boolean;
+  achievedAt: string;
+  sessionId: number | null;
+  exerciseInCatalog: boolean;
+}
+
+export interface PrRecordsResponse {
+  gated: boolean;
+  records: PrRecord[];
+  events: PrRecord[];
+}
+
+export interface ProgressionPoint {
+  date: string;
+  maxLoadKg: number | null;
+  bestE1rm: number | null;
+  tonnageKg: number | null;
+  topSetReps: number | null;
+}
+
+export interface ProgressionExercise {
+  exerciseId: string;
+  name: string;
+  points: ProgressionPoint[];
+  firstLoadKg: number | null;
+  lastLoadKg: number | null;
+  deltaKg: number | null;
+  firstE1rm: number | null;
+  lastE1rm: number | null;
+  e1rmDeltaKg: number | null;
+  pointCount: number;
+}
+
+export interface ProgressionResponse {
+  gated: boolean;
+  windowDays: number;
+  exercises: ProgressionExercise[];
+}
+
+/** `null` distingue FALHA de "sem dados" — a UI mostra erro, não vazio. */
+export async function getPrRecords(signal?: AbortSignal): Promise<PrRecordsResponse | null> {
+  if (!getAccessToken()) return null;
+  try {
+    const res = await authFetch(`${API_URL}/performance/prs`, { signal });
+    if (!res.ok) return null;
+    const data = await parseJson(res);
+    return (data?.data as PrRecordsResponse) ?? null;
+  } catch (err) {
+    if ((err as Error)?.name === "AbortError") return null;
+    Sentry.captureException(err, { tags: { feature: "performance", reason: "prs" } });
+    return null;
+  }
+}
+
+export async function getProgression(
+  windowDays = 90,
+  signal?: AbortSignal,
+): Promise<ProgressionResponse | null> {
+  if (!getAccessToken()) return null;
+  try {
+    const res = await authFetch(`${API_URL}/performance/progression?windowDays=${windowDays}`, { signal });
+    if (!res.ok) return null;
+    const data = await parseJson(res);
+    return (data?.data as ProgressionResponse) ?? null;
+  } catch (err) {
+    if ((err as Error)?.name === "AbortError") return null;
+    Sentry.captureException(err, { tags: { feature: "performance", reason: "progression" } });
+    return null;
+  }
+}
+
 export async function getTrainingCalendar(
   month: string,
   signal?: AbortSignal,

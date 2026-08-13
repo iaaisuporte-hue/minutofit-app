@@ -5,9 +5,17 @@ import { API_URL } from "../../services/apiBase";
 // POST /user/events (allow-list no backend → data_access_audit). Fire-and-forget:
 // analytics nunca bloqueia a UX nem lança erro para o usuário.
 //
-// A allow-list do backend só aceita os eventos que já existem de verdade —
-// os de recorde, meta e upgrade entram com as ondas que os produzem.
-export type PerformanceEventType = "performance.opened" | "performance.tab_viewed";
+// A allow-list do backend só aceita os eventos que já existem de verdade.
+// O payload leva só identificador e contagem: nada de nome de exercício do
+// usuário, nada de informação de saúde — o evento mede adoção, não conteúdo.
+export type PerformanceEventType =
+  | "performance.opened"
+  | "performance.tab_viewed"
+  | "performance.progression_viewed"
+  | "performance.exercise_selected"
+  | "performance.prs_viewed"
+  | "performance.pr_celebrated"
+  | "performance.upgrade_cta_clicked";
 
 export function postPerformanceEvent(
   eventType: PerformanceEventType,

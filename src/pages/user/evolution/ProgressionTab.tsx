@@ -1,29 +1,11 @@
-import { WorkoutProgressSection } from '../components/WorkoutProgressSection';
-import { useWorkoutStats } from '../components/useWorkoutStats';
+import { ProgressionPanel } from '../../../features/performance/ProgressionPanel';
 
 /**
- * Aba Progressão.
+ * Aba Progressão (Spec 033, P2).
  *
- * Na P1 ela apenas dá casa própria à `WorkoutProgressSection`, que já existia e
- * já funcionava dentro da Evolução — nenhuma capacidade nova. A P2 é que traz
- * seletor de exercício, e1RM e a janela configurável, consumindo
- * `/performance/progression`.
+ * O conteúdo vive em `features/performance` porque a mesma leitura vai ser
+ * reaproveitada pelo cockpit do personal na P5 — a aba é só o ponto de entrada.
  */
 export default function ProgressionTab() {
-  const { stats, loading } = useWorkoutStats();
-
-  return (
-    <div style={{ display: 'grid', gap: 'var(--space-4)' }}>
-      <WorkoutProgressSection stats={stats} loading={loading} />
-
-      {!loading && (!stats || stats.exerciseProgression.length === 0) && (
-        <div className="metabolic-empty">
-          <p className="metabolic-section-copy">
-            A progressão aparece quando o mesmo exercício é registrado com carga em pelo menos dois
-            dias diferentes. Anote a carga no Modo Treino e ela começa a desenhar a curva.
-          </p>
-        </div>
-      )}
-    </div>
-  );
+  return <ProgressionPanel />;
 }

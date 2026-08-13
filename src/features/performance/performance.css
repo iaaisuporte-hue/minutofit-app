@@ -343,3 +343,133 @@
   font-size: var(--text-sm);
   line-height: 1.5;
 }
+
+/* ── Recordes (P2) ───────────────────────────────────────────────────────── */
+
+.perf-record-list {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.perf-record-card {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+
+.perf-record-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.perf-record-name {
+  color: var(--color-text);
+  font-size: var(--text-base);
+}
+
+/** Marca o exercício que saiu da biblioteca — o recorde continua valendo. */
+.perf-record-flag {
+  padding: 1px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+/* Duas colunas a partir de 380px; uma só em telas estreitas, sem apertar. */
+.perf-record-kinds {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-2);
+  margin: 0;
+}
+
+@media (min-width: 380px) {
+  .perf-record-kinds {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.perf-record-kinds dt {
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  font-weight: 600;
+}
+
+.perf-record-kinds dd {
+  margin: 0;
+  display: grid;
+  gap: 1px;
+}
+
+.perf-record-value {
+  font-family: var(--font-brand);
+  font-size: var(--text-lg);
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.perf-record-date {
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+}
+
+/* ── Celebração de recorde no resumo pós-treino ──────────────────────────── */
+
+/**
+ * Faixa discreta, dentro do fluxo do resumo — não é modal, não bloqueia, não
+ * tem confete. O aluno acabou de treinar; a conquista é reconhecida e ele segue.
+ */
+.perf-pr-banner {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-3);
+  border: 1px solid var(--color-accent);
+  border-left-width: 3px;
+  border-radius: var(--radius-md);
+  background: var(--color-accent-soft);
+}
+
+.perf-pr-banner-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-text);
+  font-size: var(--text-sm);
+  font-weight: 700;
+}
+
+.perf-pr-banner-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 2px;
+}
+
+.perf-pr-banner-list li {
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+}
+
+/**
+ * Piso de toque nos chips do módulo.
+ *
+ * `.metabolic-period-chip` nasceu com 28px de altura para o filtro de período
+ * do metabolismo. Aqui os chips são controle PRIMÁRIO (escolher métrica e
+ * janela do gráfico), e 28px fica abaixo do piso de 44px que o QA mobile de
+ * ago/2026 fixou. O ajuste é escopado a `.perf-chip-row` de propósito: mexer na
+ * classe compartilhada mudaria telas que não estão nesta onda.
+ */
+.perf-chip-row .metabolic-period-chip {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+}

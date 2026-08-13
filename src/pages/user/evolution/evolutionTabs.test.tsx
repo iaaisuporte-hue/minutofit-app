@@ -17,6 +17,8 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 vi.mock("../../../features/performance/performanceApi", () => ({
   getPerformanceOverview: vi.fn().mockResolvedValue(null),
   getTrainingCalendar: vi.fn().mockResolvedValue([]),
+  getPrRecords: vi.fn().mockResolvedValue({ gated: false, records: [], events: [] }),
+  getProgression: vi.fn().mockResolvedValue({ gated: false, windowDays: 90, exercises: [] }),
 }));
 vi.mock("../../../features/performance/performanceEvents", () => ({
   postPerformanceEvent: vi.fn(),
@@ -120,29 +122,21 @@ describe("Evolução · troca de aba", () => {
 });
 
 describe("Evolução · abas de ondas futuras não fingem funcionalidade", () => {
-  it("Recordes e Metas avisam 'em breve' no próprio chip, antes do toque", () => {
+  it("Metas avisa 'em breve' no próprio chip, antes do toque", () => {
+    // Recordes saiu desta lista na Onda P2 — a aba passou a existir de verdade.
     renderAt("/evolucao");
-    const recordes = screen.getByRole("tab", { name: /Recordes/i });
-    const metas = screen.getByRole("tab", { name: /Metas/i });
-    expect(recordes.textContent).toMatch(/em breve/i);
-    expect(metas.textContent).toMatch(/em breve/i);
+    expect(screen.getByRole("tab", { name: /Metas/i }).textContent).toMatch(/em breve/i);
   });
 
-  it("o painel de Recordes diz o estado real, sem número inventado", async () => {
-    renderAt("/evolucao?tab=recordes");
-    await waitFor(() => expect(screen.getByText(/ainda não estão disponíveis/i)).toBeTruthy());
-    // nenhum dígito solto se passando por recorde
-    expect(screen.queryByText(/\b\d+\s?kg\b/i)).toBeNull();
-  });
-
-  it("o painel de Metas idem", async () => {
+  it("o painel de Metas diz o estado real, sem número inventado", async () => {
     renderAt("/evolucao?tab=metas");
     await waitFor(() => expect(screen.getByText(/ainda não estão disponíveis/i)).toBeTruthy());
+    expect(screen.queryByText(/\b\d+\s?kg\b/i)).toBeNull();
   });
 
   it("abas já entregues NÃO carregam o marcador 'em breve'", () => {
     renderAt("/evolucao");
-    for (const label of ["Visão geral", "Progressão", "Consistência", "Histórico"]) {
+    for (const label of ["Visão geral", "Progressão", "Recordes", "Consistência", "Histórico"]) {
       expect(screen.getByRole("tab", { name: new RegExp(label, "i") }).textContent).not.toMatch(/em breve/i);
     }
   });
