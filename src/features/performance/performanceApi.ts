@@ -204,3 +204,99 @@ export async function getTrainingCalendar(
     return [];
   }
 }
+
+
+// ── Metas (Onda P4) ────────────────────────────────────────────────────────
+
+export type GoalKind =
+  | "exercise_load"
+  | "exercise_e1rm"
+  | "exercise_reps_at_load"
+  | "weekly_frequency"
+  | "monthly_frequency"
+  | "streak";
+
+export type GoalStatus = "active" | "achieved" | "abandoned" | "expired";
+
+export interface Goal {
+  id: string;
+  kind: GoalKind;
+  status: GoalStatus;
+  exerciseId: string | null;
+  /** Nome histórico: sobrevive à remoção do exercício do catálogo. */
+  exerciseName: string | null;
+  targetValue: number;
+  targetReps: number | null;
+  unit: string;
+  progressUnit: string;
+  baselineValue: number | null;
+  currentValue: number | null;
+  /** 0..1, ou `null` quando não há medição. Nunca NaN — o servidor garante. */
+  progress: number | null;
+  remaining: number | null;
+  startsOn: string;
+  dueOn: string | null;
+  achievedAt: string | null;
+  metricVersion: number;
+  createdAt: string;
+  monotonic: boolean;
+}
+
+export interface GoalsResponse {
+  gated: boolean;
+  goals: Goal[];
+  activeCount: number;
+  maxActive: number;
+}
+
+export async function getGoals(signal?: AbortSignal): Promise<GoalsResponse | null> {
+  if (!getAccessToken()) return null;
+  try {
+    const res = await authFetch(`${API_URL}/performance/goals`, { signal });
+    if (!res.ok) return null;
+    const data = await parseJson(res);
+    return (data?.data as GoalsResponse) ?? null;
+  } catch (err) {
+    if ((err as Error)?.name === "AbortError") return null;
+    Sentry.captureException(err, { tags: { feature: "performance", reason: "goals" } });
+    return null;
+  }
+}
+
+export interface CreateGoalInput {
+  kind: GoalKind;
+  exerciseId?: string | null;
+  targetValue: number;
+  targetReps?: number | null;
+  dueOn?: string | null;
+}
+
+/**
+ * Cria a meta.
+ *
+ * Diferente das leituras do módulo, aqui o erro NÃO vira `null` silencioso: o
+ * aluno acabou de agir e precisa saber por que não deu — em especial "você já
+ * está nesse patamar", que é orientação, não falha.
+ */
+export async function createGoal(input: CreateGoalInput): Promise<Goal> {
+  const res = await authFetch(`${API_URL}/performance/goals`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  const data = await parseJson(res);
+  if (!res.ok) throw new Error(data?.error || "Não foi possível criar a meta.");
+  return data.data as Goal;
+}
+
+/** Abandona a meta. Não apaga — o histórico do aluno é preservado. */
+export async function abandonGoal(goalId: string): Promise<Goal> {
+  const res = await authFetch(`${API_URL}/performance/goals/${goalId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ status: "abandoned" }),
+  });
+  const data = await parseJson(res);
+  if (!res.ok) throw new Error(data?.error || "Não foi possível abandonar a meta.");
+  return data.data as Goal;
+}

@@ -14,7 +14,7 @@ import { isNativeApp } from "../../lib/platform";
  * Em app nativo o botão de assinatura some (política de loja): o texto explica
  * onde concluir, sem link de pagamento.
  */
-export function PerformanceUpsell({ area }: { area: "progressao" | "recordes" | "evolucao" }) {
+export function PerformanceUpsell({ area }: { area: "progressao" | "recordes" | "evolucao" | "metas" }) {
   useEffect(() => {
     postPerformanceEvent("performance.upgrade_cta_clicked", { area, shown: true });
   }, [area]);
@@ -24,7 +24,9 @@ export function PerformanceUpsell({ area }: { area: "progressao" | "recordes" | 
       ? "A curva de cada exercício — carga e 1RM estimado ao longo do tempo — faz parte do plano Premium."
       : area === "recordes"
         ? "Seus recordes por exercício fazem parte do plano Premium."
-        : "A leitura da sua evolução — como você está em relação a você mesmo, e o que mudou — faz parte do plano Premium.";
+        : area === "metas"
+          ? "Definir metas e acompanhar quanto falta para cada uma faz parte do plano Premium."
+          : "A leitura da sua evolução — como você está em relação a você mesmo, e o que mudou — faz parte do plano Premium.";
 
   return (
     <div className="perf-soon">

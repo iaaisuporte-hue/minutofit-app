@@ -36,7 +36,7 @@ export const EVOLUTION_TABS = [
   { id: 'progressao', label: 'Progressão' },
   { id: 'recordes', label: 'Recordes' },
   { id: 'consistencia', label: 'Consistência' },
-  { id: 'metas', label: 'Metas', soon: true },
+  { id: 'metas', label: 'Metas' },
   { id: 'historico', label: 'Histórico' },
 ] as const;
 
@@ -132,7 +132,6 @@ export default function MetabolicStatePage() {
             onClick={() => selectTab(tab.id)}
           >
             {tab.label}
-            {'soon' in tab && tab.soon && <span className="perf-tab-soon">em breve</span>}
           </button>
         ))}
       </div>

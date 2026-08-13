@@ -18,7 +18,11 @@ export type PerformanceEventType =
   | "performance.upgrade_cta_clicked"
   | "performance.score_viewed"
   | "performance.score_component_opened"
-  | "performance.score_history_viewed";
+  | "performance.score_history_viewed"
+  | "performance.goal_created"
+  | "performance.goal_viewed"
+  | "performance.goal_completed"
+  | "performance.goal_cancelled";
 
 export function postPerformanceEvent(
   eventType: PerformanceEventType,

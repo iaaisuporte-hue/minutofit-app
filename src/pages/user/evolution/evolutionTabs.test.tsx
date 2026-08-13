@@ -6,7 +6,7 @@
  *  - a aba vive na URL, então deep link e F5 preservam onde o aluno estava
  *    (num PWA, o Android mata a aba e recarrega o tempo todo);
  *  - aba desconhecida degrada para a primeira em vez de tela branca;
- *  - abas de ondas futuras avisam ANTES do toque e não fingem funcionalidade.
+ *  - nenhuma aba promete funcionalidade que não existe.
  */
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -19,6 +19,9 @@ vi.mock("../../../features/performance/performanceApi", () => ({
   getTrainingCalendar: vi.fn().mockResolvedValue([]),
   getPrRecords: vi.fn().mockResolvedValue({ gated: false, records: [], events: [] }),
   getProgression: vi.fn().mockResolvedValue({ gated: false, windowDays: 90, exercises: [] }),
+  getGoals: vi.fn().mockResolvedValue({ gated: false, goals: [], activeCount: 0, maxActive: 5 }),
+  createGoal: vi.fn(),
+  abandonGoal: vi.fn(),
 }));
 vi.mock("../../../features/performance/performanceEvents", () => ({
   postPerformanceEvent: vi.fn(),
@@ -121,23 +124,22 @@ describe("Evolução · troca de aba", () => {
   });
 });
 
-describe("Evolução · abas de ondas futuras não fingem funcionalidade", () => {
-  it("Metas avisa 'em breve' no próprio chip, antes do toque", () => {
-    // Recordes saiu desta lista na Onda P2 — a aba passou a existir de verdade.
+describe("Evolução · nenhuma aba promete o que não entrega", () => {
+  // A lista de "em breve" esvaziou na Onda P4: Recordes saiu na P2, Metas aqui.
+  // O teste continua porque a regra vale para a próxima aba que nascer.
+  it("nenhuma aba carrega o marcador 'em breve'", () => {
     renderAt("/evolucao");
-    expect(screen.getByRole("tab", { name: /Metas/i }).textContent).toMatch(/em breve/i);
-  });
-
-  it("o painel de Metas diz o estado real, sem número inventado", async () => {
-    renderAt("/evolucao?tab=metas");
-    await waitFor(() => expect(screen.getByText(/ainda não estão disponíveis/i)).toBeTruthy());
-    expect(screen.queryByText(/\b\d+\s?kg\b/i)).toBeNull();
-  });
-
-  it("abas já entregues NÃO carregam o marcador 'em breve'", () => {
-    renderAt("/evolucao");
-    for (const label of ["Visão geral", "Progressão", "Recordes", "Consistência", "Histórico"]) {
-      expect(screen.getByRole("tab", { name: new RegExp(label, "i") }).textContent).not.toMatch(/em breve/i);
+    for (const tab of EVOLUTION_TABS) {
+      expect(screen.getByRole("tab", { name: new RegExp(tab.label, "i") }).textContent)
+        .not.toMatch(/em breve/i);
     }
+  });
+
+  it("a aba Metas abre funcional, com o estado real de quem não tem meta", async () => {
+    renderAt("/evolucao?tab=metas");
+    await waitFor(() => expect(screen.getByText(/Nenhuma meta por enquanto/i)).toBeTruthy());
+    // Estado vazio explica e convida — sem exibir número que ninguém mediu.
+    expect(screen.getByRole("button", { name: /Criar meta/i })).toBeTruthy();
+    expect(screen.queryByText(/\b\d+\s?kg\b/i)).toBeNull();
   });
 });

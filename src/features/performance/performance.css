@@ -565,3 +565,209 @@
 .perf-score-factor-delta {
   font-variant-numeric: tabular-nums;
 }
+
+/* ── Metas (P4) ───────────────────────────────────────────────────────────
+ *
+ * Alvos de toque de 44px em tudo que é interativo — piso fixado pelo QA mobile
+ * de ago/2026 e verificado por smoke a 320/360/390px.
+ */
+.perf-goal-card {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+
+/* Conquista ganha realce discreto — borda, não confete. */
+.perf-goal-card.is-achieved {
+  border-color: var(--color-success);
+}
+
+.perf-goal-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.perf-goal-icon {
+  color: var(--color-accent);
+  flex-shrink: 0;
+}
+
+.perf-goal-title {
+  margin: 0;
+  font-size: var(--text-base);
+  color: var(--color-text);
+  /* Nome longo de exercício quebra em vez de empurrar o cartão. */
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.perf-goal-status {
+  margin-left: auto;
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.perf-goal-status.is-achieved {
+  color: var(--color-success);
+}
+
+.perf-goal-numbers {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text);
+}
+
+.perf-goal-baseline,
+.perf-goal-muted,
+.perf-goal-remaining,
+.perf-goal-due,
+.perf-goal-help {
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  margin: 0;
+}
+
+.perf-goal-bar {
+  height: 8px;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-subtle);
+  overflow: hidden;
+}
+
+.perf-goal-bar-fill {
+  display: block;
+  height: 100%;
+  background: var(--color-accent);
+  border-radius: var(--radius-sm);
+}
+
+.perf-goal-action {
+  justify-self: start;
+  min-height: 44px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-text);
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+
+.perf-goal-action:hover {
+  background: var(--color-surface-subtle);
+}
+
+.perf-goal-confirm {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+/* CTA com texto branco usa o token de ação (contraste), nunca o oliva vibrante. */
+.perf-goal-submit {
+  justify-self: start;
+  min-height: 44px;
+  padding: 0 var(--space-4);
+  border: none;
+  border-radius: var(--radius-md);
+  background: var(--action-primary);
+  color: var(--color-cta-text);
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+
+.perf-goal-submit:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.perf-goal-form {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-subtle);
+}
+
+.perf-goal-field {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.perf-goal-field label {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.perf-goal-field input,
+.perf-goal-field select {
+  min-height: 44px;
+  padding: 0 var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: var(--text-sm);
+  /* Sem largura máxima o input estoura a grade em telas de 320px. */
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.perf-goal-options {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-1);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.perf-goal-options button {
+  width: 100%;
+  min-height: 44px;
+  padding: 0 var(--space-2);
+  border: none;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: var(--text-sm);
+  text-align: left;
+  cursor: pointer;
+}
+
+.perf-goal-options button:hover {
+  background: var(--color-surface-subtle);
+}
+
+.perf-goal-chosen {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  font-size: var(--text-sm);
+  color: var(--color-text);
+}
+
+.perf-goal-form-actions {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.perf-goal-error {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-danger);
+}
