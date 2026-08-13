@@ -72,6 +72,8 @@ export async function acceptNutriDirectInvite(
     name: string;
     cpf?: string;
     phone?: string;
+    /** 'YYYY-MM-DD'. O aceite cria conta, então vale a idade mínima de 18 anos. */
+    birthDate: string;
   }
 ): Promise<{ accessToken: string; refreshToken: string; user: unknown; isNew: boolean; userExists: boolean }> {
   const response = await fetch(`${API_URL}/auth/direct-invite-nutri/${token}/accept`, {

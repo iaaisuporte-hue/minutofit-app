@@ -3,7 +3,6 @@ import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import * as Sentry from "@sentry/react";
 import App from "./App";
-import { isNativeApp } from "./lib/platform";
 // S2CORE type system: Manrope (interface) + Exo 2 (marca/score/display)
 import "@fontsource/manrope/400.css";
 import "@fontsource/manrope/500.css";
@@ -46,14 +45,6 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
   </React.StrictMode>,
 );
 
-// PWA — registra o service worker no boot (instalável + offline shell),
-// independente do push. O fluxo de push (usePushSubscription) reusa o mesmo SW.
-// No app empacotado (Capacitor) o SW é redundante/conflitante com o WebView e o
-// push nativo, então não registramos.
-if ("serviceWorker" in navigator && import.meta.env.PROD && !isNativeApp()) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("/sw.js", { scope: "/" }).catch(() => {
-      /* registro best-effort — não bloqueia o app */
-    });
-  });
-}
+// O registro do service worker vive em features/pwa/AppUpdateBanner (montado no
+// App): registrar e detectar atualização são o mesmo fluxo, e separá-los deixava
+// o app sem aviso de versão nova.

@@ -20,6 +20,8 @@ import PrivacyPolicyPage from "./pages/PrivacyPolicyPage";
 import TermsOfUsePage from "./pages/TermsOfUsePage";
 import WaitlistPage from "./pages/WaitlistPage";
 import { NativeAppBridge } from "./lib/NativeAppBridge";
+import { AppUpdateBanner } from "./features/pwa/AppUpdateBanner";
+import { OfflineBanner } from "./features/pwa/OfflineBanner";
 import RouteFallback from "./components/RouteFallback";
 
 // As cinco áreas autenticadas entram sob demanda. Antes tudo virava UM bundle de
@@ -40,6 +42,8 @@ export default function App() {
     <AuthProvider>
       <FeatureFlagsProvider>
         <NativeAppBridge />
+        <OfflineBanner />
+        <AppUpdateBanner />
         <CookieConsentBanner />
         <ThemeToggle />
         <Suspense fallback={<RouteFallback />}>

@@ -21,8 +21,14 @@ function readInitialTheme(): Theme {
   return "light";
 }
 
+/** Cor da barra de status do sistema (Android/iOS) por tema. */
+const THEME_COLOR: Record<Theme, string> = { light: "#7B9919", dark: "#121212" };
+
 function applyTheme(theme: Theme) {
   document.documentElement.setAttribute("data-theme", theme);
+  // No app instalado a barra de status usa esta meta; sem atualizá-la, trocar
+  // para o tema escuro deixava uma faixa oliva no topo.
+  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", THEME_COLOR[theme]);
 }
 
 export function useTheme() {

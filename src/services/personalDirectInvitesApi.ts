@@ -81,6 +81,8 @@ export async function acceptDirectInvite(
     name: string;
     cpf?: string;
     phone?: string;
+    /** 'YYYY-MM-DD'. O aceite cria conta, então vale a idade mínima de 18 anos. */
+    birthDate: string;
     healthFlags?: Record<string, boolean>;
   }
 ): Promise<{ accessToken: string; refreshToken: string; user: unknown; isNew: boolean; userExists: boolean }> {

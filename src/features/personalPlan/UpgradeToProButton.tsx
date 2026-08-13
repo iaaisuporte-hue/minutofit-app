@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { startPersonalCheckout } from "../../services/personalPlanApi";
+import { isNativeApp } from "../../lib/platform";
 
 interface Props {
   /** Estilo: botão sólido (CTA) ou link inline (banner). */
@@ -15,6 +16,17 @@ interface Props {
 export function UpgradeToProButton({ variant = "solid", label = "Assinar Pro", plan = "pro" }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // App empacotado (Capacitor): nenhum caminho de compra, preço ou link externo.
+  // Bem digital consumido no app exige o billing da loja (Play Billing / Apple 3.1.1);
+  // levar o usuário ao Mercado Pago daqui é motivo de reprovação.
+  if (isNativeApp()) {
+    return (
+      <span style={{ fontSize: 12, color: "var(--color-text-muted)", lineHeight: 1.5 }}>
+        Gerencie seu plano na versão web do S2Core.
+      </span>
+    );
+  }
 
   async function handleClick() {
     setLoading(true);

@@ -1,11 +1,15 @@
 import { Sparkles } from "lucide-react";
 import { usePlan } from "./usePlan";
 import { UpgradeToProButton } from "./UpgradeToProButton";
+import { isNativeApp } from "../../lib/platform";
 
 export function AiUpgradeCTA() {
   const plan = usePlan();
 
   if (plan.aiEnabled) return null;
+
+  // No app empacotado o preço sai junto com o botão de compra (política das lojas).
+  const native = isNativeApp();
 
   return (
     <div
@@ -44,7 +48,8 @@ export function AiUpgradeCTA() {
       </div>
       <div style={{ fontSize: 12, color: "var(--color-text-muted)", lineHeight: 1.5 }}>
         A IA lê aderência, metabolismo e treinos e te entrega a síntese — a conduta é sua.
-        Pro: alunos ilimitados, resumo IA e adaptação automática por <b>R$ 89/mês</b> (recorrente).
+        Pro: alunos ilimitados, resumo IA e adaptação automática
+        {native ? "." : <> por <b>R$ 89/mês</b> (recorrente).</>}
       </div>
       <UpgradeToProButton label="Assinar Pro · R$ 89/mês" />
     </div>

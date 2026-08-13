@@ -16,10 +16,24 @@ export default function PrivacyPolicyPage() {
 
       <section style={{ display: "grid", gap: 12, marginBottom: 20 }}>
         <h2 style={{ fontSize: 16, margin: 0 }}>1. Controlador</h2>
+        {/*
+          Esta página é linkada da tela de login e das lojas de aplicativos: a
+          LGPD (art. 9º, I e III) exige que o controlador e o Encarregado sejam
+          identificáveis aqui, não "no suporte da sua organização".
+          Mantenha em sincronia com minutofit-web/app/(legal)/privacidade.
+        */}
         <p style={{ margin: 0, fontSize: 14, lineHeight: 1.55, color: "var(--color-text-muted)" }}>
-          O tratamento de dados vinculado a esta aplicação web segue as regras do produto S2Core e, quando aplicável,
-          da academia ou parceiro que disponibiliza o acesso. Dúvidas sobre privacidade podem ser encaminhadas ao canal
-          indicado no contrato ou no suporte da sua organização.
+          O controlador dos dados é <strong>Francisco Everton Rodrigues de Sousa Tecnologia da
+          Informação</strong>, CNPJ <strong>36.295.802/0001-13</strong>, com sede em São Paulo/SP.
+          Contato do Encarregado (DPO):{" "}
+          <a href="mailto:s2core.contato@gmail.com">s2core.contato@gmail.com</a>. Quando o acesso é
+          fornecido por uma academia ou parceiro, essa organização atua como controladora dos dados
+          operacionais do seu vínculo com ela.
+        </p>
+        <p style={{ margin: 0, fontSize: 14, lineHeight: 1.55, color: "var(--color-text-muted)" }}>
+          A política completa, com as categorias de dados de saúde tratadas e as bases legais, está
+          em <a href="https://s2core.com.br/privacidade">s2core.com.br/privacidade</a>. Para apagar
+          sua conta, veja <a href="https://s2core.com.br/excluir-conta">s2core.com.br/excluir-conta</a>.
         </p>
       </section>
 
@@ -66,8 +80,9 @@ export default function PrivacyPolicyPage() {
         <p style={{ margin: 0, fontSize: 14, lineHeight: 1.55, color: "var(--color-text-muted)" }}>
           Conforme a LGPD, você pode solicitar confirmação de tratamento, acesso, correção, anonimização, portabilidade,
           eliminação de dados desnecessários, informação sobre compartilhamentos e revogação de consentimento, quando
-          aplicável. O canal prático depende do contexto (conta S2Core, academia ou empregador) — use o suporte
-          indicado no seu contrato ou na área logada.
+          aplicável. Na sua conta, <strong>Perfil → Meus dados</strong> permite exportar tudo o que
+          guardamos e excluir a conta sem intermediários. Para os demais pedidos, escreva ao
+          Encarregado: <a href="mailto:s2core.contato@gmail.com">s2core.contato@gmail.com</a>.
         </p>
       </section>
 

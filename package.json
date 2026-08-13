@@ -22,6 +22,7 @@
     "@capacitor/browser": "^7.0.5",
     "@capacitor/cli": "^7.6.7",
     "@capacitor/core": "^7.6.7",
+    "@capgo/capacitor-social-login": "^7.20.0",
     "@fontsource/exo-2": "^5.2.8",
     "@fontsource/inter": "^5.2.8",
     "@fontsource/manrope": "^5.2.8",

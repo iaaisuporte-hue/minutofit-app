@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from "react";
+import { isNativeApp } from "../lib/platform";
+import { isGoogleNativeConfigured, signInWithGoogleNative } from "./googleNativeAuth";
 
 /**
  * Botão "Continuar com Google" via Google Identity Services (GIS) oficial.
@@ -39,9 +41,12 @@ export function GoogleSignInButton({ onCredential, text = "continue_with" }: Pro
   const cbRef = useRef(onCredential);
   cbRef.current = onCredential;
   const [failed, setFailed] = useState(false);
+  const native = isNativeApp();
 
   useEffect(() => {
-    if (!CLIENT_ID) return;
+    // No app empacotado o GIS não roda (o Google bloqueia OAuth em WebView) —
+    // quem cuida disso é o NativeGoogleButton abaixo.
+    if (native || !CLIENT_ID) return;
     let cancelled = false;
     loadGsi()
       .then(() => {
@@ -69,6 +74,63 @@ export function GoogleSignInButton({ onCredential, text = "continue_with" }: Pro
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  if (native) return <NativeGoogleButton onCredential={onCredential} />;
   if (!CLIENT_ID || failed) return null;
   return <div ref={ref} style={{ display: "flex", justifyContent: "center" }} />;
+}
+
+/**
+ * Botão próprio para o app empacotado: chama o seletor de conta do sistema e
+ * entrega ao mesmo callback o `idToken` que o GIS entregaria na web.
+ */
+function NativeGoogleButton({ onCredential }: { onCredential: (idToken: string) => void }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  if (!isGoogleNativeConfigured()) return null;
+
+  async function handleClick() {
+    setBusy(true);
+    setError(null);
+    try {
+      const idToken = await signInWithGoogleNative();
+      if (idToken) onCredential(idToken);
+      // Sem token = usuário fechou o seletor. Silêncio é a resposta certa.
+    } catch {
+      setError("Não foi possível entrar com o Google. Use seu e-mail e senha.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div style={{ display: "grid", gap: 6, justifyItems: "center" }}>
+      <button
+        type="button"
+        onClick={() => void handleClick()}
+        disabled={busy}
+        style={{
+          minHeight: 44,
+          width: "100%",
+          maxWidth: 320,
+          padding: "0 16px",
+          borderRadius: 8,
+          border: "1px solid var(--color-border)",
+          background: "var(--color-surface)",
+          color: "var(--color-text)",
+          fontSize: 14,
+          fontWeight: 600,
+          cursor: busy ? "default" : "pointer",
+          opacity: busy ? 0.7 : 1,
+        }}
+      >
+        {busy ? "Abrindo…" : "Continuar com Google"}
+      </button>
+      {error && (
+        <span style={{ fontSize: 12, color: "var(--color-danger)", textAlign: "center" }}>
+          {error}
+        </span>
+      )}
+    </div>
+  );
 }

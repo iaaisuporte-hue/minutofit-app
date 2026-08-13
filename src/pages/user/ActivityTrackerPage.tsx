@@ -11,6 +11,9 @@ import { API_URL } from "../../services/apiBase";
 import "./activityTracker.css";
 import { type Activity } from "../../features/tracker/types";
 import { ACTIVITY_META } from "../../features/tracker/constants";
+import { MedicalDisclaimer } from "../../components/MedicalDisclaimer";
+import { LocationDisclosure } from "../../features/permissions/LocationDisclosure";
+import { hasLocationAck, setLocationAck } from "../../features/permissions/locationAck";
 import { estimateCalories, classifyIntensity, INTENSITY_LABELS, getTodayStatus, getReadinessAdvice, getPerformanceSignal } from "../../features/tracker/metrics";
 import { calculateRouteDistanceKm, getDistanceBetweenPointsKm } from "../../features/tracker/geometry";
 import { analyzeActivityValidity } from "../../features/tracker/validation";
@@ -285,6 +288,8 @@ export default function ActivityTrackerPage() {
   const [gpsStatus, setGpsStatus] = useState<"idle" | "requesting" | "ready" | "denied" | "unavailable">("idle");
   const [gpsAccuracy, setGpsAccuracy] = useState<number | null>(null);
   const gpsReadinessRef = useRef<number | null>(null);
+  const [locationAllowed, setLocationAllowed] = useState(hasLocationAck);
+  const [locationDeclined, setLocationDeclined] = useState(false);
 
   useEffect(() => {
     if (isTracking) {
@@ -294,6 +299,9 @@ export default function ActivityTrackerPage() {
       }
       return;
     }
+    // Nada de geolocalização antes do aviso: o prompt do sistema não pode ser a
+    // primeira coisa que o usuário vê (prominent disclosure, política do Play).
+    if (!locationAllowed) return;
     if (!navigator.geolocation) {
       setGpsStatus("unavailable");
       return;
@@ -319,7 +327,7 @@ export default function ActivityTrackerPage() {
         gpsReadinessRef.current = null;
       }
     };
-  }, [isTracking]);
+  }, [isTracking, locationAllowed]);
 
   // ── Persist / load ───────────────────────────────────────────────────────
   useEffect(() => {
@@ -655,6 +663,16 @@ export default function ActivityTrackerPage() {
 
   return (
     <div className={`tr-page${currentActivity ? " tr-page--live" : ""}`}>
+      {!locationAllowed && !locationDeclined && (
+        <LocationDisclosure
+          onAllow={() => {
+            setLocationAck();
+            setLocationAllowed(true);
+          }}
+          onDecline={() => setLocationDeclined(true)}
+        />
+      )}
+
       {confirmDeleteId != null && (
         <ConfirmModal
           title="Excluir esta sessão?"
@@ -982,7 +1000,19 @@ export default function ActivityTrackerPage() {
             ) : (
               <>
                 {/* GPS status indicator */}
-                {gpsStatus !== "idle" && (
+                {!locationAllowed && (
+                  <button
+                    type="button"
+                    className="tr-gps-status tr-gps-status--denied"
+                    onClick={() => setLocationDeclined(false)}
+                    style={{ border: "none", cursor: "pointer", width: "100%", textAlign: "left" }}
+                  >
+                    <span className="tr-gps-dot tr-gps-dot--error" />
+                    Localização desativada — toque para rever
+                  </button>
+                )}
+
+                {locationAllowed && gpsStatus !== "idle" && (
                   <div
                     className={`tr-gps-status tr-gps-status--${gpsStatus}`}
                     role="status"
@@ -1144,6 +1174,13 @@ export default function ActivityTrackerPage() {
         )}
 
         {activities.length > 0 && <WeekSparkline activities={activities} />}
+
+        <div style={{ padding: "16px 0 8px" }}>
+          <MedicalDisclaimer>
+            Distância, ritmo e calorias são estimativas do GPS do aparelho e do seu perfil — servem
+            para acompanhar tendência, não como medição clínica.
+          </MedicalDisclaimer>
+        </div>
       </div>
     </div>
   );

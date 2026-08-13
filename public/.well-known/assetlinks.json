@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.s2core.app",
+      "sha256_cert_fingerprints": [
+        "PREENCHER_COM_O_SHA256_DA_CHAVE_DE_ASSINATURA_DO_PLAY"
+      ]
+    }
+  }
+]

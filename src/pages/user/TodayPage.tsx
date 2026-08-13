@@ -68,6 +68,7 @@ import { WorkoutStateChip } from "./components/WorkoutStateChip";
 import { WeeklyLoopCard, useHasWeeklyLoopInsights } from "../../features/loopVisibility";
 import { MovementLabEntryCard } from "./components/MovementLabEntryCard";
 import { usePushSubscription } from "../../features/nutrition/usePushSubscription";
+import { PushOptInCard } from "../../features/pwa/PushOptInCard";
 import "./todayPage.css";
 
 const GROUP_LABEL: Record<MuscleGroup, string> = {
@@ -469,6 +470,9 @@ export default function TodayPage() {
     >
       {/* 0. Faixa de instalar o app (PWA) — Android beforeinstallprompt / dica iOS */}
       <InstallPrompt />
+
+      {/* 0. Opt-in de notificações — explica antes de abrir o prompt do sistema */}
+      <PushOptInCard />
 
       {/* 0. Banner de mensagem nova (apenas quando há mensagem não lida do profissional) */}
       {incomingMessage && (

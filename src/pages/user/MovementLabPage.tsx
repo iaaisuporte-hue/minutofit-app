@@ -336,7 +336,17 @@ export default function MovementLabPage() {
 
   // ── Beta: disclaimer, retry de câmera e feedback pós-sessão ─
   const [searchParams] = useSearchParams();
-  const [showDisclaimer, setShowDisclaimer] = useState(false);
+  // Lido de forma SÍNCRONA no primeiro render: iniciado em `false` e promovido
+  // por efeito, o disclaimer perdia a corrida para o efeito que liga a câmera —
+  // o prompt do sistema aparecia junto com (ou antes de) o aviso que deveria
+  // precedê-lo.
+  const [showDisclaimer, setShowDisclaimer] = useState(() => {
+    try {
+      return !localStorage.getItem(BETA_ACK_KEY);
+    } catch {
+      return false; // storage indisponível — segue sem bloquear
+    }
+  });
   const [retryToken, setRetryToken] = useState(0);
   const [feedbackFor, setFeedbackFor] = useState<{
     exerciseId: ExerciseId;
@@ -435,15 +445,6 @@ export default function MovementLabPage() {
     postLabEvent("movement_lab.opened", { source });
   }, [searchParams]);
 
-  // ── Disclaimer beta na primeira visita (ack em localStorage) ─
-  useEffect(() => {
-    try {
-      if (!localStorage.getItem(BETA_ACK_KEY)) setShowDisclaimer(true);
-    } catch {
-      // storage indisponível — segue sem bloquear
-    }
-  }, []);
-
   // ── Init do modo guiado a partir da query da ficha (uma vez) ─
   useEffect(() => {
     if (guidedInitRef.current) return;
@@ -488,6 +489,9 @@ export default function MovementLabPage() {
 
   // ── Camera initialization (once on mount) ─────────────────
   useEffect(() => {
+    // O aviso de câmera e de privacidade precede o pedido de permissão.
+    if (showDisclaimer) return;
+
     let cancelled = false;
 
     async function setup() {
@@ -852,7 +856,7 @@ export default function MovementLabPage() {
       poseRef.current = null;
       cameraRef.current = null;
     };
-  }, [retryToken]);
+  }, [retryToken, showDisclaimer]);
 
   function handleRetryCamera() {
     setErrorMessage(null);
@@ -1593,13 +1597,19 @@ export default function MovementLabPage() {
               <div className="ml-summary-headline">Como funciona o Lab</div>
             </div>
             <ul className="ml-disclaimer-list">
-              <li>A contagem de repetições é experimental e pode errar — ajuste manualmente quando precisar.</li>
+              <li>
+                Vamos pedir acesso à <strong>câmera</strong> para analisar sua execução em tempo real.
+              </li>
               <li>A análise acontece no seu aparelho. Nenhum vídeo é gravado ou enviado.</li>
+              <li>A contagem de repetições é experimental e pode errar — ajuste manualmente quando precisar.</li>
               <li>É um apoio à execução. Não substitui a orientação do seu personal ou profissional de saúde.</li>
             </ul>
             <div className="ml-summary-actions">
+              <button className="ml-summary-btn-secondary" type="button" onClick={() => navigate(-1)}>
+                Agora não
+              </button>
               <button className="ml-summary-btn-primary" type="button" onClick={ackDisclaimer}>
-                Entendi
+                Continuar
               </button>
             </div>
           </div>

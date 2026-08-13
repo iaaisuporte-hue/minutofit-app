@@ -11,6 +11,9 @@ import {
 } from "../../services/professionalNetworkApi";
 import OfferingsSection from "./OfferingsSection";
 import SubscribersSection from "./SubscribersSection";
+import { AccountDataSection } from "../../features/account/AccountDataSection";
+import { PlanSection } from "../../features/personalPlan/PlanSection";
+import { useAuth } from "../../auth/AuthContext";
 
 const MODALITY_LABELS: Record<Modality, string> = {
   in_person: "Presencial",
@@ -61,6 +64,7 @@ function profileToForm(p: NetworkProfile): FormDraft {
 }
 
 export default function NetworkProfilePage() {
+  const { logout, role } = useAuth();
   const [profile, setProfile] = useState<NetworkProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [draft, setDraft] = useState<FormDraft>({
@@ -531,6 +535,20 @@ export default function NetworkProfilePage() {
 
       <OfferingsSection />
       <SubscribersSection />
+
+      {/* Só personal: a rota /personal/plan é gateada por papel, e um nutri veria
+          um "Free · até 3 alunos" que não diz respeito a ele. */}
+      {role === "personal" && <PlanSection />}
+
+      {/*
+        Exportar/excluir conta para personal e nutri. O app empacotado é um build
+        único para todos os papéis: sem isto, um profissional que instalasse o app
+        não teria como se autoexcluir — o que Apple 5.1.1(v) e a política de
+        exclusão de dados do Google Play cobram de qualquer conta, não só do aluno.
+      */}
+      <div style={{ marginTop: 24 }}>
+        <AccountDataSection onDeleted={logout} />
+      </div>
     </div>
   );
 }

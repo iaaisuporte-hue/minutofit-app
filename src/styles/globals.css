@@ -30,6 +30,10 @@ body {
   overflow-x: hidden;
   background: var(--color-bg-main);
   color: var(--color-text);
+  /* Desliga o "puxar para atualizar" do Chrome/Android: no meio de uma série,
+     um overscroll acidental recarregava o app e derrubava o estado do treino.
+     `contain` mantém a rolagem normal e só bloqueia o gesto de recarga. */
+  overscroll-behavior-y: contain;
 }
 
 html, body, #root {

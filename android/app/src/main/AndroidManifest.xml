@@ -22,6 +22,24 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
+            <!--
+                App Links: convites chegam por WhatsApp como link https. Sem isto o
+                link abre no Chrome mesmo com o app instalado, e o usuário acaba com
+                duas instâncias (uma no app, outra no navegador).
+                autoVerify exige /.well-known/assetlinks.json servido pelo host —
+                está em public/.well-known/assetlinks.json, com o SHA-256 da chave
+                de assinatura a preencher antes de publicar.
+            -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="app.s2core.com.br" android:pathPrefix="/convite-personal" />
+                <data android:scheme="https" android:host="app.s2core.com.br" android:pathPrefix="/convite-nutri" />
+                <data android:scheme="https" android:host="app.s2core.com.br" android:pathPrefix="/invite" />
+                <data android:scheme="https" android:host="app.s2core.com.br" android:pathPrefix="/app" />
+            </intent-filter>
+
         </activity>
 
         <provider
@@ -38,4 +56,23 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+
+    <!--
+        O WebView do Capacitor não concede geolocalização nem câmera se o app não
+        declarar a permissão — as APIs web (navigator.geolocation, getUserMedia)
+        falham em silêncio no app empacotado, ainda que funcionem no navegador.
+
+        Localização: só em primeiro plano (Tracker de corrida). Não pedimos
+        ACCESS_BACKGROUND_LOCATION — o rastreio com a tela apagada não é suportado.
+        Câmera: Lab de Movimento (análise roda no aparelho, nada é gravado).
+        Notificações: obrigatória a partir do Android 13.
+    -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- Recursos opcionais: não excluir aparelhos sem GPS/câmera da Play Store. -->
+    <uses-feature android:name="android.hardware.location.gps" android:required="false" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
 </manifest>

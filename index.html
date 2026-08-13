@@ -13,6 +13,11 @@
           if (t === "dark" || t === "light") {
             document.documentElement.setAttribute("data-theme", t);
           }
+          // A barra de status do Android/iOS segue a theme-color. Fixa em oliva,
+          // ela destoava do app no tema escuro; aqui ela acompanha o tema já na
+          // primeira pintura, antes do React montar.
+          var meta = document.querySelector('meta[name="theme-color"]');
+          if (meta && t === "dark") meta.setAttribute("content", "#121212");
         } catch (_) {}
       })();
     </script>
@@ -24,7 +29,9 @@
     <!-- PWA — iOS standalone (Adicionar à Tela de Início) -->
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <!-- black-translucent deixa o conteúdo subir sob a barra; o app já reserva
+         safe-area-inset-top e o fundo é escuro (background_color #121212). -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="S2Core" />
     <meta name="mobile-web-app-capable" content="yes" />
     <title>S2Core</title>

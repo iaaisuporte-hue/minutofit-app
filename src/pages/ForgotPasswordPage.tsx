@@ -86,7 +86,6 @@ export default function ForgotPasswordPage() {
 
             <div className="auth-links">
               <Link to="/login">Voltar para o login</Link>
-              <a href="mailto:suporte@s2core.com.br">Falar com o suporte</a>
             </div>
           </>
         )}

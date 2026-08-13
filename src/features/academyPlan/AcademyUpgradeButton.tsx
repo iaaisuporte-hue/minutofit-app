@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { startAcademyCheckout } from "../../services/academyApi";
+import { isNativeApp } from "../../lib/platform";
 
 /** Botão que inicia o checkout do Pro e redireciona para o Mercado Pago. */
 export function AcademyUpgradeButton({
@@ -11,6 +12,15 @@ export function AcademyUpgradeButton({
 }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // App empacotado (Capacitor): sem checkout externo — ver comentário em UpgradeToProButton.
+  if (isNativeApp()) {
+    return (
+      <span style={{ fontSize: 12, color: "var(--color-text-muted)", lineHeight: 1.5 }}>
+        Gerencie o plano da academia na versão web do S2Core.
+      </span>
+    );
+  }
 
   async function handleClick() {
     setLoading(true);

@@ -7,10 +7,15 @@
   "scope": "/",
   "display": "standalone",
   "background_color": "#121212",
-  "theme_color": "#1DB954",
+  "theme_color": "#7B9919",
   "lang": "pt-BR",
   "dir": "ltr",
   "categories": ["health", "lifestyle", "fitness"],
+  "shortcuts": [
+    { "name": "Hoje", "short_name": "Hoje", "url": "/app/user/today?source=shortcut" },
+    { "name": "Meu treino", "short_name": "Treino", "url": "/app/user/plano?source=shortcut" },
+    { "name": "Estado metabólico", "short_name": "Metabolismo", "url": "/app/user/estado-metabolico?source=shortcut" }
+  ],
   "icons": [
     {
       "src": "/icon-192.png",

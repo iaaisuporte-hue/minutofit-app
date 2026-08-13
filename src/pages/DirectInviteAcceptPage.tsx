@@ -3,6 +3,7 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { fetchDirectInviteInfo, acceptDirectInvite } from "../services/personalDirectInvitesApi";
 import { fetchNutriDirectInviteInfo, acceptNutriDirectInvite } from "../services/nutriDirectInvitesApi";
 import { setTokens } from "../services/authTokens";
+import { getBirthDateError } from "../utils/validators";
 import {
   SCOPE_LABELS,
   DIRECT_INVITE_SCOPES_PERSONAL,
@@ -61,6 +62,8 @@ export default function DirectInviteAcceptPage() {
   const [password, setPassword] = useState("");
   const [cpf, setCpf] = useState("");
   const [phone, setPhone] = useState("");
+  const [birthDate, setBirthDate] = useState("");
+  const birthDateError = getBirthDateError(birthDate);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   /** Spec 029 — profissional no limite do plano. Não é erro do formulário: o
@@ -89,6 +92,12 @@ export default function DirectInviteAcceptPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!token) return;
+    // Validação local só para não gastar uma ida ao servidor; a regra é dele.
+    if (!existingAccountEmail && birthDateError) {
+      setSubmitError(birthDateError);
+      return;
+    }
+
     setSubmitting(true);
     setSubmitError(null);
     setLimitReached(null);
@@ -101,6 +110,7 @@ export default function DirectInviteAcceptPage() {
         name,
         cpf: cpf || undefined,
         phone: phone || undefined,
+        birthDate,
       };
 
       const result = inviteType === "nutri"
@@ -361,6 +371,19 @@ export default function DirectInviteAcceptPage() {
                   style={FIELD_STYLE}
                   maxLength={15}
                 />
+              </div>
+              {/* 18+ — o aceite também cria conta, então vale a mesma regra do cadastro. */}
+              <div>
+                <label style={LABEL_STYLE}>Data de nascimento</label>
+                <input
+                  type="date"
+                  value={birthDate}
+                  onChange={(e) => setBirthDate(e.target.value)}
+                  style={FIELD_STYLE}
+                />
+                {birthDateError && (
+                  <span style={{ fontSize: 12, color: "var(--color-danger)" }}>{birthDateError}</span>
+                )}
               </div>
             </>
           )}

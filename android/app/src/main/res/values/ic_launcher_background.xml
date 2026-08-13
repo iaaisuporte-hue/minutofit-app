@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="ic_launcher_background">#FFFFFF</color>
+    <!-- Fundo do ícone adaptativo: o mesmo tom da arte da marca, para que o
+         foreground (que já traz esse fundo) não deixe emenda visível. -->
+    <color name="ic_launcher_background">#0A0A0A</color>
 </resources>

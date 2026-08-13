@@ -32,6 +32,19 @@ export async function fetchPersonalPlan(): Promise<PersonalPlanConfig> {
 }
 
 /**
+ * Cancela a assinatura da plataforma (Spec 032). O acesso continua até
+ * `currentPeriodEnd` — cancelar não é perder na hora o mês já pago.
+ */
+export async function cancelPersonalPlan(): Promise<PersonalPlanConfig> {
+  const res = await authFetch(`${API_URL}/personal/plan/cancel`, { method: "POST" });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(json?.error || "Não foi possível cancelar a assinatura");
+  }
+  return json.data as PersonalPlanConfig;
+}
+
+/**
  * Inicia o checkout self-serve do plano pago. Retorna a URL do Mercado Pago
  * (init_point) para redirecionar o personal. Lança em caso de falha.
  */
