@@ -61,6 +61,12 @@ export interface RegisterPayload {
     apto_para_atividade_fisica: boolean;
     aceita_responsabilidade_informacoes: boolean;
   };
+  /**
+   * Data de nascimento (`YYYY-MM-DD`). O formulário exige 18+ — a plataforma
+   * trata dados de saúde e não aceita menores. O backend ainda não persiste
+   * este campo: ele chega e é ignorado, até a checagem de idade entrar lá.
+   */
+  birthDate: string;
   /** Token Cloudflare Turnstile (obrigatório quando o site usa CAPTCHA no cadastro). */
   captchaToken?: string;
   /** Aceite dos Termos de Uso + Política de Privacidade (obrigatório — LGPD art. 8º). */
@@ -76,6 +82,12 @@ export interface RegisterPersonalPayload {
   password: string;
   /** CREF declarado. Texto livre, não verificado pela plataforma. */
   registryCode?: string;
+  /**
+   * Data de nascimento (`YYYY-MM-DD`). O formulário exige 18+ — a plataforma
+   * trata dados de saúde e não aceita menores. O backend ainda não persiste
+   * este campo: ele chega e é ignorado, até a checagem de idade entrar lá.
+   */
+  birthDate: string;
   /** Token Cloudflare Turnstile (obrigatório quando o site usa CAPTCHA no cadastro). */
   captchaToken?: string;
   /** Aceite dos Termos de Uso + Política de Privacidade (obrigatório — LGPD art. 8º). */

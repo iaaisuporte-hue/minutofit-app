@@ -59,6 +59,49 @@ export function isValidEmail(value: string) {
   return /\S+@\S+\.\S+/.test(String(value || "").trim());
 }
 
+/**
+ * Idade mínima para criar conta.
+ *
+ * A plataforma trata dados sensíveis de saúde e não aceita menores — é a mesma
+ * regra que o formulário de cadastro anuncia ("É necessário ter 18 anos ou
+ * mais"). O servidor precisa revalidar quando a checagem entrar lá: validação
+ * de cliente serve para o usuário não descobrir o problema só depois de enviar,
+ * nunca como garantia.
+ */
+export const MINIMUM_AGE_YEARS = 18;
+
+/**
+ * Valida a data de nascimento do cadastro. Devolve a mensagem de erro a exibir
+ * no campo, ou `null` quando está tudo certo.
+ *
+ * Espera o formato de `<input type="date">` (`YYYY-MM-DD`).
+ */
+export function getBirthDateError(value: string): string | null {
+  if (!value) return "Informe sua data de nascimento.";
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return "Data de nascimento inválida.";
+
+  const [year, month, day] = value.split("-").map(Number);
+  const date = new Date(year, month - 1, day);
+  // `new Date(2026, 1, 30)` vira 2 de março em vez de falhar. Comparar de volta
+  // é o que pega 31 de fevereiro e companhia.
+  if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) {
+    return "Data de nascimento inválida.";
+  }
+
+  const today = new Date();
+  if (date > today) return "Data de nascimento inválida.";
+
+  let age = today.getFullYear() - year;
+  const monthNow = today.getMonth() + 1;
+  // Ainda não fez aniversário este ano: desconta um.
+  if (monthNow < month || (monthNow === month && today.getDate() < day)) age -= 1;
+
+  if (age < MINIMUM_AGE_YEARS) {
+    return `É necessário ter ${MINIMUM_AGE_YEARS} anos ou mais para criar uma conta.`;
+  }
+  return null;
+}
+
 /** Mínimo 8 caracteres, 1 maiúscula (A–Z), 1 símbolo (não alfanumérico ASCII). */
 export function getStrongPasswordError(password: string): string | null {
   const p = String(password || "");
