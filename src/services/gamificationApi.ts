@@ -5,7 +5,6 @@ import { getAccessToken } from "./authTokens";
 
 export async function persistGamificationCheckin(payload: {
   source: "workout" | "activity" | "wellbeing";
-  xp?: number;
   workout?: {
     workoutId: string;
     title: string;
@@ -46,10 +45,9 @@ export async function persistGamificationCheckin(payload: {
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        ...payload,
-        xp: payload.source === "wellbeing" ? 0 : payload.xp ?? 0,
-      }),
+      // Desde a Onda C0 (Spec 034) o cliente relata FATOS; quanto cada fato
+      // vale é decisão do servidor (xpLedgerService). Nenhum `xp` viaja aqui.
+      body: JSON.stringify(payload),
     });
   } catch (err) {
     // Offline / falha de rede: antes a perda só ia para console.error.

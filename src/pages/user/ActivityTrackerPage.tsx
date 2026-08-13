@@ -3,7 +3,6 @@ import { ConfirmModal } from "../../features/team/ConfirmModal";
 import { MapContainer, Marker, Polyline, Popup, TileLayer } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { registerDailyCheckin } from "./gamification";
 import { persistGamificationCheckin } from "../../services/gamificationApi";
 import { addWorkoutHistoryEntry } from "./workoutHistory";
 import { authFetch } from "../../services/apiClient";
@@ -580,18 +579,15 @@ export default function ActivityTrackerPage() {
     setActivities(updatedActivities);
     localStorage.setItem("activities", JSON.stringify(updatedActivities));
 
-    const xpEarned = Math.max(10, Math.min(40, Math.round((endActivity.duration / 60) * 2)));
-    const checkin = registerDailyCheckin("activity", xpEarned);
+    // O XP da atividade era calculado AQUI (duração × 2, clamp 10–40) e
+    // espelhado em localStorage — a Onda C0 (Spec 034) moveu a moeda para o
+    // servidor. O cliente relata o fato; o valor é do ledger.
     const signal = getPerformanceSignal(endActivity);
     const insightPrefix =
       signal.tag === "Intenso" ? "Sessão intensa. " : signal.tag === "Bom" ? "Boa sessão. " : "Sessão leve. ";
     const confirmSuffix = confirmed ? " Atividade confirmada manualmente." : "";
 
-    setRewardMessage(
-      checkin.alreadyCheckedIn
-        ? `${insightPrefix}${signal.insight}${confirmSuffix} Sua leitura de hoje já estava valendo.`
-        : `${insightPrefix}${signal.insight}${confirmSuffix} Registrada na sua leitura do dia.`
-    );
+    setRewardMessage(`${insightPrefix}${signal.insight}${confirmSuffix} Registrada na sua leitura do dia.`);
 
     // O check-in é o que leva a atividade para streak/XP/score. Falhar aqui em
     // silêncio (era só um console.error) fazia o aluno terminar a corrida vendo
@@ -599,7 +595,6 @@ export default function ActivityTrackerPage() {
     try {
       await persistGamificationCheckin({
         source: "activity",
-        xp: xpEarned,
         activity: {
           type: endActivity.type,
           durationSeconds: endActivity.duration,

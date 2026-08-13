@@ -3,7 +3,7 @@ import { useAuth } from "../../auth/AuthContext";
 import { useIsMobile } from "../../hooks/useIsMobile";
 import { loadAnswers } from "./onboarding/onboardingStorage";
 import { type MuscleGroup, getYesterdayMuscleGroups } from "./workoutHistory";
-import { addXp, registerDailyCheckin } from "./gamification";
+
 import { persistGamificationCheckin } from "../../services/gamificationApi";
 import { createWorkoutSession } from "../../services/workoutSessionApi";
 import { addWorkoutHistoryEntry } from "./workoutHistory";
@@ -119,7 +119,6 @@ export default function SuggestedTrainingPage() {
 
   const [selectedGroups, setSelectedGroups] = useState<SelectableStrengthGroup[]>([]);
   const [completedExercises, setCompletedExercises] = useState<string[]>([]);
-  const [exerciseXpEarned, setExerciseXpEarned] = useState(0);
   const [groupMessage, setGroupMessage] = useState<string | null>(null);
   const [trainingMessage, setTrainingMessage] = useState<string | null>(null);
   const [demoName, setDemoName] = useState<string | null>(null);
@@ -185,8 +184,9 @@ export default function SuggestedTrainingPage() {
   function toggleExerciseComplete(exerciseKey: string) {
     setCompletedExercises((current) => {
       if (current.includes(exerciseKey)) return current.filter((item) => item !== exerciseKey);
-      addXp(5);
-      setExerciseXpEarned((value) => value + 5);
+      // O XP por exercício era invenção do cliente (5 por check, direto no
+      // localStorage) — exatamente o que a Onda C0 (Spec 034) eliminou. O
+      // check continua marcando progresso visual; a moeda é do servidor.
       return [...current, exerciseKey];
     });
   }
@@ -202,14 +202,12 @@ export default function SuggestedTrainingPage() {
         : ["core"];
 
     addWorkoutHistoryEntry({ workoutId, title: workoutTitle, muscleGroups: workoutGroups, date: new Date().toISOString() });
-    registerDailyCheckin("workout", 0);
     setTrainingMessage("Sessão registrada. Sua leitura de amanhã já considera o esforço de hoje.");
     void createWorkoutSession({ source: "suggested", status: "completed", title: workoutTitle });
 
     try {
       await persistGamificationCheckin({
         source: "workout",
-        xp: exerciseXpEarned,
         workout: { workoutId, title: workoutTitle, muscleGroups: workoutGroups },
       });
     } catch (error) {

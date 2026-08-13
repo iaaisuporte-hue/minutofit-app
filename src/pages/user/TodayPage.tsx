@@ -453,7 +453,6 @@ export default function TodayPage() {
 
       await persistGamificationCheckin({
         source: "workout",
-        xp: 20,
         workout: {
           workoutId,
           title,

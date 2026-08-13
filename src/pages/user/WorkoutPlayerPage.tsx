@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { addWorkoutHistoryEntry, wasMuscleGroupTrainedYesterday, type MuscleGroup } from "./workoutHistory";
-import { getStreak, registerDailyCheckin } from "./gamification";
+
 import { persistGamificationCheckin } from "../../services/gamificationApi";
 import { handleExternal } from "../../lib/externalLink";
 import { createWorkoutSession } from "../../services/workoutSessionApi";
@@ -95,6 +95,9 @@ export default function WorkoutPlayerPage() {
   const [finished, setFinished] = useState(false);
   const [blockedMessage, setBlockedMessage] = useState<string | null>(null);
   const [rewardMessage, setRewardMessage] = useState<string | null>(null);
+  // Streak vem do SERVIDOR (resposta do check-in). O espelho em localStorage
+  // era um segundo número com o mesmo nome — o defeito recorrente deste repo.
+  const [serverStreak, setServerStreak] = useState<number>(0);
 
   const [secondsLeft, setSecondsLeft] = useState<number | null>(null);
   const [iframeLoaded, setIframeLoaded] = useState(false);
@@ -141,10 +144,10 @@ export default function WorkoutPlayerPage() {
         date: new Date().toISOString(),
       });
     }
-    const checkin = registerDailyCheckin("workout", 30);
-    setRewardMessage(
-      checkin.alreadyCheckedIn ? "Sessão registrada. Sua leitura de hoje já estava valendo." : "Sessão registrada. Sua leitura de amanhã já considera o esforço de hoje."
-    );
+    // O espelho local de XP/streak foi aposentado na Onda C0 (Spec 034): o
+    // servidor é a única fonte, e a resposta do check-in abaixo já traz
+    // `alreadyCheckedIn` e o microcopy de recompensa.
+    setRewardMessage("Sessão registrada. Sua leitura de amanhã já considera o esforço de hoje.");
 
     // Execução estruturada (Spec 010) — workout do player é não-estruturado;
     // registra nível frequência. Best-effort.
@@ -155,15 +158,17 @@ export default function WorkoutPlayerPage() {
       try {
         const result = await persistGamificationCheckin({
           source: "workout",
-          xp: 30,
           workout: {
             workoutId,
             title: workout.title,
             muscleGroups: [workout.muscleGroup],
           },
         });
+        if (typeof result?.streak === "number") setServerStreak(result.streak);
         if (result?.rewardMicrocopy) {
           setRewardMessage(result.rewardMicrocopy);
+        } else if (result?.alreadyCheckedIn) {
+          setRewardMessage("Sessão registrada. Sua leitura de hoje já estava valendo.");
         }
       } catch (error) {
         console.error("Failed to persist workout gamification:", error);
@@ -318,7 +323,7 @@ export default function WorkoutPlayerPage() {
   const currentEmbedUrl = getYoutubeEmbedUrl(current.videoId);
   const currentYoutubeUrl = getYoutubeWatchUrl(current.videoId);
 
-  const streak = getStreak() || 1;
+  const streak = serverStreak || 1;
   const suggestion = workout.nextSuggestionId;
   const accessibility = workout.accessibility;
 
