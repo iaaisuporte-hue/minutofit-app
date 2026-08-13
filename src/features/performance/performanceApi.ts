@@ -302,3 +302,61 @@ export async function abandonGoal(goalId: string): Promise<Goal> {
   if (!res.ok) throw new Error(data?.error || "Não foi possível abandonar a meta.");
   return data.data as Goal;
 }
+
+/* ------------------------------------------------------------------ *
+ * Marcos (Spec 034, Onda C1)
+ * ------------------------------------------------------------------ */
+
+export interface Milestone {
+  code: string;
+  title: string;
+  description: string;
+  /** A regra exata, em uma frase — o aluno vê o critério do que ainda não tem. */
+  criterion: string;
+  /** `null` = ainda não conquistado. */
+  unlockedAt: string | null;
+  evidence: Record<string, unknown> | null;
+  shared: boolean;
+  /** `false` quando não há como conquistar no estado atual da conta. */
+  available: boolean;
+  unavailableReason: string | null;
+}
+
+export async function getMilestones(signal?: AbortSignal): Promise<Milestone[] | null> {
+  if (!getAccessToken()) return null;
+  try {
+    const res = await authFetch(`${API_URL}/community/milestones`, { signal });
+    if (!res.ok) return null;
+    const data = await parseJson(res);
+    return (data?.data?.milestones as Milestone[]) ?? null;
+  } catch (err) {
+    if ((err as Error)?.name === "AbortError") return null;
+    Sentry.captureException(err, { tags: { feature: "community", reason: "milestones" } });
+    return null;
+  }
+}
+
+/**
+ * Registra a intenção de compartilhar. Diferente das leituras, devolve `null`
+ * em falha e o chamador reverte o estado otimista — o aluno precisa perceber
+ * que a escolha dele sobre privacidade não foi salva.
+ */
+export async function setMilestoneShared(
+  code: string,
+  shared: boolean,
+): Promise<Milestone | null> {
+  if (!getAccessToken()) return null;
+  try {
+    const res = await authFetch(`${API_URL}/community/milestones/${encodeURIComponent(code)}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ shared }),
+    });
+    if (!res.ok) return null;
+    const data = await parseJson(res);
+    return (data?.data?.milestone as Milestone) ?? null;
+  } catch (err) {
+    Sentry.captureException(err, { tags: { feature: "community", reason: "milestone_share" } });
+    return null;
+  }
+}

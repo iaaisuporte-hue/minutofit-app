@@ -27,7 +27,10 @@ export type PerformanceEventType =
   | "personal.performance_opened"
   | "personal.performance_insight_opened"
   | "personal.performance_ai_summary_requested"
-  | "personal.performance_ai_summary_shown";
+  | "personal.performance_ai_summary_shown"
+  // Spec 034 C1 — marcos. Só a decisão de compartilhar: o desbloqueio é do
+  // servidor e não passa por aqui.
+  | "community.milestone_share_changed";
 
 export function postPerformanceEvent(
   eventType: PerformanceEventType,

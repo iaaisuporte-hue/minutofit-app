@@ -30,6 +30,7 @@ const ConsistencyTabLazy = lazy(() =>
 );
 const RecordsTab = lazy(() => import('./evolution/RecordsTab'));
 const GoalsTab = lazy(() => import('./evolution/GoalsTab'));
+const MilestonesTab = lazy(() => import('./evolution/MilestonesTab'));
 
 export const EVOLUTION_TABS = [
   { id: 'visao-geral', label: 'Visão geral' },
@@ -37,6 +38,7 @@ export const EVOLUTION_TABS = [
   { id: 'recordes', label: 'Recordes' },
   { id: 'consistencia', label: 'Consistência' },
   { id: 'metas', label: 'Metas' },
+  { id: 'marcos', label: 'Marcos' },
   { id: 'historico', label: 'Histórico' },
 ] as const;
 
@@ -71,7 +73,7 @@ export default function MetabolicStatePage() {
   );
 
   // Máscara da borda direita só enquanto houver aba fora de vista. Sem isto, em
-  // 360px o aluno vê 3 das 6 abas e nada indica que dá para arrastar.
+  // 360px o aluno vê 3 das 7 abas e nada indica que dá para arrastar.
   const tabsRef = useRef<HTMLDivElement>(null);
   const [atEnd, setAtEnd] = useState(false);
   const syncScrollEnd = useCallback(() => {
@@ -95,6 +97,8 @@ export default function MetabolicStatePage() {
         return <ConsistencyTabLazy />;
       case 'metas':
         return <GoalsTab />;
+      case 'marcos':
+        return <MilestonesTab />;
       case 'historico':
         return <HistoryTab />;
       default:

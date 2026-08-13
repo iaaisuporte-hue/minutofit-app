@@ -771,3 +771,60 @@
   font-size: var(--text-sm);
   color: var(--color-danger);
 }
+
+/* ---------------------------------------------------------------- *
+ * Marcos (Spec 034, C1)
+ * Reusa o card de meta: marco e meta são o mesmo objeto visual — algo
+ * que você se propôs e algo que você fez. Só o estado muda.
+ * ---------------------------------------------------------------- */
+
+.perf-milestone-date {
+  margin-left: auto;
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+  white-space: nowrap;
+}
+
+.perf-milestone-evidence {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+/* A escolha de privacidade é um alvo de toque, não uma legenda: 44px de
+   altura mínima é o piso do QA mobile de 02/ago. */
+.perf-milestone-share {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 44px;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+
+.perf-milestone-share input {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  accent-color: var(--color-primary);
+}
+
+/* Em aberto não é fracasso: fica discreto, sem tarja nem cinza de erro.
+   A discrição vem da BORDA, nunca de `opacity` — opacidade global sobre um
+   card com texto derruba o contraste do que precisa ser lido (o critério
+   ficaria em ~2,5:1, reprovando AA justamente na informação útil). */
+.perf-milestone-open {
+  border-color: var(--color-border-subtle);
+}
+
+.perf-milestone-hint {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+}
+
+.perf-milestone-lock {
+  color: var(--color-text-tertiary);
+  flex-shrink: 0;
+}

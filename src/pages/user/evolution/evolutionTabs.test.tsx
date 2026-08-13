@@ -2,7 +2,7 @@
  * Contrato das sub-abas da Evolução (Spec 033, P1).
  *
  * O que estes testes travam:
- *  - as 6 abas existem e renderizam;
+ *  - as 7 abas existem e renderizam (6 na Spec 033, + Marcos na Spec 034 C1);
  *  - a aba vive na URL, então deep link e F5 preservam onde o aluno estava
  *    (num PWA, o Android mata a aba e recarrega o tempo todo);
  *  - aba desconhecida degrada para a primeira em vez de tela branca;
@@ -22,6 +22,8 @@ vi.mock("../../../features/performance/performanceApi", () => ({
   getGoals: vi.fn().mockResolvedValue({ gated: false, goals: [], activeCount: 0, maxActive: 5 }),
   createGoal: vi.fn(),
   abandonGoal: vi.fn(),
+  getMilestones: vi.fn().mockResolvedValue([]),
+  setMilestoneShared: vi.fn(),
 }));
 vi.mock("../../../features/performance/performanceEvents", () => ({
   postPerformanceEvent: vi.fn(),
@@ -53,21 +55,22 @@ beforeEach(() => {
 });
 
 describe("Evolução · barra de abas", () => {
-  it("declara exatamente as 6 abas da spec, na ordem", () => {
+  it("declara exatamente as 7 abas da spec, na ordem", () => {
     expect(EVOLUTION_TABS.map((t) => t.id)).toEqual([
       "visao-geral",
       "progressao",
       "recordes",
       "consistencia",
       "metas",
+      "marcos",
       "historico",
     ]);
   });
 
-  it("renderiza as 6 abas como tablist", () => {
+  it("renderiza as 7 abas como tablist", () => {
     renderAt("/evolucao");
     const tabs = screen.getAllByRole("tab");
-    expect(tabs).toHaveLength(6);
+    expect(tabs).toHaveLength(7);
     for (const t of EVOLUTION_TABS) {
       expect(screen.getByRole("tab", { name: new RegExp(t.label, "i") })).toBeTruthy();
     }
@@ -133,6 +136,14 @@ describe("Evolução · nenhuma aba promete o que não entrega", () => {
       expect(screen.getByRole("tab", { name: new RegExp(tab.label, "i") }).textContent)
         .not.toMatch(/em breve/i);
     }
+  });
+
+  it("a aba Marcos abre com copy de caminho, nunca de vazio", async () => {
+    // "Você não conquistou nada" é o tom que o produto proíbe: a tela de quem
+    // ainda não tem marco fala do que vem, não da ausência.
+    renderAt("/evolucao?tab=marcos");
+    await waitFor(() => expect(screen.getByText(/Seus marcos aparecem aqui/i)).toBeTruthy());
+    expect(screen.queryByText(/não conquistou/i)).toBeNull();
   });
 
   it("a aba Metas abre funcional, com o estado real de quem não tem meta", async () => {
