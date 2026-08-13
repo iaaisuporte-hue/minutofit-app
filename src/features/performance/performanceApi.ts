@@ -19,10 +19,15 @@ export interface ActiveDay {
 }
 
 export interface ConsistencySummary {
-  /** null = sem ficha ativa, portanto sem denominador. Nunca 0. */
+  /** null = sem ficha e sem meta, portanto sem denominador. Nunca 0. */
   pct: number | null;
   activeDays28: number;
   targetPerWeek: number | null;
+  /**
+   * `plan` = ficha do personal; `goal` = meta declarada pelo próprio aluno.
+   * A tela usa isto para não dizer "sua ficha prescreve" a quem não tem ficha.
+   */
+  targetSource?: "plan" | "goal" | null;
 }
 
 /**

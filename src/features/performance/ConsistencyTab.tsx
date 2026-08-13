@@ -30,6 +30,10 @@ export function ConsistencyTab() {
   const pct = consistency?.pct ?? null;
   const activeDays = consistency?.activeDays28 ?? 0;
   const targetPerWeek = consistency?.targetPerWeek ?? null;
+  // O denominador pode vir da ficha do personal OU da meta que o próprio aluno
+  // declarou (o aluno B2C nunca tem ficha). Chamar as duas de "sua ficha"
+  // mentiria para metade da base.
+  const targetSource = consistency?.targetSource ?? null;
 
   return (
     <div style={{ display: "grid", gap: "var(--space-4)" }}>
@@ -38,7 +42,7 @@ export function ConsistencyTab() {
           <div className="metabolic-eyebrow">Últimos 28 dias</div>
           <h2 className="metabolic-section-title">Consistência de frequência</h2>
           <p className="metabolic-section-copy">
-            Quantos dias você treinou, comparado ao que sua ficha prescreve.
+            Quantos dias você treinou, comparado ao que está previsto para você.
           </p>
         </div>
 
@@ -60,13 +64,14 @@ export function ConsistencyTab() {
 
               <div className="metabolic-metric">
                 <span className="metabolic-metric-label">Consistência</span>
-                {/* pct null = sem ficha ativa. Mostrar 0% seria dizer que o aluno
-                    faltou a tudo, quando na verdade nada foi prescrito. */}
+                {/* pct null = sem ficha E sem meta. Mostrar 0% seria dizer que
+                    o aluno faltou a tudo, quando nada foi combinado. */}
                 {pct == null ? (
                   <>
                     <span className="perf-figure-value">—</span>
                     <span className="metabolic-metric-hint">
-                      Sem ficha ativa, não há quantidade de treinos prescrita para comparar.
+                      Defina uma meta de frequência semanal para acompanhar sua consistência —
+                      ou peça a frequência ao seu personal.
                     </span>
                   </>
                 ) : (
@@ -76,7 +81,8 @@ export function ConsistencyTab() {
                       <span className="perf-figure-unit">%</span>
                     </span>
                     <span className="metabolic-metric-hint">
-                      Sua ficha prescreve {targetPerWeek} {targetPerWeek === 1 ? "treino" : "treinos"} por semana.
+                      {targetSource === "goal" ? "Sua meta é de" : "Sua ficha prescreve"}{" "}
+                      {targetPerWeek} {targetPerWeek === 1 ? "treino" : "treinos"} por semana.
                     </span>
                   </>
                 )}
@@ -111,8 +117,8 @@ export function ConsistencyTab() {
         <div>
           <dt>Consistência de frequência</dt>
           <dd>
-            Dias em que você treinou ÷ dias que sua ficha prescreve, nos últimos 28 dias. Mede
-            presença.
+            Dias em que você treinou ÷ dias previstos para você — pela ficha do seu personal ou
+            pela meta que você definiu —, nos últimos 28 dias. Mede presença.
           </dd>
         </div>
         <div>

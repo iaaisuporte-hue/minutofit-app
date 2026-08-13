@@ -86,13 +86,13 @@ describe("Marcos · estado inicial", () => {
         title: "Quatro semanas consistentes",
         criterion: "Quatro semanas consecutivas com pelo menos 80% da frequência prevista.",
         available: false,
-        unavailableReason: "Precisa de uma ficha com frequência prevista.",
+        unavailableReason: "Precisa de uma ficha ou de uma meta de frequência semanal.",
       },
     ]);
     render(<MilestonesTab />);
 
     await waitFor(() =>
-      expect(screen.getByText(/Precisa de uma ficha com frequência prevista/i)).toBeTruthy(),
+      expect(screen.getByText(/Precisa de uma ficha ou de uma meta/i)).toBeTruthy(),
     );
     expect(screen.queryByText(/80% da frequência/i)).toBeNull();
   });
