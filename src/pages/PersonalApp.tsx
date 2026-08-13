@@ -13,7 +13,7 @@ import DashboardPage from "./personal/DashboardPage";
 import StudentsListPage from "./personal/StudentsListPage";
 import MessagesPage from "./personal/MessagesPage";
 import ReviewWorkoutsPage from "./personal/ReviewWorkoutsPage";
-import WorkoutLibraryPage from "./personal/WorkoutLibraryPage";
+import ProgramsPage from "./personal/ProgramsPage";
 import StudentProfilePage from "./personal/StudentProfilePage";
 import NetworkProfilePage from "./professional/NetworkProfilePage";
 
@@ -228,7 +228,7 @@ export default function PersonalApp() {
             <Route path="consulting" element={<Navigate to="/app/personal/students" replace />} />
             <Route path="messages" element={<MessagesPage />} />
             <Route path="review" element={<ReviewWorkoutsPage />} />
-            <Route path="library" element={<WorkoutLibraryPage />} />
+            <Route path="library" element={<ProgramsPage />} />
             <Route path="videos" element={<Navigate to="/app/personal/library" replace />} />
 
             {/* BUILDER standalone (sem aluno pré-selecionado) */}

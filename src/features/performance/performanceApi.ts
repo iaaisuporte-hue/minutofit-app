@@ -365,3 +365,106 @@ export async function setMilestoneShared(
     return null;
   }
 }
+
+/* ------------------------------------------------------------------ *
+ * Desafios (Spec 034, Onda C2)
+ * ------------------------------------------------------------------ */
+
+export type ChallengeKind = "consistency" | "weekly_goal" | "comeback";
+export type ChallengeState = "scheduled" | "running" | "ended" | "cancelled";
+export type ParticipantStatus = "invited" | "active" | "left" | "completed";
+export type BandId = "completed" | "almost" | "in_progress" | "inactive";
+
+export interface ChallengeSummary {
+  id: string;
+  /** Nome de quem criou o desafio. Convite anônimo não é convite. */
+  invitedByName?: string | null;
+  title: string;
+  description: string | null;
+  kind: ChallengeKind;
+  /** A regra em português — o convite precisa dizer como o progresso é medido. */
+  ruleText: string;
+  startsOn: string;
+  endsOn: string;
+  state: ChallengeState;
+  myStatus?: ParticipantStatus;
+  finalPct?: number | null;
+}
+
+export interface MyChallengeProgress {
+  /** `null` = não dá para afirmar (sem frequência prevista, sem pausa). */
+  pct: number | null;
+  weeksDone: number;
+  weeksRequired: number;
+  achieved?: boolean;
+  blockedReason?: "no_target" | "no_inactivity" | null;
+  band: BandId;
+}
+
+export interface BandCount {
+  band: BandId;
+  label: string;
+  count: number;
+}
+
+export interface ChallengeDetail {
+  challenge: ChallengeSummary;
+  myStatus: ParticipantStatus;
+  myProgress: MyChallengeProgress;
+  participantsCount: number;
+  /** `null` com menos de 5 participantes: a faixa identificaria a pessoa. */
+  bands: BandCount[] | null;
+}
+
+async function communityGet<T>(path: string, signal?: AbortSignal): Promise<T | null> {
+  if (!getAccessToken()) return null;
+  try {
+    const res = await authFetch(`${API_URL}/community${path}`, { signal });
+    if (!res.ok) return null;
+    const data = await parseJson(res);
+    return (data?.data as T) ?? null;
+  } catch (err) {
+    if ((err as Error)?.name === "AbortError") return null;
+    Sentry.captureException(err, { tags: { feature: "community", path } });
+    return null;
+  }
+}
+
+export async function getMyChallenges(signal?: AbortSignal) {
+  const data = await communityGet<{ challenges: ChallengeSummary[] }>("/challenges", signal);
+  return data?.challenges ?? null;
+}
+
+export async function getActiveChallenge(signal?: AbortSignal) {
+  const data = await communityGet<{ challenge: (ChallengeSummary & { myProgress: MyChallengeProgress }) | null }>(
+    "/challenges/active",
+    signal,
+  );
+  return data?.challenge ?? null;
+}
+
+export async function getChallengeDetail(id: string, signal?: AbortSignal) {
+  return communityGet<ChallengeDetail>(`/challenges/${encodeURIComponent(id)}`, signal);
+}
+
+/**
+ * Entrar e sair são AÇÕES do titular: diferente das leituras, o erro não vira
+ * `null` silencioso — quem acabou de decidir precisa saber se valeu.
+ */
+async function communityAction(path: string): Promise<{ ok: boolean; error?: string }> {
+  if (!getAccessToken()) return { ok: false, error: "Sessão expirada." };
+  try {
+    const res = await authFetch(`${API_URL}/community${path}`, { method: "POST" });
+    const data = await parseJson(res);
+    if (!res.ok) return { ok: false, error: data?.error || "Não foi possível concluir." };
+    return { ok: true };
+  } catch (err) {
+    Sentry.captureException(err, { tags: { feature: "community", path } });
+    return { ok: false, error: "Falha de conexão. Tente de novo." };
+  }
+}
+
+export const joinChallenge = (id: string) =>
+  communityAction(`/challenges/${encodeURIComponent(id)}/join`);
+export const leaveChallenge = (id: string) =>
+  communityAction(`/challenges/${encodeURIComponent(id)}/leave`);

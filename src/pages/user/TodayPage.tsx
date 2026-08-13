@@ -68,6 +68,7 @@ import { postTrainingEvent } from "../../services/trainingAdaptiveApi";
 import { WorkoutStateChip } from "./components/WorkoutStateChip";
 import { WeeklyLoopCard, useHasWeeklyLoopInsights } from "../../features/loopVisibility";
 import { MovementLabEntryCard } from "./components/MovementLabEntryCard";
+import { ChallengeCard } from "./components/ChallengeCard";
 import { usePushSubscription } from "../../features/nutrition/usePushSubscription";
 import { PushOptInCard } from "../../features/pwa/PushOptInCard";
 import "./todayPage.css";
@@ -696,6 +697,9 @@ export default function TodayPage() {
           onSeeMore={() => navigate("/app/user/estado-metabolico")}
         />
         {hasWeeklyLoopInsights && <WeeklyLoopCard condition={dailyCondition} />}
+        {/* Desafio em curso (Spec 034, C2). Some sozinho quando não há — a tela
+            mais visitada do produto não pode gastar espaço dizendo "nada". */}
+        <ChallengeCard />
         <MovementLabEntryCard source="today" />
       </motion.div>
 

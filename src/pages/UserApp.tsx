@@ -19,6 +19,7 @@ import WorkoutSessionPage from "./user/WorkoutSessionPage";
 // abre o Lab não deve pagar o download nem o parse delas ao entrar no app.
 const ActivityTrackerPage = lazy(() => import("./user/ActivityTrackerPage"));
 const MovementLabPage = lazy(() => import("./user/MovementLabPage"));
+const ChallengeDetailPage = lazy(() => import("./user/ChallengeDetailPage"));
 
 // ✅ NOVAS PÁGINAS
 import TodayPage from "./user/TodayPage";
@@ -308,6 +309,9 @@ export default function UserApp() {
               />
               {/* alias semântico: /evolucao → MetabolicStatePage */}
               <Route path="evolucao" element={<MetabolicStatePage />} />
+              {/* Desafios (Spec 034, C2). Rota própria, sem novo item de menu:
+                  a bottom nav segue travada em 5 por teste de contrato. */}
+              <Route path="desafios/:challengeId" element={<ChallengeDetailPage />} />
               <Route
                 path="messages"
                 element={

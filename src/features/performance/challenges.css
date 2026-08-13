@@ -1,0 +1,203 @@
+/* Desafios (Spec 034, C2). Só tokens — zero HEX.
+   Reusa a linguagem visual do módulo Performance: o desafio é sobre a própria
+   evolução, não uma seção decorativa à parte. */
+
+.ch-card {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.ch-card-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.ch-card-icon { color: var(--color-accent); flex-shrink: 0; }
+
+.ch-card-title {
+  font-weight: 600;
+  /* Título longo quebra em vez de empurrar o card — 320px é o piso real. */
+  overflow-wrap: anywhere;
+}
+
+.ch-card-rule,
+.ch-card-hint {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.ch-card-hint { font-size: var(--text-xs); color: var(--color-text-tertiary); }
+
+.ch-bar {
+  height: 8px;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-subtle);
+  overflow: hidden;
+}
+
+.ch-bar-fill {
+  height: 100%;
+  background: var(--color-primary);
+  transition: width var(--transition-base);
+}
+
+/* Conquista ganha realce discreto — cor semântica, não confete. O texto ao
+   lado é quem realmente comunica a conclusão: no tema padrão, `--color-success`
+   e `--color-primary` são a mesma cor, então a barra sozinha não diria nada. */
+.ch-bar-fill.is-done { background: var(--color-success); }
+
+.ch-page { display: grid; gap: var(--space-4); }
+
+.ch-back {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  /* Piso de toque do QA mobile de 02/ago. */
+  min-height: 44px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+
+.ch-header { display: flex; align-items: center; gap: var(--space-2); }
+
+.ch-title {
+  margin: 0;
+  font-size: var(--text-2xl);
+  overflow-wrap: anywhere;
+}
+
+.ch-meta { display: grid; gap: var(--space-3); margin: 0; }
+.ch-meta dt {
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-tertiary);
+}
+.ch-meta dd { margin: 0; font-size: var(--text-sm); color: var(--color-text); }
+
+.ch-invite,
+.ch-progress { display: grid; gap: var(--space-3); }
+
+/* O bloco de privacidade não é rodapé legal: é a informação que torna o
+   consentimento informado, e por isso tem peso visual. */
+.ch-privacy {
+  display: flex;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-subtle);
+}
+
+.ch-privacy p {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.ch-privacy-icon { color: var(--color-success); flex-shrink: 0; }
+
+.ch-bands { display: grid; gap: var(--space-2); margin: 0; padding: 0; list-style: none; }
+
+.ch-bands li {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+}
+
+.ch-band-label { color: var(--color-text); }
+.ch-band-count { color: var(--color-text-secondary); white-space: nowrap; }
+
+/* Formulário do personal. Campos empilham no mobile por padrão — a área do
+   personal é desktop-first, mas o balcão e o celular precisam funcionar. */
+.ch-field { display: grid; gap: var(--space-1); font-size: var(--text-sm); }
+.ch-field > span { color: var(--color-text-secondary); }
+
+.ch-field input,
+.ch-field select {
+  min-height: 44px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+}
+
+.ch-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+
+/* Lista de participantes: semântica própria, não a das faixas agregadas. */
+.ch-participants,
+.ch-picker-list {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ch-participants li {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+}
+
+.ch-invite-picker {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-subtle);
+}
+
+/* Barra de abas do destino Programas. Rola no mobile em vez de espremer. */
+.ch-tabs {
+  display: flex;
+  gap: var(--space-2);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.ch-tabs::-webkit-scrollbar { display: none; }
+
+.ch-tab {
+  min-height: 44px;
+  padding: 0 var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full, 999px);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+/* `--color-primary` sobre superfície branca fica em ~3:1 — reprova AA para
+   texto, e é o mesmo motivo pelo qual o design system manda usar
+   `--action-primary` em CTA. O peso reforça o estado para quem não distingue
+   a cor. */
+.ch-tab.is-active {
+  border-color: var(--action-primary);
+  color: var(--action-primary);
+  font-weight: 600;
+}
