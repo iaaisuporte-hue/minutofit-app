@@ -9,6 +9,7 @@ import type { AppPermission } from "../auth/accessControl";
 import { extractTenantSlug } from "../services/tenantHost";
 
 import AcademyDashboardPage       from "./academy/AcademyDashboardPage";
+import AcademyChallengesPage from "./academy/AcademyChallengesPage";
 import AcademyTeamPage            from "./academy/AcademyTeamPage";
 import AcademyBrandingSettingsPage from "./academy/AcademyBrandingSettingsPage";
 import AcademyUnitsPage            from "./academy/AcademyUnitsPage";
@@ -89,6 +90,9 @@ const NAV_GROUPS: Array<{ label: string; items: NavItem[] }> = [
       { to: "/app/academy/students",  label: "Alunos",            permission: "academy.students.read"      },
       { to: "/app/academy/plans",     label: "Planos",            permission: "academy.plans.read"         },
       { to: "/app/academy/finance",   label: "Financeiro",        permission: "academy.finance.read"       },
+      // Desafios institucionais (Spec 034, C3). Entra no painel existente —
+      // não é um produto paralelo.
+      { to: "/app/academy/desafios",  label: "Desafios",          permission: "academy.dashboard"          },
     ],
   },
   {
@@ -218,6 +222,14 @@ export default function AcademyApp() {
             element={
               <AcademyPermissionRoute permission="academy.dashboard" fallbackTo="/app/academy/students">
                 <AcademyDashboardPage />
+              </AcademyPermissionRoute>
+            }
+          />
+          <Route
+            path="desafios"
+            element={
+              <AcademyPermissionRoute permission="academy.dashboard">
+                <AcademyChallengesPage />
               </AcademyPermissionRoute>
             }
           />

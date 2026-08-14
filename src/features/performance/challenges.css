@@ -201,3 +201,11 @@
   color: var(--action-primary);
   font-weight: 600;
 }
+
+/* Painel institucional: bloco de agregados dentro do card do desafio. */
+.ch-panel {
+  display: grid;
+  gap: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border-subtle);
+}

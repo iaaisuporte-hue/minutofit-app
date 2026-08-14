@@ -119,6 +119,15 @@ export default function ChallengeDetailPage() {
       {challenge.description && <p className="perf-soon-copy">{challenge.description}</p>}
 
       <dl className="ch-meta">
+        {challenge.invitedByName && (
+          <div>
+            <dt>Criado por</dt>
+            <dd>
+              {challenge.invitedByName}
+              {challenge.scope === "academy" ? " (academia)" : ""}
+            </dd>
+          </div>
+        )}
         <div>
           <dt>Período</dt>
           <dd>
@@ -140,7 +149,9 @@ export default function ChallengeDetailPage() {
           <h2 className="metabolic-section-title">
             {challenge.invitedByName
               ? `${challenge.invitedByName} convidou você`
-              : "Seu personal convidou você"}
+              : challenge.scope === "academy"
+                ? "Sua academia convidou você"
+                : "Seu personal convidou você"}
           </h2>
           <p className="perf-soon-copy">
             Ao entrar, seu progresso passa a ser calculado sobre a{" "}
@@ -159,11 +170,23 @@ export default function ChallengeDetailPage() {
             {/* Dizer só "ninguém vê seu percentual" faria o aluno concluir que
                 nem o personal vê — e ele vê, como já vê os treinos. Consentimento
                 informado é dizer quem vê o quê, não só quem não vê. */}
-            <p>
-              {challenge.invitedByName ?? "Seu personal"} acompanha seu percentual neste desafio,
-              como já acompanha seus treinos. Você pode revogar esse acesso a qualquer momento nas
-              suas configurações de privacidade.
-            </p>
+            {/* Quem vê o quê muda com a origem: o personal acompanha o
+                percentual de cada aluno dele; a academia vê SÓ números do
+                grupo. Dizer a mesma frase nos dois casos seria impreciso
+                justamente onde a precisão importa. */}
+            {challenge.scope === "academy" ? (
+              <p>
+                {challenge.invitedByName ?? "Sua academia"} vê apenas números do grupo — quantas
+                pessoas aderiram e como o grupo está evoluindo. Seu percentual individual não
+                aparece para a gestão.
+              </p>
+            ) : (
+              <p>
+                {challenge.invitedByName ?? "Seu personal"} acompanha seu percentual neste desafio,
+                como já acompanha seus treinos. Você pode revogar esse acesso a qualquer momento nas
+                suas configurações de privacidade.
+              </p>
+            )}
           </div>
 
           <div className="ch-actions">

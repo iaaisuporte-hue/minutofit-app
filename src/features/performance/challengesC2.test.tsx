@@ -303,3 +303,44 @@ describe("Card da tela Hoje · o convite precisa ser visível", () => {
     expect(screen.queryByRole("progressbar")).toBeNull();
   });
 });
+
+describe("Desafio de academia · a origem muda a copy de privacidade (C3)", () => {
+  it("institucional diz que a gestão vê SÓ números do grupo", async () => {
+    // O personal acompanha o percentual de cada aluno; a academia não. Usar a
+    // mesma frase nos dois casos seria impreciso onde a precisão importa.
+    getChallengeDetail.mockResolvedValue(
+      detalhe({
+        myStatus: "invited",
+        challenge: { ...DESAFIO, scope: "academy", invitedByName: "Academia Central" },
+      }),
+    );
+    renderDetalhe();
+
+    await waitFor(() => expect(screen.getByText(/Academia Central convidou você/i)).toBeTruthy());
+    expect(screen.getByText(/vê apenas números do grupo/i)).toBeTruthy();
+    expect(screen.queryByText(/acompanha seu percentual/i)).toBeNull();
+  });
+
+  it("do personal, mantém a frase de acompanhamento individual", async () => {
+    getChallengeDetail.mockResolvedValue(
+      detalhe({
+        myStatus: "invited",
+        challenge: { ...DESAFIO, scope: "personal", invitedByName: "Marina" },
+      }),
+    );
+    renderDetalhe();
+
+    await waitFor(() => expect(screen.getByText(/Marina acompanha seu percentual/i)).toBeTruthy());
+    expect(screen.queryByText(/apenas números do grupo/i)).toBeNull();
+  });
+
+  it("mostra a origem no cabeçalho, sem hierarquizar", async () => {
+    getChallengeDetail.mockResolvedValue(
+      detalhe({ challenge: { ...DESAFIO, scope: "academy", invitedByName: "Academia Central" } }),
+    );
+    renderDetalhe();
+
+    await waitFor(() => expect(screen.getByText(/Criado por/i)).toBeTruthy());
+    expect(screen.getByText(/Academia Central \(academia\)/i)).toBeTruthy();
+  });
+});

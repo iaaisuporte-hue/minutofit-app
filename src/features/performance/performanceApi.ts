@@ -379,6 +379,12 @@ export interface ChallengeSummary {
   id: string;
   /** Nome de quem criou o desafio. Convite anônimo não é convite. */
   invitedByName?: string | null;
+  /**
+   * Origem: `personal` ou `academy`. O aluno vê os dois na MESMA lista — não
+   * existem "Desafios do Personal" e "Desafios da Academia" como aplicações
+   * separadas; o escopo apenas identifica quem propôs.
+   */
+  scope?: "personal" | "academy";
   title: string;
   description: string | null;
   kind: ChallengeKind;
