@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { AlertTriangle, RotateCcw } from "lucide-react";
 import { fetchStudentTrainingSummary, type StudentTrainingSummary } from "../../../services/personalWorkoutApi";
 
 // Cockpit do personal (Spec 010 V1.1): aderência REAL (séries feitas ÷
@@ -97,8 +98,8 @@ export function StudentExecutionCard({ studentId }: { studentId: string }) {
                 }}
               >
                 {fmtDate(s.date)} · {s.setsDone}/{s.prescribedSets || "?"}
-                {retro ? " ⟲" : ""}
-                {hasDiscomfort ? " ⚠" : ""}
+                {retro ? <RotateCcw size={11} style={{ marginLeft: 4, verticalAlign: "-1px" }} aria-label="Retroativo" /> : null}
+                {hasDiscomfort ? <AlertTriangle size={11} style={{ marginLeft: 4, verticalAlign: "-1px" }} aria-label="Desconforto relatado" /> : null}
               </span>
             );
           })}
@@ -115,7 +116,7 @@ export function StudentExecutionCard({ studentId }: { studentId: string }) {
             lineHeight: 1.4,
           }}
         >
-          ⚠ Desconforto relatado nas sessões recentes: <strong>{recentDiscomfort.join(", ")}</strong>. Vale um olhar na técnica/carga.
+          <AlertTriangle size={13} style={{ verticalAlign: "-2px", marginRight: 4 }} aria-hidden /> Desconforto relatado nas sessões recentes: <strong>{recentDiscomfort.join(", ")}</strong>. Vale um olhar na técnica/carga.
         </div>
       )}
     </div>

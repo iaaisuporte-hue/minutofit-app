@@ -390,15 +390,7 @@ export default function StudentsListPage() {
           return (
             <div
               key={s.id}
-              className="pp-student-row"
-              onMouseEnter={(e) => {
-                (e.currentTarget as HTMLDivElement).style.background = COLORS.cardHover;
-                (e.currentTarget as HTMLDivElement).style.borderColor = COLORS.borderStrong;
-              }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLDivElement).style.background = COLORS.card;
-                (e.currentTarget as HTMLDivElement).style.borderColor = COLORS.border;
-              }}
+              className="pp-student-row pp-student-row--hoverable"
             >
               <div className="pp-student-main">
                 <div className="pp-inline">
@@ -457,6 +449,7 @@ export default function StudentsListPage() {
               fontSize: 14,
               color: COLORS.text,
               padding: 0,
+              minHeight: 44,
               width: "100%",
             }}
             onClick={() => {

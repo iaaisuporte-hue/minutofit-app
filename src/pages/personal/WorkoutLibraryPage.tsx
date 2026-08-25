@@ -190,7 +190,7 @@ export default function WorkoutLibraryPage() {
   }
 
   const inputStyle: React.CSSProperties = {
-    minHeight: 38,
+    minHeight: "var(--tap-h-input)",
     padding: "9px 11px",
     borderRadius: 10,
     border: `1px solid ${WB.border}`,

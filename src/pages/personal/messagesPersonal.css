@@ -88,7 +88,15 @@
 .mp-inbox {
   padding: 14px;
   display: grid;
+  /* Sem o cap, a track única cresce até o min-content da linha mais larga —
+     era o `.mp-conv-preview` com `white-space: nowrap` (361px) puxando a
+     inbox inteira para 391px numa viewport de 320. QA mobile 25/ago/2026. */
+  grid-template-columns: minmax(0, 1fr);
   gap: 14px;
+}
+
+.mp-inbox > * {
+  min-width: 0;
 }
 
 .mp-search {
@@ -348,6 +356,7 @@
   padding: 14px 18px;
   border-top: 1px solid var(--color-border);
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 10px;
 }
 
@@ -387,10 +396,14 @@
   display: flex;
   gap: 8px;
   align-items: flex-end;
+  min-width: 0;
 }
 
 .mp-textarea {
-  flex: 1;
+  /* `flex: 1` sozinho não encolhe abaixo da largura DEFAULT do <textarea>
+     (~300px, independente de width:100%) — o `min-width: 0` é obrigatório. */
+  flex: 1 1 0;
+  min-width: 0;
   resize: none;
   padding: 11px 14px;
   border-radius: 14px;
@@ -510,9 +523,62 @@
   font-size: 13px;
 }
 
-/* ── Responsive ── */
-@media (max-width: 760px) {
+/* Botão de voltar da thread — só existe no master/detail mobile. */
+.mp-back-btn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  margin-right: 4px;
+  margin-left: -8px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+
+/* ── Responsive ──
+   O breakpoint da bottom nav é 720px (components.css). Este arquivo quebrava
+   em 760, então entre 721 e 760 a tela ficava em duas colunas COM sidebar. */
+@media (max-width: 720px) {
   .mp-grid {
     grid-template-columns: 1fr;
+  }
+
+  /* Master/detail: em uma coluna, mostrar inbox e thread empilhadas obriga o
+     personal a rolar a lista inteira de conversas antes de chegar na thread e
+     a thread inteira antes de chegar no compositor — toda vez. */
+  .mp-grid[data-mobile-view="thread"] > .mp-card:first-child,
+  .mp-grid[data-mobile-view="inbox"] > .mp-card:last-child {
+    display: none;
+  }
+
+  .mp-back-btn {
+    display: inline-flex;
+  }
+
+  /* `overflow-y: auto` numa track `1fr` de grid só funciona com min-height: 0
+     — sem isso o mínimo automático é o conteúdo e quem rola é a página. */
+  .mp-thread {
+    min-height: 0;
+    height: calc(100dvh - var(--bottom-nav-h) - 130px);
+  }
+
+  .mp-messages-area {
+    min-height: 0;
+  }
+}
+
+
+/* Alvos de toque (WCAG 2.5.5) — chips de template e ações do compositor.
+   QA mobile 25/ago/2026. */
+@media (pointer: coarse) {
+  .mp-chip,
+  .mp-btn-send,
+  .mp-btn-whatsapp,
+  .mp-new-student-btn {
+    min-height: 44px;
   }
 }

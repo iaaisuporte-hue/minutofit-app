@@ -28,7 +28,7 @@ export function QuickStartCard({
   const [aiPrompt, setAiPrompt] = useState("");
 
   const inputS: React.CSSProperties = {
-    minHeight: 34,
+    minHeight: "var(--tap-h-sm)",
     padding: "7px 10px",
     borderRadius: 8,
     border: `1px solid ${WB.border}`,

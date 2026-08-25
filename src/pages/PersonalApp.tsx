@@ -50,9 +50,9 @@ function WorkoutBuilderPlaceholder() {
   return (
     <div
       style={{
-        border: "1px solid rgba(255,255,255,.10)",
+        border: "1px solid var(--color-border)",
         borderRadius: 16,
-        background: "#171717",
+        background: "var(--color-surface)",
         padding: 16,
         color: "var(--color-text)",
       }}
@@ -122,7 +122,7 @@ export default function PersonalApp() {
   const mobileMessagesIcon = (
     <NavLink
       to="/app/personal/messages"
-      style={{ position: "relative", display: "flex", alignItems: "center", padding: 8, borderRadius: 8, color: "var(--color-text-muted)", textDecoration: "none" }}
+      style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center", minWidth: 44, minHeight: 44, borderRadius: 8, color: "var(--color-text-muted)", textDecoration: "none" }}
       title="Mensagens"
     >
       {({ isActive }) => (
@@ -143,7 +143,16 @@ export default function PersonalApp() {
   return (
     <AppShell
       bottomNav={<PersonalMobileBottomNav onLogout={handleLogout} />}
-      mobileHeader={mobileMessagesIcon}
+      mobileHeader={
+        <>
+          {/* `.mobileTopBar` é space-between: com um único filho o ícone ia
+              para a ESQUERDA e a faixa ficava sem marca. */}
+          <span style={{ display: "flex", alignItems: "center", minWidth: 0 }}>
+            <S2CoreLogo width={88} />
+          </span>
+          {mobileMessagesIcon}
+        </>
+      }
       sidebar={
         <>
           {/* Cabeçalho da sidebar: logo + ícone de mensagens */}

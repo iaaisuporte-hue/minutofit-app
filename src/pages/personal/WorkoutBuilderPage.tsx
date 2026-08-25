@@ -523,7 +523,7 @@ export default function WorkoutBuilderPage() {
 
   // ── Shared styles ─────────────────────────────────────────────────
   const inputS: React.CSSProperties = {
-    minHeight: 34,
+    minHeight: "var(--tap-h-sm)",
     padding: "7px 10px",
     borderRadius: 8,
     border: `1px solid ${WB.border}`,
@@ -714,7 +714,7 @@ export default function WorkoutBuilderPage() {
       >
         {/* ── Library ─────────────────────────────────────────────── */}
         <WbCard>
-          <div style={{ padding: 16, display: "grid", gap: 12, order: narrow ? 2 : 1 }}>
+          <div className="wb-library" style={{ padding: 16, display: "grid", gridTemplateColumns: "minmax(0, 1fr)", gap: 12, order: narrow ? 2 : 1 }}>
             <div style={{ fontWeight: 650, fontSize: 15, color: WB.text }}>Exercícios</div>
 
             {/* Search */}

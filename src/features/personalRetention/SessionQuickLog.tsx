@@ -94,6 +94,7 @@ export function SessionQuickLog({ studentId, studentName, onSaved }: Props) {
             <button
               key={t.key}
               type="button"
+              className="pp-sql-chip"
               onClick={() => toggleTag(t.key)}
               style={{
                 fontSize: 11,
@@ -116,6 +117,7 @@ export function SessionQuickLog({ studentId, studentName, onSaved }: Props) {
           value={note}
           onChange={(e) => setNote(e.target.value)}
           maxLength={200}
+          className="pp-sql-input"
           style={{
             fontSize: 12,
             padding: "5px 9px",
@@ -146,7 +148,7 @@ export function SessionQuickLog({ studentId, studentName, onSaved }: Props) {
   }
 
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+    <div className="pp-sql" style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 5, minWidth: 0 }}>
       {error && (
         <span style={{ fontSize: 11, color: "var(--color-danger, #dc2626)", marginRight: 4 }}>
           {error}
@@ -158,6 +160,7 @@ export function SessionQuickLog({ studentId, studentName, onSaved }: Props) {
       <button
         type="button"
         disabled={phase === "saving"}
+        className="pp-sql-chip pp-sql-chip--present"
         onClick={() => handleStatus("present")}
         style={{
           fontSize: 11,
@@ -175,6 +178,7 @@ export function SessionQuickLog({ studentId, studentName, onSaved }: Props) {
       <button
         type="button"
         disabled={phase === "saving"}
+        className="pp-sql-chip pp-sql-chip--absent"
         onClick={() => handleStatus("absent")}
         style={{
           fontSize: 11,

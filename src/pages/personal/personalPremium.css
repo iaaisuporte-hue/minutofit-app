@@ -5,6 +5,13 @@
 /* Estrutura do canvas — vale nos DOIS temas. O fundo usa var(--color-bg-main),
    que resolve claro no tema claro (override abaixo) e escuro (#0A0A0A) no dark. */
 .personal-app-canvas {
+  /* Alturas de controle usadas pelas telas inline-styled (Builder, Biblioteca,
+     QuickStart). Ficam aqui e não no JSX para que o bloco `pointer: coarse`
+     abaixo possa elevá-las a 44px sem tocar em nenhum componente — estilo
+     inline vence qualquer seletor, então a variável é a única saída. */
+  --tap-h: 36px;
+  --tap-h-sm: 34px;
+  --tap-h-input: 38px;
   min-height: 100%;
   background: var(--color-bg-main);
   border-radius: var(--radius-lg, 14px);
@@ -37,8 +44,18 @@ html:not([data-theme="dark"]) .personal-app-canvas {
 
 .pp-page {
   display: grid;
+  /* minmax(0,1fr), não `none`: numa grid de coluna única a track cresce até o
+     MAIOR min-content entre todas as linhas. Um filho que não encolhe arrastava
+     junto TODOS os cartões da página — era o sintoma "tudo cortado à direita"
+     na tela Hoje. Com o cap, quem estoura estoura sozinho. Mesmo padrão do
+     `.container > * { min-width: 0 }` em components.css. */
+  grid-template-columns: minmax(0, 1fr);
   gap: 12px;
   color: var(--color-text-primary);
+}
+
+.pp-page > * {
+  min-width: 0;
 }
 
 .pp-hero,
@@ -140,22 +157,6 @@ html:not([data-theme="dark"]) .personal-app-canvas {
   min-height: 32px;
   padding: 7px 10px;
   font-size: 12px;
-}
-
-/* Em aparelho de toque, os controles compactos do painel (32px de altura) e os
-   chips de filtro (28px) ficavam abaixo dos 44px do WCAG 2.5.5. O ajuste vale
-   só para `pointer: coarse` — no desktop a densidade continua a mesma, que é o
-   ponto do modificador `--sm`. QA mobile 02/ago/2026. */
-@media (pointer: coarse) {
-  .pp-btn--sm {
-    min-height: 44px;
-    padding: 10px 14px;
-  }
-
-  .pp-pulse-chip {
-    min-height: 44px;
-    padding: 10px 16px;
-  }
 }
 
 .pp-btn--warn {
@@ -480,6 +481,17 @@ html:not([data-theme="dark"]) .personal-app-canvas {
   padding-bottom: 0;
 }
 
+/* Hover só onde existe ponteiro de verdade. Antes isto era onMouseEnter/
+   onMouseLeave escrevendo em `style` no JSX: no Android o `mouseenter`
+   sintético dispara no toque e o `mouseleave` nunca chega, deixando a linha
+   presa no estado hover para sempre. */
+@media (hover: hover) and (pointer: fine) {
+  .pp-student-row--hoverable:hover {
+    background: var(--color-surface-raised);
+    border-color: var(--color-border-strong);
+  }
+}
+
 .pp-student-main {
   display: grid;
   gap: 7px;
@@ -688,7 +700,10 @@ html:not([data-theme="dark"]) .personal-app-canvas {
 .pp-drawer-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 60;
+  /* A bottom nav mobile vive em z-index 100 (components.css). Com 60 a barra
+     era desenhada POR CIMA da sheet e continuava tocável — o personal tocava
+     "Alunos" achando que fechava a sheet e navegava com o modal aberto. */
+  z-index: var(--z-modal);
   display: flex;
   justify-content: flex-end;
   background: rgba(15, 23, 42, 0.40);
@@ -786,6 +801,28 @@ html:not([data-theme="dark"]) .personal-app-canvas {
   gap: 5px;
   padding: 9px 6px;
   text-align: center;
+}
+
+.pp-week-grid {
+  gap: 8px;
+}
+
+/* Sete colunas dentro do bottom-sheet (~250px úteis em 320px) dão ~28px por
+   célula — menos que a data de 5 caracteres. Aperta gap e padding antes de
+   deixar o texto transbordar e criar rolagem horizontal DENTRO da sheet. */
+@media (max-width: 380px) {
+  .pp-week-grid {
+    gap: 4px;
+  }
+
+  .pp-week-day {
+    padding: 8px 2px;
+    gap: 3px;
+  }
+
+  .pp-week-day > div {
+    font-size: 9px;
+  }
 }
 
 .pp-week-day[data-active="true"] {
@@ -987,7 +1024,7 @@ html:not([data-theme="dark"]) .personal-app-canvas {
 
   .pp-drawer {
     border-left: 0;
-    padding-bottom: 88px;
+    padding-bottom: calc(var(--bottom-nav-h) + 24px + env(safe-area-inset-bottom, 0px));
   }
 
   .pp-metrics-grid {
@@ -1012,13 +1049,17 @@ html:not([data-theme="dark"]) .personal-app-canvas {
 
   .pp-drawer {
     width: 100%;
-    height: 92vh;
-    max-height: 92vh;
+    /* dvh, não vh: no Chrome Android `vh` é o viewport GRANDE, enquanto o
+       backdrop (position:fixed) usa o pequeno. Com align-items:flex-end a
+       sheet ficava mais alta que o backdrop e o TOPO era cortado — alça,
+       nome do aluno, botão fechar e barra de abas. */
+    height: 92dvh;
+    max-height: 92dvh;
     border-left: 0;
     border-top: 1px solid var(--color-border);
     border-radius: 20px 20px 0 0;
     box-shadow: 0 -18px 48px rgba(15, 23, 42, 0.18);
-    padding: 14px 16px 88px;
+    padding: 14px 16px calc(var(--bottom-nav-h) + 24px + env(safe-area-inset-bottom, 0px));
     position: relative;
     animation: pp-drawer-slide-up 220ms ease;
   }
@@ -1149,6 +1190,25 @@ html:not([data-theme="dark"]) .personal-app-canvas {
   border-bottom: none;
 }
 
+/* Abaixo de 720px a linha vira duas: nome + ações em cima (as ações são o
+   alvo de toque, precisam ficar alcançáveis), detalhe do marco embaixo. */
+@media (max-width: 720px) {
+  .pp-risk-row {
+    flex-wrap: wrap;
+    row-gap: 6px;
+  }
+
+  .pp-risk-row-name {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .pp-risk-row-meta {
+    flex: 1 1 100%;
+    order: 3;
+  }
+}
+
 .pp-risk-row-name {
   flex: 1;
   font-size: 13px;
@@ -1163,13 +1223,19 @@ html:not([data-theme="dark"]) .personal-app-canvas {
   display: flex;
   align-items: center;
   gap: 6px;
-  flex-shrink: 0;
+  flex-wrap: wrap;
+  /* `flex-shrink: 0` + dois filhos `nowrap` davam 524px de min-content numa
+     linha de 296px: o nome do aluno era espremido para 12px (uma reticência) e
+     os botões de ação iam parar em right:689, fora da tela e sem rolagem.
+     QA mobile 25/ago/2026. */
+  min-width: 0;
 }
 
 .pp-risk-row-stat {
   font-size: 11px;
   color: var(--color-text-secondary);
-  white-space: nowrap;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .pp-risk-chip {
@@ -1184,17 +1250,17 @@ html:not([data-theme="dark"]) .personal-app-canvas {
 }
 
 .pp-risk-chip-ok {
-  background: rgba(var(--color-success-rgb, 123,153,25), 0.12);
+  background: var(--color-success-soft);
   color: var(--color-success);
 }
 
 .pp-risk-chip-alerta {
-  background: rgba(var(--color-warn-rgb, 234,179,8), 0.12);
+  background: var(--color-warn-soft);
   color: var(--color-warn);
 }
 
 .pp-risk-chip-critico {
-  background: rgba(var(--color-danger-rgb, 239,68,68), 0.12);
+  background: var(--color-danger-soft);
   color: var(--color-danger);
 }
 
@@ -1232,7 +1298,7 @@ html:not([data-theme="dark"]) .personal-app-canvas {
 /* ── Recognition Card (Máquina de Reconhecimento) ───────── */
 
 .pp-recognition-card {
-  border: 1px solid rgba(var(--color-success-rgb, 123,153,25), 0.25);
+  border: 1px solid var(--color-success-border);
   background: var(--color-surface);
   border-radius: var(--radius-lg, 14px);
   padding: 16px;
@@ -1248,7 +1314,7 @@ html:not([data-theme="dark"]) .personal-app-canvas {
   font-size: 11px;
   font-weight: 600;
   white-space: nowrap;
-  background: rgba(var(--color-success-rgb, 123,153,25), 0.12);
+  background: var(--color-success-soft);
   color: var(--color-success, #5E7412);
 }
 
@@ -1302,9 +1368,14 @@ html:not([data-theme="dark"]) .personal-app-canvas {
   background: rgba(0, 0, 0, 0.45);
   z-index: 1000;
   display: flex;
-  align-items: center;
+  /* flex-start + overflow: o conteúdo é um textarea, então o teclado do
+     Android SEMPRE abre e derruba a viewport para ~300px. Centrado e sem
+     scroll, o topo do modal (incluindo o fechar) ficava inalcançável. */
+  align-items: flex-start;
   justify-content: center;
+  overflow-y: auto;
   padding: 16px;
+  padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
 }
 
 .pp-quick-msg-modal {
@@ -1313,6 +1384,9 @@ html:not([data-theme="dark"]) .personal-app-canvas {
   padding: 24px;
   width: 100%;
   max-width: 520px;
+  margin: auto;
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
   box-shadow: var(--shadow-lg);
   display: flex;
   flex-direction: column;
@@ -1491,13 +1565,22 @@ html:not([data-theme="dark"]) .personal-app-canvas {
 
 .pp-finance-kpis {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  /* minmax(0,1fr), não 1fr: o mínimo `auto` de uma track 1fr é o min-content
+     do cartão (valor de 22px/700 + padding 32), e com 5 dígitos duas colunas
+     não cabem em 280px. */
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
 }
 
 @media (max-width: 720px) {
   .pp-finance-kpis {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 380px) {
+  .pp-finance-kpis {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -2050,10 +2133,69 @@ html:not([data-theme="dark"]) .personal-app-canvas {
   cursor: not-allowed;
 }
 
-/* Em aparelho de toque os campos e os nomes clicáveis sobem para 44px
-   (WCAG 2.5.5), como já vale para `.pp-btn--sm` e `.pp-pulse-chip`. Escopado
-   ao módulo para não redefinir a densidade das demais telas do personal. */
+/* ─────────────────────────────────────────────────────────────
+   Alvos de toque — WCAG 2.5.5 (44x44). QA mobile 25/ago/2026.
+
+   Este bloco fica no FIM do arquivo de propósito: `@media` não adiciona
+   especificidade, então ele precisa vencer na ordem da cascata. Antes ele
+   estava na linha 149 e perdia para `.pp-btn--icon` (173) e `.pp-icon-btn`
+   (259), que continuavam 32/36px no celular apesar do modificador `--sm`.
+
+   `--sm` deixa de significar "alvo menor" no toque e passa a significar só
+   "tipografia menor" — densidade é conceito de desktop. Não "simplifique"
+   removendo a redundância abaixo: ela reintroduz o alvo de 32px.
+   ───────────────────────────────────────────────────────────── */
 @media (pointer: coarse) {
+  .pp-btn,
+  .pp-btn--sm,
+  .pp-btn--quiet {
+    min-height: 44px;
+  }
+
+  .pp-btn--sm {
+    padding: 10px 14px;
+  }
+
+  .pp-btn--icon,
+  .pp-icon-btn {
+    min-height: 44px;
+    min-width: 44px;
+    width: 44px;
+    height: 44px;
+  }
+
+  .pp-tab {
+    min-height: 44px;
+  }
+
+  .pp-input,
+  .pp-select,
+  .pp-textarea,
+  .pp-search-input,
+  .pp-sql-input {
+    min-height: 44px;
+  }
+
+  .pp-pulse-chip,
+  .pp-template-chip,
+  .pp-sql-chip {
+    min-height: 44px;
+    padding: 10px 16px;
+  }
+
+  .pp-risk-action-btn {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .pp-name,
+  .pp-risk-row-name,
+  .pp-insight-chip-link {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+
   .pp-fin-form .pp-input,
   .pp-fin-form .pp-select {
     min-height: 44px;
@@ -2063,4 +2205,47 @@ html:not([data-theme="dark"]) .personal-app-canvas {
   .pp-fin-renewal .pp-name {
     min-height: 44px;
   }
+}
+
+/* Chips do registro rápido de sessão (Veio / Faltou / tags). Vinham com
+   estilo inline de ~19px de altura — a ação diária mais tocada do módulo. */
+.pp-sql-chip {
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+/* Biblioteca de protocolos e Workout Builder são telas inline-styled (tema
+   próprio em workoutBuilderTheme.ts), então nenhuma classe do DS as alcança —
+   os controles ficavam entre 24 e 36px no toque. `:not([class])` mira só esses
+   botões sem classe e não encosta em nada tokenizado. QA mobile 25/ago/2026. */
+@media (pointer: coarse) {
+  .personal-app-canvas {
+    --tap-h: 44px;
+    --tap-h-sm: 44px;
+    --tap-h-input: 44px;
+  }
+
+  .personal-app-canvas button:not([class]) {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  .personal-app-canvas select:not([class]),
+  .personal-app-canvas textarea:not([class]),
+  .personal-app-canvas input:not([class]):not([type="checkbox"]):not([type="radio"]) {
+    min-height: 44px;
+  }
+}
+
+
+/* Painel "Exercícios" do builder: a track `auto` da grid crescia até o
+   min-content do nome de exercício mais longo (294px numa caixa de 246px em
+   320). O cap fica no JSX; aqui garantimos que o nome quebre em vez de
+   empurrar a coluna. QA mobile 25/ago/2026. */
+.wb-library > * {
+  min-width: 0;
+}
+
+.wb-library {
+  overflow-wrap: anywhere;
 }

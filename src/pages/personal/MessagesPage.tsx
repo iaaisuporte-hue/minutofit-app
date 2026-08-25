@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
+import { ChevronLeft } from "lucide-react";
 import { useAuth } from "../../auth/AuthContext";
 import {
   ensureChatConversation,
@@ -311,7 +312,7 @@ export default function MessagesPage() {
       ) : null}
 
       {/* Two-column grid */}
-      <div className="mp-grid">
+      <div className="mp-grid" data-mobile-view={selectedId ? "thread" : "inbox"}>
         {/* Inbox */}
         <div className="mp-card">
           <div className="mp-inbox">
@@ -415,6 +416,16 @@ export default function MessagesPage() {
             {/* Header da conversa */}
             <div>
               <div className="mp-thread-header">
+                {selectedId ? (
+                  <button
+                    type="button"
+                    className="mp-back-btn"
+                    onClick={() => setSelectedId(null)}
+                    aria-label="Voltar para as conversas"
+                  >
+                    <ChevronLeft size={18} />
+                  </button>
+                ) : null}
                 <div className="mp-thread-header-info">
                   <div className="mp-thread-header-name">
                     {selectedStudent ? selectedStudent.name : "Selecione uma conversa"}

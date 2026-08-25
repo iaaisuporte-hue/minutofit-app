@@ -56,7 +56,7 @@ export function WbButton({
       title={title}
       onClick={onClick}
       style={{
-        minHeight: 36,
+        minHeight: "var(--tap-h)",
         padding: "8px 11px",
         borderRadius: 10,
         border: isPrimary ? `1px solid ${WB.primaryBorder}` : `1px solid ${WB.border}`,

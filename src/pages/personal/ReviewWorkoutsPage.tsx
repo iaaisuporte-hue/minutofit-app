@@ -460,7 +460,7 @@ export default function ReviewWorkoutsPage() {
             placeholder="Buscar por aluno, título, objetivo…"
             style={{
               flex: 1,
-              minWidth: 240,
+              minWidth: "min(240px, 100%)",
 
               // ✅ (UI) input padrão Treinaí
               padding: "12px 14px",
@@ -568,7 +568,7 @@ export default function ReviewWorkoutsPage() {
                 }}
               >
                 {/* ✅ Left */}
-                <div style={{ display: "grid", gap: 8, minWidth: 320 }}>
+                <div style={{ display: "grid", gap: 8, minWidth: "min(320px, 100%)" }}>
                   <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
                     <div style={{ fontWeight: 700, fontSize: 15 }}>{item.studentName}</div>
                     {planPill(item.plan)}
@@ -643,10 +643,13 @@ export default function ReviewWorkoutsPage() {
             position: "fixed",
             inset: 0,
             background: "rgba(0,0,0,.60)",
-            display: "grid",
-            placeItems: "center",
+            display: "flex",
+            alignItems: "flex-start",
+            justifyContent: "center",
             padding: 18,
-            zIndex: 50,
+            paddingBottom: "calc(18px + env(safe-area-inset-bottom, 0px))",
+            overflowY: "auto",
+            zIndex: "var(--z-modal)",
           }}
           onClick={close}
         >
@@ -655,12 +658,14 @@ export default function ReviewWorkoutsPage() {
             style={{
               width: "100%",
               maxWidth: 860,
+              margin: "auto",
+              maxHeight: "calc(100dvh - 36px)",
+              overflowY: "auto",
               borderRadius: 18,
               border: `1px solid ${COLORS.border}`,
               background: COLORS.panel,
               color: COLORS.text,
               boxShadow: "var(--shadow-lg)",
-              overflow: "hidden",
             }}
           >
             {/* Header modal */}

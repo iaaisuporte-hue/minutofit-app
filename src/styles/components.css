@@ -1834,6 +1834,13 @@ html[data-color-mode="daltonic"] .navLinkActive {
   justify-items: center;
 }
 
+/* 40px de respiro vertical fixo consomem ~180px de uma tela de 640px. */
+@media (max-width: 540px) {
+  .empty-state {
+    padding: var(--space-6) var(--space-4);
+  }
+}
+
 .empty-state__title {
   font-size: var(--text-lg);
   font-weight: var(--font-semibold);
@@ -2400,4 +2407,18 @@ html[data-academy-branding="applied"] .admin-pill-positive {
   font-variant-numeric: tabular-nums;
   color: var(--color-text);
   line-height: 1.05;
+}
+
+
+/* Banner de visibilidade na Rede de Profissionais (personal e nutri).
+   Em telas estreitas o par texto+CTA não cabe lado a lado: empilha. */
+@media (max-width: 540px) {
+  .net-visibility-banner {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .net-visibility-banner > button {
+    width: 100%;
+  }
 }

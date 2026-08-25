@@ -41,6 +41,7 @@ export function NetworkVisibilityBanner({ role }: { role: "personal" | "nutri" }
 
   return (
     <div
+      className="net-visibility-banner"
       style={{
         display: "flex",
         alignItems: "center",
@@ -64,7 +65,10 @@ export function NetworkVisibilityBanner({ role }: { role: "personal" | "nutri" }
         type="button"
         className="pp-btn pp-btn--sm"
         onClick={() => navigate(`/app/${role}/meu-perfil`)}
-        style={{ whiteSpace: "nowrap" }}
+        /* `.pp-btn { flex: 1 1 auto }` (≤720px) fazia este botão crescer e
+           espremer o texto para ~180px em 360 — o título quebrava em quatro
+           linhas de uma palavra. */
+        style={{ whiteSpace: "nowrap", flex: "0 0 auto" }}
       >
         {profile ? "Revisar perfil" : "Criar perfil"}
       </button>

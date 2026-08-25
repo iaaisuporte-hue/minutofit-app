@@ -102,7 +102,7 @@ export function CockpitTabWeek({ data }: Props) {
       <Surface>
         <div style={{ display: "grid", gap: 10 }}>
           <div style={{ fontWeight: 650, color: COLORS.text }}>Semana do aluno</div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))", gap: 8 }}>
+          <div className="pp-week-grid" style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))" }}>
             {data.week.days.map((day) => (
               <div
                 key={day.date}
@@ -118,9 +118,9 @@ export function CockpitTabWeek({ data }: Props) {
                     borderRadius: "50%",
                     margin: "4px auto",
                     background: day.workedOut
-                      ? "#7B9919"
+                      ? "var(--color-primary)"
                       : day.hadGps
-                        ? "#60A5FA"
+                        ? "var(--color-info)"
                         : "var(--color-surface-subtle)",
                   }}
                 />

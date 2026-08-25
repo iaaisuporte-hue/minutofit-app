@@ -38,3 +38,5 @@ public/mediapipe/
 .specify/
 memory/
 specs/
+.vercel
+.env*

@@ -155,7 +155,7 @@ export function StudentRegisterDrawer({ open, onClose, onStudentsRefresh }: Prop
               />
             </div>
 
-            <div style={{ display: "grid", gap: 10, gridTemplateColumns: "1fr 1fr" }}>
+            <div style={{ display: "grid", gap: 10, gridTemplateColumns: "repeat(auto-fit, minmax(min(160px, 100%), 1fr))" }}>
               <div>
                 <label style={{ fontSize: 12, fontWeight: 600, color: COLORS.muted, display: "block", marginBottom: 4 }}>
                   Telefone (opcional)

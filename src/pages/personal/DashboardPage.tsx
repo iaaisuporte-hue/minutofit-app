@@ -24,7 +24,7 @@ import {
   type StudentNarrative,
   type StudentNarrativeTone,
 } from "./lib/studentNarrative";
-import { Bell } from "lucide-react";
+import { Bell, Sprout, Zap } from "lucide-react";
 import { InsightsStrip } from "../../features/personalRetention/InsightsStrip";
 import { RecognitionCard } from "../../features/personalRetention/RecognitionCard";
 import { IncomingRequestsPanel, NetworkVisibilityBanner } from "../../features/team";
@@ -433,7 +433,7 @@ export default function DashboardPage() {
           className="pp-panel"
           style={{ marginTop: 12, display: "flex", alignItems: "center", gap: 12, padding: "12px 14px" }}
         >
-          <span aria-hidden="true" style={{ fontSize: 20 }}>{(summary?.adaptationsThisWeek ?? 0) > 0 ? "⚡" : "🌱"}</span>
+          <span aria-hidden="true" style={{ display: "flex", color: "var(--color-primary)" }}>{(summary?.adaptationsThisWeek ?? 0) > 0 ? <Zap size={20} /> : <Sprout size={20} />}</span>
           <div style={{ fontSize: 13, color: "var(--color-text)", lineHeight: 1.45 }}>
             {(summary?.adaptationsThisWeek ?? 0) > 0 ? (
               <>Suas fichas se ajustaram <strong>{summary?.adaptationsThisWeek}×</strong> essa semana ao estado dos seus alunos.</>
@@ -693,6 +693,7 @@ export default function DashboardPage() {
                       display: "flex",
                       alignItems: "flex-start",
                       justifyContent: "space-between",
+                      flexWrap: "wrap",
                       gap: 8,
                       marginTop: 10,
                       paddingTop: 9,
@@ -701,7 +702,7 @@ export default function DashboardPage() {
                       {!isDemo
                         ? <SessionQuickLog studentId={item.studentId} studentName={item.studentName} />
                         : <div />}
-                      <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", minWidth: 0 }}>
                         {!isDemo && checkinChip ? (
                           <button
                             type="button"
@@ -793,7 +794,7 @@ export default function DashboardPage() {
             style={{
               background: "var(--color-surface)", borderRadius: 16,
               padding: "28px 24px", maxWidth: 360, width: "100%",
-              boxShadow: "var(--shadow-xl)", display: "grid", gap: 16,
+              boxShadow: "var(--shadow-lg)", display: "grid", gap: 16,
             }}
             onClick={(e) => e.stopPropagation()}
           >

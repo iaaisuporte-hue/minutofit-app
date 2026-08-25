@@ -120,7 +120,7 @@ export function AdherenceSparkline({ series }: { series: Array<{ date: string; s
                 maxWidth: 14,
                 height: h,
                 borderRadius: 6,
-                background: point.score < 45 ? "#F59E0B" : point.score < 70 ? "#60A5FA" : "#7B9919",
+                background: point.score < 45 ? "var(--color-warn)" : point.score < 70 ? "var(--color-info)" : "var(--color-primary)",
               }}
             />
           </div>
