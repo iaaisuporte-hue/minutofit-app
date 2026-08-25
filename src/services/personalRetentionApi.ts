@@ -13,7 +13,8 @@ export type ActionType =
   | "gradual_return_offered"
   | "message_sent"
   | "quick_nudge"
-  | "recognition_sent";
+  | "recognition_sent"
+  | "payment_reminder_sent";
 
 export type RelationshipAction = {
   id: number;
@@ -43,7 +44,7 @@ export type TimelineMeta = {
 };
 
 export type TimelineItem = {
-  kind: "action" | "message" | "workout" | "checkin" | "note";
+  kind: "action" | "message" | "workout" | "checkin" | "note" | "payment";
   id: string;
   occurredAt: string;
   title: string;

@@ -15,6 +15,7 @@ import MessagesPage from "./personal/MessagesPage";
 import ReviewWorkoutsPage from "./personal/ReviewWorkoutsPage";
 import ProgramsPage from "./personal/ProgramsPage";
 import StudentProfilePage from "./personal/StudentProfilePage";
+import FinancePage from "../features/personalFinance/FinancePage";
 import NetworkProfilePage from "./professional/NetworkProfilePage";
 
 // ✅ BUILDER REAL
@@ -191,11 +192,15 @@ export default function PersonalApp() {
             </NavLink>
           </div>
 
-          {/* destinos principais — regra 4+1: apenas os 4 destinos de topo */}
+          {/* Destinos principais. Eram 4 + o ícone de mensagens; o Financeiro
+              entrou como 5º destino de primeira classe (decisão de ago/2026):
+              cobrança e recebimento são rotina diária do personal, não uma aba
+              interna. Funcionalidade nova segue virando aba de um destino. */}
           <div className="navStack">
             <MenuLink to="/app/personal/dashboard" label="Hoje" />
             <MenuLink to="/app/personal/students" label="Alunos" />
             <MenuLink to="/app/personal/review" label="Revisões" />
+            <MenuLink to="/app/personal/finance" label="Financeiro" />
             <MenuLink to="/app/personal/library" label="Programas" />
           </div>
 
@@ -228,6 +233,7 @@ export default function PersonalApp() {
             <Route path="consulting" element={<Navigate to="/app/personal/students" replace />} />
             <Route path="messages" element={<MessagesPage />} />
             <Route path="review" element={<ReviewWorkoutsPage />} />
+            <Route path="finance" element={<FinancePage />} />
             <Route path="library" element={<ProgramsPage />} />
             <Route path="videos" element={<Navigate to="/app/personal/library" replace />} />
 

@@ -41,6 +41,14 @@ const ProtocolLibraryIcon = () => (
   </svg>
 );
 
+const FinanceIcon = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M20 12V8H6a2 2 0 0 1 0-4h12v4" />
+    <path d="M4 6v12a2 2 0 0 0 2 2h14v-4" />
+    <path d="M18 12a2 2 0 0 0 0 4h4v-4Z" />
+  </svg>
+);
+
 const LogoutIcon = () => (
   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
@@ -58,16 +66,29 @@ interface Props {
   onLogout?: () => void;
 }
 
+/**
+ * Cinco destinos + logout condicional.
+ *
+ * O Financeiro é o 5º destino de primeira classe (quebra consciente do padrão
+ * "4 destinos + 1 ícone" da área do personal, decidida em ago/2026): cobrar e
+ * conferir recebimento é rotina diária, não uma aba escondida dentro de Alunos.
+ * Com seis colunas os rótulos ficam apertados em 320px — daí o modificador
+ * `--compact`, que reduz fonte e respiro do rótulo sem mexer no alvo de toque.
+ */
 export default function PersonalMobileBottomNav({ onLogout }: Props) {
   const items: NavItem[] = [
     { to: "/app/personal/dashboard", label: "Hoje", icon: <HojeIcon /> },
     { to: "/app/personal/students", label: "Alunos", icon: <StudentsIcon /> },
     { to: "/app/personal/review", label: "Revisões", icon: <TreinosIcon /> },
+    { to: "/app/personal/finance", label: "Financeiro", icon: <FinanceIcon /> },
     { to: "/app/personal/library", label: "Programas", icon: <ProtocolLibraryIcon /> },
   ];
 
   return (
-    <nav className="mobileBottomNav" aria-label="Navegação principal do personal">
+    <nav
+      className="mobileBottomNav mobileBottomNav--compact"
+      aria-label="Navegação principal do personal"
+    >
       {items.map((item) => (
         <NavLink
           key={item.to}

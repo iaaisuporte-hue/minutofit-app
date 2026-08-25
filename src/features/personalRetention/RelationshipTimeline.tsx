@@ -10,6 +10,7 @@ import {
   Zap,
   Activity,
   Phone,
+  Wallet,
 } from "lucide-react";
 import { listRelationshipTimeline, type TimelineItem } from "../../services/personalRetentionApi";
 import { SkeletonStudentList } from "../../components/feedback/Skeleton";
@@ -24,6 +25,7 @@ const KIND_ICON: Record<string, React.ReactNode> = {
   checkin: <CheckSquare size={15} />,
   note: <StickyNote size={15} />,
   action: <Activity size={15} />,
+  payment: <Wallet size={15} />,
 };
 
 const ACTION_ICON: Record<string, React.ReactNode> = {
@@ -34,6 +36,7 @@ const ACTION_ICON: Record<string, React.ReactNode> = {
   message_sent: <MessageSquare size={15} />,
   quick_nudge: <Zap size={15} />,
   observation: <StickyNote size={15} />,
+  payment_reminder_sent: <Wallet size={15} />,
 };
 
 function formatDate(iso: string): string {

@@ -16,6 +16,8 @@ function toneFor(type: PersonalDashboardAlert["type"]) {
       return { className: "pp-alert--danger", label: "Risco" };
     case "metabolic_decline":
       return { className: "pp-alert--danger", label: "Metabolismo" };
+    case "payment_overdue":
+      return { className: "pp-alert--warn", label: "Financeiro" };
     default:
       return { className: "pp-alert--neutral", label: "Atenção" };
   }
@@ -25,10 +27,13 @@ export default function IntelligentAlerts({
   alerts,
   onOpenStudent,
   onOpenStudents,
+  onOpenRoute,
 }: {
   alerts: PersonalDashboardAlert[];
   onOpenStudent: (studentId: string) => void;
   onOpenStudents: () => void;
+  /** Destino do alerta que não se resolve na ficha do aluno (ex.: Financeiro). */
+  onOpenRoute?: (href: string) => void;
 }) {
   if (!alerts.length) {
     return (
@@ -42,7 +47,26 @@ export default function IntelligentAlerts({
     <div style={{ display: "grid" }}>
       {alerts.map((alert) => {
         const tone = toneFor(alert.type);
-        const cta = alert.studentId ? () => onOpenStudent(alert.studentId!) : onOpenStudents;
+        // `actionHref` tem prioridade: um vencido se resolve no Financeiro, não
+        // na ficha de treino do aluno — mesmo quando o alerta nomeia um aluno.
+        // Só rota interna do app: o destino vem do payload da API, e navegar
+        // para o que vier de lá é conceder a ele o roteador inteiro.
+        const href =
+          alert.actionHref && onOpenRoute && alert.actionHref.startsWith("/app/")
+            ? alert.actionHref
+            : null;
+        const cta = href
+          ? () => onOpenRoute!(href)
+          : alert.studentId
+            ? () => onOpenStudent(alert.studentId!)
+            : onOpenStudents;
+        const ctaLabel = href
+          ? alert.type === "payment_overdue"
+            ? "Abrir Financeiro"
+            : "Abrir"
+          : alert.studentId
+            ? "Ver aluno"
+            : "Ver alunos";
 
         return (
           <div
@@ -61,7 +85,7 @@ export default function IntelligentAlerts({
               onClick={cta}
               className="pp-btn pp-btn--quiet"
             >
-              {alert.studentId ? "Ver aluno" : "Ver alunos"}
+              {ctaLabel}
             </button>
           </div>
         );

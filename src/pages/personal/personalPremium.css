@@ -1906,3 +1906,161 @@ html:not([data-theme="dark"]) .personal-app-canvas {
   min-width: 0;
   overflow-wrap: anywhere;
 }
+
+/* ── Financeiro do personal (Onda F2) ──────────────────────────────────────
+ *
+ * Prefixo `pp-fin-`. Os KPIs reaproveitam `.pp-finance-kpi*` (que já existiam
+ * para o painel congelado de billing); o que entra aqui é o que a lista, a
+ * ficha do aluno e os formulários pediram de novo. Tudo por token — o canvas
+ * premium-light redefine surface/border no tema claro, e HEX fixo apareceria
+ * errado no escuro.
+ */
+.pp-fin-renewals,
+.pp-fin-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.pp-fin-renewal {
+  display: grid;
+  gap: 2px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.pp-fin-renewal:last-child {
+  border-bottom: 0;
+}
+
+.pp-fin-list__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.pp-fin-list__item:last-child {
+  border-bottom: 0;
+}
+
+.pp-fin-list__title {
+  color: var(--color-text-primary);
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.pp-fin-card {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  background: var(--color-surface-raised);
+}
+
+.pp-fin-amount {
+  color: var(--color-text-primary);
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.pp-fin-error {
+  margin: 0;
+  color: var(--color-danger);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.pp-fin-form {
+  display: grid;
+  gap: 14px;
+}
+
+.pp-fin-form__row {
+  display: grid;
+  gap: 12px;
+}
+
+/* Duas colunas só quando cabem: em 320px, lado a lado espremeria os rótulos. */
+@media (min-width: 520px) {
+  .pp-fin-form__row {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  }
+}
+
+.pp-fin-field {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.pp-fin-field > span {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.pp-fin-toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-surface-raised);
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.pp-fin-toggle input {
+  width: 18px;
+  height: 18px;
+  margin-top: 1px;
+  flex-shrink: 0;
+  accent-color: var(--action-primary);
+}
+
+.pp-fin-toggle span {
+  display: grid;
+  gap: 3px;
+}
+
+.pp-fin-attention {
+  display: grid;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+/* Botão desabilitado precisa PARECER desabilitado — "Cobrar" sem telefone
+   cadastrado não pode ficar idêntico ao que funciona. Escopado ao módulo para
+   não alterar a aparência das demais telas do personal. */
+.pp-fin-students .pp-btn:disabled,
+.pp-fin-card .pp-btn:disabled,
+.pp-fin-form .pp-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* Em aparelho de toque os campos e os nomes clicáveis sobem para 44px
+   (WCAG 2.5.5), como já vale para `.pp-btn--sm` e `.pp-pulse-chip`. Escopado
+   ao módulo para não redefinir a densidade das demais telas do personal. */
+@media (pointer: coarse) {
+  .pp-fin-form .pp-input,
+  .pp-fin-form .pp-select {
+    min-height: 44px;
+  }
+
+  .pp-fin-attention .pp-name,
+  .pp-fin-renewal .pp-name {
+    min-height: 44px;
+  }
+}

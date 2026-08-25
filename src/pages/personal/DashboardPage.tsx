@@ -158,6 +158,7 @@ const DEMO_STUDENT: PersonalDashboardStudent = {
   adherenceScore: 32,
   engagementScore: 28,
   riskScore: 78,
+  riskFactors: ["engajamento baixo (28/100)", "sono ruim no último check-in", "sem contato há 11 dias"],
   risk: "critico",
   goal: "emagrecimento",
   notes: null,
@@ -599,6 +600,7 @@ export default function DashboardPage() {
                 alerts={alerts}
                 onOpenStudent={(id) => openStudent(id)}
                 onOpenStudents={() => navigate(routes.students())}
+                onOpenRoute={(href) => navigate(href)}
               />
             </Card>
           ) : null}

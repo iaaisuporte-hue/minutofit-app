@@ -474,29 +474,24 @@ export async function fetchAdminUserAuditTrail(userId: number) {
 // ---------------------------------------------------------------------------
 // P0-5: Falhas de pagamento
 // ---------------------------------------------------------------------------
-export interface BillingFailureEntry {
-  id: number;
-  personal_id?: number;
-  personal_name?: string;
-  personal_email?: string;
-  event_type?: string;
-  payload_json?: Record<string, unknown>;
-  occurred_at?: string;
-}
-
 export interface PaymentFailureEntry {
   id: number;
   user_id: number;
   user_name: string | null;
   user_email: string;
-  amount_brl: number;
+  /** `numeric` do Postgres chega como string no driver `pg` — converter antes de formatar. */
+  amount_brl: number | string;
   status: string;
-  provider_ref: string | null;
+  mercado_pago_payment_id: string | null;
   created_at: string;
 }
 
+/**
+ * Só pagamento B2C reprovado. A lista de eventos do billing MP do personal saiu
+ * na Onda F4: aquele domínio está congelado e nunca gerou evento — o que a tela
+ * mostrava era uma seção permanentemente vazia de uma query que dava 500.
+ */
 export async function fetchAdminBillingFailures(): Promise<{
-  billingFailures: BillingFailureEntry[];
   paymentFailures: PaymentFailureEntry[];
 } | null> {
   if (!getAccessToken()) return null;

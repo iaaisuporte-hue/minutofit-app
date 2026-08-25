@@ -5,7 +5,6 @@ import {
   fetchAdminBillingFailures,
   type AdminDashboardMetrics,
   type AdminSubscriptionsReport,
-  type BillingFailureEntry,
   type PaymentFailureEntry,
 } from "../../services/adminApi";
 import { COLORS } from "../../styles/colors";
@@ -38,7 +37,6 @@ export default function AdminFinancePage() {
   const [metrics, setMetrics] = useState<AdminDashboardMetrics | null>(null);
   const [report, setReport] = useState<AdminSubscriptionsReport | null>(null);
   const [failures, setFailures] = useState<{
-    billingFailures: BillingFailureEntry[];
     paymentFailures: PaymentFailureEntry[];
   } | null>(null);
   const [loading, setLoading] = useState(true);
@@ -194,7 +192,7 @@ export default function AdminFinancePage() {
             </div>
           )}
 
-          {/* P0-5: Falhas de pagamento */}
+          {/* P0-5: pagamentos B2C não aprovados (o billing MP do personal saiu na F4) */}
           <div
             style={{
               border: `1px solid ${COLORS.border}`,
@@ -208,16 +206,16 @@ export default function AdminFinancePage() {
           >
             <div style={{ fontSize: 18, fontWeight: 700 }}>
               Falhas de pagamento
-              {failures && (failures.billingFailures.length + failures.paymentFailures.length) > 0 && (
+              {failures && failures.paymentFailures.length > 0 && (
                 <span style={{
                   marginLeft: 8, fontSize: 12, padding: "2px 8px", borderRadius: 8,
-                  background: "#7f1d1d", color: "#fca5a5", fontWeight: 600,
+                  background: COLORS.dangerSoft, color: COLORS.danger, fontWeight: 600,
                 }}>
-                  {failures.billingFailures.length + failures.paymentFailures.length}
+                  {failures.paymentFailures.length}
                 </span>
               )}
             </div>
-            {(!failures || (failures.billingFailures.length === 0 && failures.paymentFailures.length === 0)) ? (
+            {(!failures || failures.paymentFailures.length === 0) ? (
               <div style={{ color: COLORS.muted, fontSize: 13, textAlign: "center", padding: "16px 0" }}>
                 Nenhuma falha de pagamento registrada.
               </div>
@@ -234,27 +232,12 @@ export default function AdminFinancePage() {
                       <div style={{ color: COLORS.muted, fontSize: 12 }}>{p.user_email}</div>
                     </div>
                     <div style={{ textAlign: "right" }}>
-                      <div style={{ fontWeight: 700, color: "#EF4444" }}>
-                        {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(p.amount_brl)}
+                      <div style={{ fontWeight: 700, color: COLORS.danger }}>
+                        {formatCurrency(Number(p.amount_brl))}
                       </div>
                       <div style={{ fontSize: 11, color: COLORS.muted }}>
                         {p.status} · {new Date(p.created_at).toLocaleDateString("pt-BR")}
                       </div>
-                    </div>
-                  </div>
-                ))}
-                {failures.billingFailures.map((b) => (
-                  <div key={b.id} style={{
-                    display: "flex", justifyContent: "space-between", alignItems: "center",
-                    padding: "10px 14px", borderRadius: 12,
-                    border: `1px solid ${COLORS.border}`, background: COLORS.panelSoft,
-                  }}>
-                    <div>
-                      <div style={{ fontWeight: 600, fontSize: 13 }}>{b.personal_name ?? b.personal_email}</div>
-                      <div style={{ color: COLORS.muted, fontSize: 12 }}>{b.event_type}</div>
-                    </div>
-                    <div style={{ fontSize: 11, color: COLORS.muted }}>
-                      {b.occurred_at ? new Date(b.occurred_at).toLocaleDateString("pt-BR") : "—"}
                     </div>
                   </div>
                 ))}

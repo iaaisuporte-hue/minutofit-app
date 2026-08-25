@@ -839,6 +839,19 @@ html[data-color-mode="daltonic"] .navLinkActive {
     min-width: 0;
   }
 
+  /* Seis colunas (personal: 5 destinos + Sair) em 320px dão ~53px por slot —
+     largura de toque suficiente, mas rótulo apertado. Reduzir só a tipografia
+     do rótulo mantém o alvo de 44px e evita truncar "Financeiro"/"Programas". */
+  .mobileBottomNav--compact .mobileBottomNav__item {
+    padding-left: 2px;
+    padding-right: 2px;
+  }
+
+  .mobileBottomNav--compact .mobileBottomNav__label {
+    font-size: 9px;
+    letter-spacing: 0;
+  }
+
 
   .appShell--withBottomNav .sidebar {
     display: none;
