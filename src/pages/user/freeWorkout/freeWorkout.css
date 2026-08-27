@@ -196,8 +196,19 @@
 
 .fw-item-tools {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--space-2);
   justify-content: flex-end;
+}
+
+/* Abaixo de ~480px (telefones), três colunas de stepper (44+44+44px de botão
+   por coluna) não cabem lado a lado — os botões +/− de colunas vizinhas
+   colidiam. Empilha uma por linha; cada uma ainda usa a largura toda, então
+   os alvos de toque continuam a 44px sem disputar espaço. */
+@media (max-width: 480px) {
+  .fw-steppers {
+    grid-template-columns: 1fr;
+  }
 }
 
 .fw-tool-btn {
