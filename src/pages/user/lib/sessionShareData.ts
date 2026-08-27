@@ -37,7 +37,7 @@ export type SessionShareData = {
  * que ela não fez. O que identifica a sessão é ter sido livre — então "Treino
  * livre" é o herói, e os grupos musculares descem para a linha da data.
  */
-function splitTitle(
+export function splitShareTitle(
   title: string | null,
   source: WorkoutSessionDetail["source"],
 ): { focus: string; dayName?: string } {
@@ -67,7 +67,7 @@ function repsRange(done: { repsDone: number | null; plannedReps: string | null }
 }
 
 export function buildShareFromSession(detail: WorkoutSessionDetail): SessionShareData {
-  const { focus, dayName } = splitTitle(detail.title, detail.source);
+  const { focus, dayName } = splitShareTitle(detail.title, detail.source);
 
   // Agrupa por exercício preservando a ordem da execução.
   const byExercise = new Map<string, { order: number; sets: typeof detail.sets }>();

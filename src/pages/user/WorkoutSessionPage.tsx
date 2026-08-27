@@ -12,6 +12,7 @@ import { useFeatureFlags } from "../../auth/FeatureFlagsContext";
 import { useAdaptiveTraining } from "../../features/training/adaptive/useAdaptiveTraining";
 import { ExerciseDemoModal } from "./components/ExerciseDemoModal";
 import {
+  prescribedWorkoutTitle,
   registerFreeWorkoutSession,
   registerWorkoutSession,
   type RegisterSessionStatus,
@@ -41,6 +42,7 @@ import { freeWorkoutTitle } from "../../features/training/freeWorkout/muscleGrou
 import { findFilledUnchecked, markFilledDone } from "./workoutSession/filledSets";
 import { computeSessionComparison, deriveFatigueInsight } from "./workoutSession/sessionSummary";
 import { WorkoutShareTrigger } from "./components/WorkoutShareTrigger";
+import { splitShareTitle } from "./lib/sessionShareData";
 import { PrCelebration, type PrEventSummary } from "../../features/performance/PrCelebration";
 import "../../features/performance/performance.css";
 import "./workoutSession/workoutSession.css";
@@ -716,8 +718,14 @@ export default function WorkoutSessionPage() {
 
   // Sem ficha o título é derivado do que o aluno montou — e é o MESMO que vai
   // para o histórico, para a sessão não ter dois nomes.
-  const sessionTitle = plan && day ? `${plan.title} · ${day.name}` : freeWorkoutTitle(exercises);
-  const shareDayName = day ? day.name : "Treino livre";
+  const sessionTitle =
+    plan && day ? prescribedWorkoutTitle(plan.title, day.name, day.focus) : freeWorkoutTitle(exercises);
+
+  // Manchete do card: MESMA regra do compartilhamento pelo gráfico, aplicada ao
+  // MESMO título que acabou de ser gravado. Antes esta tela tinha a sua própria
+  // derivação, e as duas divergiam — ao terminar dizia "Costas e Ombros", pelo
+  // gráfico dizia "Treino B", para a mesma sessão.
+  const shareFocus = splitShareTitle(sessionTitle, isFree ? "free" : "personal").focus;
 
   if (phase === "summary") {
     return (
@@ -880,8 +888,7 @@ export default function WorkoutSessionPage() {
                 {sessionStatus !== "abandoned" ? (
                   <WorkoutShareTrigger
                     variant="primary"
-                    focus={day ? day.focus?.trim() || day.name : shareDayName}
-                    dayName={shareDayName}
+                    focus={shareFocus}
                     exercises={shareExercises}
                     stats={{
                       durationMin,

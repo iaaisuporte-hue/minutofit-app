@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { buildShareFromSession } from "./sessionShareData";
+import { buildShareFromSession, splitShareTitle } from "./sessionShareData";
+import { prescribedWorkoutTitle } from "../workoutSession/registerWorkoutSession";
 import type { WorkoutSessionDetail, WorkoutSetLogRow } from "../../../services/workoutSessionApi";
 
 // Compartilhar uma sessão JÁ gravada (aberta pelo marcador de hoje no gráfico).
@@ -138,5 +139,41 @@ describe("buildShareFromSession", () => {
     expect(out.exercises).toEqual([]);
     expect(out.stats.volumeKg).toBeNull();
     expect(out.stats.completionPct).toBeNull();
+  });
+});
+
+// A manchete do card divergia conforme ONDE se clicava em compartilhar: ao
+// terminar o treino a tela tinha a sua própria derivação, e pelo gráfico saía
+// de `splitShareTitle` sobre o título gravado. Para a mesma sessão prescrita,
+// uma dizia "Costas e Ombros" e a outra "Treino B".
+//
+// Agora há UMA regra, aplicada ao MESMO título persistido — estes testes falham
+// se alguém voltar a derivar a manchete por fora.
+describe("manchete: resumo ao vivo e gráfico dizem a mesma coisa", () => {
+  it("ficha: o título gravado leva o foco, e a manchete é ele", () => {
+    const title = prescribedWorkoutTitle("Plano Base", "Treino B", "Costas e Ombros");
+    expect(title).toBe("Plano Base · Costas e Ombros");
+
+    // caminho "ao terminar" (deriva do título recém-montado)
+    expect(splitShareTitle(title, "personal").focus).toBe("Costas e Ombros");
+    // caminho "pelo gráfico" (deriva do mesmo título, lido do servidor)
+    expect(buildShareFromSession(session({ source: "personal", title, sets: [] })).focus).toBe(
+      "Costas e Ombros",
+    );
+  });
+
+  it("ficha sem foco cadastrado: cai no nome do dia, nos dois caminhos", () => {
+    const title = prescribedWorkoutTitle("Plano Base", "Treino B", null);
+    expect(title).toBe("Plano Base · Treino B");
+    expect(splitShareTitle(title, "personal").focus).toBe("Treino B");
+    expect(buildShareFromSession(session({ source: "personal", title, sets: [] })).focus).toBe("Treino B");
+  });
+
+  it("livre: 'Treino livre' nos dois caminhos", () => {
+    const title = "Treino livre · Costas e Ombros";
+    expect(splitShareTitle(title, "free").focus).toBe("Treino livre");
+    expect(buildShareFromSession(session({ source: "free", planId: null, title, sets: [] })).focus).toBe(
+      "Treino livre",
+    );
   });
 });

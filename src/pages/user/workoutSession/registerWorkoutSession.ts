@@ -73,10 +73,24 @@ export interface RegisterSessionResult {
   celebrate: boolean;
 }
 
+/**
+ * Título persistido de um treino prescrito.
+ *
+ * O último segmento é o que a arte de compartilhar usa como manchete, então é
+ * o FOCO do dia ("Costas e Ombros") e não o nome interno ("Treino B"): o card
+ * tem que dizer o que foi treinado. Sem foco cadastrado, o nome do dia serve.
+ *
+ * Exportado porque a tela de execução mostra o mesmo título — antes cada uma
+ * montava o seu, e as duas divergiam.
+ */
+export function prescribedWorkoutTitle(planTitle: string, dayName: string, dayFocus?: string | null): string {
+  return `${planTitle} · ${dayFocus?.trim() || dayName}`;
+}
+
 export async function registerWorkoutSession(
   p: RegisterSessionParams,
 ): Promise<RegisterSessionResult> {
-  const title = `${p.planTitle} · ${p.dayName}`;
+  const title = prescribedWorkoutTitle(p.planTitle, p.dayName, p.dayFocus);
   const workoutId = `plan-${p.planId}-day-${p.dayIndex ?? 0}-${Date.now()}`;
   const muscleGroups = deriveMuscleGroupsFromFocus(p.dayFocus, p.selectedGroup);
 
