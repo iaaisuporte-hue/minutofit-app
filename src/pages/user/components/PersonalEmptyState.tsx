@@ -118,7 +118,8 @@ export function PersonalEmptyState({
                 ))}
                 {fallbackWorkout.exercises.length > 3 && (
                   <span style={{ fontSize: 11, color: SURFACE.muted, padding: "2px 8px" }}>
-                    +{fallbackWorkout.exercises.length - 3} exercícios
+                    +{fallbackWorkout.exercises.length - 3}{" "}
+                    {fallbackWorkout.exercises.length - 3 === 1 ? "exercício" : "exercícios"}
                   </span>
                 )}
               </div>

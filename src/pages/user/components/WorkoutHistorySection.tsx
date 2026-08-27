@@ -48,6 +48,11 @@ function formatDate(iso: string) {
   }).format(new Date(iso));
 }
 
+/** "1 rep" / "12 reps" — `plannedReps` pode ser faixa ("8-12"), sempre plural. */
+function repsLabel(reps: string): string {
+  return reps === "1" ? "1 rep" : `${reps} reps`;
+}
+
 function StatusPill({ status }: { status: WorkoutSessionStatus }) {
   const meta = STATUS_META[status];
   return (
@@ -117,7 +122,7 @@ function SetsDetail({ detail }: { detail: WorkoutSessionDetail }) {
                     textDecoration: skipped ? "line-through" : "none",
                   }}
                 >
-                  Série {s.setIndex} · {reps} reps{load}
+                  Série {s.setIndex} · {repsLabel(reps)}{load}
                   {s.rpe != null ? ` · RPE ${s.rpe}` : ""}
                   {skipped ? " · pulada" : ""}
                 </span>
@@ -222,7 +227,9 @@ function SessionRow({ session }: { session: WorkoutSessionListItem }) {
         </div>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4, flexShrink: 0 }}>
           <StatusPill status={session.status} />
-          <span className="metabolic-eyebrow">{session.setsDone} séries · toque</span>
+          <span className="metabolic-eyebrow">
+            {session.setsDone} {session.setsDone === 1 ? "série" : "séries"} · toque
+          </span>
         </div>
       </button>
 

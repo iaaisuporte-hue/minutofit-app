@@ -17,6 +17,8 @@ import type { AdaptiveTodayResponse } from "../../services/trainingAdaptiveApi";
 import { ReadinessPill } from "../../features/training/adaptive/ReadinessPill";
 import { AdaptationBanner } from "../../features/training/adaptive/AdaptationBanner";
 import { MovementLabEntryCard } from "./components/MovementLabEntryCard";
+import { FreeWorkoutEntryCard } from "./components/FreeWorkoutEntryCard";
+import { useFeatureFlags } from "../../auth/FeatureFlagsContext";
 
 function formatDate(value: string) {
   try {
@@ -776,6 +778,8 @@ export default function MyWorkoutPlansPage() {
   const [abandoning, setAbandoning] = useState(false);
   const [toast, setToast] = useState<{ message: string; kind: "success" | "error" } | null>(null);
   const adaptive = useAdaptiveTraining(!loading && plans.length > 0);
+  const { hasFeature } = useFeatureFlags();
+  const canFreeWorkout = hasFeature("free_workout");
 
   const handleAbandonConfirmed = useCallback(async () => {
     if (!abandonTarget) return;
@@ -830,6 +834,7 @@ export default function MyWorkoutPlansPage() {
         <div style={{ color: COLORS.mutedSoft, fontSize: 12 }}>— fichas do seu personal</div>
       </div>
 
+      <FreeWorkoutEntryCard />
       <MovementLabEntryCard source="treino" />
 
       {loading ? <div style={{ color: COLORS.muted }}>Carregando fichas...</div> : null}
@@ -840,6 +845,30 @@ export default function MyWorkoutPlansPage() {
           eyebrow="Sua ficha"
           title="Plano de treino em construção"
           description="Seu personal ainda não salvou uma ficha para você. Assim que o plano for criado, ele aparece aqui com todos os exercícios, séries e cargas."
+          // Quem cai aqui muitas vezes não tem personal nenhum — o treino livre é
+          // a porta para essa pessoa treinar e registrar hoje, sem esperar ficha.
+          action={
+            canFreeWorkout ? (
+              <Link
+                to="/app/user/treino-livre"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  minHeight: 44,
+                  padding: "0 16px",
+                  borderRadius: 10,
+                  background: "var(--action-primary)",
+                  color: "var(--action-primary-text)",
+                  fontWeight: 600,
+                  fontSize: 13,
+                  textDecoration: "none",
+                }}
+              >
+                Ou monte um treino livre →
+              </Link>
+            ) : null
+          }
         />
       ) : null}
 

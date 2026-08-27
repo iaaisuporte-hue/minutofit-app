@@ -40,3 +40,4 @@ memory/
 specs/
 .vercel
 .env*
+.gstack/

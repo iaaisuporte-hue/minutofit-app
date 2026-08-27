@@ -36,6 +36,13 @@ export interface CreateWorkoutSessionPayload {
   awardGamification?: boolean;
   muscleGroups?: string[];
   /**
+   * Chave do treino gerada no cliente (treino livre). O servidor tem UNIQUE
+   * parcial por usuário sobre ela: reenviar a mesma chave devolve a sessão já
+   * gravada em vez de duplicar histórico e XP. Ausente no fluxo prescrito, que
+   * tem a própria idempotência por aluno+ficha+dia.
+   */
+  clientKey?: string;
+  /**
    * Registro retroativo (Spec 024): data real do treino, 'YYYY-MM-DD'. Presença
    * ativa o modo retro no backend (source vira 'user_retroactive'). Exige
    * `confirmedHonesty: true` quando a data é anterior a hoje.

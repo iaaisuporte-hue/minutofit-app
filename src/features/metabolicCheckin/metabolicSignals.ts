@@ -43,12 +43,20 @@ export function windowSignal(
   return { direction, delta, days };
 }
 
-/** Direção agregada da carga a partir da progressão por exercício. */
+/**
+ * Direção agregada da carga a partir da progressão por exercício.
+ *
+ * Só entram exercícios com dois pontos: um registro isolado tem `deltaKg` 0 por
+ * construção, e quem só treinou uma vez receberia "Carga: estável" — afirmação
+ * sobre uma tendência que não existe. Sem nenhum exercício com dois pontos o
+ * card volta a ser "—", que é o convite a registrar carga.
+ */
 export function loadDirection(stats: WorkoutStats | null): Direction | null {
-  if (!stats || stats.exerciseProgression.length === 0) return null;
-  const ups = stats.exerciseProgression.filter((ex) => ex.deltaKg > 0).length;
-  const downs = stats.exerciseProgression.filter((ex) => ex.deltaKg < 0).length;
-  const net = stats.exerciseProgression.reduce((sum, ex) => sum + ex.deltaKg, 0);
+  const progression = stats?.exerciseProgression.filter((ex) => ex.points.length >= 2) ?? [];
+  if (progression.length === 0) return null;
+  const ups = progression.filter((ex) => ex.deltaKg > 0).length;
+  const downs = progression.filter((ex) => ex.deltaKg < 0).length;
+  const net = progression.reduce((sum, ex) => sum + ex.deltaKg, 0);
   if (ups > downs && net > 0) return 'up';
   if (downs > ups && net < 0) return 'down';
   return 'stable';

@@ -1,0 +1,514 @@
+/* Treino livre — montagem e seletor de exercícios.
+
+   Uso real: aluno de pé na academia, com uma mão, entre séries. Daí as três
+   regras que valem para tudo aqui: alvo de toque nunca abaixo de 44px, nada
+   que dependa de arrastar (o drag-and-drop HTML5 não dispara em touch) e
+   nenhuma linha que force scroll horizontal na página.
+
+   Classes com prefixo fw-* para não vazar. Cor só por token — respeita
+   branding por academia e modo daltônico. */
+
+/* ── Página de montagem ─────────────────────────────────────── */
+
+.fw-page {
+  display: grid;
+  gap: var(--space-4);
+  color: var(--color-text);
+  min-width: 0;
+}
+
+.fw-head {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.fw-title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: var(--font-bold);
+  letter-spacing: -0.02em;
+  color: var(--color-text);
+}
+
+.fw-sub {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+
+.fw-back {
+  justify-self: start;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* ── Cartões ────────────────────────────────────────────────── */
+
+.fw-card {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  padding: var(--space-4);
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.fw-card--resume {
+  border-color: var(--color-border-primary);
+  background: var(--color-primary-soft);
+}
+
+.fw-card-title {
+  font-size: 15px;
+  font-weight: var(--font-semibold);
+  color: var(--color-text);
+}
+
+.fw-card-text {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+
+.fw-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.fw-card-actions .btn {
+  min-height: 44px;
+  flex: 1 1 auto;
+}
+
+/* ── Exercício escolhido ────────────────────────────────────── */
+
+.fw-list {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.fw-item {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  padding: var(--space-3);
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.fw-item-head {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.fw-item-order {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-pill);
+  display: grid;
+  place-items: center;
+  background: var(--color-surface-subtle);
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: var(--font-bold);
+}
+
+.fw-item-name {
+  font-size: 15px;
+  font-weight: var(--font-semibold);
+  color: var(--color-text);
+  overflow-wrap: anywhere;
+}
+
+.fw-item-group {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.fw-steppers {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+
+.fw-stepper {
+  display: grid;
+  gap: 4px;
+  justify-items: center;
+  min-width: 0;
+}
+
+.fw-stepper-label {
+  font-size: 11px;
+  font-weight: var(--font-semibold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-subtle);
+}
+
+.fw-stepper-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  width: 100%;
+  justify-content: center;
+}
+
+.fw-step-btn {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-raised);
+  color: var(--color-text);
+  font-size: 18px;
+  font-weight: var(--font-bold);
+  line-height: 1;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+
+.fw-step-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.fw-step-value {
+  min-width: 44px;
+  text-align: center;
+  font-size: 15px;
+  font-weight: var(--font-bold);
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.fw-item-tools {
+  display: flex;
+  gap: var(--space-2);
+  justify-content: flex-end;
+}
+
+.fw-tool-btn {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 14px;
+  font-weight: var(--font-semibold);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.fw-tool-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.fw-tool-btn--danger {
+  color: var(--color-danger-text);
+  border-color: var(--color-danger-border);
+}
+
+/* ── Estados e avisos ───────────────────────────────────────── */
+
+.fw-empty {
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6) var(--space-4);
+  text-align: center;
+  display: grid;
+  gap: var(--space-2);
+  color: var(--color-text-muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.fw-note {
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  font-size: 13px;
+  line-height: 1.5;
+  border: 1px solid var(--color-warn-border);
+  background: var(--color-warn-soft);
+  color: var(--color-warn-text);
+}
+
+.fw-error {
+  border: 1px solid var(--color-danger-border);
+  background: var(--color-danger-soft);
+  color: var(--color-danger-text);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.fw-add-btn {
+  width: 100%;
+  min-height: 48px;
+}
+
+/* CTA acompanha o polegar; no mobile fica acima da bottom nav (mesmo token de
+   altura da nav, para não esconder o botão quando a safe-area cresce). */
+.fw-cta-bar {
+  position: sticky;
+  bottom: var(--space-3);
+  z-index: 5;
+  display: grid;
+  gap: 6px;
+  padding: var(--space-3);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-lg);
+}
+
+.fw-cta-bar .btn {
+  min-height: 48px;
+  font-size: 15px;
+}
+
+.fw-cta-hint {
+  font-size: 12px;
+  text-align: center;
+  color: var(--color-text-muted);
+}
+
+@media (max-width: 720px) {
+  .fw-cta-bar {
+    bottom: calc(var(--bottom-nav-h) + env(safe-area-inset-bottom) + var(--space-2));
+  }
+}
+
+/* ── Sheet de seleção ───────────────────────────────────────── */
+
+/* Seletor composto de propósito: `.drawer-panel` (components.css) define
+   largura, padding e overflow próprios, e empatar em especificidade deixaria o
+   resultado na mão da ordem de import. */
+.drawer-panel.fw-sheet {
+  width: min(560px, 100%);
+  max-width: 560px;
+  max-height: 88vh;
+  display: grid;
+  grid-template-rows: auto auto auto minmax(0, 1fr);
+  gap: var(--space-3);
+  padding: var(--space-4);
+  padding-bottom: calc(var(--space-4) + env(safe-area-inset-bottom));
+  overflow: hidden;
+}
+
+/* Gestão da lista com o treino rodando. Mesma folha do seletor, outro miolo:
+   cabeçalho e ação fixos, só a lista rola — o "+ Adicionar" precisa estar
+   sempre no alcance do polegar, mesmo com 20 exercícios montados. */
+.drawer-panel.fw-manage {
+  width: min(560px, 100%);
+  max-width: 560px;
+  max-height: 88vh;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  padding-bottom: calc(var(--space-4) + env(safe-area-inset-bottom));
+  overflow: hidden;
+}
+
+.fw-manage-list {
+  overflow-y: auto;
+  display: grid;
+  gap: var(--space-2);
+  align-content: start;
+  min-height: 120px;
+}
+
+.fw-sheet-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.fw-sheet-title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: var(--font-bold);
+  color: var(--color-text);
+}
+
+.fw-sheet-count {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.fw-sheet-close {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+
+/* Tira de chips: rola dentro de si, nunca empurra a página. */
+.fw-chips {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.fw-chips::-webkit-scrollbar {
+  display: none;
+}
+
+.fw-chip {
+  flex-shrink: 0;
+  min-height: 44px;
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-raised);
+  color: var(--color-text-muted);
+  font-size: 13px;
+  font-weight: var(--font-semibold);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.fw-chip[aria-pressed="true"] {
+  border-color: var(--color-border-strong);
+  background: var(--color-primary-soft-strong);
+  color: var(--color-success-text);
+}
+
+.fw-sheet-search {
+  min-height: 44px;
+}
+
+.fw-results {
+  overflow-y: auto;
+  display: grid;
+  gap: 6px;
+  align-content: start;
+  min-height: 120px;
+}
+
+.fw-results--loading {
+  opacity: 0.5;
+}
+
+.fw-result {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  min-height: 60px;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.fw-result:disabled {
+  cursor: default;
+  border-color: var(--color-border-primary);
+  background: var(--color-primary-soft);
+}
+
+.fw-result--just-added {
+  border-color: var(--color-border-strong);
+}
+
+.fw-thumb {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: var(--color-surface-subtle);
+  display: grid;
+  place-items: center;
+}
+
+.fw-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.fw-result-body {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.fw-result-name {
+  font-size: 14px;
+  font-weight: var(--font-semibold);
+  color: var(--color-text);
+  overflow-wrap: anywhere;
+}
+
+.fw-result-meta {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.fw-result-state {
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: var(--font-bold);
+  color: var(--color-success-text);
+  white-space: nowrap;
+}
+
+.fw-result-add {
+  flex-shrink: 0;
+  font-size: 20px;
+  font-weight: var(--font-bold);
+  color: var(--color-text-subtle);
+  line-height: 1;
+}
+
+.fw-sheet-status {
+  padding: var(--space-4) var(--space-3);
+  text-align: center;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+
+/* Saída do estado vazio/erro: tentar de novo, ou buscar sem o filtro de grupo. */
+.fw-sheet-action {
+  min-height: 44px;
+  margin-top: var(--space-3);
+}

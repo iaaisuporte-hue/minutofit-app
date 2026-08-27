@@ -11,15 +11,33 @@ import { getWorkoutStats } from "../../services/workoutSessionApi";
 import { useFeatureFlags } from "../../auth/FeatureFlagsContext";
 import { useAdaptiveTraining } from "../../features/training/adaptive/useAdaptiveTraining";
 import { ExerciseDemoModal } from "./components/ExerciseDemoModal";
-import { registerWorkoutSession, type RegisterSessionStatus } from "./workoutSession/registerWorkoutSession";
+import {
+  registerFreeWorkoutSession,
+  registerWorkoutSession,
+  type RegisterSessionStatus,
+} from "./workoutSession/registerWorkoutSession";
 import { useRestTimer } from "./workoutSession/useRestTimer";
 import {
   clearDraft,
+  clearFreeDraft,
   loadDraft,
+  loadFreeDraft,
   saveDraft,
+  saveFreeDraft,
   type DraftExercise,
+  type FreeSessionDraft,
   type SessionDraft,
 } from "./workoutSession/sessionDraft";
+import { LiveExerciseSheet } from "./freeWorkout/LiveExerciseSheet";
+import type { PickedExercise } from "./freeWorkout/FreeExercisePickerSheet";
+import {
+  addLiveExercise,
+  moveLiveExercise,
+  removeLiveExercise,
+  type LiveSessionResult,
+  type LiveSessionState,
+} from "./freeWorkout/liveSessionOps";
+import { freeWorkoutTitle } from "../../features/training/freeWorkout/muscleGroupMap";
 import { findFilledUnchecked, markFilledDone } from "./workoutSession/filledSets";
 import { computeSessionComparison, deriveFatigueInsight } from "./workoutSession/sessionSummary";
 import { WorkoutShareTrigger } from "./components/WorkoutShareTrigger";
@@ -83,6 +101,9 @@ function buildExercises(items: UserWorkoutPlanItem[]): DraftExercise[] {
 
 type Phase = "loading" | "empty" | "running" | "summary";
 
+/** Montagem do treino livre — destino de quem chega na sessão sem rascunho. */
+const FREE_SETUP_ROUTE = "/app/user/treino-livre";
+
 const RPE_OPTIONS = [
   { label: "Leve", rpe: 3 },
   { label: "Moderado", rpe: 6 },
@@ -95,6 +116,9 @@ export default function WorkoutSessionPage() {
   const params = useParams();
   const planId = Number(params.planId);
   const dayIndex = Number(params.dayIndex);
+  // Mesma engine nos dois modos: sem :planId na rota é treino livre. Tudo que
+  // difere passa por este booleano — o caminho da ficha continua idêntico.
+  const isFree = params.planId === undefined;
 
   const [phase, setPhase] = useState<Phase>("loading");
   const [plan, setPlan] = useState<UserWorkoutPlan | null>(null);
@@ -119,8 +143,29 @@ export default function WorkoutSessionPage() {
   const [finishing, setFinishing] = useState(false);
   const [prEvents, setPrEvents] = useState<PrEventSummary[]>([]);
   const [saved, setSaved] = useState(false);
+  // Só treino livre: edição da lista em andamento, falha de gravação e confirmação
+  // do descarte (aqui o rascunho é a única cópia da sessão).
+  const [showManage, setShowManage] = useState(false);
+  const [finishError, setFinishError] = useState<string | null>(null);
+  const [confirmFreeDiscard, setConfirmFreeDiscard] = useState(false);
+  const freeClientKey = useRef<string | null>(null);
+  /**
+   * Trava a gravação do rascunho depois que a sessão foi finalizada.
+   *
+   * O descanso sobrevive à finalização, e o `onComplete` do cronômetro chama
+   * `finalizeRest` → `persist`: sem esta trava, um timer que estoura DEPOIS do
+   * `clearDraft` regrava o treino que acabou de ser salvo. O aluno então volta
+   * à ficha e "Iniciar treino" reabre a sessão inteira já marcada, como se não
+   * tivesse sido concluída. Vale para os dois modos (QA ago/2026): no livre a
+   * montagem oferecia "retomar" algo já no histórico; no prescrito o rascunho
+   * ressuscitava — defeito antigo, mesma causa, corrigido junto por ser a
+   * mesma linha de código.
+   */
+  const sessionSaved = useRef(false);
 
-  const adaptive = useAdaptiveTraining(true);
+  // Desligado no livre: não há ficha para adaptar, e o hook fica em idle
+  // (loading:false, data:null) sem disparar requisição.
+  const adaptive = useAdaptiveTraining(!isFree);
   const restCtx = useRef<{ exIdx: number; setIdx: number; planned: number; endsAt: number } | null>(null);
   const currentIndexRef = useRef(0);
   const startedAtRef = useRef(Date.now());
@@ -144,7 +189,32 @@ export default function WorkoutSessionPage() {
   // ── persistência do rascunho ──────────────────────────
   const persist = useCallback(
     (exs: DraftExercise[], idx: number, started: number) => {
+      // Sessão já finalizada não volta a gravar rascunho — ver `sessionSaved`.
+      if (sessionSaved.current) return;
+
       const ctx = restCtx.current;
+      const restEndsAt = ctx?.endsAt ?? null;
+      const restForKey = ctx ? `${ctx.exIdx}:${ctx.setIdx}` : null;
+
+      if (isFree) {
+        const clientKey = freeClientKey.current;
+        // Sem a chave o rascunho perderia a idempotência do envio — melhor não
+        // gravar do que gravar um treino que pode duplicar no retry.
+        if (!clientKey) return;
+        const freeDraft: FreeSessionDraft = {
+          version: 1,
+          mode: "free",
+          startedAt: started,
+          currentIndex: idx,
+          exercises: exs,
+          restEndsAt,
+          restForKey,
+          clientKey,
+        };
+        saveFreeDraft(freeDraft);
+        return;
+      }
+
       const draft: SessionDraft = {
         version: 1,
         planId,
@@ -152,12 +222,12 @@ export default function WorkoutSessionPage() {
         startedAt: started,
         currentIndex: idx,
         exercises: exs,
-        restEndsAt: ctx?.endsAt ?? null,
-        restForKey: ctx ? `${ctx.exIdx}:${ctx.setIdx}` : null,
+        restEndsAt,
+        restForKey,
       };
       saveDraft(draft);
     },
-    [planId, dayIndex],
+    [isFree, planId, dayIndex],
   );
 
   // grava restDoneS na série que disparou o descanso
@@ -186,6 +256,7 @@ export default function WorkoutSessionPage() {
 
   // ── carga: busca plano + dia ──────────────────────────
   useEffect(() => {
+    if (isFree) return; // sem ficha para buscar
     let alive = true;
     if (!Number.isFinite(planId) || !Number.isFinite(dayIndex)) {
       setPhase("empty");
@@ -204,11 +275,36 @@ export default function WorkoutSessionPage() {
     return () => {
       alive = false;
     };
-  }, [planId, dayIndex]);
+  }, [isFree, planId, dayIndex]);
 
   // ── monta sessão (retoma rascunho se houver) — espera adaptação resolver ──
   useEffect(() => {
-    if (phase !== "loading" || !plan || !day || !resolvedItems) return;
+    if (phase !== "loading") return;
+
+    if (isFree) {
+      const draft = loadFreeDraft();
+      // O rascunho É o treino livre: sem ele não há o que executar. Mandar montar
+      // é mais honesto que a tela de "treino indisponível", que fala de ficha.
+      if (!draft || !draft.exercises.length) {
+        navigate(FREE_SETUP_ROUTE, { replace: true });
+        return;
+      }
+      freeClientKey.current = draft.clientKey;
+      setExercises(draft.exercises);
+      setCurrentIndex(Math.min(Math.max(0, draft.currentIndex), draft.exercises.length - 1));
+      setStartedAt(draft.startedAt);
+      if (draft.restForKey && draft.restEndsAt && draft.restEndsAt > Date.now()) {
+        const [exIdx, setIdx] = draft.restForKey.split(":").map(Number);
+        const remaining = Math.round((draft.restEndsAt - Date.now()) / 1000);
+        const planned = draft.exercises[exIdx]?.sets[setIdx - 1]?.plannedRestS ?? remaining;
+        restCtx.current = { exIdx, setIdx, planned, endsAt: draft.restEndsAt };
+        rest.start(remaining);
+      }
+      setPhase("running");
+      return;
+    }
+
+    if (!plan || !day || !resolvedItems) return;
     if (adaptive.loading) return; // aguarda p/ não montar com prescrito errado
 
     const fresh = buildExercises(resolvedItems);
@@ -230,7 +326,7 @@ export default function WorkoutSessionPage() {
     }
     setPhase("running");
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase, plan, day, resolvedItems, adaptive.loading, planId, dayIndex]);
+  }, [phase, plan, day, resolvedItems, adaptive.loading, planId, dayIndex, isFree, navigate]);
 
   // ── carga anterior + mídias (GIF) ─────────────────────
   useEffect(() => {
@@ -246,9 +342,24 @@ export default function WorkoutSessionPage() {
     };
   }, []);
 
+  /**
+   * Ids dos exercícios da sessão, como chave estável.
+   *
+   * No livre a lista muda DURANTE o treino (o aluno inclui exercício na folha de
+   * gestão), então a fonte é o rascunho e não `resolvedItems`, que é sempre null
+   * ali. A chave é string para o efeito não refazer a busca a cada tecla digitada
+   * numa série — `exercises` muda de identidade o tempo todo, os ids não.
+   */
+  const mediaIdsKey = useMemo(() => {
+    const ids = isFree
+      ? exercises.map((ex) => ex.exerciseId)
+      : (resolvedItems ?? []).map((it) => it.exerciseId);
+    return Array.from(new Set(ids.filter(Boolean) as string[])).join("|");
+  }, [isFree, exercises, resolvedItems]);
+
   useEffect(() => {
     let alive = true;
-    const ids = Array.from(new Set((resolvedItems ?? []).map((i) => i.exerciseId).filter(Boolean))) as string[];
+    const ids = mediaIdsKey ? mediaIdsKey.split("|") : [];
     if (!ids.length) return;
     getExercisesBatch(ids)
       .then((rows) => {
@@ -267,7 +378,7 @@ export default function WorkoutSessionPage() {
     return () => {
       alive = false;
     };
-  }, [resolvedItems]);
+  }, [mediaIdsKey]);
 
   const totalSets = useMemo(() => exercises.reduce((a, e) => a + e.sets.length, 0), [exercises]);
   const doneSets = useMemo(
@@ -298,6 +409,9 @@ export default function WorkoutSessionPage() {
 
   const current = exercises[currentIndex];
   const currentItem = (resolvedItems ?? [])[currentIndex];
+  // No livre não existe item de ficha: as repetições planejadas moram na própria
+  // série. O fallback vale para os dois modos (a série copia o prescrito).
+  const currentReps = currentItem?.reps ?? current?.sets[0]?.plannedReps ?? "";
 
   function updateSet(setIdx: number, patch: Partial<DraftExercise["sets"][number]>) {
     setExercises((prev) => {
@@ -333,6 +447,48 @@ export default function WorkoutSessionPage() {
     const clamped = Math.max(0, Math.min(exercises.length - 1, idx));
     setCurrentIndex(clamped);
     persist(exercises, clamped, startedAt);
+  }
+
+  // ── edição da lista durante o treino livre ────────────
+  // Três referências apontam para exercício por índice — o atual, o dono do
+  // descanso e os desconfortos. `liveSessionOps` devolve os três já remapeados
+  // junto da lista nova; aplicar em bloco é o que impede o descanso de um
+  // exercício ir contar para outro depois de uma reordenação.
+  function liveState(): LiveSessionState {
+    return {
+      exercises,
+      currentIndex,
+      restExIdx: restCtx.current?.exIdx ?? null,
+      discomfort: discomfortEx,
+    };
+  }
+
+  function applyLiveResult(result: LiveSessionResult) {
+    if (!result.changed) return;
+    if (result.restOwnerRemoved) {
+      // O descanso pertencia a quem saiu: cancela sem gravar restDoneS (a série
+      // dona não existe mais).
+      rest.skip();
+      restCtx.current = null;
+    } else if (restCtx.current && result.restExIdx != null) {
+      restCtx.current = { ...restCtx.current, exIdx: result.restExIdx };
+    }
+    setExercises(result.exercises);
+    setCurrentIndex(result.currentIndex);
+    setDiscomfortEx(result.discomfort);
+    persist(result.exercises, result.currentIndex, startedAt);
+  }
+
+  function handleLiveAdd(picked: PickedExercise) {
+    applyLiveResult(addLiveExercise(liveState(), picked));
+  }
+
+  function handleLiveMove(index: number, direction: -1 | 1) {
+    applyLiveResult(moveLiveExercise(liveState(), index, direction));
+  }
+
+  function handleLiveRemove(index: number) {
+    applyLiveResult(removeLiveExercise(liveState(), index));
   }
 
   function buildSessionPayload(): { sets: unknown[]; status: RegisterSessionStatus } {
@@ -391,8 +547,54 @@ export default function WorkoutSessionPage() {
     [adaptive.data, comparison, sessionStatus],
   );
 
+  /**
+   * Finalização do treino livre.
+   *
+   * Diferente do prescrito em um ponto que importa: o rascunho só é apagado
+   * DEPOIS do servidor confirmar. Lá, engolir a falha é tolerável porque a ficha
+   * reconstrói o treino; aqui o rascunho é a única cópia da sessão, e limpá-lo
+   * numa falha de rede apagaria o treino inteiro. O `clientKey` torna a nova
+   * tentativa idempotente — reenviar não duplica histórico nem XP.
+   */
+  async function confirmFinishFree() {
+    const clientKey = freeClientKey.current;
+    if (!clientKey) return;
+    setFinishing(true);
+    setFinishError(null);
+    const { sets, status } = buildSessionPayload();
+    try {
+      const outcome = await registerFreeWorkoutSession({
+        clientKey,
+        exercises,
+        sets,
+        status,
+        sessionRpe,
+        notes: notes.trim() || null,
+      });
+      if (outcome.celebrate) setPrEvents(outcome.prEvents);
+      // Ordem importa: fecha a persistência e para o cronômetro ANTES de apagar,
+      // senão um descanso ainda em contagem regrava o rascunho logo depois.
+      sessionSaved.current = true;
+      rest.skip();
+      restCtx.current = null;
+      clearFreeDraft();
+      setFinishing(false);
+      setSaved(true);
+    } catch {
+      setFinishing(false);
+      setFinishError(
+        "Não foi possível salvar o treino agora. Ele continua guardado neste aparelho — tente de novo.",
+      );
+    }
+  }
+
   async function confirmFinish() {
-    if (!plan || !day || finishing) return;
+    if (finishing) return;
+    if (isFree) {
+      await confirmFinishFree();
+      return;
+    }
+    if (!plan || !day) return;
     setFinishing(true);
     const { sets, status } = buildSessionPayload();
     try {
@@ -421,6 +623,12 @@ export default function WorkoutSessionPage() {
     } catch {
       /* gamificação best-effort; segue mesmo assim */
     }
+    // Mesma ordem do livre: trancar a persistência e parar o cronômetro antes de
+    // apagar. Sem isso, um descanso que estoura depois daqui regravava o
+    // rascunho e a ficha reabria o treino inteiro já marcado (QA ago/2026).
+    sessionSaved.current = true;
+    rest.skip();
+    restCtx.current = null;
     clearDraft(planId, dayIndex);
     // NÃO navega embora: entra no estado "salvo" com o Compartilhar em destaque.
     // Sair na hora escondia a divulgação orgânica (regressão reportada jun/2026).
@@ -430,14 +638,26 @@ export default function WorkoutSessionPage() {
 
   function discardAndExit() {
     rest.skip();
+    if (isFree) {
+      clearFreeDraft();
+      navigate(FREE_SETUP_ROUTE, { replace: true });
+      return;
+    }
     clearDraft(planId, dayIndex);
     navigate("/app/user/ficha", { replace: true });
+  }
+
+  function closeExitDialog() {
+    setShowExit(false);
+    setConfirmFreeDiscard(false);
   }
 
   function exitKeepProgress() {
     if (rest.active) rest.pause();
     persist(exercises, currentIndex, startedAt);
-    navigate("/app/user/ficha", { replace: true });
+    // No livre a montagem é a tela que oferece "Retomar" — voltar para a ficha
+    // esconderia o treino que ficou aberto.
+    navigate(isFree ? FREE_SETUP_ROUTE : "/app/user/ficha", { replace: true });
   }
 
   // ── render ────────────────────────────────────────────
@@ -449,7 +669,7 @@ export default function WorkoutSessionPage() {
     );
   }
 
-  if (phase === "empty" || !plan || !day) {
+  if (phase === "empty" || (!isFree && (!plan || !day))) {
     return (
       <div className="ws-root" style={{ display: "grid", placeItems: "center", padding: 24, textAlign: "center" }}>
         <div>
@@ -465,6 +685,11 @@ export default function WorkoutSessionPage() {
     );
   }
 
+  // Sem ficha o título é derivado do que o aluno montou — e é o MESMO que vai
+  // para o histórico, para a sessão não ter dois nomes.
+  const sessionTitle = plan && day ? `${plan.title} · ${day.name}` : freeWorkoutTitle(exercises);
+  const shareDayName = day ? day.name : "Treino livre";
+
   if (phase === "summary") {
     return (
       <div className="ws-root">
@@ -472,7 +697,7 @@ export default function WorkoutSessionPage() {
           <div className="ws-top-row">
             <div>
               <div className="ws-title">Treino concluído</div>
-              <div className="ws-sub">{plan.title} · {day.name}</div>
+              <div className="ws-sub">{sessionTitle}</div>
             </div>
           </div>
         </div>
@@ -612,6 +837,12 @@ export default function WorkoutSessionPage() {
 
           {saved && prEvents.length > 0 ? <PrCelebration events={prEvents} /> : null}
 
+          {finishError ? (
+            <div className="ws-error" role="alert">
+              {finishError}
+            </div>
+          ) : null}
+
           <div className="ws-actions">
             {saved ? (
               <>
@@ -620,8 +851,8 @@ export default function WorkoutSessionPage() {
                 {sessionStatus !== "abandoned" ? (
                   <WorkoutShareTrigger
                     variant="primary"
-                    focus={day.focus?.trim() || day.name}
-                    dayName={day.name}
+                    focus={day ? day.focus?.trim() || day.name : shareDayName}
+                    dayName={shareDayName}
                     stats={{
                       durationMin,
                       doneSets,
@@ -631,14 +862,17 @@ export default function WorkoutSessionPage() {
                     }}
                   />
                 ) : null}
-                <button className="ws-btn ws-btn-ghost" onClick={() => navigate("/app/user/ficha", { replace: true })}>
-                  Voltar para a ficha
+                <button
+                  className="ws-btn ws-btn-ghost"
+                  onClick={() => navigate(isFree ? "/app/user/today" : "/app/user/ficha", { replace: true })}
+                >
+                  {isFree ? "Voltar para o início" : "Voltar para a ficha"}
                 </button>
               </>
             ) : (
               <>
                 <button className="ws-btn ws-btn-primary" onClick={confirmFinish} disabled={finishing}>
-                  {finishing ? "Salvando…" : "Concluir e salvar"}
+                  {finishing ? "Salvando…" : finishError ? "Tentar novamente" : "Concluir e salvar"}
                 </button>
                 <button className="ws-btn ws-btn-ghost" onClick={() => setPhase("running")} disabled={finishing}>
                   Voltar ao treino
@@ -664,7 +898,7 @@ export default function WorkoutSessionPage() {
       exerciseId: current.exerciseId,
       name: current.name,
       sets: String(current.sets.length),
-      reps: currentItem?.reps ?? "",
+      reps: currentReps,
       rest: String(current.sets[0]?.plannedRestS ?? ""),
       planId: String(planId),
       dayIndex: String(dayIndex),
@@ -680,14 +914,22 @@ export default function WorkoutSessionPage() {
       <div className="ws-top">
         <div className="ws-top-row">
           <div style={{ minWidth: 0 }}>
-            <div className="ws-title">{plan.title} · {day.name}</div>
+            <div className="ws-title">{sessionTitle}</div>
             <div className="ws-sub">
               Exercício {currentIndex + 1}/{exercises.length} · {doneSets}/{totalSets} séries
             </div>
           </div>
-          <button className="ws-icon-btn" aria-label="Sair" onClick={() => setShowExit(true)}>
-            ×
-          </button>
+          <div className="ws-top-actions">
+            {/* Só no livre: a lista é do aluno, e o treino real muda no meio. */}
+            {isFree ? (
+              <button type="button" className="ws-manage-btn" onClick={() => setShowManage(true)}>
+                Exercícios
+              </button>
+            ) : null}
+            <button className="ws-icon-btn" aria-label="Sair" onClick={() => setShowExit(true)}>
+              ×
+            </button>
+          </div>
         </div>
         <div className="ws-progress-track">
           <div className="ws-progress-fill" style={{ width: `${totalSets ? (doneSets / totalSets) * 100 : 0}%` }} />
@@ -710,7 +952,7 @@ export default function WorkoutSessionPage() {
                 <div className="ws-ex-name">{current.name}</div>
                 <div className="ws-chips">
                   <span className="ws-chip">
-                    {current.sets.length}×{currentItem?.reps ?? ""}
+                    {current.sets.length}×{currentReps}
                   </span>
                   {current.sets[0]?.plannedRestS ? (
                     <span className="ws-chip">descanso {current.sets[0].plannedRestS}s</span>
@@ -726,7 +968,9 @@ export default function WorkoutSessionPage() {
                   ) : null}
                   {prev != null ? <span className="ws-chip ws-chip-prev">última: {prev} kg</span> : null}
                 </div>
-                {canGuidedLab && currentLabId ? (
+                {/* Fora do livre: o Lab guiado grava sessão própria atrelada a
+                    plano e dia, que aqui não existem. */}
+                {canGuidedLab && currentLabId && !isFree ? (
                   <button type="button" className="ws-lab-btn" onClick={openLabForCurrent}>
                     <span className="ws-lab-badge">Beta</span>
                     Analisar com o Lab
@@ -826,6 +1070,17 @@ export default function WorkoutSessionPage() {
 
       {demoName ? <ExerciseDemoModal key={demoName} name={demoName} onClose={() => setDemoName(null)} /> : null}
 
+      {isFree && showManage ? (
+        <LiveExerciseSheet
+          exercises={exercises}
+          currentIndex={currentIndex}
+          onClose={() => setShowManage(false)}
+          onMove={handleLiveMove}
+          onRemove={handleLiveRemove}
+          onAdd={handleLiveAdd}
+        />
+      ) : null}
+
       {/*
         Alerta de séries preenchidas e não marcadas.
         
@@ -880,7 +1135,7 @@ export default function WorkoutSessionPage() {
           role="dialog"
           aria-modal="true"
           style={{ position: "fixed", inset: 0, zIndex: 1300, background: "rgba(10,19,13,.5)", display: "flex", alignItems: "flex-end", justifyContent: "center", padding: 12 }}
-          onClick={() => setShowExit(false)}
+          onClick={closeExitDialog}
         >
           <div
             onClick={(e) => e.stopPropagation()}
@@ -890,15 +1145,40 @@ export default function WorkoutSessionPage() {
             <div style={{ fontSize: 13, color: "var(--color-text-muted)" }}>
               Seu progresso fica salvo neste aparelho — você pode retomar de onde parou.
             </div>
-            <button className="ws-btn ws-btn-ghost" onClick={() => setShowExit(false)}>Continuar treino</button>
+            <button className="ws-btn ws-btn-ghost" onClick={closeExitDialog}>Continuar treino</button>
             <button className="ws-btn ws-btn-ghost" onClick={exitKeepProgress}>Sair (salvar progresso)</button>
-            <button
-              className="ws-btn ws-btn-ghost"
-              style={{ color: "var(--color-danger)", borderColor: "var(--color-danger-border)" }}
-              onClick={discardAndExit}
-            >
-              Descartar treino
-            </button>
+            {/*
+              No livre o descarte é irreversível de verdade: não há ficha para
+              remontar o treino, então o botão pede confirmação nomeando o que
+              se perde. No prescrito segue direto, como sempre foi.
+            */}
+            {isFree && confirmFreeDiscard ? (
+              <>
+                <div style={{ fontSize: 13, color: "var(--color-danger-text)" }}>
+                  {doneSets > 0
+                    ? `Descartar apaga ${doneSets === 1 ? "a série já marcada" : `as ${doneSets} séries já marcadas`} neste treino. Não dá para desfazer.`
+                    : "Descartar apaga este treino livre. Não dá para desfazer."}
+                </div>
+                <button
+                  className="ws-btn ws-btn-ghost"
+                  style={{ color: "var(--color-danger)", borderColor: "var(--color-danger-border)" }}
+                  onClick={discardAndExit}
+                >
+                  Sim, descartar
+                </button>
+                <button className="ws-btn ws-btn-ghost" onClick={() => setConfirmFreeDiscard(false)}>
+                  Cancelar
+                </button>
+              </>
+            ) : (
+              <button
+                className="ws-btn ws-btn-ghost"
+                style={{ color: "var(--color-danger)", borderColor: "var(--color-danger-border)" }}
+                onClick={isFree ? () => setConfirmFreeDiscard(true) : discardAndExit}
+              >
+                Descartar treino
+              </button>
+            )}
           </div>
         </div>
       ) : null}

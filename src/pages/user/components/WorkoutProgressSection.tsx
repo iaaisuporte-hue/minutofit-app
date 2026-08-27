@@ -49,7 +49,9 @@ function ExerciseRow({ ex }: { ex: ExerciseProgression }) {
       >
         <div style={{ minWidth: 0, flex: 1 }}>
           <strong style={{ color: "var(--color-text)", display: "block", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{ex.name}</strong>
-          <span className="metabolic-eyebrow">{ex.points.length} sessões com carga · toque para ver</span>
+          <span className="metabolic-eyebrow">
+            {ex.points.length} {ex.points.length === 1 ? "sessão" : "sessões"} com carga · toque para ver
+          </span>
         </div>
         <Sparkline values={ex.points.map((p) => p.maxLoadKg)} />
         <div style={{ textAlign: "right", flexShrink: 0 }}>
@@ -81,9 +83,17 @@ export function WorkoutProgressSection({ stats, loading }: { stats: WorkoutStats
   if (loading) return null;
   // Só renderiza com carga real por exercício. Sem carga, o hero ("Informe a
   // carga →") e o indicador "Carga —" já nudgeiam — evita card vazio repetitivo.
-  if (!stats || stats.exerciseProgression.length === 0) return null;
+  if (!stats) return null;
 
-  const top = stats.exerciseProgression.slice(0, 8);
+  // Esta seção é sobre PROGRESSÃO, e progressão precisa de dois pontos: com um
+  // só, a linha sairia "50 → 50 kg · → 0 kg", afirmando estabilidade onde só há
+  // um registro. O servidor deixou de filtrar `points.length >= 2` de propósito
+  // (o chip "última: X kg" do Modo Treino precisa do exercício de um dia só) —
+  // o mesmo dado serve a dois propósitos, e quem escolhe é o consumidor.
+  const withProgression = stats.exerciseProgression.filter((ex) => ex.points.length >= 2);
+  if (withProgression.length === 0) return null;
+
+  const top = withProgression.slice(0, 8);
 
   return (
     <section className="metabolic-history-page" style={{ display: "grid", gap: "var(--space-3)" }}>

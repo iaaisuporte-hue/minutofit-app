@@ -13,6 +13,7 @@ import UpgradePlanPage from "./user/UpgradePlanPage";
 import { isNativeApp } from "../lib/platform";
 import WorkoutPlayerPage from "./user/WorkoutPlayerPage";
 import WorkoutSessionPage from "./user/WorkoutSessionPage";
+import FreeWorkoutSetupPage from "./user/freeWorkout/FreeWorkoutSetupPage";
 
 // Tracker e Lab carregam as duas bibliotecas mais pesadas do app — leaflet
 // (mapa) e MediaPipe Pose. São duas telas entre ~20, e quem nunca corre nem
@@ -179,6 +180,11 @@ export default function UserApp() {
   // fail-open enquanto as flags carregam para não piscar o "sem acesso".
   const canRetroWorkout = hasFeature("retro_workout_enabled");
   const allowRetroWorkoutRoute = canRetroWorkout || loading || planName === null;
+  // Treino livre: mesmo padrão fail-open. Aqui ele importa mais que nas outras —
+  // a sessão em andamento vive numa rota própria, e rebater no refresh esconderia
+  // o treino que o aluno está executando.
+  const canFreeWorkout = hasFeature("free_workout");
+  const allowFreeWorkoutRoute = canFreeWorkout || loading || planName === null;
   const canSuggestedTraining = hasFeature("suggested_training");
   const canWorkouts = hasFeature("workouts");
   const canHomeWorkouts = hasFeature("home_workouts");
@@ -379,6 +385,30 @@ export default function UserApp() {
                 path="treino/:planId/:dayIndex"
                 element={
                   <LimitedUserOnly allowed={!loading}>
+                    <RequireClearance>
+                      <WorkoutSessionPage />
+                    </RequireClearance>
+                  </LimitedUserOnly>
+                }
+              />
+              {/* ✅ TREINO LIVRE — montagem + execução na MESMA engine do Modo
+                  Treino (sem :planId = modo livre). Clearance PAR-Q igual às
+                  demais telas de treino: o POST é gateado no servidor, e montar
+                  um treino inteiro para tomar erro no fim seria cruel. */}
+              <Route
+                path="treino-livre"
+                element={
+                  <LimitedUserOnly allowed={allowFreeWorkoutRoute}>
+                    <RequireClearance>
+                      <FreeWorkoutSetupPage />
+                    </RequireClearance>
+                  </LimitedUserOnly>
+                }
+              />
+              <Route
+                path="treino-livre/sessao"
+                element={
+                  <LimitedUserOnly allowed={allowFreeWorkoutRoute}>
                     <RequireClearance>
                       <WorkoutSessionPage />
                     </RequireClearance>

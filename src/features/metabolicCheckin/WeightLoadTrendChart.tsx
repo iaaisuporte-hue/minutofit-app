@@ -33,7 +33,11 @@ function buildSeries(records: MetabolicCheckinRecord[], stats: WorkoutStats | nu
   const weekly = new Map<number, number[]>();
   if (stats) {
     for (const ex of stats.exerciseProgression) {
-      if (!ex.firstLoadKg) continue;
+      // Exercício com um único ponto entra com razão 1,0 por construção
+      // (`maxLoadKg === firstLoadKg`) e puxa o índice da semana para 100 sem
+      // dizer nada sobre tendência. O servidor devolve esses exercícios de
+      // propósito — o chip "última: X kg" depende deles —, então o corte é aqui.
+      if (ex.points.length < 2 || !ex.firstLoadKg) continue;
       for (const point of ex.points) {
         const time = new Date(point.date).getTime();
         if (Number.isNaN(time) || time < cutoff) continue;
