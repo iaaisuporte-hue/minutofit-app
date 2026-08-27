@@ -203,10 +203,15 @@ describe("ProgressScoreSection", () => {
     render(<ProgressScoreSection />);
     await screen.findByText("78");
 
-    const call = vi
-      .mocked(postPerformanceEvent)
-      .mock.calls.find(([name]) => name === "performance.score_viewed");
-    expect(call).toBeDefined();
-    expect(JSON.stringify(call![1])).not.toContain("78");
+    // O evento sai num useEffect, então ver o score na tela não garante que ele
+    // já foi postado — sem esperar, o teste falha ~1 execução em 5.
+    const call = await waitFor(() => {
+      const found = vi
+        .mocked(postPerformanceEvent)
+        .mock.calls.find(([name]) => name === "performance.score_viewed");
+      expect(found).toBeDefined();
+      return found!;
+    });
+    expect(JSON.stringify(call[1])).not.toContain("78");
   });
 });
