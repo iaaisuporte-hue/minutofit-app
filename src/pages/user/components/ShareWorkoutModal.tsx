@@ -44,7 +44,9 @@ export function ShareWorkoutModal({ focus, dayName, stats, exercises, onClose }:
     setComposing(true);
     setError(null);
     try {
-      const img = await composeWorkoutImage({ focus, dayName, backgroundFile: bg, format: fmt, stats, exercises });
+      // `dayName`/`stats` seguem no componente para o TEXTO que acompanha o
+      // compartilhamento — a arte deixou de exibir os dois.
+      const img = await composeWorkoutImage({ focus, backgroundFile: bg, format: fmt, exercises });
       setImage(img);
     } catch {
       setError("Não consegui montar a imagem com essa foto. Tente outra.");
