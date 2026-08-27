@@ -12,6 +12,7 @@ import { Toast } from "../../features/team/Toast";
 import { WorkoutLogSheet, type SessionStatus } from "./components/WorkoutLogSheet";
 import { registerWorkoutSession } from "./workoutSession/registerWorkoutSession";
 import { WorkoutShareTrigger } from "./components/WorkoutShareTrigger";
+import { loadTodayShareData } from "./lib/sessionShareData";
 import { useAdaptiveTraining } from "../../features/training/adaptive/useAdaptiveTraining";
 import type { AdaptiveTodayResponse } from "../../services/trainingAdaptiveApi";
 import { ReadinessPill } from "../../features/training/adaptive/ReadinessPill";
@@ -690,14 +691,10 @@ function PlanCard({ plan, isOpen, onToggle, onAbandon, adaptiveData }: PlanCardP
                   <WorkoutShareTrigger
                     focus={displayDay.focus?.trim() || displayDay.name}
                     dayName={displayDay.name}
-                    // Registro sem cronômetro: não há série a série, então a
-                    // mini tabela mostra o dia como prescrito — que é o que a
-                    // pessoa confirmou ter feito ao registrar.
-                    exercises={(displayDay.items ?? []).map((it) => ({
-                      name: it.name,
-                      sets: Number.parseInt(it.sets, 10) || null,
-                      reps: it.reps,
-                    }))}
+                    // Lê a sessão GRAVADA do dia em vez dos itens prescritos: o
+                    // treino de hoje pode ter sido livre, ou só metade da ficha,
+                    // e a arte tem que dizer o que foi feito.
+                    resolveShareData={loadTodayShareData}
                   />
                 </div>
               )}

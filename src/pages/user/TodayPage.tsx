@@ -71,9 +71,7 @@ import { MovementLabEntryCard } from "./components/MovementLabEntryCard";
 import { FreeWorkoutEntryCard } from "./components/FreeWorkoutEntryCard";
 import { ChallengeCard } from "./components/ChallengeCard";
 import { ShareWorkoutModal } from "./components/ShareWorkoutModal";
-import { buildShareFromSession, type SessionShareData } from "./lib/sessionShareData";
-import { getWorkoutSessionDetail, listWorkoutSessionsPage } from "../../services/workoutSessionApi";
-import { dayKey } from "../../lib/appDay";
+import { loadTodayShareData, type SessionShareData } from "./lib/sessionShareData";
 import { usePushSubscription } from "../../features/nutrition/usePushSubscription";
 import { PushOptInCard } from "../../features/pwa/PushOptInCard";
 import "./todayPage.css";
@@ -331,17 +329,11 @@ export default function TodayPage() {
     setLoadingShare(true);
     setShareError(null);
     try {
-      const today = dayKey();
-      const { sessions } = await listWorkoutSessionsPage(20);
-      // A mais recente do dia: dois treinos no mesmo dia compartilham o último.
-      const mine = sessions.find(
-        (s) => dayKey(new Date(s.performedAt)) === today && s.status !== "started",
-      );
       // O marcador do gráfico nasce do cache local de treinos, que pode não ter
       // par no servidor (registro que falhou, cache de outro aparelho). Nesse
       // caso o clique precisa dizer algo — não pode simplesmente não responder.
-      const detail = mine ? await getWorkoutSessionDetail(mine.id) : null;
-      if (detail) setShareToday(buildShareFromSession(detail));
+      const data = await loadTodayShareData();
+      if (data) setShareToday(data);
       else setShareError("Não encontrei o treino de hoje para compartilhar.");
     } catch {
       setShareError("Não consegui abrir o treino de hoje. Tente de novo.");

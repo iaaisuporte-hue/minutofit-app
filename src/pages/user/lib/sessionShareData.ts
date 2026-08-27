@@ -7,7 +7,12 @@
 //
 // Puro de propósito: é ele que decide o que a arte afirma sobre o treino.
 
-import type { WorkoutSessionDetail } from "../../../services/workoutSessionApi";
+import {
+  getWorkoutSessionDetail,
+  listWorkoutSessionsPage,
+  type WorkoutSessionDetail,
+} from "../../../services/workoutSessionApi";
+import { dayKey } from "../../../lib/appDay";
 import type { WorkoutShareExercise, WorkoutShareStats } from "./shareWorkoutImage";
 
 export type SessionShareData = {
@@ -92,4 +97,29 @@ export function buildShareFromSession(detail: WorkoutSessionDetail): SessionShar
     },
     exercises,
   };
+}
+
+/**
+ * O treino DE HOJE como material do card, lido do servidor.
+ *
+ * Fonte única para todo botão de compartilhar que não seja o resumo ao vivo:
+ * a arte tem que mostrar o que foi treinado de verdade. Antes a ficha
+ * compartilhava os itens PRESCRITOS do dia — quem fez treino livre, ou fez
+ * metade da ficha, publicava uma peça que não correspondia ao que executou.
+ *
+ * Devolve `null` quando não há sessão do dia (o marcador do gráfico nasce de
+ * cache local e pode não ter par no servidor), para o chamador avisar em vez
+ * de abrir um card vazio.
+ */
+export async function loadTodayShareData(): Promise<SessionShareData | null> {
+  const today = dayKey();
+  const { sessions } = await listWorkoutSessionsPage(20);
+  // A lista vem da mais recente para a mais antiga: com dois treinos no mesmo
+  // dia, compartilha o último — que é o que a pessoa acabou de fazer.
+  const mine = sessions.find(
+    (s) => dayKey(new Date(s.performedAt)) === today && s.status !== "started",
+  );
+  if (!mine) return null;
+  const detail = await getWorkoutSessionDetail(mine.id);
+  return detail ? buildShareFromSession(detail) : null;
 }

@@ -278,8 +278,8 @@ type PanelMetrics = {
 
 function panelMetrics(isStory: boolean, rowCount: number, hasOverflow: boolean): PanelMetrics {
   const m: Omit<PanelMetrics, "height"> = isStory
-    ? { padX: 40, padY: 34, labelSize: 27, gapLabelRows: 30, rowH: 60, nameSize: 34, detailSize: 34, radius: 32 }
-    : { padX: 32, padY: 26, labelSize: 22, gapLabelRows: 24, rowH: 48, nameSize: 27, detailSize: 27, radius: 26 };
+    ? { padX: 38, padY: 30, labelSize: 25, gapLabelRows: 26, rowH: 54, nameSize: 32, detailSize: 32, radius: 30 }
+    : { padX: 30, padY: 24, labelSize: 21, gapLabelRows: 20, rowH: 44, nameSize: 26, detailSize: 26, radius: 24 };
   const lines = rowCount + (hasOverflow ? 1 : 0);
   return { ...m, height: m.padY * 2 + m.labelSize + m.gapLabelRows + lines * m.rowH - 10 };
 }
@@ -403,8 +403,9 @@ export type ComposedImage = { blob: Blob; dataUrl: string; focus: string; format
 export async function composeWorkoutImage({ focus, dayName, backgroundFile, format = "story", stats, exercises }: ComposeWorkoutInput): Promise<ComposedImage> {
   const W = 1080;
   const H = format === "story" ? 1920 : 1080;
-  // Lift extra no rodapé: Story afasta da UI do Instagram; square dá respiro mínimo.
-  const lift = format === "story" ? 140 : 40;
+  // Lift extra no rodapé: Story afasta da UI do Instagram; square dá respiro
+  // mínimo. Mantido só o necessário — cada pixel aqui é foto a menos.
+  const lift = format === "story" ? 108 : 36;
 
   const canvas = document.createElement("canvas");
   canvas.width = W;
@@ -448,39 +449,41 @@ export async function composeWorkoutImage({ focus, dayName, backgroundFile, form
 
   // — Logo (âncora de marca, base do bloco)
   const logoImg = await loadSvgLogo();
-  const logoW = isStory ? 470 : 300;
+  const logoW = isStory ? 400 : 260;
   const logoH = Math.round(logoW * (56 / 264));
   const logoTop = H - bottomSafe - logoH;
 
   // — Tokens de espaçamento vertical (ritmo do rodapé)
-  const gapLogoDate = isStory ? 78 : 58;
-  const gapDateHero = isStory ? 82 : 56;
-  const gapHeroEyebrow = isStory ? 42 : 30;
+  const gapLogoDate = isStory ? 54 : 40;
+  const gapDateHero = isStory ? 46 : 34;
+  const gapHeroEyebrow = isStory ? 26 : 20;
 
   // — Painel de exercícios: entra ENTRE a data e o logo. A ordem de leitura
   //   fica eyebrow → título → data → detalhe → marca, e o rodapé inteiro só
   //   sobe: sem exercícios, `panelH` é 0 e a composição é a mesma de antes.
   const panelW = W - padX * 2;
   const panelH = pm?.height ?? 0;
-  const gapLogoPanel = isStory ? 52 : 40;
-  const gapPanelDate = isStory ? 50 : 38;
+  const gapLogoPanel = isStory ? 38 : 28;
+  const gapPanelDate = isStory ? 34 : 26;
   const panelTop = hasPanel ? logoTop - gapLogoPanel - panelH : logoTop;
 
   // — Data (acima do painel, ou do logo quando não há painel)
-  const dateSize = isStory ? 38 : 34;
+  const dateSize = isStory ? 33 : 29;
   const dateBaseline = hasPanel ? panelTop - gapPanelDate : logoTop - gapLogoDate;
 
   // — Herói (foco do treino): encolhe p/ caber em até 3 linhas, "+" verde deliberado
-  const hero = buildHeroLines(ctx, focus, W - padX * 2, isStory ? 132 : 108, 3, 800);
+  // 96 em vez de 132: com o painel de exercícios embaixo, um herói de 132px em
+  // duas linhas comia um terço do Story e sobrava pouca foto.
+  const hero = buildHeroLines(ctx, focus, W - padX * 2, isStory ? 96 : 82, 3, 800);
   const heroLineH = Math.round(hero.size * 1.06);
   const heroLastBaseline = dateBaseline - dateSize - gapDateHero;
 
   // — Topo do bloco de texto (eyebrow, e stats quando houver)
   const heroTopBaseline = heroLastBaseline - (hero.lines.length - 1) * heroLineH;
-  const eyebrowSize = isStory ? 40 : 34;
+  const eyebrowSize = isStory ? 34 : 29;
   const eyebrowBaseline = heroTopBaseline - Math.round(hero.size * 0.72) - gapHeroEyebrow;
   const chips = buildStatChips(stats);
-  const statsSize = isStory ? 34 : 28;
+  const statsSize = isStory ? 30 : 25;
   const statsBaseline = eyebrowBaseline - eyebrowSize - (isStory ? 30 : 22);
 
   // 3) Tratamento de legibilidade, agora que se sabe ONDE o texto começa.
@@ -491,8 +494,9 @@ export async function composeWorkoutImage({ focus, dayName, backgroundFile, form
   const textTop = chips.length ? statsBaseline - statsSize : eyebrowBaseline - eyebrowSize;
   if (bgImage) {
     // Véu global: a foto é escolha do usuário e pode ser clara em qualquer
-    // ponto. Sem ele, branco sobre céu/parede branca some.
-    ctx.fillStyle = "rgba(7,12,18,0.36)";
+    // ponto. Sem ele, branco sobre céu/parede branca some. Leve de propósito —
+    // quem escolheu a foto quer ver a foto; o scrim cobre a área do texto.
+    ctx.fillStyle = "rgba(7,12,18,0.26)";
     ctx.fillRect(0, 0, W, H);
   }
   const fade = isStory ? 300 : 240; // altura da transição até o texto começar
