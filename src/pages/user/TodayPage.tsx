@@ -70,6 +70,10 @@ import { WeeklyLoopCard, useHasWeeklyLoopInsights } from "../../features/loopVis
 import { MovementLabEntryCard } from "./components/MovementLabEntryCard";
 import { FreeWorkoutEntryCard } from "./components/FreeWorkoutEntryCard";
 import { ChallengeCard } from "./components/ChallengeCard";
+import { ShareWorkoutModal } from "./components/ShareWorkoutModal";
+import { buildShareFromSession, type SessionShareData } from "./lib/sessionShareData";
+import { getWorkoutSessionDetail, listWorkoutSessionsPage } from "../../services/workoutSessionApi";
+import { dayKey } from "../../lib/appDay";
 import { usePushSubscription } from "../../features/nutrition/usePushSubscription";
 import { PushOptInCard } from "../../features/pwa/PushOptInCard";
 import "./todayPage.css";
@@ -253,6 +257,12 @@ export default function TodayPage() {
     return saved?.trainingPlace === "gym" || saved?.trainingPlace === "both" ? "gym" : "home";
   });
   const checkinRef = useRef<DailyCheckinHandle>(null);
+  // Compartilhamento do treino de hoje, aberto pelo marcador do gráfico.
+  // Carregado SOB DEMANDA: o Hoje é a tela mais visitada do produto e não paga
+  // uma requisição a mais por um card que talvez ninguém abra.
+  const [shareToday, setShareToday] = useState<SessionShareData | null>(null);
+  const [loadingShare, setLoadingShare] = useState(false);
+  const [shareError, setShareError] = useState<string | null>(null);
   const [showCheckin, setShowCheckin] = useState(false);
   const [showMetabolicCheckin, setShowMetabolicCheckin] = useState(false);
   const [firstRun, setFirstRun] = useState(() =>
@@ -307,6 +317,38 @@ export default function TodayPage() {
     [metabolismHistory, todayCheckedIn, dailyCondition, workoutHistoryData]
   );
   const conditionSignals = useMemo(() => deriveConditionSignals(dailyCondition), [dailyCondition]);
+
+  /**
+   * Abre o card de compartilhamento do treino de HOJE a partir do gráfico.
+   *
+   * Até aqui o botão de compartilhar só existia no resumo logo após salvar:
+   * quem fechava a tela perdia o treino para sempre. O marcador do dia corrente
+   * devolve essa porta — e só a do dia corrente, para o gráfico continuar sendo
+   * leitura, não navegação.
+   */
+  const openTodayShare = useCallback(async () => {
+    if (loadingShare) return;
+    setLoadingShare(true);
+    setShareError(null);
+    try {
+      const today = dayKey();
+      const { sessions } = await listWorkoutSessionsPage(20);
+      // A mais recente do dia: dois treinos no mesmo dia compartilham o último.
+      const mine = sessions.find(
+        (s) => dayKey(new Date(s.performedAt)) === today && s.status !== "started",
+      );
+      // O marcador do gráfico nasce do cache local de treinos, que pode não ter
+      // par no servidor (registro que falhou, cache de outro aparelho). Nesse
+      // caso o clique precisa dizer algo — não pode simplesmente não responder.
+      const detail = mine ? await getWorkoutSessionDetail(mine.id) : null;
+      if (detail) setShareToday(buildShareFromSession(detail));
+      else setShareError("Não encontrei o treino de hoje para compartilhar.");
+    } catch {
+      setShareError("Não consegui abrir o treino de hoje. Tente de novo.");
+    } finally {
+      setLoadingShare(false);
+    }
+  }, [loadingShare]);
 
   // ── Hero "Seu dia": a ÚNICA ação primária por estado (passo 2 do redesign) ──
   const trainedToday = useMemo(() => {
@@ -696,13 +738,35 @@ export default function TodayPage() {
           days={historyDays}
           onDaysChange={setHistoryDays}
           onSeeMore={() => navigate("/app/user/estado-metabolico")}
+          onTodayWorkoutClick={() => void openTodayShare()}
         />
+        {(loadingShare || shareError) && (
+          <div
+            role="status"
+            style={{
+              fontSize: 12,
+              color: shareError ? "var(--color-danger)" : "var(--color-text-muted)",
+              padding: "0 4px",
+            }}
+          >
+            {shareError ?? "Abrindo o treino de hoje…"}
+          </div>
+        )}
         {hasWeeklyLoopInsights && <WeeklyLoopCard condition={dailyCondition} />}
         {/* Desafio em curso (Spec 034, C2). Some sozinho quando não há — a tela
             mais visitada do produto não pode gastar espaço dizendo "nada". */}
         <ChallengeCard />
         <FreeWorkoutEntryCard />
         <MovementLabEntryCard source="today" />
+        {shareToday && (
+          <ShareWorkoutModal
+            focus={shareToday.focus}
+            dayName={shareToday.dayName}
+            stats={shareToday.stats}
+            exercises={shareToday.exercises}
+            onClose={() => setShareToday(null)}
+          />
+        )}
       </motion.div>
 
       {/* 6. Plano alimentar — só renderiza para quem tem nutri (silencioso caso contrário) */}

@@ -11,6 +11,7 @@ import {
 import type { MetabolicHistory } from './metabolism.types';
 import type { HistoryMarker, MetabolicForecast } from './metabolismDerivations';
 import { buildForecastHistory, getStateLabelForScore } from './metabolismDerivations';
+import { dayKey } from '../../lib/appDay';
 
 const WINDOW_OPTIONS: { label: string; days: number }[] = [
   { label: '7d', days: 7 },
@@ -29,6 +30,12 @@ interface Props {
   /** Quando fornecido, mostra um botão "Ver evolução" no topo-direito do card
    *  (entrada para a página de evolução, já que ela saiu do bottom nav). */
   onSeeMore?: () => void;
+  /**
+   * Torna o marcador de treino DE HOJE acionável (abre o compartilhamento da
+   * sessão). Só hoje: dia passado é leitura, e o gráfico não vira navegação.
+   * Ausente (ex.: no cockpit do personal) mantém o gráfico só como leitura.
+   */
+  onTodayWorkoutClick?: () => void;
 }
 
 function formatDate(iso: string): string {
@@ -80,36 +87,73 @@ function ActualLastDot(props: { cx?: number; cy?: number; payload?: { isForecast
 function MarkerDot(props: {
   cx?: number;
   cy?: number;
-  payload?: { markerKind?: HistoryMarker['kind'] | null; isForecast?: boolean };
+  payload?: { markerKind?: HistoryMarker['kind'] | null; isForecast?: boolean; isActionable?: boolean };
+  onActivate?: () => void;
 }) {
-  const { cx, cy, payload } = props;
+  const { cx, cy, payload, onActivate } = props;
   if (!payload?.markerKind || payload.isForecast || cx == null || cy == null) return null;
 
   const fill = payload.markerKind === 'workout' ? '#7B9919' : payload.markerKind === 'condition' ? '#8E8E8E' : '#F97316';
   const label = payload.markerKind === 'workout' ? 'W' : payload.markerKind === 'condition' ? 'C' : '!';
+  const actionable = Boolean(payload.isActionable && onActivate);
+
+  if (!actionable) {
+    return (
+      <g>
+        <circle cx={cx} cy={cy} r={9} fill="#fff" stroke={fill} strokeWidth={2} />
+        <text x={cx} y={cy + 4} textAnchor="middle" fontSize="9" fontWeight="700" fill={fill}>
+          {label}
+        </text>
+      </g>
+    );
+  }
 
   return (
-    <g>
-      <circle cx={cx} cy={cy} r={9} fill="#fff" stroke={fill} strokeWidth={2} />
+    <g
+      role="button"
+      tabIndex={0}
+      aria-label="Compartilhar o treino de hoje"
+      style={{ cursor: 'pointer' }}
+      onClick={onActivate}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onActivate?.();
+        }
+      }}
+    >
+      <title>Compartilhar o treino de hoje</title>
+      {/* Halo: o único sinal de que este ponto responde ao toque. */}
+      <circle cx={cx} cy={cy} r={14} fill="rgba(123,153,25,0.14)" />
+      <circle cx={cx} cy={cy} r={9} fill="#fff" stroke={fill} strokeWidth={2.5} />
       <text x={cx} y={cy + 4} textAnchor="middle" fontSize="9" fontWeight="700" fill={fill}>
         {label}
       </text>
+      {/* Alvo de toque de 44px — o marcador visível tem 18px de diâmetro. */}
+      <circle cx={cx} cy={cy} r={22} fill="transparent" />
     </g>
   );
 }
 
-export function MetabolicChart({ data, loading, forecast, markers, days = 14, onDaysChange, onSeeMore }: Props) {
+export function MetabolicChart({ data, loading, forecast, markers, days = 14, onDaysChange, onSeeMore, onTodayWorkoutClick }: Props) {
   if (!loading && data.length === 0) return null;
 
   const markerMap = new Map(markers.map((marker) => [marker.date, marker]));
   const lastActualDate = data[data.length - 1]?.date;
-  const chartData = buildForecastHistory(data, forecast).map((point) => ({
-    ...point,
-    dateLabel: formatDate(point.date),
-    markerKind: markerMap.get(point.date)?.kind ?? null,
-    markerLabel: markerMap.get(point.date)?.label ?? null,
-    isLastActual: point.date === lastActualDate,
-  }));
+  // Hoje no fuso do aluno, não em UTC: às 21h de um UTC-3 o dia UTC já virou e
+  // o marcador de hoje deixaria de ser clicável justamente à noite.
+  const todayKey = dayKey();
+  const chartData = buildForecastHistory(data, forecast).map((point) => {
+    const markerKind = markerMap.get(point.date)?.kind ?? null;
+    return {
+      ...point,
+      dateLabel: formatDate(point.date),
+      markerKind,
+      markerLabel: markerMap.get(point.date)?.label ?? null,
+      isLastActual: point.date === lastActualDate,
+      isActionable: Boolean(onTodayWorkoutClick) && markerKind === 'workout' && point.date === todayKey,
+    };
+  });
 
   return (
     <div
@@ -215,7 +259,7 @@ export function MetabolicChart({ data, loading, forecast, markers, days = 14, on
               dot={(props) => (
                 <>
                   <ActualLastDot {...props} />
-                  <MarkerDot {...props} />
+                  <MarkerDot {...props} onActivate={onTodayWorkoutClick} />
                 </>
               )}
               activeDot={{ r: 6, fill: '#8E8E8E', strokeWidth: 0 }}
@@ -253,11 +297,33 @@ export function MetabolicChart({ data, loading, forecast, markers, days = 14, on
             const bg = isWorkout ? 'rgba(123,153,25,0.07)' : isCondition ? 'rgba(142,142,142,0.07)' : 'rgba(249,115,22,0.08)';
             const color = isWorkout ? '#5E7412' : isCondition ? '#6B7280' : '#c2410c';
             const markerLabel = isWorkout ? 'Treino registrado' : isCondition ? 'Check-in registrado' : 'Queda por inatividade';
+            const chipStyle: React.CSSProperties = { padding: '4px 10px', borderRadius: 999, border: `1px solid ${border}`, background: bg, color, fontSize: 11, fontWeight: 700 };
+
+            // O chip de hoje repete a ação do marcador. Sem ele a única porta
+            // seria um ponto de 18px no gráfico, que ninguém descobre — e no
+            // celular o chip ainda dá um alvo de toque de verdade.
+            if (isWorkout && onTodayWorkoutClick && marker.date === todayKey) {
+              return (
+                <button
+                  key={`${marker.date}-${marker.kind}`}
+                  type="button"
+                  onClick={onTodayWorkoutClick}
+                  style={{ ...chipStyle, minHeight: 32, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                >
+                  {markerLabel} · {formatDate(marker.date)}
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
+                    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+                  </svg>
+                  <span style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' }}>
+                    Compartilhar o treino de hoje
+                  </span>
+                </button>
+              );
+            }
+
             return (
-              <span
-                key={`${marker.date}-${marker.kind}`}
-                style={{ padding: '4px 10px', borderRadius: 999, border: `1px solid ${border}`, background: bg, color, fontSize: 11, fontWeight: 700 }}
-              >
+              <span key={`${marker.date}-${marker.kind}`} style={chipStyle}>
                 {markerLabel} · {formatDate(marker.date)}
               </span>
             );
