@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ShareWorkoutModal } from "./ShareWorkoutModal";
-import type { WorkoutShareStats } from "../lib/shareWorkoutImage";
+import type { WorkoutShareExercise, WorkoutShareStats } from "../lib/shareWorkoutImage";
 
 /**
  * ⚠️ FUNCIONALIDADE MADURA — compartilhamento social de treino.
@@ -21,11 +21,13 @@ interface Props {
   dayName?: string;
   /** Estatísticas seguras opcionais (duração/séries/volume/sequência). */
   stats?: WorkoutShareStats | null;
+  /** Exercícios executados — mini tabela "Exercícios executados" no card. */
+  exercises?: WorkoutShareExercise[] | null;
   variant?: Variant;
   label?: string;
 }
 
-export function WorkoutShareTrigger({ focus, dayName, stats, variant = "ghost", label = "Compartilhar treino" }: Props) {
+export function WorkoutShareTrigger({ focus, dayName, stats, exercises, variant = "ghost", label = "Compartilhar treino" }: Props) {
   const [open, setOpen] = useState(false);
 
   const base: React.CSSProperties = {
@@ -56,7 +58,7 @@ export function WorkoutShareTrigger({ focus, dayName, stats, variant = "ghost", 
         {label}
       </button>
       {open ? (
-        <ShareWorkoutModal focus={focus} dayName={dayName} stats={stats} onClose={() => setOpen(false)} />
+        <ShareWorkoutModal focus={focus} dayName={dayName} stats={stats} exercises={exercises} onClose={() => setOpen(false)} />
       ) : null}
     </>
   );

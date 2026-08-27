@@ -529,6 +529,35 @@ export default function WorkoutSessionPage() {
     }
     return Math.round(v);
   }, [exercises]);
+  /**
+   * Exercícios para a mini tabela do card de compartilhamento: o que foi
+   * EXECUTADO (série marcada), não o que estava prescrito — quem parou no 3º
+   * exercício não compartilha uma peça dizendo que fez sete. As reps saem do
+   * que a pessoa digitou (faixa "8-12" quando variou), com o planejado só como
+   * rede de segurança para quem marca o ✓ sem preencher.
+   */
+  const shareExercises = useMemo(
+    () =>
+      exercises
+        .map((ex) => {
+          const done = ex.sets.filter((s) => s.done);
+          if (!done.length) return null;
+          const typed = done.map((s) => parseNum(s.reps)).filter((n): n is number => n != null && n > 0);
+          let reps: string | null = null;
+          if (typed.length) {
+            const min = Math.min(...typed);
+            const max = Math.max(...typed);
+            reps = min === max ? String(min) : `${min}-${max}`;
+          } else {
+            const planned = leadingInt(done[0].plannedReps);
+            reps = planned ? String(planned) : null;
+          }
+          return { name: ex.name, sets: done.length, reps };
+        })
+        .filter((x): x is { name: string; sets: number; reps: string | null } => x !== null),
+    [exercises],
+  );
+
   const durationMin = Math.max(1, Math.round((Date.now() - startedAt) / 60000));
   const adherence = totalSets > 0 ? Math.round((doneSets / totalSets) * 100) : 0;
   const sessionStatus: "completed" | "partial" | "abandoned" =
@@ -853,6 +882,7 @@ export default function WorkoutSessionPage() {
                     variant="primary"
                     focus={day ? day.focus?.trim() || day.name : shareDayName}
                     dayName={shareDayName}
+                    exercises={shareExercises}
                     stats={{
                       durationMin,
                       doneSets,

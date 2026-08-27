@@ -690,6 +690,14 @@ function PlanCard({ plan, isOpen, onToggle, onAbandon, adaptiveData }: PlanCardP
                   <WorkoutShareTrigger
                     focus={displayDay.focus?.trim() || displayDay.name}
                     dayName={displayDay.name}
+                    // Registro sem cronômetro: não há série a série, então a
+                    // mini tabela mostra o dia como prescrito — que é o que a
+                    // pessoa confirmou ter feito ao registrar.
+                    exercises={(displayDay.items ?? []).map((it) => ({
+                      name: it.name,
+                      sets: Number.parseInt(it.sets, 10) || null,
+                      reps: it.reps,
+                    }))}
                   />
                 </div>
               )}

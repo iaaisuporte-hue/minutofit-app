@@ -41,10 +41,12 @@ Regras:
 - Disponível para treino de **personal**, **automático/MaaS**, **adaptado** e **executado** — o `focus`/`dayName`/`stats` vêm da sessão, agnóstico à origem.
 
 ### Privacidade (obrigatório)
-Card/texto contêm **apenas**: nome do app/marca, foco e nome do treino, data, e stats seguros (duração, séries feitas/previstas, % conclusão, volume, sequência), frase/CTA. **NUNCA**: peso corporal, medidas, dor/fadiga/limitações, dados clínicos, nome de personal/academia/nutri, IDs/dados técnicos, plano/pagamento. O tipo `WorkoutShareStats` é a allow-list — não adicionar campo sensível nele.
+Card/texto contêm **apenas**: nome do app/marca, foco e nome do treino, data, stats seguros (duração, séries feitas/previstas, % conclusão, volume, sequência), **nome dos exercícios executados com séries × reps**, frase/CTA. **NUNCA**: peso corporal, medidas, dor/fadiga/limitações, dados clínicos, nome de personal/academia/nutri, IDs/dados técnicos, plano/pagamento. Os tipos `WorkoutShareStats` e `WorkoutShareExercise` são a allow-list — não adicionar campo sensível neles.
+
+> A mini tabela "Exercícios executados" (ago/2026) carrega **nome + séries × reps**, mesma classe de dado do resto do card: o que a pessoa fez no treino. **Carga por exercício ficou de fora de propósito** — o volume total já vai na linha de stats, e kg por movimento aproxima a peça de dado corporal comparável. A lista mostra o **executado**, não o prescrito: quem parou no 3º exercício não compartilha uma arte dizendo que fez sete. Teto de 6 linhas (Story) / 3 (feed), com a última gasta em "+N exercícios" quando sobra gente de fora.
 
 ### Testes obrigatórios
-- `src/pages/user/lib/shareWorkoutImage.test.ts` — texto seguro (não vaza sensível), capacidade e fallbacks.
+- `src/pages/user/lib/shareWorkoutImage.test.ts` — texto seguro (não vaza sensível), capacidade, fallbacks e o corte da mini tabela (`buildExerciseRows`).
 - `src/pages/user/components/WorkoutShareTrigger.test.tsx` — **botão presente** + **abre o fluxo** no clique.
 - `src/pages/user/components/ShareWorkoutModal.test.tsx` — fallback desktop (baixar/copiar) vs share nativo (mobile).
 

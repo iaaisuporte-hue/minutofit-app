@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  buildExerciseRows,
   buildShareText,
   canShareWorkoutImage,
   copyShareText,
@@ -93,5 +94,53 @@ describe("copyShareText", () => {
   it("retorna false quando clipboard não existe", async () => {
     Object.defineProperty(navigator, "clipboard", { value: undefined, configurable: true });
     await expect(copyShareText("oi")).resolves.toBe(false);
+  });
+});
+
+// Mini tabela "Exercícios executados" do card (ver docs/MATURE_FEATURES.md).
+// A regra de corte é o que a peça diz — daí ser pura e testada aqui.
+describe("buildExerciseRows", () => {
+  it("formata séries × reps e preserva a ordem de execução", () => {
+    const { rows, hiddenCount } = buildExerciseRows(
+      [
+        { name: "Puxada frente", sets: 4, reps: "12" },
+        { name: "Remada baixa", sets: 3, reps: "10-12" },
+      ],
+      6,
+    );
+    expect(rows).toEqual([
+      { name: "Puxada frente", detail: "4 × 12" },
+      { name: "Remada baixa", detail: "3 × 10-12" },
+    ]);
+    expect(hiddenCount).toBe(0);
+  });
+
+  it("degrada quando falta séries ou reps, sem imprimir null/undefined", () => {
+    const { rows } = buildExerciseRows(
+      [
+        { name: "Prancha", sets: 3, reps: null },
+        { name: "Abdominal", sets: null, reps: "15" },
+        { name: "Alongamento" },
+        { name: "Agachamento", sets: 1, reps: "10" },
+      ],
+      6,
+    );
+    expect(rows.map((r) => r.detail)).toEqual(["3 séries", "15 reps", "", "1 × 10"]);
+    for (const r of rows) expect(r.detail).not.toMatch(/undefined|null|NaN/);
+  });
+
+  it("gasta a última linha com '+N' em vez de cortar em silêncio", () => {
+    const list = Array.from({ length: 9 }, (_, i) => ({ name: `Ex ${i + 1}`, sets: 3, reps: "10" }));
+    const { rows, hiddenCount } = buildExerciseRows(list, 6);
+    expect(rows).toHaveLength(5);
+    expect(rows[4].name).toBe("Ex 5");
+    expect(hiddenCount).toBe(4); // 9 − 5 exibidos
+  });
+
+  it("descarta nomes vazios e some quando não sobra nada", () => {
+    expect(buildExerciseRows([{ name: "   " }, { name: "" }], 6).rows).toEqual([]);
+    expect(buildExerciseRows(null, 6).rows).toEqual([]);
+    expect(buildExerciseRows(undefined, 6).rows).toEqual([]);
+    expect(buildExerciseRows([{ name: "Supino", sets: 3, reps: "10" }], 0).rows).toEqual([]);
   });
 });

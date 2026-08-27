@@ -7,6 +7,7 @@ import {
   downloadComposedImage,
   shareImageBlob,
   type ComposedImage,
+  type WorkoutShareExercise,
   type WorkoutShareFormat,
   type WorkoutShareStats,
 } from "../lib/shareWorkoutImage";
@@ -16,6 +17,8 @@ type Props = {
   dayName?: string;
   /** Estatísticas seguras opcionais para enriquecer o card e o texto. */
   stats?: WorkoutShareStats | null;
+  /** Exercícios executados — viram a mini tabela do card. */
+  exercises?: WorkoutShareExercise[] | null;
   onClose: () => void;
 };
 
@@ -24,7 +27,7 @@ type Props = {
  * o aluno escolhe/tira uma foto que vira o fundo do card, vê o resultado e
  * compartilha. O share() parte do botão "Compartilhar" (gesto do usuário).
  */
-export function ShareWorkoutModal({ focus, dayName, stats, onClose }: Props) {
+export function ShareWorkoutModal({ focus, dayName, stats, exercises, onClose }: Props) {
   const [image, setImage] = useState<ComposedImage | null>(null);
   const [composing, setComposing] = useState(true);
   const [sharing, setSharing] = useState(false);
@@ -41,7 +44,7 @@ export function ShareWorkoutModal({ focus, dayName, stats, onClose }: Props) {
     setComposing(true);
     setError(null);
     try {
-      const img = await composeWorkoutImage({ focus, dayName, backgroundFile: bg, format: fmt, stats });
+      const img = await composeWorkoutImage({ focus, dayName, backgroundFile: bg, format: fmt, stats, exercises });
       setImage(img);
     } catch {
       setError("Não consegui montar a imagem com essa foto. Tente outra.");
