@@ -15,6 +15,9 @@ import {
 import { dayKey } from "../../../lib/appDay";
 import type { WorkoutShareExercise, WorkoutShareStats } from "./shareWorkoutImage";
 
+/** Como o treino livre se chama na arte — herói do card, não nota de rodapé. */
+const FREE_WORKOUT_LABEL = "Treino livre";
+
 export type SessionShareData = {
   focus: string;
   dayName?: string;
@@ -23,14 +26,31 @@ export type SessionShareData = {
 };
 
 /**
- * O título é gravado como "Plano · Dia" ou "Treino livre · Costas e Ombros".
- * O último segmento é o que identifica o treino e vira o herói do card; o
- * primeiro vira a linha de contexto ao lado da data.
+ * O título é gravado como "Plano · Dia" (ficha) ou "Treino livre · Costas e
+ * Ombros" (livre), e o herói do card sai de metades diferentes conforme a
+ * origem — por isso `source` entra aqui.
+ *
+ * Numa ficha, o que identifica o treino é o último segmento ("Treino B"); o
+ * plano é contexto. Num treino livre é o contrário: "Costas e Ombros" é
+ * DERIVADO dos exercícios que a pessoa escolheu e, quando calha de bater com o
+ * nome do treino recomendado do dia, a arte parece estar publicando o treino
+ * que ela não fez. O que identifica a sessão é ter sido livre — então "Treino
+ * livre" é o herói, e os grupos musculares descem para a linha da data.
  */
-function splitTitle(title: string | null): { focus: string; dayName?: string } {
+function splitTitle(
+  title: string | null,
+  source: WorkoutSessionDetail["source"],
+): { focus: string; dayName?: string } {
   const clean = (title ?? "").trim();
-  if (!clean) return { focus: "Treino" };
   const parts = clean.split("·").map((p) => p.trim()).filter(Boolean);
+
+  if (source === "free") {
+    // Sem os grupos derivados ("Treino livre" puro), não há contexto a mostrar.
+    const groups = parts.length > 1 ? parts.slice(1).join(" · ") : undefined;
+    return { focus: FREE_WORKOUT_LABEL, dayName: groups };
+  }
+
+  if (!clean) return { focus: "Treino" };
   if (parts.length < 2) return { focus: clean };
   return { focus: parts[parts.length - 1], dayName: parts.slice(0, -1).join(" · ") };
 }
@@ -47,7 +67,7 @@ function repsRange(done: { repsDone: number | null; plannedReps: string | null }
 }
 
 export function buildShareFromSession(detail: WorkoutSessionDetail): SessionShareData {
-  const { focus, dayName } = splitTitle(detail.title);
+  const { focus, dayName } = splitTitle(detail.title, detail.source);
 
   // Agrupa por exercício preservando a ordem da execução.
   const byExercise = new Map<string, { order: number; sets: typeof detail.sets }>();

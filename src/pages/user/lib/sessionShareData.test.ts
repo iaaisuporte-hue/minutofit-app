@@ -79,20 +79,45 @@ describe("buildShareFromSession", () => {
     expect(out.exercises[0]).toEqual({ name: "Prancha", sets: 1, reps: "8-12" });
   });
 
-  it("soma volume só das séries feitas e separa título em foco + contexto", () => {
+  it("soma volume só das séries feitas", () => {
     const out = buildShareFromSession(
       session({
-        title: "Treino livre · Costas e Ombros",
         sets: [
           set({ exerciseName: "Remada", orderIndex: 1, repsDone: 10, loadDoneKg: 40 }),
           set({ exerciseName: "Remada", orderIndex: 1, setIndex: 2, repsDone: 10, loadDoneKg: 40, status: "skipped" }),
         ],
       }),
     );
-    expect(out.focus).toBe("Costas e Ombros");
-    expect(out.dayName).toBe("Treino livre");
     expect(out.stats.volumeKg).toBe(400);
     expect(out.stats.durationMin).toBe(52);
+  });
+
+  // Numa ficha, o herói é o dia ("Treino B") e o plano é contexto.
+  it("ficha: o dia identifica o treino, o plano vira contexto", () => {
+    const out = buildShareFromSession(
+      session({ source: "personal", title: "Plano Base · Treino B", sets: [] }),
+    );
+    expect(out.focus).toBe("Treino B");
+    expect(out.dayName).toBe("Plano Base");
+  });
+
+  // No livre é o contrário: "Costas e Ombros" é DERIVADO dos exercícios
+  // escolhidos e, batendo com o nome do treino recomendado do dia, a arte
+  // parecia publicar o treino que a pessoa não fez.
+  it("livre: o herói é 'Treino livre' e os grupos descem para o contexto", () => {
+    const out = buildShareFromSession(
+      session({ source: "free", planId: null, title: "Treino livre · Costas e Ombros", sets: [] }),
+    );
+    expect(out.focus).toBe("Treino livre");
+    expect(out.dayName).toBe("Costas e Ombros");
+  });
+
+  it("livre sem grupos derivados não inventa contexto", () => {
+    const out = buildShareFromSession(
+      session({ source: "free", planId: null, title: "Treino livre", sets: [] }),
+    );
+    expect(out.focus).toBe("Treino livre");
+    expect(out.dayName).toBeUndefined();
   });
 
   it("sessão retroativa não inventa duração (ended_at empata com o início)", () => {
