@@ -14,6 +14,9 @@ import SubscribersSection from "./SubscribersSection";
 import { AccountDataSection } from "../../features/account/AccountDataSection";
 import { PlanSection } from "../../features/personalPlan/PlanSection";
 import { useAuth } from "../../auth/AuthContext";
+import { useTheme } from "../../lib/useTheme";
+import { ProfileNavList } from "../../features/profile/ProfileNavList";
+import { Moon, Sun } from "lucide-react";
 
 const MODALITY_LABELS: Record<Modality, string> = {
   in_person: "Presencial",
@@ -65,6 +68,7 @@ function profileToForm(p: NetworkProfile): FormDraft {
 
 export default function NetworkProfilePage() {
   const { logout, role } = useAuth();
+  const { isDark, toggle: toggleTheme } = useTheme();
   const [profile, setProfile] = useState<NetworkProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [draft, setDraft] = useState<FormDraft>({
@@ -539,6 +543,34 @@ export default function NetworkProfilePage() {
       {/* Só personal: a rota /personal/plan é gateada por papel, e um nutri veria
           um "Free · até 3 alunos" que não diz respeito a ele. */}
       {role === "personal" && <PlanSection />}
+
+      {/*
+        Troca de tema no mobile: o FAB de tema (ThemeToggle, App.tsx) some
+        ≤720px por brigar com o bottom nav — o substituto documentado sempre
+        foi "Perfil › Aparência", mas só existia para o aluno (UserProfilePage).
+        No mobile, personal e nutri não tinham NENHUM jeito de trocar de tema.
+      */}
+      <div style={{ marginTop: 24 }}>
+        <ProfileNavList
+          sections={[
+            {
+              title: "Aplicativo",
+              items: [
+                {
+                  label: "Aparência",
+                  icon: isDark ? <Moon size={18} /> : <Sun size={18} />,
+                  onClick: toggleTheme,
+                  right: (
+                    <span style={{ fontSize: "var(--text-xs)", color: COLORS.mutedSoft }}>
+                      {isDark ? "Escuro" : "Claro"}
+                    </span>
+                  ),
+                },
+              ],
+            },
+          ]}
+        />
+      </div>
 
       {/*
         Exportar/excluir conta para personal e nutri. O app empacotado é um build

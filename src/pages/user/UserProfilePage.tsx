@@ -20,7 +20,8 @@ import "./todayPage.css";
 import { SportProfileSection } from "../../features/sport/components/SportProfileSection";
 import { AccountDataSection } from "../../features/account/AccountDataSection";
 import { ProfileNavList, type ProfileNavSection } from "../../features/profile/ProfileNavList";
-import { Users, BookOpen, Target, TrendingUp } from "lucide-react";
+import { Users, BookOpen, Target, TrendingUp, Moon, Sun } from "lucide-react";
+import { useTheme } from "../../lib/useTheme";
 import { useProfessionalContext } from "../../features/professionalVoice";
 import { COLORS } from "../../styles/colors";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
@@ -340,6 +341,7 @@ export default function UserProfilePage({ onLogout }: Props) {
   const isMobile = useIsMobile(720);
   const { shouldReduceMotion } = useTodayMotionSafe({ isMobile });
   const toast = useToast();
+  const { isDark, toggle: toggleTheme } = useTheme();
   const isLimitedProfile = accessProfile === "clientes_sb";
 
   const [confirmLogout, setConfirmLogout] = useState(false);
@@ -470,6 +472,17 @@ export default function UserProfilePage({ onLogout }: Props) {
           ? [{ label: "Treino do dia", icon: <Target size={18} />, to: "/app/user/suggested-training" }]
           : []),
         { label: "Glossário", icon: <BookOpen size={18} />, to: "/app/user/glossario" },
+      ],
+    },
+    {
+      title: "Aplicativo",
+      items: [
+        {
+          label: "Aparência",
+          icon: isDark ? <Moon size={18} /> : <Sun size={18} />,
+          onClick: toggleTheme,
+          right: <span style={{ fontSize: "var(--text-xs)", color: COLORS.mutedSoft }}>{isDark ? "Escuro" : "Claro"}</span>,
+        },
       ],
     },
   ];

@@ -5,7 +5,8 @@ import { useEffect, useState } from "react";
  * html[data-theme] (em sync com o script no-flash do index.html).
  *
  * Consumido pelo FAB desktop (ThemeToggle) e pela linha "Aparência" do Perfil
- * (mobile) — fonte única da lógica de tema.
+ * (mobile, UserProfilePage e NetworkProfilePage) — fonte única da lógica de
+ * tema.
  */
 export const THEME_KEY = "corefit_theme";
 export type Theme = "light" | "dark";

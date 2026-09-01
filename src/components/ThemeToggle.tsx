@@ -3,11 +3,19 @@ import { useTheme } from "../lib/useTheme";
 /**
  * FAB de tema claro/escuro (desktop). No mobile (≤720px) ele é ocultado via CSS
  * (`.theme-toggle-fab`, em `components.css`) porque brigava com o bottom nav —
- * no app do aluno a troca de tema mora em Perfil › Aparência. A lógica vive em
- * `useTheme`.
+ * a troca de tema mora em Perfil › Aparência (UserProfilePage e
+ * NetworkProfilePage — aluno, personal e nutri). A lógica vive em `useTheme`.
  *
  * Os estilos ficam na CLASSE, não inline: inline eles venciam por
  * especificidade e a ocultação no mobile nunca chegava a valer (QA 02/ago/2026).
+ *
+ * Histórico: até 01/set/2026 este comentário já dizia "a troca de tema mora em
+ * Perfil › Aparência", mas o item nunca tinha sido implementado em código
+ * nenhum lugar — nem para o aluno, nem para o personal. QA mobile encontrou
+ * que a troca de tema "funcionava para o aluno" (o FAB, visível em larguras
+ * >720px, testado nesse ponto) e "não funcionava para o personal" (mesma
+ * causa: nenhum caminho no mobile de verdade). Ambos ganharam o item real
+ * agora.
  */
 export default function ThemeToggle() {
   const { isDark, toggle } = useTheme();
