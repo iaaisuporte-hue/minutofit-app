@@ -18,7 +18,11 @@ android {
         applicationId "com.s2core.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
+        // versionCode "queima" a cada upload no Play Console, mesmo quando o
+        // upload é rejeitado (ex.: compileSdk/targetSdk baixo demais) — os
+        // dois primeiros envios (1) já foram consumidos por tentativas que
+        // falharam na validação, nunca chegaram a publicar.
+        versionCode 2
         versionName "1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
