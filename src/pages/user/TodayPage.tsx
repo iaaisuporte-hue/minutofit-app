@@ -30,6 +30,7 @@ import {
 import { useGamificationSummary } from "../../features/gamification/useGamificationSummary";
 import { ProfessionalVoiceCard } from "../../features/professionalVoice";
 import { InstallPrompt } from "../../features/pwa/InstallPrompt";
+import { ResumeWorkoutCard } from "./components/ResumeWorkoutCard";
 import { IncomingMessageBanner, useLatestUnreadFromProfessional } from "../../features/incomingMessage";
 import { DailyCheckin, type DailyCheckinHandle } from "../../features/dailyCheckin/DailyCheckin";
 import { useToast } from "../../components/Toast";
@@ -521,6 +522,10 @@ export default function TodayPage() {
       initial={shouldReduceMotion ? false : "hidden"}
       animate="show"
     >
+      {/* 0. Treino em andamento — vem ANTES de tudo: quem reabriu o app com um
+             treino aberto precisa reencontrá-lo, não recomeçar (SPEC mobile §22). */}
+      <ResumeWorkoutCard />
+
       {/* 0. Faixa de instalar o app (PWA) — Android beforeinstallprompt / dica iOS */}
       <InstallPrompt />
 

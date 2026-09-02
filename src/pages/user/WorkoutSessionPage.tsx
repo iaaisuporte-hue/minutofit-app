@@ -627,6 +627,7 @@ export default function WorkoutSessionPage() {
     }
     if (!plan || !day) return;
     setFinishing(true);
+    setFinishError(null);
     const { sets, status } = buildSessionPayload();
     try {
       const outcome = await registerWorkoutSession({
@@ -652,7 +653,17 @@ export default function WorkoutSessionPage() {
       // conquista e o que é estreia — a tela só reconhece.
       if (outcome.celebrate) setPrEvents(outcome.prEvents);
     } catch {
-      /* gamificação best-effort; segue mesmo assim */
+      // NÃO engolir. A versão anterior seguia em frente aqui, apagava o rascunho
+      // e mostrava "Treino salvo" — com o servidor fora do ar o treino sumia dos
+      // dois lados e o aluno era informado do contrário (QA mobile set/2026).
+      // O reenvio é seguro: `createSession` deduplica pela chave natural
+      // (aluno + ficha + dia da ficha + dia do aluno) sob advisory lock e devolve
+      // a sessão existente, então tentar de novo nunca duplica histórico nem XP.
+      setFinishing(false);
+      setFinishError(
+        "Não foi possível salvar o treino agora. Ele continua guardado neste aparelho — tente de novo.",
+      );
+      return;
     }
     // Mesma ordem do livre: trancar a persistência e parar o cronômetro antes de
     // apagar. Sem isso, um descanso que estoura depois daqui regravava o
@@ -677,6 +688,19 @@ export default function WorkoutSessionPage() {
     clearDraft(planId, dayIndex);
     navigate("/app/user/ficha", { replace: true });
   }
+
+  /**
+   * Botão voltar do Android durante o treino.
+   *
+   * Cai no MESMO diálogo do "Sair" do cabeçalho — que oferece sair guardando o
+   * progresso ou descartar — em vez de navegar embora sem avisar. O evento vem
+   * da `NativeAppBridge`, que só o emite quando não há modal aberto por cima.
+   */
+  useEffect(() => {
+    const onBack = () => setShowExit(true);
+    window.addEventListener("s2core:native-back", onBack);
+    return () => window.removeEventListener("s2core:native-back", onBack);
+  }, []);
 
   function closeExitDialog() {
     setShowExit(false);
@@ -947,7 +971,9 @@ export default function WorkoutSessionPage() {
   const isLast = currentIndex >= exercises.length - 1;
 
   return (
-    <div className="ws-root">
+    // `data-workout-live`: contrato lido pelo back do Android (NativeAppBridge).
+    // Sem ele o botão voltar saía da sessão em silêncio (SPEC §32).
+    <div className="ws-root" data-workout-live>
       <div className="ws-top">
         <div className="ws-top-row">
           <div style={{ minWidth: 0 }}>

@@ -33,6 +33,9 @@
 }
 
 .ml-selector-tab {
+  /* 44px: Casa | Academia e o seletor de exercício são o caminho de entrada do
+     Lab e mediam 36–38px de altura (SPEC §8). */
+  min-height: 44px;
   padding: 8px 18px;
   border-radius: var(--radius-pill);
   border: 1px solid var(--color-border);

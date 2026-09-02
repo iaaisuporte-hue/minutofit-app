@@ -1054,6 +1054,10 @@ export default function WorkoutBuilderPage() {
                                 setEditingDayIdx(idx);
                                 setEditingDayName(meta.name);
                               }}
+                              // O lápis mede 10px de propósito (vive dentro do chip
+                              // do dia), mas 10×10 é impossível de acertar com o
+                              // polegar. `hit-target-44` cresce só a área de toque.
+                              className="hit-target-44"
                               style={{ display: "flex", alignItems: "center", opacity: 0.7, cursor: "text" }}
                             >
                               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

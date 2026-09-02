@@ -14,6 +14,7 @@ import SubscribersSection from "./SubscribersSection";
 import { AccountDataSection } from "../../features/account/AccountDataSection";
 import { PlanSection } from "../../features/personalPlan/PlanSection";
 import { useAuth } from "../../auth/AuthContext";
+import { ConfirmDialog } from "../../components/ConfirmDialog";
 import { useTheme } from "../../lib/useTheme";
 import { ProfileNavList } from "../../features/profile/ProfileNavList";
 import { Moon, Sun } from "lucide-react";
@@ -68,6 +69,11 @@ function profileToForm(p: NetworkProfile): FormDraft {
 
 export default function NetworkProfilePage() {
   const { logout, role } = useAuth();
+  // Logout com confirmação. Antes era um ícone "Sair" no bottom nav do personal,
+  // vizinho de "Programas" numa barra de SEIS colunas em 320px: um toque torto
+  // derrubava a sessão sem perguntar nada (SPEC §6 — "não deixar logout como
+  // ação acidental"). Agora mora aqui, no mesmo lugar que no aluno.
+  const [confirmLogout, setConfirmLogout] = useState(false);
   const { isDark, toggle: toggleTheme } = useTheme();
   const [profile, setProfile] = useState<NetworkProfile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -581,6 +587,28 @@ export default function NetworkProfilePage() {
       <div style={{ marginTop: 24 }}>
         <AccountDataSection onDeleted={logout} />
       </div>
+
+      <div style={{ marginTop: 24, display: "flex", justifyContent: "flex-end" }}>
+        <button
+          type="button"
+          className="btn btn-ghost"
+          style={{ minHeight: 44 }}
+          onClick={() => setConfirmLogout(true)}
+        >
+          Sair da conta
+        </button>
+      </div>
+
+      <ConfirmDialog
+        open={confirmLogout}
+        title="Sair da conta?"
+        message="Tem certeza de que deseja sair?"
+        confirmLabel="Sair"
+        cancelLabel="Cancelar"
+        danger
+        onConfirm={() => { setConfirmLogout(false); logout(); }}
+        onCancel={() => setConfirmLogout(false)}
+      />
     </div>
   );
 }

@@ -75,6 +75,11 @@ export function InfoHint({ termo, resumo, impacto, saibaMaisHref }: Props) {
         aria-expanded={open}
         aria-describedby={open ? tooltipId : undefined}
         aria-label={`O que é ${termo}?`}
+        // A bolinha continua com 16px: ela é inline, no meio de um rótulo, e
+        // crescer empurraria o texto. O que muda é a ÁREA DE TOQUE — a classe
+        // projeta um alvo invisível de 44px em volta (SPEC §8). Sem isso o alvo
+        // real era 16×16, o menor do app inteiro.
+        className="hit-target-44"
         style={{
           display: "inline-flex",
           alignItems: "center",

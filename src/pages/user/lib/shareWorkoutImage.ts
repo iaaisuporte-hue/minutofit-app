@@ -2,28 +2,12 @@
 // GymRats/Strava: a foto do aluno (tirada ou da galeria) vira o FUNDO e os dados
 // do treino + marca ficam sobrepostos com um scrim escuro para legibilidade.
 //
-// Fluxo: compose (gera blob + preview) → share (Web Share API com arquivo).
-// Separados de propósito: o share() precisa de gesto do usuário e é chamado a
-// partir do botão "Compartilhar" do preview. Restrito ao mobile por capacidade.
+// Este arquivo só DESENHA a arte (canvas → blob + dataUrl) e monta o texto que
+// a acompanha. Compartilhar, salvar e capturar foto vivem em `nativeShare.ts`,
+// porque no app empacotado nenhuma das APIs web equivalentes funciona — e todas
+// falhavam em silêncio quando moravam aqui (QA mobile set/2026).
 
 const BRAND = "S2Core"; // marca pública do app (domínio s2core.com.br)
-
-type ShareableNavigator = Navigator & {
-  canShare?: (data?: ShareData) => boolean;
-};
-
-/** True só quando o dispositivo consegue compartilhar um arquivo de imagem (≈ mobile). */
-export function canShareWorkoutImage(): boolean {
-  if (typeof navigator === "undefined") return false;
-  const nav = navigator as ShareableNavigator;
-  if (typeof nav.share !== "function" || typeof nav.canShare !== "function") return false;
-  try {
-    const probe = new File([new Blob([""], { type: "image/png" })], "probe.png", { type: "image/png" });
-    return nav.canShare({ files: [probe] });
-  } catch {
-    return false;
-  }
-}
 
 function cssVar(name: string, fallback: string): string {
   if (typeof document === "undefined") return fallback;
@@ -564,39 +548,6 @@ export function buildShareText(input: { focus: string; dayName?: string; stats?:
   if (chips.length) lines.push(chips.join(" · "));
   lines.push(`${CTA} — ${BRAND}`);
   return lines.join("\n");
-}
-
-/**
- * Abre o menu nativo de compartilhar com a imagem já composta (mobile).
- * Deve ser chamado a partir de um gesto do usuário. Retorna true se compartilhado.
- */
-export async function shareImageBlob(image: ComposedImage, stats?: WorkoutShareStats | null): Promise<boolean> {
-  const file = new File([image.blob], "treino.jpg", { type: image.blob.type || "image/jpeg" });
-  const nav = navigator as ShareableNavigator;
-  if (typeof nav.share !== "function") return false;
-  if (typeof nav.canShare === "function" && !nav.canShare({ files: [file] })) return false;
-  try {
-    await navigator.share({
-      files: [file],
-      title: `${BRAND} — treino concluído`,
-      text: buildShareText({ focus: image.focus, stats }),
-    });
-    return true;
-  } catch {
-    // AbortError (cancelado) ou falha — não é erro a propagar.
-    return false;
-  }
-}
-
-/** Fallback desktop: baixa a imagem composta como arquivo .jpg. */
-export function downloadComposedImage(image: ComposedImage, filename = "treino-s2core.jpg"): void {
-  if (typeof document === "undefined") return;
-  const a = document.createElement("a");
-  a.href = image.dataUrl;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
 }
 
 /** Fallback universal: copia o texto motivacional seguro para a área de transferência. */

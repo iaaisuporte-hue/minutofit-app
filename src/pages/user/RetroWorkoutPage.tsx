@@ -242,7 +242,10 @@ export default function RetroWorkoutPage() {
         <button
           type="button"
           onClick={() => navigate(-1)}
-          style={{ background: "none", border: "none", padding: 0, color: "var(--color-text-muted, var(--color-text-muted))", cursor: "pointer", justifySelf: "start", fontSize: 14 }}
+          // 44px de alvo (SPEC §8 nomeia o botão voltar). O padding negativo à
+          // esquerda mantém o texto alinhado à margem — cresce a área, não o
+          // recuo visual.
+          style={{ background: "none", border: "none", padding: "0 12px", margin: "0 -12px", minHeight: 44, display: "inline-flex", alignItems: "center", color: "var(--color-text-muted, var(--color-text-muted))", cursor: "pointer", justifySelf: "start", fontSize: 14 }}
         >
           ← Voltar
         </button>

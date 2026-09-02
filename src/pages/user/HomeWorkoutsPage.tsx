@@ -345,6 +345,8 @@ export default function HomeWorkoutsPage() {
           whileHover={subtleHoverScale}
           whileTap={subtleTapScale}
           style={{
+            // 44px: filtro de grupo muscular a 40px de altura (SPEC §8).
+            minHeight: 44,
             padding: "10px 12px",
             borderRadius: 999,
             border: `1px solid ${filter === "all" ? COLORS.borderStrong : COLORS.border}`,
@@ -364,6 +366,7 @@ export default function HomeWorkoutsPage() {
             whileHover={subtleHoverScale}
             whileTap={subtleTapScale}
             style={{
+              minHeight: 44,
               padding: "10px 12px",
               borderRadius: 999,
               border: `1px solid ${filter === group ? COLORS.borderStrong : COLORS.border}`,

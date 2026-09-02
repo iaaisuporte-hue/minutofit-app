@@ -2,6 +2,7 @@ import { useState } from "react";
 import { COLORS } from "../../styles/colors";
 import MyWorkoutPlansPage from "./MyWorkoutPlansPage";
 import NutritionPlanViewPage from "./NutritionPlanViewPage";
+import { ResumeWorkoutCard } from "./components/ResumeWorkoutCard";
 
 type Tab = "treino" | "alimentacao";
 
@@ -10,6 +11,12 @@ export default function MeuPlanoPage() {
 
   return (
     <div>
+      {/* Treino em andamento: a Ficha é o outro lugar por onde se volta ao
+          treino, e "Iniciar treino" aqui apareceria como se nada estivesse
+          aberto (SPEC mobile §22). */}
+      <div className="resume-workout-slot">
+        <ResumeWorkoutCard />
+      </div>
       <div
         style={{
           display: "flex",
@@ -26,6 +33,9 @@ export default function MeuPlanoPage() {
             style={{
               background: "none",
               border: "none",
+              // 44px: são as abas que trocam Treino ↔ Alimentação, navegação
+              // primária desta tela, e mediam 41px (SPEC §8).
+              minHeight: 44,
               padding: "10px 20px",
               fontSize: 14,
               fontWeight: tab === t ? 700 : 500,

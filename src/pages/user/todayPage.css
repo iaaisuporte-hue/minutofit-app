@@ -215,6 +215,10 @@
 }
 
 .today-action-button {
+  /* 44px: "Iniciar treino" media 43 e ficava 1px abaixo do mínimo de toque —
+     é o CTA mais tocado do app, e com a mão suada no meio do treino 1px conta
+     (SPEC §8). O padding não muda; só entra o piso. */
+  min-height: 44px;
   padding: 12px 16px;
   border-radius: 14px;
   cursor: pointer;

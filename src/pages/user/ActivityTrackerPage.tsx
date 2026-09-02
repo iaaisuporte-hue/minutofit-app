@@ -871,6 +871,9 @@ export default function ActivityTrackerPage() {
                 onClick={() => setManualMode(false)}
                 style={{
                   flex: 1,
+                  // 44px: o par Com GPS / Esteira decide como a corrida inteira
+                  // é medida e media 36px de altura (SPEC §8).
+                  minHeight: 44,
                   padding: "8px 0",
                   borderRadius: "var(--radius-card)",
                   border: `1px solid ${manualMode ? "var(--color-border)" : "var(--color-primary)"}`,
@@ -889,6 +892,9 @@ export default function ActivityTrackerPage() {
                 onClick={() => setManualMode(true)}
                 style={{
                   flex: 1,
+                  // 44px: o par Com GPS / Esteira decide como a corrida inteira
+                  // é medida e media 36px de altura (SPEC §8).
+                  minHeight: 44,
                   padding: "8px 0",
                   borderRadius: "var(--radius-card)",
                   border: `1px solid ${manualMode ? "var(--color-primary)" : "var(--color-border)"}`,

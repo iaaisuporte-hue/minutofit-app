@@ -2,10 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   buildExerciseRows,
   buildShareText,
-  canShareWorkoutImage,
   copyShareText,
-  shareImageBlob,
-  type ComposedImage,
 } from "./shareWorkoutImage";
 
 // Regressão da feature MADURA de compartilhamento social (ver docs/MATURE_FEATURES.md).
@@ -54,32 +51,6 @@ describe("buildShareText", () => {
     expect(text).toContain("Pernas");
     expect(text).toContain("S2Core");
     expect(text).not.toMatch(/min|séries|kg/);
-  });
-});
-
-describe("canShareWorkoutImage", () => {
-  it("é false sem navigator.share (desktop) → cai no fallback", () => {
-    Object.defineProperty(navigator, "share", { value: undefined, configurable: true });
-    expect(canShareWorkoutImage()).toBe(false);
-  });
-
-  it("é true quando o device compartilha arquivos (mobile)", () => {
-    Object.defineProperty(navigator, "share", { value: vi.fn(), configurable: true });
-    Object.defineProperty(navigator, "canShare", { value: () => true, configurable: true });
-    expect(canShareWorkoutImage()).toBe(true);
-  });
-});
-
-describe("shareImageBlob", () => {
-  it("retorna false quando Web Share não existe (sem lançar)", async () => {
-    Object.defineProperty(navigator, "share", { value: undefined, configurable: true });
-    const fake: ComposedImage = {
-      blob: new Blob([""], { type: "image/jpeg" }),
-      dataUrl: "data:image/jpeg;base64,",
-      focus: "Peito",
-      format: "story",
-    };
-    await expect(shareImageBlob(fake)).resolves.toBe(false);
   });
 });
 

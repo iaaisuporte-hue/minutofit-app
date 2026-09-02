@@ -72,6 +72,22 @@
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
+    <!--
+        "Salvar imagem" do card de treino grava em Documents (@capacitor/filesystem).
+        Do Android 10 em diante o armazenamento é por escopo e nada é pedido; em
+        Android 9 e abaixo (minSdk 23) a gravação em diretório público exige esta
+        permissão, e sem ela o plugin pede um consentimento que o sistema nega de
+        imediato. `maxSdkVersion=28` deixa claro que ela só vale nesses aparelhos —
+        em celular moderno não aparece na listagem da loja nem é solicitada.
+
+        NÃO usamos a galeria (MediaStore): isso custaria outra permissão, e a SPEC
+        §13 manda pedir só o indispensável. Quem quer a foto na galeria usa
+        "Compartilhar" e salva pelo próprio sistema.
+    -->
+    <uses-permission
+        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="28" />
+
     <!-- Recursos opcionais: não excluir aparelhos sem GPS/câmera da Play Store. -->
     <uses-feature android:name="android.hardware.location.gps" android:required="false" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />

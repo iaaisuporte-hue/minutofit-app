@@ -21,6 +21,7 @@ import TermsOfUsePage from "./pages/TermsOfUsePage";
 import DeleteAccountInfoPage from "./pages/DeleteAccountInfoPage";
 import WaitlistPage from "./pages/WaitlistPage";
 import { NativeAppBridge } from "./lib/NativeAppBridge";
+import { KeyboardAwareFocus } from "./lib/KeyboardAwareFocus";
 import { AppUpdateBanner } from "./features/pwa/AppUpdateBanner";
 import { OfflineBanner } from "./features/pwa/OfflineBanner";
 import RouteFallback from "./components/RouteFallback";
@@ -43,6 +44,8 @@ export default function App() {
     <AuthProvider>
       <FeatureFlagsProvider>
         <NativeAppBridge />
+        {/* Campo em foco nunca fica sob o teclado (SPEC §9). Vale web e nativo. */}
+        <KeyboardAwareFocus />
         <OfflineBanner />
         <AppUpdateBanner />
         <CookieConsentBanner />

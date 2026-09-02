@@ -119,6 +119,33 @@ export default function PersonalApp() {
     navigate("/login", { replace: true });
   }
 
+  /**
+   * Ícone de conta no cabeçalho mobile.
+   *
+   * Sem ele, `/app/personal/meu-perfil` — onde moram o perfil público, o plano,
+   * o tema e a exclusão de conta — só era alcançável pela sidebar, que aparece a
+   * partir de 980px. Na prática, o personal precisava DEITAR o celular para
+   * chegar lá (QA mobile set/2026, SPEC §3/§5). Segue o padrão documentado da
+   * área: 5 destinos no bottom nav + ícones no topo.
+   */
+  const mobileAccountIcon = (
+    <NavLink
+      to="/app/personal/meu-perfil"
+      aria-label="Meu perfil e configurações"
+      title="Meu perfil"
+      style={{ display: "flex", alignItems: "center", justifyContent: "center", minWidth: 44, minHeight: 44, borderRadius: 8, color: "var(--color-text-muted)", textDecoration: "none" }}
+    >
+      {({ isActive }) => (
+        <span style={{ color: isActive ? "var(--color-primary)" : "var(--color-text-muted)", display: "flex" }}>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+            <circle cx="12" cy="7" r="4" />
+          </svg>
+        </span>
+      )}
+    </NavLink>
+  );
+
   const mobileMessagesIcon = (
     <NavLink
       to="/app/personal/messages"
@@ -142,7 +169,7 @@ export default function PersonalApp() {
 
   return (
     <AppShell
-      bottomNav={<PersonalMobileBottomNav onLogout={handleLogout} />}
+      bottomNav={<PersonalMobileBottomNav />}
       mobileHeader={
         <>
           {/* `.mobileTopBar` é space-between: com um único filho o ícone ia
@@ -150,7 +177,10 @@ export default function PersonalApp() {
           <span style={{ display: "flex", alignItems: "center", minWidth: 0 }}>
             <S2CoreLogo width={88} />
           </span>
-          {mobileMessagesIcon}
+          <span style={{ display: "flex", alignItems: "center", gap: 2, flexShrink: 0 }}>
+            {mobileMessagesIcon}
+            {mobileAccountIcon}
+          </span>
         </>
       }
       sidebar={

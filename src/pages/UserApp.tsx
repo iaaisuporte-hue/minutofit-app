@@ -214,7 +214,10 @@ export default function UserApp() {
   const mobileMessagesIcon = canMessages ? (
     <NavLink
       to={`${USER_BASE}/messages`}
-      style={{ position: "relative", display: "flex", alignItems: "center", padding: 8, borderRadius: 8, color: "var(--color-text-muted)", textDecoration: "none" }}
+      // minWidth/minHeight 44: com `padding: 8` o alvo media 32×32 e reprovava o
+      // mínimo de toque em TODAS as telas do aluno (SPEC §8). O ícone do personal
+      // já usava 44 — aqui era o que faltava alinhar.
+      style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center", minWidth: 44, minHeight: 44, borderRadius: 8, color: "var(--color-text-muted)", textDecoration: "none" }}
       title="Mensagens"
       aria-label="Mensagens"
     >

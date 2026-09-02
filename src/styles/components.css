@@ -499,8 +499,15 @@ html[data-color-mode="daltonic"] .navLinkActive {
    porque é o que dá para verificar em navegador; escopado ao cartão de auth
    porque a varredura equivalente no app autenticado precisa de um QA logado. */
 @media (max-width: 719px) {
-  .auth-card .btn,
-  .auth-card .input {
+  /* Set/2026: a regra deixou de ser exclusiva do cartão de auth. O comentário
+     acima registrava que a varredura no app AUTENTICADO dependia de um QA
+     logado — ele foi feito (QA mobile P0, 6 viewports, aluno e personal) e
+     mostrou dezenas de `.btn` entre 29px e 41px de altura em Perfil, Ficha,
+     Evolução e Programas. `button` já é inline-block, então `min-height` pega
+     sem mexer no fluxo; o padding continua o mesmo, só o piso muda. */
+  .btn,
+  .input,
+  select.input {
     min-height: 44px;
   }
 
@@ -2421,4 +2428,114 @@ html[data-academy-branding="applied"] .admin-pill-positive {
   .net-visibility-banner > button {
     width: 100%;
   }
+}
+
+
+/* ── Treino em andamento: aviso de retomada (SPEC mobile P0 §22) ──────────
+   Aparece na Hoje e na Ficha quando existe rascunho de sessão neste aparelho.
+   Tokens apenas — o card acompanha tema claro/escuro sem regra própria. */
+.resume-workout {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-warn-border);
+  background: var(--color-warn-soft);
+}
+
+.resume-workout__head {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.resume-workout__pulse {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  margin-top: 5px;
+  border-radius: 999px;
+  background: var(--color-warn);
+  box-shadow: 0 0 0 4px var(--color-warn-soft);
+}
+
+.resume-workout__copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.resume-workout__title {
+  font-size: 14px;
+  font-weight: var(--font-bold);
+  color: var(--color-text);
+  line-height: 1.3;
+}
+
+.resume-workout__detail {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.resume-workout__actions {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+/* min-height 44: alvo de toque da SPEC §8. `flex: 1 1 140px` deixa os dois
+   botões lado a lado em 360px e empilha sozinho em 320px — sem media query. */
+.resume-workout__btn {
+  flex: 1 1 140px;
+  min-height: 44px;
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-weight: var(--font-bold);
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+.resume-workout__btn--primary {
+  background: var(--action-primary);
+  color: var(--action-primary-text);
+}
+
+.resume-workout__btn--primary:hover {
+  background: var(--action-primary-hover);
+}
+
+.resume-workout__btn--ghost {
+  background: transparent;
+  border-color: var(--color-border);
+  color: var(--color-text);
+}
+
+/* Slot do aviso na Ficha: o card se auto-oculta quando não há treino aberto,
+   e sem `:empty` o espaçamento do slot sobrava como buraco no topo da página. */
+.resume-workout-slot { margin-bottom: var(--space-4); }
+.resume-workout-slot:empty { display: none; }
+
+/* ── Alvo de toque mínimo sem mexer no layout (SPEC mobile P0 §8) ─────────
+   Para controles que PRECISAM ser pequenos visualmente (a bolinha "?" inline
+   do InfoHint, ícones dentro de linha de texto): a área clicável cresce por
+   um pseudo-elemento centralizado, e o desenho fica onde estava.
+   `position: relative` é aplicado junto porque o ::before é absoluto. */
+.hit-target-44 {
+  position: relative;
+}
+
+.hit-target-44::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 44px;
+  height: 44px;
+  transform: translate(-50%, -50%);
+  /* Não pinta nada e não intercepta o layout — só recebe o toque. */
+  background: transparent;
 }

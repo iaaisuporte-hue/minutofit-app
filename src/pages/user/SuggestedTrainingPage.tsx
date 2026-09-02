@@ -77,6 +77,9 @@ function ChoicePill({
       onClick={onClick}
       disabled={disabled}
       style={{
+        // 44px: escolher onde vai treinar decide o treino inteiro do dia, e o
+        // chip media 38px (SPEC §8).
+        minHeight: 44,
         padding: "9px 12px",
         borderRadius: 12,
         border: active ? `1px solid ${COLORS.borderStrong}` : `1px solid ${COLORS.border}`,
@@ -349,6 +352,10 @@ export default function SuggestedTrainingPage() {
                           type="button"
                           onClick={() => toggleExerciseComplete(exerciseKey)}
                           aria-label={checked ? "Desmarcar" : "Marcar como feito"}
+                          // O círculo continua com 26px (é um marcador ao lado do
+                          // nome do exercício), mas a área de toque vai a 44 pela
+                          // classe — 26×26 é o menor alvo do app (SPEC §8).
+                          className="hit-target-44"
                           style={{
                             minWidth: 26,
                             height: 26,

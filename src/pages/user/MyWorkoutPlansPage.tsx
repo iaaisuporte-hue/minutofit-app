@@ -751,6 +751,10 @@ function PlanCard({ plan, isOpen, onToggle, onAbandon, adaptiveData }: PlanCardP
               type="button"
               onClick={onAbandon}
               style={{
+                // Ação destrutiva com 31px de altura: pequena demais para o
+                // dedo e — pior — pequena demais para ser tocada por engano com
+                // segurança de intenção (SPEC §8).
+                minHeight: 44,
                 padding: "6px 12px",
                 borderRadius: 6,
                 border: `1px solid ${COLORS.border}`,

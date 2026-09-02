@@ -49,33 +49,21 @@ const FinanceIcon = () => (
   </svg>
 );
 
-const LogoutIcon = () => (
-  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-    <polyline points="16 17 21 12 16 7" />
-    <line x1="21" y1="12" x2="9" y2="12" />
-  </svg>
-);
-
-interface Props {
-  /**
-   * Quando fornecido, renderiza um botão "Sair" no rodapé do nav (último slot).
-   * Necessário no mobile portrait, onde a sidebar — que tradicionalmente
-   * abriga o logout — fica escondida.
-   */
-  onLogout?: () => void;
-}
-
 /**
- * Cinco destinos + logout condicional.
+ * Cinco destinos. Só isso.
  *
  * O Financeiro é o 5º destino de primeira classe (quebra consciente do padrão
  * "4 destinos + 1 ícone" da área do personal, decidida em ago/2026): cobrar e
  * conferir recebimento é rotina diária, não uma aba escondida dentro de Alunos.
- * Com seis colunas os rótulos ficam apertados em 320px — daí o modificador
- * `--compact`, que reduz fonte e respiro do rótulo sem mexer no alvo de toque.
+ * O `--compact` reduz fonte e respiro do rótulo sem mexer no alvo de toque.
+ *
+ * O botão "Sair" que ocupava um SEXTO slot saiu daqui (SPEC mobile §6): logout
+ * num alvo de 53px, encostado em "Programas", é um toque torto de distância da
+ * sessão derrubada — e derrubava sem perguntar. Mudou para "Meu perfil › Sair
+ * da conta", com confirmação, igual ao aluno; a porta de entrada em retrato é o
+ * ícone de conta no cabeçalho (`PersonalApp`).
  */
-export default function PersonalMobileBottomNav({ onLogout }: Props) {
+export default function PersonalMobileBottomNav() {
   const items: NavItem[] = [
     { to: "/app/personal/dashboard", label: "Hoje", icon: <HojeIcon /> },
     { to: "/app/personal/students", label: "Alunos", icon: <StudentsIcon /> },
@@ -99,17 +87,6 @@ export default function PersonalMobileBottomNav({ onLogout }: Props) {
           <span className="mobileBottomNav__label">{item.label}</span>
         </NavLink>
       ))}
-      {onLogout && (
-        <button
-          type="button"
-          onClick={onLogout}
-          className="mobileBottomNav__item mobileBottomNav__item--logout"
-          aria-label="Sair da conta"
-        >
-          <LogoutIcon />
-          <span className="mobileBottomNav__label">Sair</span>
-        </button>
-      )}
     </nav>
   );
 }

@@ -1,0 +1,102 @@
+import { useCallback, useEffect, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { ConfirmDialog } from "../../../components/ConfirmDialog";
+import {
+  discardInProgressSession,
+  findInProgressSession,
+  type InProgressSession,
+} from "../workoutSession/inProgressSession";
+
+/**
+ * Aviso de treino em andamento.
+ *
+ * O rascunho da sessão sempre sobreviveu ao app morrer; o que faltava era um
+ * lugar onde ele aparecesse. Quem reabre o app pelo ícone cai na Hoje, não na
+ * URL da sessão — e o treino ficava invisível até a pessoa navegar de volta
+ * por conta própria. Este card é a porta de entrada que faltava.
+ *
+ * Regra deliberada: NUNCA cria sessão nova e NUNCA descarta sem confirmar. As
+ * duas ações são as da SPEC — "Continuar treino" e "Encerrar treino" — e a
+ * segunda passa por um diálogo que diz, com todas as letras, que o que foi
+ * feito se perde.
+ */
+export function ResumeWorkoutCard() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [session, setSession] = useState<InProgressSession | null>(null);
+  const [confirmEnd, setConfirmEnd] = useState(false);
+
+  const refresh = useCallback(() => setSession(findInProgressSession()), []);
+
+  // Reavalia ao montar, ao mudar de rota e ao voltar do segundo plano — é
+  // exatamente quando o estado pode ter mudado sem a tela saber.
+  useEffect(() => {
+    refresh();
+    const onVis = () => { if (document.visibilityState === "visible") refresh(); };
+    document.addEventListener("visibilitychange", onVis);
+    window.addEventListener("focus", refresh);
+    return () => {
+      document.removeEventListener("visibilitychange", onVis);
+      window.removeEventListener("focus", refresh);
+    };
+  }, [refresh, location.pathname]);
+
+  if (!session) return null;
+
+  // Já estamos DENTRO da sessão — o aviso viraria ruído.
+  if (location.pathname.startsWith(session.route)) return null;
+
+  const restantes = Math.max(0, session.totalSets - session.doneSets);
+  const detalhe = session.currentExercise
+    ? `${session.doneSets} de ${session.totalSets} séries · parou em ${session.currentExercise}`
+    : `${session.doneSets} de ${session.totalSets} séries`;
+
+  return (
+    <>
+      <section className="resume-workout" role="status" aria-live="polite">
+        <div className="resume-workout__head">
+          <span className="resume-workout__pulse" aria-hidden="true" />
+          <div className="resume-workout__copy">
+            <strong className="resume-workout__title">Você possui um treino em andamento.</strong>
+            <span className="resume-workout__detail">{detalhe}</span>
+          </div>
+        </div>
+        <div className="resume-workout__actions">
+          <button
+            type="button"
+            className="resume-workout__btn resume-workout__btn--primary"
+            onClick={() => navigate(session.route)}
+          >
+            Continuar treino
+          </button>
+          <button
+            type="button"
+            className="resume-workout__btn resume-workout__btn--ghost"
+            onClick={() => setConfirmEnd(true)}
+          >
+            Encerrar treino
+          </button>
+        </div>
+      </section>
+
+      <ConfirmDialog
+        open={confirmEnd}
+        title="Encerrar o treino em andamento?"
+        message={
+          restantes > 0
+            ? `As ${session.doneSets} série(s) já lançadas serão descartadas e não entram no seu histórico. Para salvá-las, escolha "Continuar treino" e finalize.`
+            : `O treino aberto será descartado. Para salvá-lo, escolha "Continuar treino" e finalize.`
+        }
+        confirmLabel="Encerrar"
+        cancelLabel="Voltar"
+        danger
+        onConfirm={() => {
+          discardInProgressSession(session);
+          setConfirmEnd(false);
+          refresh();
+        }}
+        onCancel={() => setConfirmEnd(false)}
+      />
+    </>
+  );
+}
