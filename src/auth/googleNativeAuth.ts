@@ -42,9 +42,17 @@ export async function signInWithGoogleNative(): Promise<string | null> {
   if (!WEB_CLIENT_ID) return null;
 
   await ensureInitialized();
+  // SEM `scopes` aqui de propósito: o provider Android do plugin já adiciona
+  // email/profile/openid como padrão internamente (GoogleProvider.java). Passar
+  // um array de scopes — mesmo pedindo exatamente os mesmos — força o plugin a
+  // exigir que a Activity implemente `ModifiedMainActivityForSocialLoginPlugin`
+  // (fluxo de autorização estendida, para APIs além de login), e rejeita com
+  // "You CANNOT use scopes without modifying the main activity" sem isso. Não
+  // precisamos de autorização estendida — só da identidade (ID token) — então
+  // omitir o campo usa o caminho padrão, sem tocar em MainActivity.
   const result = await SocialLogin.login({
     provider: "google",
-    options: { scopes: ["email", "profile"] },
+    options: {},
   });
 
   // O modo online devolve idToken; offline devolve só o authorization code, que
