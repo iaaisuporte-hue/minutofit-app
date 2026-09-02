@@ -127,6 +127,14 @@ export interface WorkoutSessionListItem {
 }
 
 export interface WorkoutSetLogRow {
+  /**
+   * UUID do exercício no catálogo, quando a execução veio de um item
+   * catalogado. O servidor sempre devolveu a coluna (`SELECT *`); o mapeamento
+   * é que a descartava — e sem ela não dá para REMONTAR um treino a partir do
+   * histórico, porque fichas e sessões referenciam `exercises.id`, nunca o
+   * nome (P1 §24).
+   */
+  exerciseId: string | null;
   exerciseName: string;
   orderIndex: number;
   setIndex: number;
@@ -206,6 +214,46 @@ export async function listWorkoutSessionsPage(
   }
 }
 
+/** Uma execução passada de um exercício (SPEC P1 §27). */
+export interface ExerciseHistoryEntry {
+  /** Data (YYYY-MM-DD) do treino. */
+  date: string;
+  /** Maior carga daquela sessão, quando registrada. */
+  loadKg: number | null;
+  /** Repetições da série mais pesada. */
+  reps: number | null;
+  /** Séries concluídas naquela sessão. */
+  sets: number;
+}
+
+/**
+ * Últimas execuções de um exercício. Devolve lista vazia em qualquer falha —
+ * é um enriquecimento da tela de treino, e um erro aqui não pode virar um
+ * estado quebrado no meio da série.
+ */
+export async function getExerciseHistory(
+  exerciseId: string,
+  limit = 3,
+): Promise<ExerciseHistoryEntry[]> {
+  if (!getAccessToken()) return [];
+  try {
+    const res = await authFetch(
+      `${API_URL}/training/exercises/${encodeURIComponent(exerciseId)}/history?limit=${limit}`,
+    );
+    if (!res.ok) return [];
+    const data = await parseJson(res);
+    const linhas = (data?.data as Record<string, unknown>[]) ?? [];
+    return linhas.map((r) => ({
+      date: String(r.date ?? ""),
+      loadKg: num(r.loadKg),
+      reps: num(r.reps),
+      sets: Number(r.sets ?? 0),
+    }));
+  } catch {
+    return [];
+  }
+}
+
 export async function getWorkoutSessionDetail(id: number): Promise<WorkoutSessionDetail | null> {
   if (!getAccessToken()) return null;
   try {
@@ -219,6 +267,7 @@ export async function getWorkoutSessionDetail(id: number): Promise<WorkoutSessio
       ...mapListItem(d),
       notes: (d.notes as string | null) ?? null,
       sets: setsRaw.map((s) => ({
+        exerciseId: typeof s.exercise_id === "string" ? s.exercise_id : null,
         exerciseName: String(s.exercise_name ?? "—"),
         orderIndex: Number(s.order_index ?? 0),
         setIndex: Number(s.set_index ?? 1),

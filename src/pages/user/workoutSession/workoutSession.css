@@ -502,3 +502,350 @@
     font-size: 44px;
   }
 }
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   BARRA DE AÇÃO DA SÉRIE ATUAL (SPEC P1 §5 · §6 · §7 · §10 · §44 · §45)
+
+   Por que existe: a lista de séries continua no corpo (é o que permite
+   corrigir uma série anterior), mas a AÇÃO fica aqui embaixo, fixa e sempre
+   no mesmo lugar. Medido antes: 5 controles no topo, 10 no meio e só 5 na
+   zona do polegar; e o "Finalizar treino" a 591px de um viewport de 844.
+
+   Ela e a barra de descanso disputam a mesma posição — nunca aparecem juntas.
+   ══════════════════════════════════════════════════════════════════════════ */
+.ws-action-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1200; /* abaixo da barra de descanso (1210), que a substitui */
+  padding: 10px 14px calc(10px + env(safe-area-inset-bottom));
+  background: var(--color-surface);
+  border-top: 1px solid var(--color-border);
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.12);
+  max-width: 720px;
+  margin: 0 auto;
+  display: grid;
+  gap: 8px;
+}
+
+.ws-ab-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--color-text-muted);
+  min-width: 0;
+}
+
+.ws-ab-serie {
+  font-weight: 800;
+  color: var(--color-text);
+  font-size: 13px;
+}
+
+/* Última execução conhecida, ao lado dos controles (§8): a informação que
+   decide a carga não pode exigir abrir histórico. */
+.ws-ab-prev {
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ws-ab-steppers {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.ws-stepper {
+  display: grid;
+  grid-template-columns: 44px 1fr 44px;
+  align-items: stretch;
+  gap: 4px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 4px;
+  min-width: 0;
+}
+
+/* 44px em ambos os eixos: são os alvos mais tocados do treino, com a mão
+   suada e sem olhar (SPEC §8 e §44). */
+.ws-step-btn {
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 9px;
+  border: none;
+  background: var(--color-surface-subtle, rgba(15, 23, 42, 0.05));
+  color: var(--color-text);
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  /* Evita o menu de seleção/lupa ao segurar o botão para repetir o passo. */
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.ws-step-btn:active {
+  background: var(--color-primary-soft, rgba(123, 153, 25, 0.14));
+}
+
+/* O rótulo é o alvo do campo. A unidade ("kg"/"reps") sai do fluxo e vira
+   sobreposição: enquanto ela ocupava uma linha do grid, o `input` recebia só
+   26px dos 44 do alvo, e tocar para digitar exigia mira (SPEC §8). */
+.ws-step-val {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  min-height: 44px;
+}
+
+/* O número continua editável: o stepper é o caminho rápido, não uma prisão.
+   Quem quer 63,5 kg digita (SPEC §7 "permitir digitação manual"). */
+.ws-step-input {
+  width: 100%;
+  min-width: 0;
+  /* Ocupa a altura do rótulo: o toque em qualquer ponto da coluna central abre
+     o teclado, em vez de exigir acertar a linha do número. */
+  /* Ocupa o alvo inteiro: qualquer toque na coluna central abre o teclado. */
+  align-self: stretch;
+  flex: 1;
+  border: none;
+  background: transparent;
+  text-align: center;
+  font-size: 19px;
+  font-weight: 800;
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+  padding: 0;
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+.ws-step-input::-webkit-outer-spin-button,
+.ws-step-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.ws-step-input:focus {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+.ws-step-unit {
+  position: absolute;
+  right: 4px;
+  bottom: 2px;
+  pointer-events: none;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  line-height: 1;
+}
+
+/* A ação principal. Altura generosa e posição que NUNCA muda entre
+   exercícios (§6: "não mover o botão"). */
+.ws-ab-done {
+  width: 100%;
+  min-height: 56px;
+  border-radius: 14px;
+  border: none;
+  background: var(--action-primary);
+  color: var(--color-cta-text, #fff);
+  font-weight: 800;
+  font-size: 16px;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  touch-action: manipulation;
+}
+
+.ws-ab-done:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* Exercício terminado: a mesma posição passa a avançar. */
+.ws-ab-done.ws-ab-next {
+  background: var(--color-surface);
+  color: var(--color-text);
+  border: 1px solid var(--color-primary);
+}
+
+/* Telas curtas (320×568): os steppers empilham e o rodapé encolhe, mas o
+   botão principal mantém o alvo. */
+@media (max-height: 620px) {
+  .ws-ab-steppers {
+    gap: 6px;
+  }
+  .ws-ab-done {
+    min-height: 48px;
+    font-size: 15px;
+  }
+}
+
+/* O corpo precisa de respiro maior: agora há uma barra fixa embaixo sempre,
+   não só durante o descanso. */
+.ws-body {
+  padding-bottom: 240px;
+}
+
+/* Tempo decorrido no cabeçalho (§4) — tabular para não "pular" a cada segundo. */
+.ws-elapsed {
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  color: var(--color-text);
+}
+
+/* "Pular por agora" (§15): discreto de propósito — é uma saída, não um atalho.
+   Alvo de 44px vem do pseudo-elemento, sem engordar a linha do cabeçalho. */
+.ws-ab-skip {
+  position: relative;
+  border: none;
+  background: none;
+  padding: 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  text-decoration: underline;
+  cursor: pointer;
+  white-space: nowrap;
+  flex: none;
+}
+.ws-ab-skip::before {
+  content: "";
+  position: absolute;
+  inset: -14px -10px;
+}
+
+/* Estado de sincronização da sessão (SPEC P1 §49). Discreto de propósito:
+   uma linha no cabeçalho, não um alerta que interrompe a série. */
+.ws-sync {
+  margin-top: 4px;
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.2;
+  padding: 3px 8px;
+  border-radius: 999px;
+}
+.ws-sync-off {
+  color: var(--color-warn-text);
+  background: var(--color-warn-soft);
+  border: 1px solid var(--color-warn-border);
+}
+.ws-sync-ok {
+  color: var(--color-success-text, var(--color-text-muted));
+  background: var(--color-success-soft, transparent);
+  border: 1px solid var(--color-success-border, var(--color-border));
+}
+
+
+/* ── Histórico rápido do exercício (SPEC P1 §27) ─────────────────────────── */
+.ehs {
+  display: grid;
+  gap: 14px;
+  padding: 18px 16px calc(20px + env(safe-area-inset-bottom));
+}
+.ehs__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.ehs__title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--color-text);
+}
+.ehs__ex {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ehs__close {
+  flex: none;
+  min-width: 44px;
+  min-height: 44px;
+  margin: -8px;
+  display: grid;
+  place-items: center;
+  border: none;
+  background: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  border-radius: 10px;
+}
+.ehs__vazio {
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--color-text-muted);
+}
+.ehs__lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+}
+.ehs__linha {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: baseline;
+  gap: 10px;
+  padding: 12px 0;
+  border-top: 1px solid var(--color-border);
+}
+.ehs__linha:first-child {
+  border-top: none;
+}
+.ehs__data {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+.ehs__valor {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+.ehs__sets {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+/* Gatilho do histórico: um chip a mais na linha de chips do exercício. */
+.ws-chip-hist {
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font: inherit;
+  min-height: 32px;
+  padding: 0 10px;
+  border-radius: 999px;
+  position: relative;
+}
+.ws-chip-hist::before {
+  content: "";
+  position: absolute;
+  inset: -6px -4px;
+}

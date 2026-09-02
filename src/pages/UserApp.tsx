@@ -45,6 +45,7 @@ import SportHomePage from "./user/sport/SportHomePage";
 import RequireClearance from "../auth/RequireClearance";
 import RouteFallback from "../components/RouteFallback";
 import ParqSigningPage from "./user/studentCompliance/ParqSigningPage";
+import { WorkoutMiniPlayer } from "./user/components/WorkoutMiniPlayer";
 
 const USER_BASE = "/app/user" as const;
 const USER_DEFAULT = "/app/user/today" as const;
@@ -251,7 +252,15 @@ export default function UserApp() {
 
   return (
       <AppShell
-        bottomNav={<MobileBottomNav baseUrl={USER_BASE} />}
+        bottomNav={
+          <>
+            {/* Mini-player: fica junto do bottom nav porque é a mesma faixa de
+                tela e a mesma camada fixa — evita duas pilhas concorrentes
+                disputando z-index e safe area (SPEC P1 §13). */}
+            <WorkoutMiniPlayer />
+            <MobileBottomNav baseUrl={USER_BASE} />
+          </>
+        }
         mobileHeader={mobileHeader}
         sidebar={
           <>

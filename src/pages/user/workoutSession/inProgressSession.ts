@@ -32,6 +32,14 @@ export interface InProgressSession {
   route: string;
   /** Início da sessão (ms) — ordena quando há mais de um rascunho. */
   startedAt: number;
+  /**
+   * Última atividade real (ms): a série marcada mais recente, ou o início.
+   *
+   * Separa "estou treinando agora" de "esqueci um treino aberto ontem". O
+   * mini-player serve o primeiro caso; o card grande de retomada, o segundo.
+   * Sem essa distinção os dois apareciam juntos na Hoje dizendo a mesma coisa.
+   */
+  lastActivityAt: number;
   doneSets: number;
   totalSets: number;
   /** Nome do exercício em que a pessoa parou, quando dá para saber. */
@@ -39,6 +47,14 @@ export interface InProgressSession {
   /** Argumentos para descartar este rascunho. */
   planId: number | null;
   dayIndex: number | null;
+  /**
+   * Instante (ms) em que o descanso em curso termina, ou null.
+   *
+   * É um instante ABSOLUTO, não uma contagem — é o que permite o mini-player
+   * mostrar o descanso certo sem que ninguém tenha contado os segundos
+   * enquanto a tela de treino estava desmontada (SPEC P1 §12).
+   */
+  restEndsAt: number | null;
 }
 
 function contaSeries(exercises: DraftExercise[]): { done: number; total: number } {
@@ -57,6 +73,30 @@ function exercicioAtual(exercises: DraftExercise[], idx: number): string | null 
   return exercises[idx]?.name?.trim() || null;
 }
 
+/** Instante da série concluída mais recente, ou 0 se nenhuma. */
+function ultimaAtividade(exercises: DraftExercise[]): number {
+  let max = 0;
+  for (const ex of exercises) {
+    for (const s of ex.sets ?? []) {
+      if (s.done && s.completedAt && s.completedAt > max) max = s.completedAt;
+    }
+  }
+  return max;
+}
+
+/**
+ * Depois de quanto tempo parado um treino aberto deixa de ser "em andamento".
+ *
+ * Três horas: um treino longo com pausa para o almoço ainda é o mesmo treino;
+ * o que se abriu ontem à noite, não.
+ */
+export const LIMITE_SESSAO_ATIVA_MS = 3 * 60 * 60 * 1000;
+
+/** A sessão ainda está em curso (vs. esquecida aberta)? */
+export function sessaoAtiva(s: InProgressSession, agora = Date.now()): boolean {
+  return agora - s.lastActivityAt < LIMITE_SESSAO_ATIVA_MS;
+}
+
 /** Rascunho do treino livre, quando existe e tem alguma série lançada. */
 function doLivre(d: FreeSessionDraft | null): InProgressSession | null {
   if (!d || !d.exercises.length) return null;
@@ -65,11 +105,13 @@ function doLivre(d: FreeSessionDraft | null): InProgressSession | null {
     mode: "free",
     route: "/app/user/treino-livre/sessao",
     startedAt: d.startedAt ?? 0,
+    lastActivityAt: Math.max(d.startedAt ?? 0, ultimaAtividade(d.exercises)),
     doneSets: done,
     totalSets: total,
     currentExercise: exercicioAtual(d.exercises, d.currentIndex ?? 0),
     planId: null,
     dayIndex: null,
+    restEndsAt: d.restEndsAt ?? null,
   };
 }
 
@@ -95,11 +137,13 @@ function doPrescrito(): InProgressSession[] {
         mode: "plan",
         route: `/app/user/treino/${parsed.planId}/${parsed.dayIndex}`,
         startedAt: parsed.startedAt ?? 0,
+        lastActivityAt: Math.max(parsed.startedAt ?? 0, ultimaAtividade(parsed.exercises)),
         doneSets: done,
         totalSets: total,
         currentExercise: exercicioAtual(parsed.exercises, parsed.currentIndex ?? 0),
         planId: parsed.planId,
         dayIndex: parsed.dayIndex,
+        restEndsAt: parsed.restEndsAt ?? null,
       });
     } catch {
       /* rascunho corrompido — ignora, nunca derruba a Hoje */

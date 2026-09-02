@@ -497,3 +497,22 @@
     transition: none !important;
   }
 }
+
+/* Atalho para as outras formas de iniciar (SPEC P1 §26). Discreto de
+   propósito: o CTA do card é o caminho principal e não deve competir. */
+.today-start-more {
+  margin-top: 10px;
+  width: 100%;
+  min-height: 44px;
+  border-radius: 12px;
+  border: 1px dashed var(--color-border);
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.today-start-more:hover {
+  border-color: var(--color-primary);
+  color: var(--color-text);
+}

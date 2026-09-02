@@ -28,16 +28,15 @@ o layout de cada tela:
 **Sugestão:** um utilitário de chip com piso de 44px no design system, aplicado de uma vez,
 em vez de oito correções pontuais.
 
-### 2. Indicador de sincronização (§24)
+### 2. Indicador de sincronização (§24) — ✅ RESOLVIDO NA P1
 A SPEC pede estados discretos "Salvo / Salvando… / Sincronização pendente / Erro ao
-sincronizar". O P0 entregou o essencial — a série **nunca se perde** e a falha ao finalizar é
-explícita —, mas não há indicador contínuo durante o treino. Ficou de fora por ser
-apresentação sobre um problema já resolvido, não proteção de dado.
+sincronizar". A P1 §49 entregou: "Offline — salvando no aparelho" durante a sessão e
+"Sincronizado" ao reconectar, que some sozinho. O reenvio automático continua pendente —
+virou o item 16.
 
-### 3. Fila de sincronização real (§23)
-Hoje a tolerância a rede é o rascunho local + nova tentativa manual. Uma fila que reenvia
-sozinha ao voltar a conexão (usando a `client_key` que já dá idempotência) removeria o passo
-manual. Precisa de decisão de produto sobre reenvio em segundo plano.
+### 3. Fila de sincronização real (§23) — movido para o item 16
+Consolidado com o achado equivalente da P1 para não haver duas entradas para o mesmo
+trabalho.
 
 ### 4. Faixa de sistema no tema escuro (§30)
 `AppTheme` herda de `Theme.AppCompat.Light.DarkActionBar` enquanto o app tem tema próprio.
@@ -52,30 +51,85 @@ de ação ancorada ao teclado.
 
 ---
 
+## P1 — surgido durante a P1 (Workout Experience)
+
+### 11. Sugestão da próxima carga (SPEC P1 §9)
+A SPEC autoriza exibir "Sugestão: 82,5 kg" **apenas se já existir lógica segura e
+determinística no produto**, e manda não criar algoritmo novo. Não existe: `/training/stats`
+devolve `lastLoadKg` e a progressão bruta, sem regra de incremento. Fazer isso direito exige
+decidir a regra (linear? por RPE? por reps na falha?) e validá-la — trabalho de produto com
+consequência física para o aluno, não um cálculo a mais na tela.
+
+### 12. Substituir exercício durante a sessão (SPEC P1 §18)
+Mesma condicional: "caso o projeto já possua motor de substituição". O motor de adaptação
+existe do lado do personal/readiness, mas não está consolidado como escolha do aluno dentro
+da sessão. Hoje a saída é reordenar (que entrou) ou remover e adicionar outro.
+
+### 13. Repetições da última execução em `/training/stats` (SPEC P1 §8)
+A §8 mostra "Último treino: 80 kg × 10". O endpoint devolve só a carga, então a barra exibe
+`Último: 80 kg` e as repetições ficam no histórico rápido (§27). Acrescentar `lastReps` ao
+`exerciseProgression` fecharia a lacuna com uma linha de SQL.
+
+### 14. Motivos de exercício não executado (SPEC P1 §16)
+O aviso de pendentes entrou (§33); a coleta opcional do motivo — equipamento ocupado, dor,
+sem tempo — não. Vale junto com a decisão de o que fazer com o dado: sem consumidor, é
+pergunta que só custa um toque.
+
+### 15. "Manter tela ligada durante o treino" (SPEC P1 §42)
+A SPEC pede para **avaliar**, desligado por padrão. Precisa de `@capacitor/keep-awake` e de
+uma preferência persistida — e de uma decisão sobre onde essa preferência mora, já que hoje
+não existe tela de configurações do treino.
+
+### 16. Fila de sincronização automática
+Herdado da P0 (item 3). A P1 acrescentou o indicador "Offline — salvando no aparelho", mas o
+reenvio continua manual ("Tentar novamente"). Uma fila que reenvia sozinha ao voltar a
+conexão, usando a `client_key` que já dá idempotência, remove o último passo manual.
+
+### 17. Janela de "sessão ativa" é um palpite calibrado
+As 3h que separam o mini-player do card de retomada foram escolhidas por raciocínio (um
+treino longo com pausa para o almoço ainda é o mesmo treino; o de ontem à noite não), não
+por dado. Com `workout.abandoned` e `workout.resumed` instrumentados, dá para calibrar.
+
+---
+
 ## P2
 
-### 6. Área de toque do `?` não vence pelo lado de cima
+### 18. Área de toque do `?` não vence pelo lado de cima
 `.hit-target-44` levou o alvo de 16×16 para ~44×36: acerta no centro, esquerda, direita e
 embaixo; perde para uma `div` vizinha 18px acima. Resolver exige mexer no contexto de
 empilhamento da Hoje.
 
-### 7. Links inline: revisar caso a caso
+### 19. Links inline: revisar caso a caso
 Os alvos de 18–28px em frase são **isentos** pela WCAG 2.5.8 e foram deixados de propósito.
 Alguns talvez devessem virar botões autônomos por hierarquia — decisão de design, não de
 acessibilidade. Candidatos: "Registrar no painel do dia →" (176×28) e
 "Ver leitura completa →" (largura total × 18).
 
-### 8. Projeto iOS não existe
+### 20. Projeto iOS não existe
 Não há `ios/`. Criar a plataforma, validar safe areas com Dynamic Island, photo picker,
 share sheet e swipe-back (§33) é trabalho próprio, com macOS.
 
-### 9. Aparelhar as demais áreas para mobile
+### 21. Aparelhar as demais áreas para mobile
 A regra de 44px em `.btn`/`.input` (≤719px) alcança Admin, Academia e Nutri, que **não foram
 auditados** — a SPEC limitou o escopo aos módulos publicados. Vale a mesma varredura.
 
-### 10. Cobertura de teste do caminho nativo
+### 22. Cobertura de teste do caminho nativo
 `nativeShare.ts` é testado com a camada mockada. Um teste de integração em emulador/aparelho
 (Appium ou similar) fecharia a lacuna que causou o FAIL desta entrega.
+
+---
+
+## P3 — explicitamente fora, conforme a SPEC P1 §57
+
+**Não implementar sem SPEC própria.**
+
+- HRV
+- Body Battery
+- Training Readiness
+- Qualidade do sono · recovery · carga fisiológica
+- Recomendação de treino e adaptação automática de intensidade
+- Motor de decisão "Como você está hoje?"
+- Inteligência baseada em múltiplas métricas
 
 ---
 
@@ -90,6 +144,9 @@ Registrados só para não se perderem. **Não implementar sem SPEC própria.**
 - Wear OS · Apple Watch
 - Notificações inteligentes
 - Readiness e recomendação automática de treino
+- Caminhada, corrida e bike como tipos de sessão (SPEC P1 §26 e §56)
+- Distância, pace, velocidade, mapa e route tracking
+- Sensores: frequência cardíaca, passos, calorias de wearable
 
 ---
 
@@ -99,7 +156,11 @@ Duas lições que valem para a próxima auditoria mobile:
 
 1. **Medir com a página em `scrollY=0` produz falso positivo em massa** — já registrado no
    QA de ago/2026 e confirmado de novo aqui: sempre `scrollIntoView` antes de reportar.
-2. **Contar `env(safe-area-inset-*)` no código não prova safe area** — o app tinha os tokens
+2. **Uma tela pode falhar no QA sem ter defeito.** Dois bloqueios desta rodada — o chip de
+   histórico "coberto" pela barra fixa e telas "vazias" em alguns viewports — eram artefato
+   do próprio teste (DOM em transição e exaustão do Chromium após 6 contextos). Medir de
+   novo, isolado, antes de reportar; foi o que separou o defeito real do ruído.
+3. **Contar `env(safe-area-inset-*)` no código não prova safe area** — o app tinha os tokens
    certos em 18 lugares e ainda assim desenhava sob as barras do sistema, porque a causa
    estava na configuração do Capacitor. Auditoria mobile de app empacotado precisa ler a
    config nativa, não só o CSS.

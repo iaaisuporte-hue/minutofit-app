@@ -40,6 +40,11 @@ import {
 } from "./freeWorkout/liveSessionOps";
 import { freeWorkoutTitle } from "../../features/training/freeWorkout/muscleGroupMap";
 import { findFilledUnchecked, markFilledDone } from "./workoutSession/filledSets";
+import { SetActionBar } from "./workoutSession/SetActionBar";
+import { serieAtual } from "./workoutSession/setSteppers";
+import { ExerciseHistorySheet } from "./workoutSession/ExerciseHistorySheet";
+import { postWorkoutEvent } from "./workoutSession/workoutEvents";
+import { agendarAvisoDescanso, cancelarAvisoDescanso } from "./workoutSession/restNotification";
 import { computeSessionComparison, deriveFatigueInsight } from "./workoutSession/sessionSummary";
 import { WorkoutShareTrigger } from "./components/WorkoutShareTrigger";
 import { splitShareTitle } from "./lib/sessionShareData";
@@ -135,6 +140,8 @@ export default function WorkoutSessionPage() {
   const { hasFeature } = useFeatureFlags();
   const canGuidedLab = hasFeature("movement_lab_guided");
   const [demoName, setDemoName] = useState<string | null>(null);
+  /** Exercício cujo histórico rápido está aberto (§27). */
+  const [histFor, setHistFor] = useState<{ id: string; name: string } | null>(null);
   const [showExit, setShowExit] = useState(false);
   const [showUnchecked, setShowUnchecked] = useState(false);
   const [sessionRpe, setSessionRpe] = useState<number | null>(null);
@@ -165,6 +172,70 @@ export default function WorkoutSessionPage() {
    */
   const sessionSaved = useRef(false);
 
+  /** Evita emitir `workout.started` duas vezes no mesmo mount. */
+  const inicioEmitido = useRef(false);
+
+  /**
+   * Guarda de duplo toque em "Concluir série" (SPEC P1 §47).
+   *
+   * `toggleDone` ALTERNA — dois toques rápidos marcam e desmarcam, e o segundo
+   * ainda cancelaria o descanso que o primeiro acabou de iniciar. Com o botão
+   * grande do rodapé isso deixa de ser hipótese: ele é largo e fica embaixo do
+   * polegar. A janela cobre o toque repetido sem impedir quem realmente quer
+   * desmarcar a série logo em seguida.
+   */
+  const ultimoToqueSerie = useRef<{ key: string; at: number } | null>(null);
+
+  /**
+   * Relógio da sessão (§4). Um tique por segundo, e só enquanto a aba está
+   * visível — o valor é derivado de `startedAt`, então voltar do segundo plano
+   * mostra o tempo certo sem precisar ter contado nada enquanto esteve fora.
+   */
+  /**
+   * Indicador de conexão da sessão (SPEC P1 §49).
+   *
+   * O banner global de offline existe, mas fala do app; aqui a informação que
+   * importa é outra e mais tranquilizadora: as séries continuam sendo gravadas
+   * NO APARELHO. Quem está treinando sem sinal precisa saber que não está
+   * perdendo o treino — desde o P0 isso é verdade, mas nada dizia.
+   *
+   * "Sincronizado" aparece por alguns segundos ao reconectar e some: a §24 da
+   * P1 pede estado discreto, não um selo permanente.
+   */
+  const [offline, setOffline] = useState(
+    () => typeof navigator !== "undefined" && navigator.onLine === false,
+  );
+  const [reconectou, setReconectou] = useState(false);
+  useEffect(() => {
+    const caiu = () => { setOffline(true); setReconectou(false); };
+    const voltou = () => {
+      setOffline((estavaOffline) => {
+        if (estavaOffline) {
+          setReconectou(true);
+          window.setTimeout(() => setReconectou(false), 4000);
+        }
+        return false;
+      });
+    };
+    window.addEventListener("offline", caiu);
+    window.addEventListener("online", voltou);
+    return () => {
+      window.removeEventListener("offline", caiu);
+      window.removeEventListener("online", voltou);
+    };
+  }, []);
+
+  const [agora, setAgora] = useState(() => Date.now());
+  useEffect(() => {
+    const id = window.setInterval(() => setAgora(Date.now()), 1000);
+    const onVis = () => { if (document.visibilityState === "visible") setAgora(Date.now()); };
+    document.addEventListener("visibilitychange", onVis);
+    return () => {
+      window.clearInterval(id);
+      document.removeEventListener("visibilitychange", onVis);
+    };
+  }, []);
+
   // Desligado no livre: não há ficha para adaptar, e o hook fica em idle
   // (loading:false, data:null) sem disparar requisição.
   const adaptive = useAdaptiveTraining(!isFree);
@@ -177,6 +248,25 @@ export default function WorkoutSessionPage() {
   useEffect(() => {
     startedAtRef.current = startedAt;
   }, [startedAt]);
+
+  /**
+   * `workout.started` / `workout.resumed` (§51).
+   *
+   * Emitido quando a sessão entra em execução, e distinguindo os dois casos
+   * pelo que o rascunho trazia: com séries já marcadas é retomada, não início.
+   * A distinção é o que permite responder "quantos usuários iniciam e concluem
+   * treino" (§52) sem contar a mesma sessão duas vezes.
+   */
+  useEffect(() => {
+    if (phase !== "running" || inicioEmitido.current) return;
+    inicioEmitido.current = true;
+    const jaTinhaSerie = exercises.some((ex) => ex.sets.some((x) => x.done));
+    postWorkoutEvent(jaTinhaSerie ? "workout.resumed" : "workout.started", {
+      mode: isFree ? "free" : "plan",
+      totalExercises: exercises.length,
+    });
+    if (isFree && !jaTinhaSerie) postWorkoutEvent("workout.free_started", { mode: "free" });
+  }, [phase, exercises, isFree]);
 
   // Aplica itens adaptados quando o motor adaptou ESTE dia hoje (mesma regra da ficha).
   const resolvedItems = useMemo<UserWorkoutPlanItem[] | null>(() => {
@@ -237,6 +327,10 @@ export default function WorkoutSessionPage() {
     (spent: number) => {
       const ctx = restCtx.current;
       restCtx.current = null;
+      // O descanso acabou (naturalmente ou pulado): o aviso agendado no sistema
+      // não tem mais razão de tocar. Sem isto, pular o descanso e sair do app
+      // renderia uma notificação para uma série já feita.
+      void cancelarAvisoDescanso();
       if (!ctx) return;
       setExercises((prev) => {
         const next = prev.map((ex, i) =>
@@ -397,6 +491,20 @@ export default function WorkoutSessionPage() {
    */
   const filledUnchecked = useMemo(() => findFilledUnchecked(exercises), [exercises]);
 
+  /**
+   * Exercícios sem NENHUMA série marcada (SPEC P1 §33).
+   *
+   * Diferente do alerta de séries preenchidas-e-não-marcadas: aqui não há nada
+   * digitado, o exercício simplesmente não foi feito — pulado, máquina ocupada
+   * ou tempo curto. O aviso existe para que "pular por agora" (§15) não vire
+   * "esqueci de vez", e nunca impede a conclusão.
+   */
+  const exerciciosPendentes = useMemo(
+    () => exercises.filter((ex) => ex.sets.every((s) => !s.done)).map((ex) => ex.name),
+    [exercises],
+  );
+  const [showPendentes, setShowPendentes] = useState(false);
+
   /** Marca de uma vez o que já foi preenchido e segue para o resumo. */
   function markFilledAsDone() {
     setExercises((prev) => {
@@ -431,16 +539,35 @@ export default function WorkoutSessionPage() {
     const ex = exercises[currentIndex];
     const set = ex?.sets.find((s) => s.setIndex === setIdx);
     if (!set) return;
+
+    // §47: o segundo toque de um duplo toque é ignorado. 600ms é a janela do
+    // gesto acidental — abaixo do tempo de quem decide desmarcar de propósito.
+    const key = `${currentIndex}:${setIdx}`;
+    const ultimo = ultimoToqueSerie.current;
+    if (ultimo && ultimo.key === key && Date.now() - ultimo.at < 600) return;
+    ultimoToqueSerie.current = { key, at: Date.now() };
+
     const becomingDone = !set.done;
     updateSet(setIdx, { done: becomingDone, completedAt: becomingDone ? Date.now() : null });
 
     if (becomingDone) {
+      // Háptico curto ao concluir a série (§38). Um pulso só: a SPEC pede
+      // "leve" e "não exagerar", e o aparelho está na mão de quem acabou de
+      // fazer força. Degrada em silêncio onde a API não existe (iOS/desktop).
+      try { navigator.vibrate?.(35); } catch { /* sem vibração é ok */ }
+      postWorkoutEvent("workout.set_completed", { mode: isFree ? "free" : "plan" });
+
       // Bi-Set roda em par, sem descanso entre os dois exercícios — não dispara timer.
       const planned = set.plannedRestS ?? 0;
       const isBiSet = !!ex.biSetGroupId;
       if (planned > 0 && !isBiSet) {
-        restCtx.current = { exIdx: currentIndex, setIdx, planned, endsAt: Date.now() + planned * 1000 };
+        const endsAt = Date.now() + planned * 1000;
+        restCtx.current = { exIdx: currentIndex, setIdx, planned, endsAt };
         rest.start(planned);
+        // Entregue ao SISTEMA agora, com a hora absoluta: se o aparelho for
+        // bloqueado no meio do descanso, o JS congela e nenhum timer nosso
+        // dispararia (§40).
+        void agendarAvisoDescanso(endsAt);
       }
     }
   }
@@ -486,6 +613,7 @@ export default function WorkoutSessionPage() {
   }
 
   function handleLiveMove(index: number, direction: -1 | 1) {
+    postWorkoutEvent("workout.exercise_reordered", { mode: isFree ? "free" : "plan" });
     applyLiveResult(moveLiveExercise(liveState(), index, direction));
   }
 
@@ -608,7 +736,16 @@ export default function WorkoutSessionPage() {
       sessionSaved.current = true;
       rest.skip();
       restCtx.current = null;
+      void cancelarAvisoDescanso();
       clearFreeDraft();
+      postWorkoutEvent("workout.completed", {
+        mode: "free",
+        durationS: Math.max(0, Math.floor((Date.now() - startedAt) / 1000)),
+        setsDone: doneSets,
+        totalSets,
+        totalExercises: exercises.length,
+        pendingExercises: exerciciosPendentes.length,
+      });
       setFinishing(false);
       setSaved(true);
     } catch {
@@ -671,15 +808,31 @@ export default function WorkoutSessionPage() {
     sessionSaved.current = true;
     rest.skip();
     restCtx.current = null;
+    void cancelarAvisoDescanso();
     clearDraft(planId, dayIndex);
     // NÃO navega embora: entra no estado "salvo" com o Compartilhar em destaque.
     // Sair na hora escondia a divulgação orgânica (regressão reportada jun/2026).
+    postWorkoutEvent("workout.completed", {
+      mode: "plan",
+      durationS: Math.max(0, Math.floor((Date.now() - startedAt) / 1000)),
+      setsDone: doneSets,
+      totalSets,
+      totalExercises: exercises.length,
+      pendingExercises: exerciciosPendentes.length,
+    });
     setFinishing(false);
     setSaved(true);
   }
 
   function discardAndExit() {
     rest.skip();
+    void cancelarAvisoDescanso();
+    postWorkoutEvent("workout.abandoned", {
+      mode: isFree ? "free" : "plan",
+      durationS: Math.max(0, Math.floor((Date.now() - startedAt) / 1000)),
+      setsDone: doneSets,
+      totalSets,
+    });
     if (isFree) {
       clearFreeDraft();
       navigate(FREE_SETUP_ROUTE, { replace: true });
@@ -967,7 +1120,23 @@ export default function WorkoutSessionPage() {
     navigate(`/app/user/movement-lab?${q.toString()}`);
   }
   const prev = current?.exerciseId ? prevLoad.get(current.exerciseId) ?? null : null;
+  // Repetições da última execução: o servidor devolve só `lastLoadKg` em
+  // `/training/stats`. A SPEC §8 mostra "80 kg × 10", mas §17 é explícita sobre
+  // não inventar métrica que o domínio não tem — então a barra exibe a carga,
+  // que é o número que decide o próximo ajuste, e as reps ficam no histórico
+  // rápido (§27), que lê a execução real.
+  const prevReps: string | null = null;
   const allCurrentDone = current?.sets.every((s) => s.done) ?? false;
+
+  // Carga/reps da última série JÁ REGISTRADA deste exercício nesta sessão.
+  // É a referência que o stepper usa antes de cair na do treino passado: quem
+  // subiu o peso na série 1 de hoje não quer o número da semana passada de volta.
+  const alvo = current ? serieAtual(current.sets) : null;
+  const anterior = current && alvo
+    ? [...current.sets].filter((x) => x.setIndex < alvo.setIndex && x.done).pop() ?? null
+    : null;
+  const cargaSerieAnterior = anterior?.loadKg?.trim() ? anterior.loadKg : null;
+  const repsSerieAnterior = anterior?.reps?.trim() ? anterior.reps : null;
   const isLast = currentIndex >= exercises.length - 1;
 
   return (
@@ -979,16 +1148,34 @@ export default function WorkoutSessionPage() {
           <div style={{ minWidth: 0 }}>
             <div className="ws-title">{sessionTitle}</div>
             <div className="ws-sub">
+              {/* Tempo decorrido (§4): a sessão já guardava `startedAt`, mas o
+                  número nunca aparecia — quem treina precisa saber há quanto
+                  tempo está ali sem sair para o relógio do aparelho. */}
+              <span className="ws-elapsed">{fmtClock(Math.max(0, Math.floor((agora - startedAt) / 1000)))}</span>
+              {" · "}
               Exercício {currentIndex + 1}/{exercises.length} · {doneSets}/{totalSets} séries
             </div>
+            {offline ? (
+              <div className="ws-sync ws-sync-off" role="status">Offline — salvando no aparelho</div>
+            ) : reconectou ? (
+              <div className="ws-sync ws-sync-ok" role="status">Sincronizado</div>
+            ) : null}
           </div>
           <div className="ws-top-actions">
-            {/* Só no livre: a lista é do aluno, e o treino real muda no meio. */}
-            {isFree ? (
-              <button type="button" className="ws-manage-btn" onClick={() => setShowManage(true)}>
-                Exercícios
-              </button>
-            ) : null}
+            {/*
+              Editar a lista durante a sessão vale nos DOIS modos (SPEC P1
+              §17/§21/§22). Era exclusivo do livre, mas a máquina ocupada é um
+              problema de quem tem ficha, não de quem improvisa: reordenar é
+              justamente a saída para não pular o exercício.
+
+              A ficha ORIGINAL não muda. O que o servidor recebe como
+              `prescribed` continua saindo do plano (`resolvedItems`), e só a
+              execução vem desta lista — então reordenar, adicionar ou remover
+              aqui altera o que foi FEITO, nunca o que foi PRESCRITO.
+            */}
+            <button type="button" className="ws-manage-btn" onClick={() => setShowManage(true)}>
+              Exercícios
+            </button>
             <button className="ws-icon-btn" aria-label="Sair" onClick={() => setShowExit(true)}>
               ×
             </button>
@@ -1030,6 +1217,17 @@ export default function WorkoutSessionPage() {
                     </span>
                   ) : null}
                   {prev != null ? <span className="ws-chip ws-chip-prev">última: {prev} kg</span> : null}
+                  {/* §27: o histórico abre SOBRE a sessão — perguntar "quanto
+                      levantei da última vez" não pode custar sair do treino. */}
+                  {current.exerciseId ? (
+                    <button
+                      type="button"
+                      className="ws-chip ws-chip-hist"
+                      onClick={() => setHistFor({ id: current.exerciseId!, name: current.name })}
+                    >
+                      histórico
+                    </button>
+                  ) : null}
                 </div>
                 {/* Fora do livre: o Lab guiado grava sessão própria atrelada a
                     plano e dia, que aqui não existem. */}
@@ -1103,7 +1301,11 @@ export default function WorkoutSessionPage() {
             className={`ws-btn ${isLast || doneSets > 0 ? "ws-btn-primary" : "ws-btn-ghost"}`}
             onClick={() => {
               // O aviso vem ANTES do resumo: depois de salvo, não há desfazer.
+              // Ordem: primeiro o que seria DESCARTADO (séries digitadas e não
+              // marcadas), depois o que ficou por FAZER. Os dois avisam antes
+              // do resumo, porque depois de salvo não há desfazer.
               if (filledUnchecked.length > 0) setShowUnchecked(true);
+              else if (exerciciosPendentes.length > 0 && doneSets > 0) setShowPendentes(true);
               else setPhase("summary");
             }}
           >
@@ -1111,6 +1313,36 @@ export default function WorkoutSessionPage() {
           </button>
         </div>
       </div>
+
+      {/*
+        Barra de ação da série atual (§5/§6/§7/§10/§45). Escondida enquanto o
+        descanso está na tela: as duas ocupam a mesma faixa inferior, e durante
+        o descanso a ação relevante é o descanso, não a próxima série.
+      */}
+      {current && !rest.active ? (
+        <SetActionBar
+          set={serieAtual(current.sets)}
+          posicao={serieAtual(current.sets)?.setIndex ?? current.sets.length}
+          totalNoExercicio={current.sets.length}
+          cargaSerieAnterior={cargaSerieAnterior}
+          repsSerieAnterior={repsSerieAnterior}
+          ultimaCarga={prev}
+          ultimasReps={prevReps}
+          exercicioConcluido={allCurrentDone}
+          temProximo={!isLast}
+          onChange={updateSet}
+          onConcluir={toggleDone}
+          onProximo={() => goTo(currentIndex + 1)}
+          onPular={
+            isLast
+              ? undefined
+              : () => {
+                  postWorkoutEvent("workout.exercise_skipped", { mode: isFree ? "free" : "plan" });
+                  goTo(currentIndex + 1);
+                }
+          }
+        />
+      ) : null}
 
       {rest.active ? (
         <div className={`ws-rest${restSoon ? " ws-rest-soon" : ""}`}>
@@ -1133,7 +1365,16 @@ export default function WorkoutSessionPage() {
 
       {demoName ? <ExerciseDemoModal key={demoName} name={demoName} onClose={() => setDemoName(null)} /> : null}
 
-      {isFree && showManage ? (
+      {histFor ? (
+        <ExerciseHistorySheet
+          key={histFor.id}
+          exerciseId={histFor.id}
+          exerciseName={histFor.name}
+          onClose={() => setHistFor(null)}
+        />
+      ) : null}
+
+      {showManage ? (
         <LiveExerciseSheet
           exercises={exercises}
           currentIndex={currentIndex}
@@ -1184,10 +1425,56 @@ export default function WorkoutSessionPage() {
               className="ws-btn ws-btn-ghost"
               onClick={() => {
                 setShowUnchecked(false);
-                setPhase("summary");
+                if (exerciciosPendentes.length > 0 && doneSets > 0) setShowPendentes(true);
+                else setPhase("summary");
               }}
             >
               Finalizar sem elas
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      {/* §33 — exercícios que não foram executados. Avisa, não bloqueia. */}
+      {showPendentes ? (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="ws-pend-title"
+          style={{ position: "fixed", inset: 0, zIndex: 1300, background: "rgba(10,19,13,.5)", display: "flex", alignItems: "flex-end", justifyContent: "center", padding: 12 }}
+          onClick={() => setShowPendentes(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{ width: "min(480px,100%)", background: "var(--color-surface)", borderRadius: 18, border: "1px solid var(--color-border)", padding: 18, display: "grid", gap: 10 }}
+          >
+            <div id="ws-pend-title" style={{ fontWeight: 700, fontSize: 17 }}>
+              {exerciciosPendentes.length === 1
+                ? "1 exercício ainda não foi concluído."
+                : `${exerciciosPendentes.length} exercícios ainda não foram concluídos.`}
+            </div>
+            <div style={{ fontSize: 13, color: "var(--color-text-muted)", lineHeight: 1.45 }}>
+              {exerciciosPendentes.slice(0, 4).join(" · ")}
+              {exerciciosPendentes.length > 4 ? ` · +${exerciciosPendentes.length - 4}` : ""}
+            </div>
+            <button
+              className="ws-btn ws-btn-primary"
+              onClick={() => {
+                setShowPendentes(false);
+                const idx = exercises.findIndex((ex) => ex.sets.every((s) => !s.done));
+                if (idx >= 0) goTo(idx);
+              }}
+            >
+              Voltar ao treino
+            </button>
+            <button
+              className="ws-btn ws-btn-ghost"
+              onClick={() => {
+                setShowPendentes(false);
+                setPhase("summary");
+              }}
+            >
+              Finalizar mesmo assim
             </button>
           </div>
         </div>

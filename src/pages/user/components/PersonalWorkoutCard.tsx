@@ -7,7 +7,14 @@ import { SURFACE } from "./surface";
 
 const AVG_SECONDS_PER_ITEM = 200; // ~3min com aquecimento e descanso curto
 
-function pickTodayDay(plan: UserWorkoutPlan): UserWorkoutPlanDay | null {
+/**
+ * Qual dia da ficha é o de hoje.
+ *
+ * Exportada porque a Hoje precisa da MESMA resposta para montar a rota do
+ * atalho de início (§26): duas derivações independentes abririam dias
+ * diferentes a partir da mesma tela.
+ */
+export function pickTodayDay(plan: UserWorkoutPlan): UserWorkoutPlanDay | null {
   if (plan.days.length === 0) return null;
   const idx = new Date().getDay() % plan.days.length;
   return plan.days[idx] ?? plan.days[0];
@@ -153,8 +160,28 @@ export function PersonalWorkoutCard({
         {/* Prévia de exercícios removida — a lista completa aparece ao iniciar
             o treino. Mantém o card limpo e focado na ação (decisão UX). */}
 
-        <ActionButton onClick={() => navigate("/app/user/ficha")} fullWidth={isMobile}>
-          Iniciar treino →
+        {/*
+          Quick start (SPEC P1 §23/§26): o botão agora INICIA o treino.
+          Ele já dizia "Iniciar treino →" mas navegava para a lista de fichas —
+          o rótulo prometia uma coisa e entregava outra, e a pessoa tinha que
+          achar e tocar um segundo "Iniciar treino" lá dentro. O card já sabe
+          qual é o dia (`pickTodayDay`), então vai direto para a sessão. Um
+          toque a menos no caminho mais percorrido do app.
+
+          Sem dia com exercícios (ficha vazia), cai na ficha: iniciar uma sessão
+          sem nada para executar seria pior que a navegação.
+        */}
+        <ActionButton
+          onClick={() =>
+            navigate(
+              today && itemCount > 0
+                ? `/app/user/treino/${plan.id}/${today.index}`
+                : "/app/user/ficha",
+            )
+          }
+          fullWidth={isMobile}
+        >
+          {today && itemCount > 0 ? "Iniciar treino →" : "Ver minha ficha →"}
         </ActionButton>
       </div>
     </div>

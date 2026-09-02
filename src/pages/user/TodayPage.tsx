@@ -47,7 +47,8 @@ import type { WorkoutGoal } from "../../features/training/generateDailyWorkout";
 import { useWorkoutHistory } from "../../features/training/useWorkoutHistory";
 import { searchExercises } from "../../services/exercisesApi";
 import { useTodayUserState } from "./hooks/useTodayUserState";
-import { PersonalWorkoutCard } from "./components/PersonalWorkoutCard";
+import { PersonalWorkoutCard, pickTodayDay } from "./components/PersonalWorkoutCard";
+import { StartWorkoutSheet } from "./components/StartWorkoutSheet";
 import { PersonalEmptyState } from "./components/PersonalEmptyState";
 import { RequestProfessionalCard } from "./components/RequestProfessionalCard";
 import { EmptyMetabolismHero } from "./components/EmptyMetabolismHero";
@@ -244,6 +245,20 @@ export default function TodayPage() {
     return { ...plan, days };
   }, [todayState.activePlan, adaptive.data, usingOriginal]);
 
+  // Rota do treino de hoje para a folha de início (§26). Mesma regra do card
+  // (`pickTodayDay`) — derivar de novo aqui abriria um dia diferente do que o
+  // botão grande abre, na mesma tela.
+  const { rotaTreinoHoje, rotuloTreinoHoje } = useMemo(() => {
+    const plan = planForCard ?? todayState.activePlan;
+    if (!plan) return { rotaTreinoHoje: null, rotuloTreinoHoje: null };
+    const dia = pickTodayDay(plan);
+    if (!dia || dia.items.length === 0) return { rotaTreinoHoje: null, rotuloTreinoHoje: null };
+    return {
+      rotaTreinoHoje: `/app/user/treino/${plan.id}/${dia.index}`,
+      rotuloTreinoHoje: dia.focus?.trim() || dia.name,
+    };
+  }, [planForCard, todayState.activePlan]);
+
   const streak = gamification?.streak ?? 0;
   const todayCheckedIn = gamification?.todayCheckedIn ?? false;
 
@@ -263,6 +278,7 @@ export default function TodayPage() {
   const [loadingShare, setLoadingShare] = useState(false);
   const [shareError, setShareError] = useState<string | null>(null);
   const [showCheckin, setShowCheckin] = useState(false);
+  const [startSheetOpen, setStartSheetOpen] = useState(false);
   const [showMetabolicCheckin, setShowMetabolicCheckin] = useState(false);
   const [firstRun, setFirstRun] = useState(() =>
     userId ? getFirstRunState(userId) : { checkinDone: true, profileDone: true, workoutDone: true }
@@ -522,6 +538,16 @@ export default function TodayPage() {
       initial={shouldReduceMotion ? false : "hidden"}
       animate="show"
     >
+      {/* Folha de opções de início (§26). O card acima segue com o caminho de
+          UM toque para o treino de hoje; isto aqui é o menu das alternativas. */}
+      {startSheetOpen ? (
+        <StartWorkoutSheet
+          rotaHoje={rotaTreinoHoje}
+          rotuloHoje={rotuloTreinoHoje}
+          onClose={() => setStartSheetOpen(false)}
+        />
+      ) : null}
+
       {/* 0. Treino em andamento — vem ANTES de tudo: quem reabriu o app com um
              treino aberto precisa reencontrá-lo, não recomeçar (SPEC mobile §22). */}
       <ResumeWorkoutCard />
@@ -672,6 +698,15 @@ export default function TodayPage() {
             plan={planForCard ?? todayState.activePlan}
             isMobile={isMobile}
           />
+          {/* Atalho para as outras formas de começar (§26). Discreto: o botão
+              grande do card continua sendo o caminho principal. */}
+          <button
+            type="button"
+            className="today-start-more"
+            onClick={() => setStartSheetOpen(true)}
+          >
+            + Outro treino
+          </button>
         </motion.div>
       )}
 

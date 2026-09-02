@@ -4,6 +4,7 @@ import { ConfirmDialog } from "../../../components/ConfirmDialog";
 import {
   discardInProgressSession,
   findInProgressSession,
+  sessaoAtiva,
   type InProgressSession,
 } from "../workoutSession/inProgressSession";
 
@@ -45,6 +46,13 @@ export function ResumeWorkoutCard() {
 
   // Já estamos DENTRO da sessão — o aviso viraria ruído.
   if (location.pathname.startsWith(session.route)) return null;
+
+  // Treino em curso é assunto do mini-player, que mostra cronômetro e descanso
+  // em qualquer tela (P1 §13). Este card existe para o outro caso: o treino
+  // que ficou aberto e esfriou — é dele que a pessoa precisa ser lembrada, com
+  // espaço para explicar e a opção de encerrar (P0 §22). Sem esta linha os
+  // dois apareciam na Hoje dizendo a mesma coisa em dois formatos.
+  if (sessaoAtiva(session)) return null;
 
   const restantes = Math.max(0, session.totalSets - session.doneSets);
   const detalhe = session.currentExercise
