@@ -1,12 +1,16 @@
 ext {
     minSdkVersion = 23
     // 36: exigido por androidx.browser:browser:1.9.0 (trazido pelo
-    // @capgo/capacitor-social-login — login nativo Google). targetSdk fica em
-    // 35 de propósito: subir compileSdk só habilita compilar contra APIs
-    // novas; subir targetSdk também opta nos comportamentos novos do Android
-    // 16, e isso merece QA dedicado, não vir de carona aqui.
+    // @capgo/capacitor-social-login — login nativo Google).
     compileSdkVersion = 36
-    targetSdkVersion = 35
+    // 36: a decisão original (30/ago) era manter em 35 — subir targetSdk opta
+    // nos comportamentos novos do Android 16, e isso merecia QA dedicado antes
+    // de vir de carona com o compileSdk. Revertido em 02/set: a Play Store
+    // bloqueou o envio do primeiro .aab com "nível da API precisa ser pelo
+    // menos 36" — não é mais escolha nossa, é exigência da loja para
+    // qualquer app novo. O QA dedicado que a decisão original pedia passa a
+    // acontecer no teste interno/fechado, antes de produção.
+    targetSdkVersion = 36
     androidxActivityVersion = '1.9.2'
     androidxAppCompatVersion = '1.7.0'
     androidxCoordinatorLayoutVersion = '1.2.0'
