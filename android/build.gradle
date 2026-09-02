@@ -7,7 +7,10 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:8.7.2'
+        // 8.9.1: mínimo exigido por androidx.browser:browser:1.9.0 para
+        // compilar contra compileSdk 36 (ver variables.gradle). O Gradle
+        // Wrapper já está em 8.11.1, que satisfaz este AGP sem precisar subir.
+        classpath 'com.android.tools.build:gradle:8.9.1'
         classpath 'com.google.gms:google-services:4.4.2'
 
         // NOTE: Do not place your application dependencies here; they belong

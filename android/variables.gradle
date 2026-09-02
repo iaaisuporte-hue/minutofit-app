@@ -1,6 +1,11 @@
 ext {
     minSdkVersion = 23
-    compileSdkVersion = 35
+    // 36: exigido por androidx.browser:browser:1.9.0 (trazido pelo
+    // @capgo/capacitor-social-login — login nativo Google). targetSdk fica em
+    // 35 de propósito: subir compileSdk só habilita compilar contra APIs
+    // novas; subir targetSdk também opta nos comportamentos novos do Android
+    // 16, e isso merece QA dedicado, não vir de carona aqui.
+    compileSdkVersion = 36
     targetSdkVersion = 35
     androidxActivityVersion = '1.9.2'
     androidxAppCompatVersion = '1.7.0'
