@@ -27,6 +27,14 @@ type Props = {
  * o aluno escolhe/tira uma foto que vira o fundo do card, vê o resultado e
  * compartilha. O share() parte do botão "Compartilhar" (gesto do usuário).
  */
+const photoBtnStyle = (composing: boolean): React.CSSProperties => ({
+  flex: 1, padding: "11px 16px", minHeight: 44, borderRadius: 12,
+  border: "1px solid var(--color-border)", background: "transparent",
+  color: "var(--color-text)", fontWeight: 700, fontSize: 14,
+  cursor: composing ? "not-allowed" : "pointer",
+  display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+});
+
 export function ShareWorkoutModal({ focus, dayName, stats, exercises, onClose }: Props) {
   const [image, setImage] = useState<ComposedImage | null>(null);
   const [composing, setComposing] = useState(true);
@@ -36,6 +44,13 @@ export function ShareWorkoutModal({ focus, dayName, stats, exercises, onClose }:
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const cameraRef = useRef<HTMLInputElement>(null);
+
+  // `capture` só faz sentido em device com câmera (touch). No desktop o atributo
+  // é ignorado e abriria um segundo seletor de arquivo idêntico ao da galeria.
+  const hasCamera =
+    typeof window !== "undefined" &&
+    window.matchMedia?.("(pointer: coarse)").matches === true;
 
   // Capacidade de share nativo (≈ mobile). No desktop cai nos fallbacks abaixo.
   const nativeShare = canShareWorkoutImage();
@@ -201,24 +216,42 @@ export function ShareWorkoutModal({ focus, dayName, stats, exercises, onClose }:
         ) : null}
 
         <input ref={fileRef} type="file" accept="image/*" onChange={onPick} style={{ display: "none" }} />
+        <input
+          ref={cameraRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          onChange={onPick}
+          style={{ display: "none" }}
+        />
 
-        <button
-          type="button"
-          onClick={() => fileRef.current?.click()}
-          disabled={composing}
-          style={{
-            width: "100%", padding: "11px 16px", minHeight: 44, borderRadius: 12,
-            border: "1px solid var(--color-border)", background: "transparent",
-            color: "var(--color-text)", fontWeight: 700, fontSize: 14,
-            cursor: composing ? "not-allowed" : "pointer",
-            display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-          }}
-        >
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="M21 15l-5-5L5 21" />
-          </svg>
-          {hasPhoto ? "Trocar foto de fundo" : "Adicionar foto de fundo"}
-        </button>
+        <div style={{ display: "flex", gap: 8 }}>
+          {hasCamera ? (
+            <button
+              type="button"
+              onClick={() => cameraRef.current?.click()}
+              disabled={composing}
+              style={photoBtnStyle(composing)}
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" /><circle cx="12" cy="13" r="4" />
+              </svg>
+              Tirar foto
+            </button>
+          ) : null}
+
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            disabled={composing}
+            style={photoBtnStyle(composing)}
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="M21 15l-5-5L5 21" />
+            </svg>
+            {hasCamera ? "Galeria" : hasPhoto ? "Trocar foto de fundo" : "Adicionar foto de fundo"}
+          </button>
+        </div>
 
         {/* Share nativo (mobile) — abre Stories/apps. Só quando o device suporta. */}
         {nativeShare ? (
