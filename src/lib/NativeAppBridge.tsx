@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { App as CapApp } from "@capacitor/app";
 import { isNativeApp } from "./platform";
 import { traduzirDeepLink } from "./deepLinks";
+import { fecharTopo } from "./overlayStack";
 import { postActivityEvent } from "../features/tracker/activityEvents";
 
 /**
@@ -19,17 +20,32 @@ import { postActivityEvent } from "../features/tracker/activityEvents";
  * Fecha a camada mais alta da interface, se houver.
  *
  * O back do Android é um botão só, e o WebView não sabe que existe um modal
- * aberto: `canGoBack` continua true, então a versão anterior NAVEGAVA para trás
- * com o diálogo na tela — o modal ficava órfão ou a pessoa saía da tela sem
- * fechar o que abriu (SPEC §32). A ordem aqui é a de empilhamento: primeiro o
- * que está por cima.
+ * aberto: `canGoBack` continua true, então a primeira versão NAVEGAVA para trás
+ * com o diálogo na tela (SPEC P0 §32).
  *
- * Emitimos `Escape`, que é o contrato que os diálogos do app já escutam
- * (`ConfirmDialog`, sheets, seletores) — não é preciso registrar cada um.
- * Retorna true quando havia algo para fechar.
+ * ## Correção do fechamento da trilha
+ *
+ * A versão da P0 procurava `[role="dialog"]` no DOM, disparava `Escape` e
+ * devolvia `true`, com o comentário de que os diálogos "já escutam" esse
+ * contrato. **A auditoria do fechamento mostrou que 16 deles NÃO escutavam.**
+ * O back os detectava, considerava a camada fechada e engolia o gesto: a pessoa
+ * apertava voltar e nada acontecia.
+ *
+ * Agora a fonte é a pilha explícita (`overlayStack`): cada overlay registra a
+ * própria função de fechar. Não há adivinhação, e o `false` é honesto.
+ *
+ * O disparo de `Escape` permanece como SEGUNDA tentativa, para os overlays
+ * baseados em `DrawerShell`, que tratam a tecla por conta própria e não passam
+ * pela pilha. Mas ele só conta como "fechei alguma coisa" se houver mesmo um
+ * diálogo na tela — e é por isso que a checagem do DOM ficou depois, e não antes.
  */
 function fecharCamadaAberta(): boolean {
   if (typeof document === "undefined") return false;
+
+  // 1) Pilha explícita — determinística.
+  if (fecharTopo()) return true;
+
+  // 2) Overlays que tratam Escape sozinhos (DrawerShell e afins).
   const aberto = document.querySelector(
     '[role="dialog"], [aria-modal="true"], [data-native-back="close"]',
   );

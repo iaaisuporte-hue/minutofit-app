@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useDismissable } from "../../../lib/overlayStack";
 import { FreeExercisePickerSheet, type PickedExercise } from "./FreeExercisePickerSheet";
 import { MAX_EXERCISES } from "./freeSessionOps";
 import { countDoneSets, hasRecordedWork } from "./liveSessionOps";
@@ -26,6 +27,10 @@ interface Props {
 export function LiveExerciseSheet({ exercises, currentIndex, onClose, onMove, onRemove, onAdd }: Props) {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [confirmIndex, setConfirmIndex] = useState<number | null>(null);
+
+  // Escape + botão voltar do Android. Sem isto o back era engolido em silêncio
+  // (auditoria do fechamento da trilha).
+  useDismissable(onClose, !pickerOpen && confirmIndex === null);
 
   const full = exercises.length >= MAX_EXERCISES;
   const onlyOne = exercises.length <= 1;

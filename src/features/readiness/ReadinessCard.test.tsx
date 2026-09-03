@@ -120,3 +120,41 @@ describe("instrumentação (§71)", () => {
     expect(ev.postReadinessEvent).toHaveBeenCalledWith("readiness_details_opened", { state: "ready" });
   });
 });
+
+describe("dado parcial não se apresenta como medição (FECHAMENTO §6)", () => {
+  it("cobertura baixa exibe o selo experimental e a porcentagem", async () => {
+    api.getReadinessToday.mockResolvedValue(base({ score: 73, dataCompleteness: 0.42, confidence: "low" }));
+    render(<ReadinessCard />);
+    expect(await screen.findByText("experimental")).toBeInTheDocument();
+    expect(screen.getByText(/cobertura 42%/)).toBeInTheDocument();
+  });
+
+  it("cobertura alta NÃO exibe o selo — o motor está bem alimentado", async () => {
+    api.getReadinessToday.mockResolvedValue(base({ dataCompleteness: 0.88 }));
+    render(<ReadinessCard />);
+    expect(await screen.findByText("74")).toBeInTheDocument();
+    expect(screen.queryByText("experimental")).not.toBeInTheDocument();
+    expect(screen.getByText(/cobertura 88%/)).toBeInTheDocument();
+  });
+
+  it('o "Por quê?" nomeia as fontes que faltam, em vez de só dizer "poucos dados"', async () => {
+    api.getReadinessToday.mockResolvedValue(base({ dataCompleteness: 0.24, confidence: "low" }));
+    render(<ReadinessCard />);
+    await userEvent.click(await screen.findByRole("button", { name: "Por quê?" }));
+    expect(screen.getByText(/variabilidade cardíaca, frequência de repouso nem duração de sono/i))
+      .toBeInTheDocument();
+    expect(screen.getByText(/Cobertura de dados: 24%/)).toBeInTheDocument();
+  });
+
+  it("o limiar do selo é o mesmo da confiança alta do backend (0,75)", async () => {
+    api.getReadinessToday.mockResolvedValue(base({ dataCompleteness: 0.75 }));
+    const { unmount } = render(<ReadinessCard />);
+    expect(await screen.findByText("74")).toBeInTheDocument();
+    expect(screen.queryByText("experimental")).not.toBeInTheDocument();
+    unmount();
+
+    api.getReadinessToday.mockResolvedValue(base({ dataCompleteness: 0.74 }));
+    render(<ReadinessCard />);
+    expect(await screen.findByText("experimental")).toBeInTheDocument();
+  });
+});

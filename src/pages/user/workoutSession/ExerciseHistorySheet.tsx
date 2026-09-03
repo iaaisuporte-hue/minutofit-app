@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { getExerciseHistory, type ExerciseHistoryEntry } from "../../../services/workoutSessionApi";
+import { useDismissable } from "../../../lib/overlayStack";
 
 interface Props {
   exerciseId: string;
@@ -32,6 +33,9 @@ export function dataCurta(iso: string): string {
  */
 export function ExerciseHistorySheet({ exerciseId, exerciseName, onClose }: Props) {
   const [linhas, setLinhas] = useState<ExerciseHistoryEntry[] | null>(null);
+
+  // Escape + botão voltar do Android (auditoria do fechamento).
+  useDismissable(onClose);
 
   useEffect(() => {
     let vivo = true;

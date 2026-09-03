@@ -15,6 +15,7 @@ import {
   salvarArte,
 } from "../lib/nativeShare";
 import { isNativeApp } from "../../../lib/platform";
+import { useDismissable } from "../../../lib/overlayStack";
 
 type Props = {
   focus: string;
@@ -68,6 +69,9 @@ export function ShareWorkoutModal({ focus, dayName, stats, exercises, eyebrow, p
   const avisoTimer = useRef<number | null>(null);
 
   const nativo = isNativeApp();
+
+  // Escape + botão voltar do Android (auditoria do fechamento).
+  useDismissable(onClose);
 
   // `capture` só faz sentido em device com câmera (touch). No desktop o atributo
   // é ignorado e abriria um segundo seletor de arquivo idêntico ao da galeria.

@@ -5,6 +5,7 @@ import {
   listWorkoutSessionsPage,
   type WorkoutSessionListItem,
 } from "../../../services/workoutSessionApi";
+import { useDismissable } from "../../../lib/overlayStack";
 import {
   alvoDePlano,
   podeRepetir,
@@ -32,6 +33,9 @@ export function StartWorkoutSheet({ rotaHoje, rotuloHoje, onClose }: Props) {
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
   const [preparando, setPreparando] = useState(false);
+
+  // Escape + botão voltar do Android (auditoria do fechamento).
+  useDismissable(onClose);
 
   useEffect(() => {
     let vivo = true;

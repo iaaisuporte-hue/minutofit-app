@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useDismissable } from "../../../lib/overlayStack";
 import { searchExercises, type ExerciseSummary } from "../../../services/exercisesApi";
 import { COLORS } from "../../../styles/colors";
 
@@ -111,6 +112,8 @@ function useThumbTick() {
  * vem do professor). Sem match → mensagem honesta, nunca clique morto.
  */
 export function ExerciseDemoModal({ name, onClose }: { name: string; onClose: () => void }) {
+  // Escape + botão voltar do Android (auditoria do fechamento).
+  useDismissable(onClose);
   const [loading, setLoading] = useState(true);
   const [exercise, setExercise] = useState<ExerciseSummary | null>(null);
   const showFrame1 = useThumbTick();

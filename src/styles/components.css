@@ -2878,3 +2878,21 @@ html[data-academy-branding="applied"] .admin-pill-positive {
   color: var(--color-text-muted);
 }
 .rdn__disclaimer { padding-top: var(--space-2); border-top: 1px solid var(--color-border); }
+
+/* Selo "experimental" do Readiness (FECHAMENTO §6) — enquanto o motor recebe
+   só parte das entradas fisiológicas, o número não se apresenta como medição. */
+.rdn__badge {
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  border: 1px solid var(--color-warn-border);
+  background: var(--color-warn-soft);
+  color: var(--color-warn-text);
+  font-size: 9px;
+  letter-spacing: 0.06em;
+}
+
+.rdn__coverage {
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}

@@ -67,6 +67,15 @@ export function ReadinessCard({ plannedGroups }: { plannedGroups?: string[] }) {
   if (carregando || !dados) return null;
 
   const cor = tokenDoEstado(dados.state);
+  const cobertura = Math.round(dados.dataCompleteness * 100);
+  /**
+   * Cobertura abaixo do limiar de confiança alta → o motor está trabalhando com
+   * dado parcial, e o produto diz isso na cara. O limiar é o mesmo do backend
+   * (`CONFIDENCE.minCoverageForHigh = 0.75`) — duplicá-lo como literal aqui é
+   * deliberado e comentado: o cliente não importa config do servidor, e um
+   * número solto sem esta nota viraria mistério em seis meses.
+   */
+  const experimental = dados.dataCompleteness < 0.75;
   const negativos = dados.reasons.filter((r) => r.direction === "negative");
   const positivos = dados.reasons.filter((r) => r.direction === "positive");
   const parciais = dados.muscleRecovery.filter((m) => m.state !== "recovered");
@@ -75,7 +84,23 @@ export function ReadinessCard({ plannedGroups }: { plannedGroups?: string[] }) {
     <section className="rdn" aria-labelledby="rdn-title">
       <div className="rdn__head">
         <div className="rdn__texts">
-          <span className="rdn__eyebrow">Como você está hoje?</span>
+          <span className="rdn__eyebrow">
+            Como você está hoje?
+            {/*
+              Selo "experimental" (FECHAMENTO §6).
+
+              Enquanto o motor recebe só parte das entradas — HRV, frequência de
+              repouso e duração de sono não têm fonte até a camada nativa da P2
+              existir —, o número NÃO pode aparecer com cara de medição precisa.
+              O selo é a diferença entre "isto é a leitura do seu corpo" e "isto
+              é o que dá para dizer com o que temos".
+
+              Some sozinho quando a cobertura passar do limiar de alta confiança:
+              é a mesma constante que governa a confiança, então os dois nunca
+              divergem.
+            */}
+            {experimental && <span className="rdn__badge">experimental</span>}
+          </span>
           <h2 id="rdn-title" className="rdn__headline" style={{ color: cor }}>
             {dados.headline}
           </h2>
@@ -98,6 +123,10 @@ export function ReadinessCard({ plannedGroups }: { plannedGroups?: string[] }) {
       <div className="rdn__meta">
         <span className="rdn__confidence" title={CONFIANCA_MOTIVO[dados.confidence]}>
           Confiança: <strong>{CONFIANCA_LABEL[dados.confidence]}</strong>
+          {/* Cobertura ao lado da confiança (FECHAMENTO §6): a confiança é a
+              leitura, a cobertura é o dado que a sustenta. Mostrar só a leitura
+              esconde o motivo dela. */}
+          <span className="rdn__coverage"> · cobertura {cobertura}%</span>
         </span>
         <button
           type="button"
@@ -151,8 +180,10 @@ export function ReadinessCard({ plannedGroups }: { plannedGroups?: string[] }) {
           )}
 
           <p className="rdn__confidence-why">
-            {CONFIANCA_MOTIVO[dados.confidence]}
+            {CONFIANCA_MOTIVO[dados.confidence]} Cobertura de dados: {cobertura}%.
             {dados.mode !== "established" && " Quanto mais você usar, melhor fica a leitura."}
+            {experimental &&
+              " Ainda não lemos variabilidade cardíaca, frequência de repouso nem duração de sono — quando essas fontes existirem, a leitura fica mais precisa."}
           </p>
 
           {/* §52 — limite de responsabilidade, em linguagem de bem-estar. */}

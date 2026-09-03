@@ -42,6 +42,7 @@ import { freeWorkoutTitle } from "../../features/training/freeWorkout/muscleGrou
 import { findFilledUnchecked, markFilledDone } from "./workoutSession/filledSets";
 import { SetActionBar } from "./workoutSession/SetActionBar";
 import { serieAtual } from "./workoutSession/setSteppers";
+import { useDismissable } from "../../lib/overlayStack";
 import { ExerciseHistorySheet } from "./workoutSession/ExerciseHistorySheet";
 import { postWorkoutEvent } from "./workoutSession/workoutEvents";
 import { agendarAvisoDescanso, cancelarAvisoDescanso } from "./workoutSession/restNotification";
@@ -854,6 +855,14 @@ export default function WorkoutSessionPage() {
     window.addEventListener("s2core:native-back", onBack);
     return () => window.removeEventListener("s2core:native-back", onBack);
   }, []);
+
+  // Os três diálogos inline desta tela entram na pilha do botão voltar. Sem
+  // isso o back os detectava pelo `role="dialog"` e engolia o gesto sem fechar
+  // nada (auditoria do fechamento da trilha).
+  useDismissable(() => setShowExit(false), showExit);
+  useDismissable(() => setShowUnchecked(false), showUnchecked);
+  useDismissable(() => setShowPendentes(false), showPendentes);
+  useDismissable(() => setShowManage(false), showManage);
 
   function closeExitDialog() {
     setShowExit(false);
