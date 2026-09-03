@@ -24,6 +24,10 @@ const getExercisesBatch = vi.fn();
 const searchExercises = vi.fn();
 const getWorkoutStats = vi.fn();
 const createWorkoutSession = vi.fn();
+// Sprint P2A: sugestões inteligentes ficam ANTES da busca manual. Sem
+// suggestion no mock, a folha nova cai direto no fallback ("Buscar outro
+// exercício") — o que estes testes já assumem sem precisar mudar de mais.
+const fetchReplacementSuggestions = vi.fn();
 
 vi.mock("../../../services/userWorkoutPlansApi", () => ({
   fetchMyWorkoutPlans: (...a: unknown[]) => fetchMyWorkoutPlans(...a),
@@ -31,6 +35,9 @@ vi.mock("../../../services/userWorkoutPlansApi", () => ({
 vi.mock("../../../services/exercisesApi", () => ({
   getExercisesBatch: (...a: unknown[]) => getExercisesBatch(...a),
   searchExercises: (...a: unknown[]) => searchExercises(...a),
+}));
+vi.mock("../../../services/exerciseReplacementSuggestionsApi", () => ({
+  fetchReplacementSuggestions: (...a: unknown[]) => fetchReplacementSuggestions(...a),
 }));
 vi.mock("../../../services/workoutSessionApi", () => ({
   getWorkoutStats: (...a: unknown[]) => getWorkoutStats(...a),
@@ -158,7 +165,19 @@ beforeEach(() => {
   getExercisesBatch.mockResolvedValue([]);
   searchExercises.mockResolvedValue([]);
   createWorkoutSession.mockResolvedValue({ streak: 1, prEvents: [], celebrate: false });
+  // Sem sugestão do motor por padrão — cai no fallback manual, que é o que
+  // este arquivo testa. `fetchReplacementSuggestionsSheetToManual` abaixo
+  // dá o toque extra que o P2A inseriu antes do picker.
+  fetchReplacementSuggestions.mockResolvedValue(null);
 });
+
+/** Abre a folha de sugestões (P2A) e vai direto para a busca manual — o
+ * degrau que toda a família "substituir o exercício atual" precisa dar
+ * agora, com sugestão vazia por padrão (ver `beforeEach`). */
+async function abrirBuscaManual(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(await screen.findByRole("button", { name: "Substituir exercício" }));
+  await user.click(await screen.findByRole("button", { name: "Buscar outro exercício" }));
+}
 
 describe("retomada com a lista editada pelo aluno", () => {
   it("aceita o rascunho inteiro quando a ficha não mudou, mesmo com outro tamanho", async () => {
@@ -227,7 +246,7 @@ describe("substituir o exercício atual", () => {
     renderSessao();
     const user = userEvent.setup();
 
-    await user.click(await screen.findByRole("button", { name: "Substituir exercício" }));
+    await abrirBuscaManual(user);
     await user.click(await screen.findByRole("button", { name: /Supino máquina/ }));
 
     // Confirmação com motivo — o chip é opcional, mas quando escolhido viaja
@@ -259,7 +278,7 @@ describe("substituir o exercício atual", () => {
     renderSessao();
     const user = userEvent.setup();
 
-    await user.click(await screen.findByRole("button", { name: "Substituir exercício" }));
+    await abrirBuscaManual(user);
     await user.click(await screen.findByRole("button", { name: /Supino máquina/ }));
     await user.click(
       await screen.findByRole("button", { name: "Encerrar Supino reto e adicionar Supino máquina" }),
@@ -274,6 +293,77 @@ describe("substituir o exercício atual", () => {
       expect(exs[1].origin).toBe("user_added");
       expect(exs[1].replacedSnapshot).toBeUndefined();
     });
+  });
+});
+
+describe("sugestões inteligentes de substituição (Sprint P2A)", () => {
+  it("escolher uma sugestão segue o MESMO caminho da busca manual — abre a confirmação de motivo", async () => {
+    fetchReplacementSuggestions.mockResolvedValue({
+      originalExerciseId: "ex-1",
+      cautionAdvisory: false,
+      suggestions: [
+        {
+          exercise: {
+            id: "ex-9",
+            externalId: null,
+            source: "seed",
+            name: "Supino máquina",
+            normalizedName: "supino máquina",
+            bodyPart: "peito",
+            targetMuscle: "Peitoral maior",
+            secondaryMuscles: [],
+            equipment: "máquina",
+            tags: [],
+            movementLabExerciseId: null,
+            ownerPersonalId: null,
+            status: "active",
+            instructions: [],
+            tips: [],
+            media: [],
+            createdAt: "2026-01-01T00:00:00.000Z",
+            updatedAt: "2026-01-01T00:00:00.000Z",
+          },
+          tier: "HEURISTIC",
+          label: "Boa alternativa",
+          usedBeforeBadge: false,
+          reason: "Trabalha o mesmo músculo-alvo (Peitoral maior).",
+        },
+      ],
+    });
+    renderSessao();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByRole("button", { name: "Substituir exercício" }));
+    await user.click(await screen.findByRole("button", { name: /Supino máquina/ }));
+
+    // A escolha da sugestão cai no MESMO fluxo de motivo que a busca manual —
+    // a P2A não pula essa etapa, só insere uma etapa ANTES da busca.
+    await user.click(await screen.findByRole("button", { name: "Substituir" }));
+
+    expect(await screen.findByText("Substituiu: Supino reto")).toBeTruthy();
+    await waitFor(() => {
+      const ex = loadDraft(PLAN_ID, DAY_INDEX)?.exercises[0];
+      expect(ex?.origin).toBe("replacement");
+      expect(ex?.exerciseId).toBe("ex-9");
+    });
+  });
+
+  it("erro no motor de sugestões não impede a troca — cai no picker manual de sempre", async () => {
+    fetchReplacementSuggestions.mockResolvedValue(null);
+    searchExercises.mockResolvedValue([
+      { id: "ex-9", name: "Supino máquina", bodyPart: "peito", equipment: "máquina", primaryMediaUrl: null },
+    ]);
+    renderSessao();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByRole("button", { name: "Substituir exercício" }));
+    expect(await screen.findByText("Não encontramos uma sugestão pronta agora.")).toBeTruthy();
+
+    await user.click(screen.getByRole("button", { name: "Buscar outro exercício" }));
+    await user.click(await screen.findByRole("button", { name: /Supino máquina/ }));
+    await user.click(await screen.findByRole("button", { name: "Substituir" }));
+
+    expect(await screen.findByText("Substituiu: Supino reto")).toBeTruthy();
   });
 });
 

@@ -896,6 +896,29 @@
   cursor: pointer;
 }
 
+/* Bug real achado no QA do CHECKPOINT 10 (Sprint P2A, set/2026): o overlay
+   genérico (`.drawer-overlay`, `var(--z-modal)` = 200) fica ABAIXO da barra
+   de ação fixa do Modo Treino (`.ws-action-bar`/`.ws-rest`, z-index 1200/1210
+   — precisam ficar acima do resto da página porque `.ws-root` também é
+   1200). Resultado: os ~150px finais de QUALQUER folha aberta durante a
+   execução ficavam visual E funcionalmente atrás da barra fixa, intocáveis
+   por toque — reproduzido nos botões "Substituir"/"Cancelar" desta
+   confirmação, no fallback "Buscar outro exercício" da folha de sugestões
+   (P2A) E no "+ Adicionar exercício" da folha de gestão de exercícios
+   (`LiveExerciseSheet`/`FreeExercisePickerSheet`, regressão P0/Treino Livre
+   — mesmo defeito, achado testando o mesmo checklist). Eleva as folhas
+   abertas durante o Modo Treino acima da barra; não mexe no z-index
+   genérico de modal usado no resto do app (`ExerciseHistorySheet`, aberta
+   pelo botão "histórico", também herda a correção por completude — mesmo
+   padrão, mesmo arquivo). */
+.drawer-overlay:has(.ws-sub-sheet),
+.drawer-overlay:has(.ws-rsug-sheet),
+.drawer-overlay:has(.ehs),
+.drawer-overlay:has(.fw-manage),
+.drawer-overlay:has(.fw-sheet) {
+  z-index: 1300;
+}
+
 /* Confirmação da troca — mesma folha inferior do seletor de exercícios. */
 .drawer-panel.ws-sub-sheet {
   width: min(560px, 100%);
@@ -947,5 +970,109 @@
   gap: var(--space-2);
 }
 .ws-sub-btn {
+  min-height: 48px;
+}
+
+/* ── Sugestões inteligentes de substituição (Sprint P2A) ──── */
+/* Mesma folha inferior do resto do fluxo de troca — chega ANTES da busca
+   manual, então precisa parecer a mesma família visual do picker e da
+   confirmação que já existiam. */
+.drawer-panel.ws-rsug-sheet {
+  width: min(560px, 100%);
+  max-width: 560px;
+  max-height: 88vh;
+  display: grid;
+  gap: var(--space-3);
+  align-content: start;
+  padding: var(--space-4);
+  padding-bottom: calc(var(--space-4) + env(safe-area-inset-bottom));
+}
+.ws-rsug-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+.ws-rsug-close {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+.ws-rsug-sub {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  margin-top: 2px;
+}
+.ws-rsug-caution {
+  border: 1px solid var(--color-warn-border);
+  background: var(--color-warn-soft);
+  color: var(--color-warn-text);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.ws-rsug-status {
+  color: var(--color-text-muted);
+  font-size: 13px;
+  padding: var(--space-3) 0;
+  text-align: center;
+}
+.ws-rsug-list {
+  display: grid;
+  gap: var(--space-2);
+  overflow-y: auto;
+}
+.ws-rsug-item {
+  display: grid;
+  gap: 4px;
+  text-align: left;
+  width: 100%;
+  min-height: 44px;
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-raised);
+  cursor: pointer;
+  font: inherit;
+  color: var(--color-text);
+}
+.ws-rsug-item-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.ws-rsug-name {
+  font-weight: var(--font-semibold);
+  font-size: 14px;
+}
+.ws-rsug-badge {
+  font-size: 11px;
+  font-weight: var(--font-semibold);
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--color-primary-soft-strong);
+  color: var(--color-success-text);
+}
+.ws-rsug-used {
+  font-size: 11px;
+  color: var(--color-info-text);
+}
+.ws-rsug-reason {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  line-height: 1.4;
+}
+.ws-rsug-manual {
   min-height: 48px;
 }

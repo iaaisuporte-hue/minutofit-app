@@ -48,6 +48,7 @@ import {
 } from "./freeWorkout/liveSessionOps";
 import { MAX_EXERCISES } from "./freeWorkout/freeSessionOps";
 import { SubstitutionConfirmSheet } from "./workoutSession/SubstitutionConfirmSheet";
+import { ReplacementSuggestionsSheet } from "./workoutSession/ReplacementSuggestionsSheet";
 import { freeWorkoutTitle } from "../../features/training/freeWorkout/muscleGroupMap";
 import { findFilledUnchecked, markFilledDone } from "./workoutSession/filledSets";
 import { SetActionBar } from "./workoutSession/SetActionBar";
@@ -197,10 +198,12 @@ export default function WorkoutSessionPage() {
   const [finishError, setFinishError] = useState<string | null>(null);
   const [confirmFreeDiscard, setConfirmFreeDiscard] = useState(false);
   /**
-   * Troca do exercício atual, em três estados possíveis: escolhendo o
-   * substituto, confirmando a troca, ou decidindo o que fazer com o trabalho já
-   * registrado no exercício que sairia.
+   * Troca do exercício atual, em quatro estados possíveis: vendo sugestões do
+   * motor (Sprint P2A, camada nova ANTES da busca manual), escolhendo o
+   * substituto na busca manual, confirmando a troca, ou decidindo o que fazer
+   * com o trabalho já registrado no exercício que sairia.
    */
+  const [suggestionsOpen, setSuggestionsOpen] = useState(false);
   const [swapPickerOpen, setSwapPickerOpen] = useState(false);
   const [swapPending, setSwapPending] = useState<PickedExercise | null>(null);
   const [swapKeepAsk, setSwapKeepAsk] = useState<PickedExercise | null>(null);
@@ -1423,7 +1426,7 @@ export default function WorkoutSessionPage() {
                   <button
                     type="button"
                     className="ws-swap-btn"
-                    onClick={() => setSwapPickerOpen(true)}
+                    onClick={() => setSuggestionsOpen(true)}
                   >
                     Substituir exercício
                   </button>
@@ -1573,6 +1576,27 @@ export default function WorkoutSessionPage() {
           onMove={handleLiveMove}
           onRemove={handleLiveRemove}
           onAdd={handleLiveAdd}
+        />
+      ) : null}
+
+      {/* Sprint P2A — sugestões do motor, ANTES da busca manual. Some sozinha
+          quando não há id de catálogo, falha ou vem vazia: quem está treinando
+          nunca fica preso esperando o motor, `onManualSearch` abre o MESMO
+          picker de sempre. */}
+      {suggestionsOpen && current ? (
+        <ReplacementSuggestionsSheet
+          open={suggestionsOpen}
+          originalExerciseId={current.exerciseId}
+          originalName={current.name}
+          onClose={() => setSuggestionsOpen(false)}
+          onPick={(picked) => {
+            setSuggestionsOpen(false);
+            handleSwapPick(picked);
+          }}
+          onManualSearch={() => {
+            setSuggestionsOpen(false);
+            setSwapPickerOpen(true);
+          }}
         />
       ) : null}
 
