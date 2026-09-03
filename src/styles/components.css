@@ -2735,3 +2735,146 @@ html[data-academy-branding="applied"] .admin-pill-positive {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   S2CORE Readiness — card da Hoje (SPEC Mobile P3 §30–§32)
+   Só tokens: cor por estado vem de --color-success/warn/danger, imutáveis por
+   design (branding de academia não sobrescreve semântica).
+   ══════════════════════════════════════════════════════════════════════════ */
+.rdn {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.rdn__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.rdn__texts { display: grid; gap: 2px; min-width: 0; }
+
+.rdn__eyebrow {
+  font-size: 11px;
+  font-weight: var(--font-bold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.rdn__headline {
+  margin: 0;
+  font-size: 18px;
+  font-weight: var(--font-bold);
+  line-height: 1.2;
+}
+
+.rdn__score {
+  flex: none;
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+}
+
+/* Exo 2 (fonte de marca) é permitida em score — e SOMENTE em score. */
+.rdn__score-value {
+  font-family: var(--font-brand);
+  font-size: 34px;
+  font-weight: var(--font-bold);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.rdn__score-max { font-size: 13px; color: var(--color-text-muted); }
+
+.rdn__microcopy {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--color-text-muted);
+}
+
+.rdn__meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.rdn__confidence { font-size: 12px; color: var(--color-text-muted); }
+.rdn__confidence strong { color: var(--color-text); }
+
+/* Alvo de 44px pelo pseudo-elemento: o link é pequeno por design, mas o toque
+   não pode ser (SPEC P0 §8). */
+.rdn__why {
+  position: relative;
+  border: none;
+  background: none;
+  padding: 0;
+  font-size: 13px;
+  font-weight: var(--font-bold);
+  color: var(--color-primary);
+  text-decoration: underline;
+  cursor: pointer;
+}
+.rdn__why::before { content: ""; position: absolute; inset: -14px -10px; }
+
+.rdn__why-panel {
+  display: grid;
+  gap: var(--space-2);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border);
+}
+
+.rdn__why-intro {
+  margin: 0;
+  font-size: 12px;
+  font-weight: var(--font-bold);
+  color: var(--color-text);
+}
+
+.rdn__reasons, .rdn__muscles { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+
+.rdn__reason {
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--color-text-muted);
+  display: flex;
+  gap: 6px;
+}
+.rdn__reason--neg > span:first-child { color: var(--color-danger); font-weight: var(--font-bold); }
+.rdn__reason--pos > span:first-child { color: var(--color-success); font-weight: var(--font-bold); }
+
+.rdn__muscle {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 90px auto;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 12px;
+}
+.rdn__muscle-name { color: var(--color-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rdn__muscle-bar {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--color-surface-subtle, rgba(15, 23, 42, 0.08));
+  overflow: hidden;
+}
+.rdn__muscle-fill { display: block; height: 100%; background: var(--color-warn); }
+.rdn__muscle-pct { color: var(--color-text-muted); font-variant-numeric: tabular-nums; }
+
+.rdn__confidence-why, .rdn__disclaimer {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--color-text-muted);
+}
+.rdn__disclaimer { padding-top: var(--space-2); border-top: 1px solid var(--color-border); }

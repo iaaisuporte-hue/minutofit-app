@@ -7,11 +7,16 @@ interface Props {
   onClose: () => void;
 }
 
-function dataCurta(iso: string): string {
+export function dataCurta(iso: string): string {
   // "2026-08-29" → "29/08". Sem `new Date`: a string já vem no dia do aluno
   // (convertida no servidor), e reinterpretar como UTC voltaria um dia.
-  const [, mes, dia] = iso.split("-");
-  return dia && mes ? `${dia}/${mes}` : iso;
+  //
+  // O servidor DEVE mandar ISO. Quando ele mandava `::date` cru, o driver do pg
+  // entregava um `Date` e a tela exibia "Wed Sep 02 2026 00:00:00 GMT-0300"
+  // (achado do QA P3). Corrigido lá com `to_char`; o guarda abaixo evita que a
+  // tela volte a mostrar lixo se alguma fonte futura escapar do formato.
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso ?? "");
+  return m ? `${m[3]}/${m[2]}` : "—";
 }
 
 /**

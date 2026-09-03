@@ -49,6 +49,7 @@ import { searchExercises } from "../../services/exercisesApi";
 import { useTodayUserState } from "./hooks/useTodayUserState";
 import { PersonalWorkoutCard, pickTodayDay } from "./components/PersonalWorkoutCard";
 import { StartWorkoutSheet } from "./components/StartWorkoutSheet";
+import { ReadinessCard } from "../../features/readiness/ReadinessCard";
 import { PersonalEmptyState } from "./components/PersonalEmptyState";
 import { RequestProfessionalCard } from "./components/RequestProfessionalCard";
 import { EmptyMetabolismHero } from "./components/EmptyMetabolismHero";
@@ -547,6 +548,11 @@ export default function TodayPage() {
           onClose={() => setStartSheetOpen(false)}
         />
       ) : null}
+
+      {/* 0. Prontidão do dia (SPEC P3 §30). Vem antes do treino porque é ela
+             que contextualiza a decisão de treinar — e some sozinha quando a
+             feature flag está desligada para este usuário (§74). */}
+      <ReadinessCard plannedGroups={undefined} />
 
       {/* 0. Treino em andamento — vem ANTES de tudo: quem reabriu o app com um
              treino aberto precisa reencontrá-lo, não recomeçar (SPEC mobile §22). */}

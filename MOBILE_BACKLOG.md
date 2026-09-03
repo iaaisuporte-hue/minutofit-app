@@ -158,7 +158,48 @@ sincronização.
 
 ---
 
-## P3 — explicitamente fora, conforme a SPEC P1 §57 e P2 §86–§88
+## Surgido durante a P3 (Readiness)
+
+### 29. Fontes de HRV, FC de repouso e duração de sono — P1
+O maior limitador do motor. Os componentes `hrvScore` e `restingHrScore` estão
+implementados e testados, mas **nunca recebem dado**: dependem do
+`HealthDataProvider` que a P2 deixou especificado e não implementado (falta toolchain
+nativa). Enquanto isso a cobertura fica em 0,24–0,88 e a confiança reflete — honestamente,
+mas um "Readiness" sem HRV é leitura mais pobre do que o nome sugere. Quando existir:
+preencher no repositório, calcular as medianas de 28 dias, recalibrar os pesos e subir para
+`ALGORITHM_VERSION = 1.1`.
+
+### 30. Intensidade de dor no check-in — P1
+`in_pain` é booleano e a tradução para o motor é conservadora (`moderate`, nunca `high`) —
+um booleano não afirma intensidade. Consequência: **o veto de dor alta (teto de 40) nunca
+dispara hoje**, embora esteja implementado e testado. Oferecer nenhuma/leve/moderada/alta no
+check-in ativa o caminho, e é barato.
+
+### 31. Tela da visão do Personal (SPEC P3 §27) — P1
+`obterResumoParaPersonal` está implementado e testado, incluindo a minimização (§28: só
+score, estado, confiança, motivos e grupos — nunca componentes nem registro de saúde). Falta
+a rota com `requireActiveConsent` e o card no cockpit do aluno.
+
+### 32. Primeiro treino de um grupo lê 0% de recuperação — P2
+Sem pico histórico, a própria carga vira a referência e o déficit é máximo: o primeiro treino
+de peito da vida da pessoa mostra "Peito 0%". Autocorrige quando o baseline tem dado, mas a
+primeira leitura é mais dura do que deveria. Uma referência inicial conservadora resolveria —
+sem cair no "comparar todo mundo com o mesmo absoluto" que a §10 proíbe.
+
+### 33. Calibrar os pesos com o feedback já coletado — P2
+Os pesos foram escolhidos pela confiabilidade das fontes, não medidos.
+`workout_effort_feedback` já grava a percepção pós-treino **com a previsão congelada** (§45,
+§47) — o material da calibração está sendo acumulado. Falta a análise, e ela só faz sentido
+depois de algum volume de rollout.
+
+### 34. Duração de sono no `SleepScore` — P2
+Hoje o componente usa só o booleano `slept_well` + baseline. A estrutura já aceita
+`durationHours` (com validação de plausibilidade); falta a fonte. Um número fixo de horas
+("8h") segue proibido pela §12.
+
+---
+
+## P3 — explicitamente fora, conforme a SPEC P1 §57, P2 §86–§88 e P3 §80
 
 **Não implementar sem SPEC própria.**
 
@@ -170,13 +211,20 @@ sincronização.
 - Motor de decisão "Como você está hoje?"
 - Inteligência baseada em múltiplas métricas
 
-### S2CORE Readiness Engine (SPEC P2 §86)
-A P2 preparou o terreno sem tocar na decisão: atividade recente, FC média e máxima, carga
-externa e procedência do dado passam a estar disponíveis como sinais. **Duas amarras já
-existem e precisam ser respeitadas quando a P3 chegar:** o `CLAUDE.md` proíbe número-resumo
-sem interpretação (a exceção do Progress Score é registrada e condicionada a breakdown
-obrigatório), e a tese do produto separa o que a IA faz do que o humano decide. Um
-"Como você está hoje?" que dá uma nota e cala a boca contradiz as duas.
+### S2CORE Readiness Engine — ✅ IMPLEMENTADO NA P3
+Saiu do backlog. As duas amarras que este item registrava foram cumpridas: breakdown
+obrigatório imposto pelo CHECK do banco, e recomendação que nunca substitui a decisão do
+humano (a ficha não é alterada; o Personal segue sendo autoridade). Ver
+`READINESS_ARCHITECTURE.md` e `READINESS_ALGORITHM_V1.md`. O que resta são os itens 29–34
+acima.
+
+### Proibições permanentes da SPEC P3 §80
+Não implementar sem SPEC própria e aprovação explícita:
+- Machine learning e modelos preditivos treinados com usuários
+- LLM Coach · LLM calculando score
+- Diagnóstico · previsão de lesão · prescrição médica
+- Ajuste autônomo de dieta ou de treino
+- Apple Watch / Wear OS advanced metrics
 
 ### Garmin (SPEC P2 §87)
 Duas vias, e **elas não são equivalentes** — o modelo não deve fingir que são:
@@ -224,7 +272,12 @@ Duas lições que valem para a próxima auditoria mobile:
    e o filtro, corretamente, contou aquilo como caminhada. Deriva de verdade OSCILA em torno
    de um ponto. O teste é que estava errado; consertá-lo achando que era o código teria
    quebrado a detecção de caminhada lenta legítima.
-4. **Contar `env(safe-area-inset-*)` no código não prova safe area** — o app tinha os tokens
+4. **Convenção invisível quebra longe da causa.** As migrations desta série usaram a API de
+   builder do `node-pg-migrate`, mas da 1823 em diante o repositório usa SQL cru — porque o
+   helper de integração reexecuta as migrations com um `pgm` mínimo. O resultado foram 17
+   suítes falhando com `pgm.func is not a function`, nenhuma delas relacionada ao que eu
+   tinha mudado. Antes de escrever migration nova, ler as vizinhas.
+5. **Contar `env(safe-area-inset-*)` no código não prova safe area** — o app tinha os tokens
    certos em 18 lugares e ainda assim desenhava sob as barras do sistema, porque a causa
    estava na configuração do Capacitor. Auditoria mobile de app empacotado precisa ler a
    config nativa, não só o CSS.
