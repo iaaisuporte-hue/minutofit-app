@@ -23,6 +23,14 @@ type Props = {
   stats?: WorkoutShareStats | null;
   /** Exercícios executados — viram a mini tabela do card. */
   exercises?: WorkoutShareExercise[] | null;
+  /** Manchete da arte. Padrão "TREINO CONCLUÍDO"; atividade usa a sua (§63). */
+  eyebrow?: string;
+  /** Rótulo do painel de linhas. Padrão "EXERCÍCIOS EXECUTADOS". */
+  panelLabel?: string;
+  /** Título do modal. */
+  title?: string;
+  /** Texto alternativo para copiar/compartilhar (atividade tem o seu). */
+  shareText?: string;
   onClose: () => void;
 };
 
@@ -46,7 +54,7 @@ const photoBtnStyle = (busy: boolean): React.CSSProperties => ({
 
 type Aviso = { tipo: "ok" | "erro"; texto: string } | null;
 
-export function ShareWorkoutModal({ focus, dayName, stats, exercises, onClose }: Props) {
+export function ShareWorkoutModal({ focus, dayName, stats, exercises, eyebrow, panelLabel, title, shareText, onClose }: Props) {
   const [image, setImage] = useState<ComposedImage | null>(null);
   const [composing, setComposing] = useState(true);
   const [sharing, setSharing] = useState(false);
@@ -85,7 +93,7 @@ export function ShareWorkoutModal({ focus, dayName, stats, exercises, onClose }:
     try {
       // `dayName`/`stats` seguem no componente para o TEXTO que acompanha o
       // compartilhamento — a arte deixou de exibir os dois.
-      const img = await composeWorkoutImage({ focus, backgroundFile: bg, format: fmt, exercises });
+      const img = await composeWorkoutImage({ focus, backgroundFile: bg, format: fmt, exercises, eyebrow, panelLabel });
       setImage(img);
     } catch {
       setError("Não consegui montar a imagem com essa foto. Tente outra.");
@@ -156,7 +164,7 @@ export function ShareWorkoutModal({ focus, dayName, stats, exercises, onClose }:
   }
 
   async function onCopy() {
-    const ok = await copyShareText(buildShareText({ focus, dayName, stats }));
+    const ok = await copyShareText(shareText ?? buildShareText({ focus, dayName, stats }));
     if (ok) {
       setCopied(true);
       window.setTimeout(() => setCopied(false), 2000);
@@ -183,7 +191,7 @@ export function ShareWorkoutModal({ focus, dayName, stats, exercises, onClose }:
       <div
         role="dialog"
         aria-modal="true"
-        aria-label="Compartilhar treino"
+        aria-label={title ?? "Compartilhar treino"}
         style={{
           background: "var(--color-surface)",
           borderRadius: 18,
@@ -197,7 +205,7 @@ export function ShareWorkoutModal({ focus, dayName, stats, exercises, onClose }:
         }}
       >
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-          <span style={{ fontSize: 15, fontWeight: 800, color: "var(--color-text)" }}>Compartilhar treino</span>
+          <span style={{ fontSize: 15, fontWeight: 800, color: "var(--color-text)" }}>{title ?? "Compartilhar treino"}</span>
           <button
             type="button"
             onClick={onClose}

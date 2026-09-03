@@ -218,6 +218,17 @@ export function buildExerciseRows(
 export type ComposeWorkoutInput = {
   /** Foco do treino exibido em destaque, ex.: "Superiores". */
   focus: string;
+  /**
+   * Linha de cima da arte. "TREINO CONCLUÍDO" por padrão; a atividade usa
+   * "CORRIDA CONCLUÍDA", "CAMINHADA CONCLUÍDA" (SPEC P2 §63).
+   *
+   * Parametrizado em vez de duplicar o compositor: a arte, a identidade, o
+   * scrim que garante legibilidade sobre foto e os dois formatos são os mesmos
+   * — só o texto muda. Duplicar significaria manter duas artes em sincronia.
+   */
+  eyebrow?: string;
+  /** Rótulo do painel de linhas. "EXERCÍCIOS EXECUTADOS" por padrão. */
+  panelLabel?: string;
   /** Foto de fundo opcional (tirada ou da galeria). Sem ela, usa um fundo gradiente. */
   backgroundFile?: File | Blob | null;
   /** Proporção do card. Padrão: "story". */
@@ -279,10 +290,10 @@ function drawExercisePanel(
     x: number; y: number; w: number; m: PanelMetrics;
     rows: ExerciseRow[]; hiddenCount: number;
     bgImage: HTMLImageElement | null; canvasW: number; canvasH: number;
-    label: string; isStory: boolean;
+    label: string; isStory: boolean; titulo: string;
   },
 ) {
-  const { x, y, w, m, rows, hiddenCount, bgImage, canvasW, canvasH, label, isStory } = opts;
+  const { x, y, w, m, rows, hiddenCount, bgImage, canvasW, canvasH, label, isStory, titulo } = opts;
   const h = m.height;
 
   // — Fundo do cartão (recortado nos cantos arredondados)
@@ -327,7 +338,7 @@ function drawExercisePanel(
   ctx.font = `700 ${m.labelSize}px Inter, system-ui, sans-serif`;
   ctx.fillStyle = label;
   setTracking(isStory ? "3px" : "2px");
-  ctx.fillText("EXERCÍCIOS EXECUTADOS", labelX, labelBaseline);
+  ctx.fillText(titulo, labelX, labelBaseline);
   setTracking("0px");
 
   // — Linhas: nome à esquerda, séries × reps à direita (mini tabela)
@@ -380,7 +391,7 @@ function drawExercisePanel(
 export type ComposedImage = { blob: Blob; dataUrl: string; focus: string; format: WorkoutShareFormat };
 
 /** Monta o card-imagem (story 1080×1920 ou square 1080²) e devolve blob + dataUrl. */
-export async function composeWorkoutImage({ focus, backgroundFile, format = "story", exercises }: ComposeWorkoutInput): Promise<ComposedImage> {
+export async function composeWorkoutImage({ focus, backgroundFile, format = "story", exercises, eyebrow, panelLabel }: ComposeWorkoutInput): Promise<ComposedImage> {
   const W = 1080;
   const H = format === "story" ? 1920 : 1080;
   // Lift extra no rodapé: Story afasta da UI do Instagram; square dá respiro
@@ -503,7 +514,7 @@ export async function composeWorkoutImage({ focus, backgroundFile, format = "sto
   ctx.fillStyle = "rgba(255,255,255,0.82)";
   const hasTracking = "letterSpacing" in ctx;
   if (hasTracking) (ctx as unknown as { letterSpacing: string }).letterSpacing = isStory ? "4px" : "3px";
-  ctx.fillText("TREINO CONCLUÍDO", padX, eyebrowBaseline);
+  ctx.fillText(eyebrow ?? "TREINO CONCLUÍDO", padX, eyebrowBaseline);
   if (hasTracking) (ctx as unknown as { letterSpacing: string }).letterSpacing = "0px";
 
   // — Painel "Exercícios executados"
@@ -513,6 +524,7 @@ export async function composeWorkoutImage({ focus, backgroundFile, format = "sto
       rows: exerciseRows, hiddenCount,
       bgImage, canvasW: W, canvasH: H,
       label: primaryBright, isStory,
+      titulo: panelLabel ?? "EXERCÍCIOS EXECUTADOS",
     });
   }
 

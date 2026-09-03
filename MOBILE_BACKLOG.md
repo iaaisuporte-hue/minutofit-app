@@ -80,10 +80,10 @@ A SPEC pede para **avaliar**, desligado por padrão. Precisa de `@capacitor/keep
 uma preferência persistida — e de uma decisão sobre onde essa preferência mora, já que hoje
 não existe tela de configurações do treino.
 
-### 16. Fila de sincronização automática
-Herdado da P0 (item 3). A P1 acrescentou o indicador "Offline — salvando no aparelho", mas o
-reenvio continua manual ("Tentar novamente"). Uma fila que reenvia sozinha ao voltar a
-conexão, usando a `client_key` que já dá idempotência, remove o último passo manual.
+### 16. Fila de sincronização automática — parcialmente resolvido na P2
+Herdado da P0 (item 3). A P1 acrescentou o indicador; a P2 acrescentou `client_key` também
+na **atividade**, então as duas pontas já são idempotentes e um reenvio automático é seguro.
+Falta a fila em si: hoje o reenvio continua sendo um toque do usuário.
 
 ### 17. Janela de "sessão ativa" é um palpite calibrado
 As 3h que separam o mini-player do card de retomada foram escolhidas por raciocínio (um
@@ -119,7 +119,46 @@ auditados** — a SPEC limitou o escopo aos módulos publicados. Vale a mesma va
 
 ---
 
-## P3 — explicitamente fora, conforme a SPEC P1 §57
+## Surgido durante a P2 (Activity & Device Layer)
+
+### 23. Tracking com a tela apagada exige camada nativa — P1
+O risco número um da P2. Na camada web o JS congela em segundo plano e o tracking para: uma
+corrida de 40 minutos com o telefone no bolso registra os primeiros segundos. A porta
+`LocationTracker` já existe e `suportaSegundoPlano` já diz a verdade; falta o adapter com
+foreground service (Android) e background location (iOS). Especificado em
+`ACTIVITY_DEVICE_ARCHITECTURE.md` §7.1.
+
+### 24. Auto Pause (SPEC P2 §23) — P2
+A SPEC permite adiar explicitamente ("caso não exista base confiável, adicionar ao
+backlog"). Com o filtro de ruído e o rascunho de pausas já prontos, a base agora existe:
+detectar N leituras consecutivas abaixo do limiar de movimento e pausar sozinho. Falta
+decidir o limiar por modalidade e o que fazer no falso positivo (semáforo × fim do treino).
+
+### 25. Supressão de reimporte após exclusão — P2
+Consequência documentada da decisão do §67: excluir aqui não apaga da fonte, então a
+atividade pode voltar na próxima sincronização. A saída é uma lista de
+`(source, source_external_id)` suprimidos, consultada na ingestão. Barato, mas precisa de
+decisão de produto: suprimir para sempre ou até o usuário reconectar a fonte?
+
+### 26. Consumir as calorias medidas — P2
+`calories` (da fonte) e `calories_estimated` (nossa) convivem, e nenhum consumidor foi
+atualizado para preferir a medida quando ela existe. Os motores seguem lendo a estimativa.
+É conservador e correto, mas é dado bom sem uso.
+
+### 27. Calibrar a janela de deduplicação — P2
+Os ±3 min e a tolerância de duração são raciocínio, não dado. Com `activity.completed`
+instrumentado e o campo `possible_duplicate_of` gravado, dá para medir a taxa de falso
+positivo antes de mexer.
+
+### 28. Tela de Integrações (SPEC P2 §48–§50) — P2
+Especificada e não construída: sem provedor de saúde implementado, ela mostraria só
+"indisponível nesta versão". Deve nascer **junto** com o primeiro adapter, com estado
+(conectado / não conectado / permissão parcial), "Sincronizar agora" e data da última
+sincronização.
+
+---
+
+## P3 — explicitamente fora, conforme a SPEC P1 §57 e P2 §86–§88
 
 **Não implementar sem SPEC própria.**
 
@@ -130,6 +169,26 @@ auditados** — a SPEC limitou o escopo aos módulos publicados. Vale a mesma va
 - Recomendação de treino e adaptação automática de intensidade
 - Motor de decisão "Como você está hoje?"
 - Inteligência baseada em múltiplas métricas
+
+### S2CORE Readiness Engine (SPEC P2 §86)
+A P2 preparou o terreno sem tocar na decisão: atividade recente, FC média e máxima, carga
+externa e procedência do dado passam a estar disponíveis como sinais. **Duas amarras já
+existem e precisam ser respeitadas quando a P3 chegar:** o `CLAUDE.md` proíbe número-resumo
+sem interpretação (a exceção do Progress Score é registrada e condicionada a breakdown
+obrigatório), e a tese do produto separa o que a IA faz do que o humano decide. Um
+"Como você está hoje?" que dá uma nota e cala a boca contradiz as duas.
+
+### Garmin (SPEC P2 §87)
+Duas vias, e **elas não são equivalentes** — o modelo não deve fingir que são:
+- **Via ecossistema:** Garmin → Health Connect / Apple Health → S2Core. Já suportada pelo
+  modelo canônico (`source='garmin'` está no enum, `source_app` guarda a procedência real).
+  Chega o que o agregador expõe: sessão, distância, FC, às vezes rota.
+- **Via API direta:** OAuth com a Garmin. Chega muito mais (voltas, cadência, potência,
+  HRV), e vem com obrigações contratuais e de revisão que a via ecossistema não tem.
+
+### Strava (SPEC P2 §88)
+Importar, exportar, vincular conta, compartilhar. OAuth e API em fase própria, com aprovação
+explícita — a SPEC P2 proíbe implementar sem ela.
 
 ---
 
@@ -160,7 +219,12 @@ Duas lições que valem para a próxima auditoria mobile:
    histórico "coberto" pela barra fixa e telas "vazias" em alguns viewports — eram artefato
    do próprio teste (DOM em transição e exaustão do Chromium após 6 contextos). Medir de
    novo, isolado, antes de reportar; foi o que separou o defeito real do ruído.
-3. **Contar `env(safe-area-inset-*)` no código não prova safe area** — o app tinha os tokens
+3. **Um filtro de ruído se testa com ruído REAL, não com o que parece ruído.** O primeiro
+   teste da deriva de GPS simulava o aparelho parado como uma marcha em linha reta de 2 m —
+   e o filtro, corretamente, contou aquilo como caminhada. Deriva de verdade OSCILA em torno
+   de um ponto. O teste é que estava errado; consertá-lo achando que era o código teria
+   quebrado a detecção de caminhada lenta legítima.
+4. **Contar `env(safe-area-inset-*)` no código não prova safe area** — o app tinha os tokens
    certos em 18 lugares e ainda assim desenhava sob as barras do sistema, porque a causa
    estava na configuração do Capacitor. Auditoria mobile de app empacotado precisa ler a
    config nativa, não só o CSS.

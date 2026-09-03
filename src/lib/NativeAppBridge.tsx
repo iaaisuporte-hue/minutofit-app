@@ -2,6 +2,8 @@ import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { App as CapApp } from "@capacitor/app";
 import { isNativeApp } from "./platform";
+import { traduzirDeepLink } from "./deepLinks";
+import { postActivityEvent } from "../features/tracker/activityEvents";
 
 /**
  * Ponte de comportamento nativo (Capacitor). Só ativa no app empacotado.
@@ -76,15 +78,22 @@ export function NativeAppBridge() {
       removers.push(() => void handle.remove());
     });
 
-    // O WebView carrega de https://localhost, então só aproveitamos o caminho da
-    // URL recebida — o host original (app.s2core.com.br) não serve para navegar.
+    /**
+     * Links que chegam de fora: App Link (https), esquema próprio (widget,
+     * Quick Action) e notificação.
+     *
+     * A tradução é do `deepLinks.ts` (SPEC P2 §11) — antes, o caminho recebido
+     * ia direto ao router, o que fazia de qualquer link uma navegação
+     * arbitrária dentro da sessão autenticada e não distinguia origem nenhuma.
+     */
     CapApp.addListener("appUrlOpen", ({ url }) => {
-      try {
-        const parsed = new URL(url);
-        navigate(`${parsed.pathname}${parsed.search}`);
-      } catch {
-        /* URL fora do formato esperado — ignora e mantém a tela atual */
+      const destino = traduzirDeepLink(url);
+      // "Quanto o widget é utilizado?" (§71) sem mecanismo de rastreio novo: a
+      // origem viaja no próprio link.
+      if (destino.origem === "widget") {
+        postActivityEvent("widget.workout_started");
       }
+      navigate(destino.rota);
     }).then((handle) => {
       removers.push(() => void handle.remove());
     });

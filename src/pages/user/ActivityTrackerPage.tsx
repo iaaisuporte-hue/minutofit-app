@@ -9,12 +9,34 @@ import { authFetch } from "../../services/apiClient";
 import { API_URL } from "../../services/apiBase";
 import "./activityTracker.css";
 import { type Activity } from "../../features/tracker/types";
+import {
+  acrescentarPonto,
+  atividadeAtiva,
+  carregarRascunho,
+  duracaoAtivaS,
+  gravarRascunho,
+  limparRascunho,
+  novoRascunho,
+  pausar as pausarRascunho,
+  retomar as retomarRascunho,
+  type ActivityDraft,
+} from "../../features/tracker/activityDraft";
+import { filtrarTrajetoria, metricaPrincipal } from "../../features/tracker/gpsFilter";
+import { WebLocationTracker } from "../../features/tracker/ports/WebLocationTracker";
+import { faixaDeDistancia, postActivityEvent } from "../../features/tracker/activityEvents";
 import { ACTIVITY_META } from "../../features/tracker/constants";
 import { MedicalDisclaimer } from "../../components/MedicalDisclaimer";
 import { LocationDisclosure } from "../../features/permissions/LocationDisclosure";
 import { hasLocationAck, setLocationAck } from "../../features/permissions/locationAck";
+import { ConfirmDialog } from "../../components/ConfirmDialog";
+import { ShareWorkoutModal } from "./components/ShareWorkoutModal";
+import {
+  eyebrowDaAtividade,
+  focoDaAtividade,
+  linhasDaAtividade,
+  textoDaAtividade,
+} from "../../features/tracker/activityShare";
 import { estimateCalories, classifyIntensity, INTENSITY_LABELS, getTodayStatus, getReadinessAdvice, getPerformanceSignal } from "../../features/tracker/metrics";
-import { calculateRouteDistanceKm, getDistanceBetweenPointsKm } from "../../features/tracker/geometry";
 import { analyzeActivityValidity } from "../../features/tracker/validation";
 import { formatTime, formatPace, calculatePace, parseStoredActivities } from "../../features/tracker/utils";
 
@@ -254,6 +276,29 @@ function HistoryMapViewer({ coordinates }: { coordinates: Array<{ lat: number; l
 
 export default function ActivityTrackerPage() {
   // ── Core tracking state ──────────────────────────────────────────────────
+  /**
+   * Rascunho da atividade — a ÚNICA cópia durável do percurso (SPEC P2 §36).
+   *
+   * Antes, a rota vivia só no estado do React até "Finalizar": fechar o app no
+   * meio de uma corrida de uma hora apagava a corrida inteira. Agora cada ponto
+   * do GPS é gravado no instante em que chega.
+   */
+  const [draft, setDraft] = useState<ActivityDraft | null>(null);
+  const draftRef = useRef<ActivityDraft | null>(null);
+  useEffect(() => { draftRef.current = draft; }, [draft]);
+
+  /** Atividade aberta encontrada ao entrar na tela (§35). */
+  const [recuperavel, setRecuperavel] = useState<ActivityDraft | null>(null);
+  const [confirmarDescarte, setConfirmarDescarte] = useState(false);
+  /** Estado de sincronização da última atividade concluída (§38). */
+  const [syncState, setSyncState] = useState<"idle" | "sincronizando" | "sincronizado" | "pendente">("idle");
+  /** Última atividade concluída nesta sessão de tela — alvo do compartilhar. */
+  const [ultimaAtividade, setUltimaAtividade] = useState<Activity | null>(null);
+  const [compartilhar, setCompartilhar] = useState<Activity | null>(null);
+
+  /** Porta de localização. Trocar por uma nativa não muda nada acima daqui. */
+  const trackerRef = useRef(new WebLocationTracker());
+
   const [isTracking, setIsTracking] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [activities, setActivities] = useState<Activity[]>([]);
@@ -278,7 +323,6 @@ export default function ActivityTrackerPage() {
 
   // ── Refs ─────────────────────────────────────────────────────────────────
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const geolocationRef = useRef<number | null>(null);
   const speedsRef = useRef<number[]>([]);
   const lastGpsTsRef = useRef<number | null>(null);
   const elapsedTimeRef = useRef(0);
@@ -343,80 +387,64 @@ export default function ActivityTrackerPage() {
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, [isPaused, isTracking]);
 
-  // ── GPS watch ────────────────────────────────────────────────────────────
+  // ── GPS: porta de localização → rascunho → filtro ───────────────────────
+  //
+  // Três mudanças em relação ao que havia aqui:
+  //
+  //  1. Os pontos vêm da porta `LocationTracker`, não de `navigator.geolocation`
+  //     direto. Trocar por um tracker nativo com foreground service não muda
+  //     nada desta função.
+  //  2. Cada ponto é GRAVADO no rascunho no instante em que chega (§36). Antes
+  //     a rota só existia no estado do React até "Finalizar".
+  //  3. A distância sai de `filtrarTrajetoria` (§28/§29), não da soma de todos
+  //     os pontos: precisão ruim, teleporte, velocidade irreal e deriva do
+  //     aparelho parado deixam de virar quilômetros.
   useEffect(() => {
-    if (!isTracking || isPaused || !navigator.geolocation) {
-      if (geolocationRef.current) {
-        navigator.geolocation.clearWatch(geolocationRef.current);
-        geolocationRef.current = null;
-      }
-      return;
-    }
+    if (!isTracking || isPaused) return;
 
-    geolocationRef.current = navigator.geolocation.watchPosition(
-      (position) => {
-        const nextPoint = {
-          lat: position.coords.latitude,
-          lng: position.coords.longitude,
-        };
+    const parar = trackerRef.current.iniciar({
+      onPonto: (ponto) => {
+        const atual = draftRef.current;
+        if (!atual) return;
+        const novo = acrescentarPonto(atual, ponto);
+        draftRef.current = novo;
+        setDraft(novo);
 
-        setCurrentActivity((prev) => {
-          if (!prev) return prev;
-          const prevCoords = prev.routeCoordinates || [];
-          const lastPoint = prevCoords[prevCoords.length - 1];
+        const r = filtrarTrajetoria(novo.pontos, novo.tipo);
+        speedsRef.current = r.pontos.map((x) => x.kmh).filter((v) => v > 0);
 
-          // ── Speed segment tracking ──────────────────────────────────────
-          if (lastPoint) {
-            const timeDeltaSec = lastGpsTsRef.current
-              ? (position.timestamp - lastGpsTsRef.current) / 1000
-              : null;
-            if (timeDeltaSec && timeDeltaSec > 0) {
-              const segDistKm = getDistanceBetweenPointsKm(lastPoint, nextPoint);
-              const segSpeedKmh = (segDistKm / timeDeltaSec) * 3600;
-              // Ignore outlier GPS noise (> 200 km/h is clearly bad signal)
-              if (segSpeedKmh < 200) {
-                speedsRef.current.push(segSpeedKmh);
+        // A heurística anti-veículo continua rodando, agora sobre as
+        // velocidades JÁ filtradas — antes ela via os picos de ruído e
+        // acusava fraude numa caminhada honesta com GPS ruim.
+        if (speedsRef.current.length >= 3 && speedsRef.current.length % 5 === 0) {
+          const analise = analyzeActivityValidity(novo.tipo, speedsRef.current);
+          setLiveValidation(
+            analise.isSuspicious && analise.reason
+              ? { isSuspicious: true, reason: analise.reason }
+              : null,
+          );
+        }
+
+        setCurrentActivity((prev) =>
+          prev
+            ? {
+                ...prev,
+                routeCoordinates: r.pontos.map((x) => ({ lat: x.lat, lng: x.lng })),
+                distance: parseFloat(r.distanciaKm.toFixed(2)),
+                pace: calculatePace(duracaoAtivaS(novo), r.distanciaKm),
               }
-            }
-          }
-          lastGpsTsRef.current = position.timestamp;
-
-          // ── Route update ────────────────────────────────────────────────
-          const nextCoords =
-            lastPoint && getDistanceBetweenPointsKm(lastPoint, nextPoint) < 0.01
-              ? prevCoords
-              : [...prevCoords, nextPoint];
-          const distance = parseFloat(calculateRouteDistanceKm(nextCoords).toFixed(2));
-
-          // ── Validation check every 5 speed samples ──────────────────────
-          if (speedsRef.current.length >= 3 && speedsRef.current.length % 5 === 0) {
-            const type = (prev.type || "run") as Activity["type"];
-            const analysis = analyzeActivityValidity(type, speedsRef.current);
-            if (analysis.isSuspicious && analysis.reason) {
-              setLiveValidation({ isSuspicious: true, reason: analysis.reason });
-            } else {
-              setLiveValidation(null);
-            }
-          }
-
-          return {
-            ...prev,
-            routeCoordinates: nextCoords,
-            distance,
-            pace: calculatePace(elapsedTimeRef.current, distance),
-          };
-        });
+            : prev,
+        );
       },
-      (err) => console.error("Geolocation error:", err),
-      { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
-    );
+      onErro: (e) => {
+        if (e.tipo === "permissao_negada") {
+          setGpsStatus("denied");
+          postActivityEvent("activity.gps_denied", { activityType: draftRef.current?.tipo });
+        }
+      },
+    });
 
-    return () => {
-      if (geolocationRef.current) {
-        navigator.geolocation.clearWatch(geolocationRef.current);
-        geolocationRef.current = null;
-      }
-    };
+    return parar;
   }, [isPaused, isTracking]);
 
   // ── Pace update on tick ──────────────────────────────────────────────────
@@ -465,71 +493,141 @@ export default function ActivityTrackerPage() {
   // Actions
   // ─────────────────────────────────────────────────────────────────────────
 
-  function startActivity() {
+  function startActivity(rascunhoExistente?: ActivityDraft) {
     setRewardMessage(null);
     setLiveValidation(null);
     setPendingActivity(null);
     speedsRef.current = [];
     lastGpsTsRef.current = null;
 
+    // Retomar reusa o rascunho (e a `clientKey`); começar cria um novo. É a
+    // diferença entre continuar a mesma corrida e abrir outra (§35).
+    const d = rascunhoExistente ?? novoRascunho(selectedType);
+    gravarRascunho(d);
+    draftRef.current = d;
+    setDraft(d);
+    setRecuperavel(null);
+
+    const r = filtrarTrajetoria(d.pontos, d.tipo);
     setCurrentActivity({
-      id: Date.now().toString(),
-      type: selectedType,
-      startTime: new Date(),
-      distance: 0,
-      pace: 0,
-      duration: 0,
-      routeCoordinates: [],
+      id: d.clientKey,
+      type: d.tipo,
+      startTime: new Date(d.startedAt),
+      distance: parseFloat(r.distanciaKm.toFixed(2)),
+      pace: calculatePace(duracaoAtivaS(d), r.distanciaKm),
+      duration: duracaoAtivaS(d),
+      routeCoordinates: r.pontos.map((x) => ({ lat: x.lat, lng: x.lng })),
     });
-    setElapsedTime(0);
+    setElapsedTime(duracaoAtivaS(d));
+    elapsedTimeRef.current = duracaoAtivaS(d);
     setIsPaused(false);
     setIsTracking(true);
+
+    postActivityEvent(rascunhoExistente ? "activity.recovered" : "activity.started", {
+      activityType: d.tipo,
+    });
   }
+
+  /**
+   * Recuperação de atividade em andamento (§35).
+   *
+   * Roda uma vez ao entrar na tela. NUNCA inicia sozinha: a SPEC é explícita
+   * ("nunca criar nova automaticamente"), e retomar sem perguntar seria pior
+   * que perder — a pessoa poderia estar registrando outra coisa.
+   */
+  useEffect(() => {
+    const aberto = carregarRascunho();
+    if (aberto && aberto.pontos.length > 0 && atividadeAtiva(aberto)) {
+      setRecuperavel(aberto);
+    } else if (aberto && !atividadeAtiva(aberto)) {
+      // Rascunho esfriado: some sozinho. Um "continuar corrida de ontem" não é
+      // oferta útil, e manter o rascunho bloquearia começar outra hoje.
+      limparRascunho();
+    }
+  }, []);
 
   function togglePause() {
     if (!currentActivity) return;
-    setIsPaused((prev) => !prev);
+    const d = draftRef.current;
+    setIsPaused((prev) => {
+      const proximo = !prev;
+      // A pausa é gravada no rascunho, com instante absoluto: é o que faz o
+      // pace ignorar o tempo parado (§30) mesmo depois do app morrer (§22).
+      if (d) {
+        const novo = proximo ? pausarRascunho(d) : retomarRascunho(d);
+        draftRef.current = novo;
+        setDraft(novo);
+      }
+      postActivityEvent(proximo ? "activity.paused" : "activity.resumed", {
+        activityType: d?.tipo,
+      });
+      return proximo;
+    });
   }
 
-  /** Step 1: stop GPS/timer and decide whether to save or ask for confirmation */
-  function requestStop() {
-    if (!currentActivity) return;
-
-    // Stop timer and GPS immediately
-    if (timerRef.current) clearInterval(timerRef.current);
-    if (geolocationRef.current) {
-      navigator.geolocation.clearWatch(geolocationRef.current);
-      geolocationRef.current = null;
-    }
-
-    const pace = currentActivity.pace || 0;
-    const type = (currentActivity.type || selectedType) as Activity["type"];
-
-    const endActivity: Activity = {
-      id: currentActivity.id || Date.now().toString(),
-      type,
-      startTime: currentActivity.startTime || new Date(),
-      endTime: new Date(),
-      distance: currentActivity.distance || 0,
+  /**
+   * Constrói a `Activity` final a partir do RASCUNHO.
+   *
+   * Os números saem daqui e não do estado da tela porque é o rascunho que
+   * sobreviveu às pausas, ao app ir para segundo plano e a uma recuperação — e
+   * é dele que a duração ATIVA é derivada (§30/§36). O estado da tela é um
+   * espelho; o rascunho é o fato.
+   */
+  function atividadeDoRascunho(d: ActivityDraft, agora = Date.now()): Activity {
+    const filtrado = filtrarTrajetoria(d.pontos, d.tipo);
+    const distancia = parseFloat(filtrado.distanciaKm.toFixed(2));
+    const duracao = duracaoAtivaS(d, agora);
+    const pace = calculatePace(duracao, distancia);
+    return {
+      id: d.clientKey,
+      type: d.tipo,
+      startTime: new Date(d.startedAt),
+      endTime: new Date(agora),
+      distance: distancia,
       pace,
-      duration: elapsedTime,
-      routeCoordinates: currentActivity.routeCoordinates || [],
-      calories: estimateCalories(type, elapsedTime, currentActivity.distance || 0),
-      intensity: classifyIntensity(type, pace),
+      duration: duracao,
+      routeCoordinates: filtrado.pontos.map((x) => ({ lat: x.lat, lng: x.lng })),
+      calories: estimateCalories(d.tipo, duracao, distancia),
+      intensity: classifyIntensity(d.tipo, pace),
     };
+  }
+
+  /**
+   * Encerra a atividade e decide entre salvar ou pedir confirmação.
+   *
+   * Recebe o rascunho por PARÂMETRO em vez de ler o estado: a finalização de
+   * uma atividade recuperada acontece no mesmo tique em que ela é montada, e
+   * `currentActivity` ainda seria null nesse instante — o `setState` do React
+   * não terminou. Depender do estado aqui fazia o botão "Finalizar" da
+   * recuperação não fazer nada (QA P2).
+   */
+  function encerrar(d: ActivityDraft) {
+    if (timerRef.current) clearInterval(timerRef.current);
+
+    const endActivity = atividadeDoRascunho(d);
+    // As velocidades da heurística saem do percurso já filtrado — sem isso ela
+    // via os picos do ruído e acusava veículo numa caminhada com GPS ruim.
+    const filtrado = filtrarTrajetoria(d.pontos, d.tipo);
+    speedsRef.current = filtrado.pontos.map((x) => x.kmh).filter((v) => v > 0);
 
     setIsTracking(false);
     setIsPaused(false);
     setCurrentActivity(null);
     setElapsedTime(0);
 
-    // Final validation check using full speeds array
-    const finalValidation = analyzeActivityValidity(type, speedsRef.current);
+    const finalValidation = analyzeActivityValidity(d.tipo, speedsRef.current);
     if (finalValidation.isSuspicious) {
       setPendingActivity(endActivity);
     } else {
-      saveActivity(endActivity, false);
+      void saveActivity(endActivity, false);
     }
+  }
+
+  /** Encerramento pelo botão da tela — o rascunho vivo é o alvo. */
+  function requestStop() {
+    const d = draftRef.current;
+    if (!d) return;
+    encerrar(d);
   }
 
   /** Step 2a: user confirms the suspicious activity (saves it with a flag) */
@@ -588,6 +686,7 @@ export default function ActivityTrackerPage() {
     const confirmSuffix = confirmed ? " Atividade confirmada manualmente." : "";
 
     setRewardMessage(`${insightPrefix}${signal.insight}${confirmSuffix} Registrada na sua leitura do dia.`);
+    setUltimaAtividade(endActivity);
 
     // O check-in é o que leva a atividade para streak/XP/score. Falhar aqui em
     // silêncio (era só um console.error) fazia o aluno terminar a corrida vendo
@@ -615,9 +714,25 @@ export default function ActivityTrackerPage() {
       date: endActivity.endTime?.toISOString() ?? new Date().toISOString(),
     });
 
-    // Persist session to backend (fire-and-forget; localStorage remains source of truth)
+    // ── Envio ao servidor (§38)
+    //
+    // `clientKey` é a chave de idempotência: reenviar depois de um timeout não
+    // cria uma segunda corrida no histórico, porque o servidor tem UNIQUE
+    // parcial sobre ela (`uniq_activity_client_key`). Sem isso, "salvei e não
+    // sei se chegou" só tinha duas saídas ruins — não reenviar e perder, ou
+    // reenviar e duplicar.
+    //
+    // O rascunho só é limpo DEPOIS do servidor confirmar. Falhou, ele fica no
+    // aparelho e o indicador de sincronização diz isso — é a mesma lição da P0
+    // no treino: nunca apagar a única cópia por causa de uma rede ruim.
+    const clientKey = draftRef.current?.clientKey ?? endActivity.id;
+    const filtrado = draftRef.current
+      ? filtrarTrajetoria(draftRef.current.pontos, endActivity.type)
+      : null;
+
+    setSyncState("sincronizando");
     try {
-      await authFetch(`${API_URL}/activities`, {
+      const res = await authFetch(`${API_URL}/activities`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -632,11 +747,36 @@ export default function ActivityTrackerPage() {
           validationFlag: endActivity.validationFlag ?? false,
           startedAt: endActivity.startTime,
           endedAt: endActivity.endTime ?? new Date(),
+          source: "s2core",
+          clientKey,
+          elevationGainM: filtrado?.ganhoElevacaoM ?? null,
         }),
       });
+      if (res.ok) {
+        setSyncState("sincronizado");
+        limparRascunho();
+        draftRef.current = null;
+        setDraft(null);
+      } else {
+        setSyncState("pendente");
+      }
     } catch {
-      // Backend unavailable — session already saved to localStorage
+      // Sem rede: a atividade está no aparelho e o rascunho CONTINUA lá para o
+      // reenvio. A §37 é explícita: internet não é requisito para finalizar.
+      setSyncState("pendente");
     }
+
+    postActivityEvent("activity.completed", {
+      activityType: endActivity.type,
+      durationMin: Math.round(endActivity.duration / 60),
+      distanceBand: faixaDeDistancia(endActivity.distance),
+      source: "s2core",
+      hasRoute: (endActivity.routeCoordinates?.length ?? 0) > 1,
+      discardedPoints: filtrado
+        ? Object.values(filtrado.descartados).reduce((a, b) => a + b, 0)
+        : undefined,
+      offline: typeof navigator !== "undefined" && navigator.onLine === false,
+    });
   }
 
   // Princípio VIII: remoção destrutiva usa ConfirmModal, nunca window.confirm.
@@ -681,6 +821,51 @@ export default function ActivityTrackerPage() {
 
       {/* Reward banner */}
       {rewardMessage && <div className="tr-reward">{rewardMessage}</div>}
+
+      {/* §63/§64/§65: compartilhar a atividade reusa TODA a infraestrutura da
+          P0 — o mesmo compositor, os dois formatos, a foto de fundo pela câmera
+          ou galeria e o share sheet nativo. Só o vocabulário muda. */}
+      {ultimaAtividade && (
+        <button
+          type="button"
+          className="tr-share-btn"
+          onClick={() => {
+            postActivityEvent("activity.share_opened", {
+              activityType: ultimaAtividade.type,
+              distanceBand: faixaDeDistancia(ultimaAtividade.distance),
+            });
+            setCompartilhar(ultimaAtividade);
+          }}
+        >
+          Compartilhar atividade
+        </button>
+      )}
+
+      {compartilhar && (
+        <ShareWorkoutModal
+          focus={focoDaAtividade(compartilhar)}
+          eyebrow={eyebrowDaAtividade(compartilhar.type)}
+          panelLabel="RESUMO DA ATIVIDADE"
+          title="Compartilhar atividade"
+          exercises={linhasDaAtividade(compartilhar)}
+          shareText={textoDaAtividade(compartilhar)}
+          onClose={() => setCompartilhar(null)}
+        />
+      )}
+
+      {/*
+        Estado de sincronização (§38). Discreto e transitório: a §38 pede os
+        estados nomeados, não um selo permanente. "Pendente" é o único que fica,
+        porque é o único que a pessoa precisa saber que continua verdadeiro.
+      */}
+      {syncState !== "idle" && (
+        <div className={`tr-sync tr-sync--${syncState}`} role="status">
+          {syncState === "sincronizando" && "Sincronizando…"}
+          {syncState === "sincronizado" && "Sincronizado"}
+          {syncState === "pendente" &&
+            "Salvo no aparelho — sincroniza quando a conexão voltar"}
+        </div>
+      )}
 
       {/* ── Today Status ────────────────────────────────────────────── */}
       <Card className="tr-idle-only">
@@ -779,13 +964,25 @@ export default function ActivityTrackerPage() {
                   <span className="tr-live-metric-unit"> km</span>
                 </div>
               </div>
-              <div className="tr-live-metric-card tr-live-metric-card--primary">
-                <div className="tr-live-metric-label">Ritmo</div>
-                <div className="tr-live-metric-value tr-live-metric-value--hero">
-                  {formatPace(currentActivity.pace || 0)}
-                  <span className="tr-live-metric-unit"> min/km</span>
-                </div>
-              </div>
+              {/* §19/§20/§21: bike mostra VELOCIDADE; caminhada e corrida, pace.
+                  Não é preferência estética — ciclista não pensa em minutos por
+                  quilômetro, e o mesmo número na unidade errada não informa. */}
+              {(() => {
+                const m = metricaPrincipal(
+                  (currentActivity.type ?? selectedType) as Activity["type"],
+                  elapsedTime,
+                  currentActivity.distance || 0,
+                );
+                return (
+                  <div className="tr-live-metric-card tr-live-metric-card--primary">
+                    <div className="tr-live-metric-label">{m.rotulo}</div>
+                    <div className="tr-live-metric-value tr-live-metric-value--hero">
+                      {m.valor}
+                      <span className="tr-live-metric-unit"> {m.unidade}</span>
+                    </div>
+                  </div>
+                );
+              })()}
               <div className="tr-live-metric-card">
                 <div className="tr-live-metric-label">Calorias (est.)</div>
                 <div className="tr-live-metric-value tr-live-metric-value--support">
@@ -1034,6 +1231,66 @@ export default function ActivityTrackerPage() {
                   </div>
                 )}
 
+                {/*
+                  Atividade em andamento encontrada ao abrir a tela (§35).
+
+                  Três ações, e NENHUMA automática: a SPEC proíbe criar sessão
+                  nova sozinha, e retomar sem perguntar seria pior que perder —
+                  a pessoa pode estar prestes a registrar outra coisa.
+                  "Descartar" pede confirmação porque é irreversível: o
+                  percurso não existe em nenhum outro lugar.
+                */}
+                {recuperavel && (
+                  <div className="tr-recover" role="status">
+                    <div className="tr-recover-head">
+                      <span className="tr-recover-dot" aria-hidden="true" />
+                      <div>
+                        <strong className="tr-recover-title">
+                          Encontramos uma atividade em andamento.
+                        </strong>
+                        <span className="tr-recover-detail">
+                          {ACTIVITY_META[recuperavel.tipo].label} ·{" "}
+                          {formatTime(duracaoAtivaS(recuperavel, recuperavel.atualizadoEm))} ·{" "}
+                          {filtrarTrajetoria(recuperavel.pontos, recuperavel.tipo).distanciaKm.toFixed(2)} km
+                        </span>
+                      </div>
+                    </div>
+                    <div className="tr-recover-actions">
+                      <button
+                        type="button"
+                        className="tr-recover-btn tr-recover-btn--primary"
+                        onClick={() => startActivity(recuperavel)}
+                      >
+                        Continuar
+                      </button>
+                      <button
+                        type="button"
+                        className="tr-recover-btn"
+                        onClick={() => {
+                          // Aproveita o percurso já gravado em vez de jogá-lo
+                          // fora — é o caso de quem esqueceu de parar. Encerra
+                          // DIRETO do rascunho, sem passar por "iniciar": o
+                          // estado da tela ainda não existiria neste tique.
+                          const d = recuperavel;
+                          draftRef.current = d;
+                          setDraft(d);
+                          setRecuperavel(null);
+                          encerrar(d);
+                        }}
+                      >
+                        Finalizar
+                      </button>
+                      <button
+                        type="button"
+                        className="tr-recover-btn tr-recover-btn--danger"
+                        onClick={() => setConfirmarDescarte(true)}
+                      >
+                        Descartar
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 <div className="tr-cta-bar">
                   <div className="tr-cta-left">
                     <div className="tr-cta-icon">
@@ -1044,7 +1301,7 @@ export default function ActivityTrackerPage() {
                   <div className="tr-cta-right">
                     <button
                       type="button"
-                      onClick={startActivity}
+                      onClick={() => startActivity()}
                       className="tr-cta-button"
                       disabled={gpsStatus === "denied"}
                       title={gpsStatus === "denied" ? "Permissão de GPS negada" : undefined}
@@ -1183,6 +1440,23 @@ export default function ActivityTrackerPage() {
           </MedicalDisclaimer>
         </div>
       </div>
+
+      {/* Descarte da atividade recuperada — irreversível, então confirma. */}
+      <ConfirmDialog
+        open={confirmarDescarte}
+        title="Descartar a atividade em andamento?"
+        message="O percurso gravado neste aparelho será apagado e não entra no seu histórico. Não dá para desfazer."
+        confirmLabel="Descartar"
+        cancelLabel="Voltar"
+        danger
+        onConfirm={() => {
+          postActivityEvent("activity.discarded", { activityType: recuperavel?.tipo });
+          limparRascunho();
+          setRecuperavel(null);
+          setConfirmarDescarte(false);
+        }}
+        onCancel={() => setConfirmarDescarte(false)}
+      />
     </div>
   );
 }
