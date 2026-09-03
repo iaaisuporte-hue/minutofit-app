@@ -30,6 +30,14 @@ export type ExerciseSummary = {
   primaryMediaType: string | null;
   /** Perfil de captura do Lab de Movimento (Spec 022); null quando não mapeado. */
   movementLabExerciseId: string | null;
+  /**
+   * Dono real (Sprint P1 — Biblioteca Personalizada do Personal). `null` =
+   * catálogo global S2CORE; caso contrário, id do personal autor. `source`
+   * acima é só rótulo de proveniência (D8) — quem pode editar/arquivar é
+   * sempre `ownerPersonalId`, nunca `source`.
+   */
+  ownerPersonalId: string | null;
+  status: "active" | "archived";
   createdAt: string;
   updatedAt: string;
 };
@@ -95,6 +103,10 @@ export function exerciseSummaryToCatalogEntry(e: ExerciseSummary) {
     equipment: e.equipment,
     primaryMediaUrl: e.primaryMediaUrl,
     primaryMediaType: e.primaryMediaType,
+    // Sprint P1: antes esta função descartava a propriedade real do
+    // exercício — o builder nunca conseguia distinguir "meu" de "S2CORE".
+    // `source` acima continua sendo o rótulo legado ("seed"), não o dono.
+    ownerPersonalId: e.ownerPersonalId,
   };
 }
 

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { searchExercises, type ExerciseSummary } from "../../../services/exercisesApi";
 import { FREE_WORKOUT_GROUPS } from "../../../features/training/freeWorkout/catalogGroups";
+import { ExerciseOriginBadge } from "../../../features/training/ExerciseOriginBadge";
 import "./freeWorkout.css";
 
 // Seletor de exercícios do treino livre. Bottom sheet porque o aluno monta o
@@ -258,7 +259,10 @@ export function FreeExercisePickerSheet({
                     ) : null}
                   </span>
                   <span className="fw-result-body">
-                    <span className="fw-result-name">{exercise.name}</span>
+                    <span className="fw-result-name">
+                      {exercise.name}
+                      <ExerciseOriginBadge ownerPersonalId={exercise.ownerPersonalId} context="student" compact />
+                    </span>
                     <span className="fw-result-meta">
                       {[exercise.bodyPart, exercise.equipment].filter(Boolean).join(" · ")}
                     </span>

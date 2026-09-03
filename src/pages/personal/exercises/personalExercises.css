@@ -1,0 +1,168 @@
+/**
+ * Biblioteca de Exercícios Personalizados do Personal (Sprint P1).
+ *
+ * Reaproveita os primitivos de `personalPremium.css` (`.pp-*`) para lista e
+ * botões — o que é novo aqui é só o layout de filtros e o modal de
+ * criar/editar. `--tap-h-sm` vem de `personalPremium.css`, importado junto.
+ */
+
+/* ── Toolbar / filtros da lista ─────────────────────────────────── */
+.pxl-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: center;
+  justify-content: space-between;
+}
+
+.pxl-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+  flex: 1 1 320px;
+}
+
+.pxl-search {
+  flex: 1 1 200px;
+  min-width: 160px;
+}
+
+.pxl-status-chips {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.pxl-status-chip {
+  min-height: var(--tap-h-sm);
+  padding: 0 12px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.pxl-status-chip[aria-pressed="true"] {
+  border-color: var(--color-border-primary);
+  background: var(--color-primary-soft);
+  color: var(--color-primary-deep);
+}
+
+/* ── Modal de criar/editar ───────────────────────────────────────
+   Full-screen em mobile (o teclado não pode esconder o rodapé — §46),
+   cartão centralizado em telas maiores. Header e footer ficam fora da
+   área com scroll (`.pxf-body`), então continuam visíveis o tempo todo —
+   mesmo padrão do `ExerciseDetailModal.tsx` do builder, só que com classes
+   em vez de `style` inline. */
+.pxf-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.45);
+}
+
+@media (min-width: 640px) {
+  .pxf-overlay {
+    align-items: center;
+    padding: var(--space-4);
+  }
+}
+
+.pxf-panel {
+  width: 100%;
+  max-width: 560px;
+  max-height: 92vh;
+  background: var(--color-surface);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  box-shadow: var(--shadow-lg);
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  overflow: hidden;
+}
+
+@media (min-width: 640px) {
+  .pxf-panel {
+    max-height: 88vh;
+    border-radius: var(--radius-lg);
+  }
+}
+
+.pxf-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.pxf-title {
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  color: var(--color-text);
+}
+
+.pxf-body {
+  overflow-y: auto;
+  padding: var(--space-4);
+}
+
+.pxf-form {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.pxf-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border-top: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.pxf-checkbox-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+}
+
+.pxf-checkbox-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-sm);
+  color: var(--color-text);
+}
+
+.pxf-media-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.pxf-media-thumb {
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-md);
+  object-fit: cover;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-subtle);
+  flex-shrink: 0;
+}
+
+.pxf-media-thumb--empty {
+  display: grid;
+  place-items: center;
+  font-size: 10px;
+  color: var(--color-text-subtle);
+  text-align: center;
+}

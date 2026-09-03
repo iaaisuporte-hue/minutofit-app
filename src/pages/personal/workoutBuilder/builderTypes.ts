@@ -21,6 +21,8 @@ export type Exercise = {
   bodyPart?: string;
   equipment?: string;
   primaryMediaUrl?: string | null;
+  /** Dono real (Sprint P1); `null` = catálogo global. Ver ExerciseSummary.ownerPersonalId. */
+  ownerPersonalId?: string | null;
 };
 
 export type WorkoutExercise = {
@@ -63,6 +65,7 @@ export function catalogEntryToExercise(e: ReturnType<typeof exerciseSummaryToCat
     bodyPart: e.bodyPart,
     equipment: e.equipment,
     primaryMediaUrl: e.primaryMediaUrl,
+    ownerPersonalId: e.ownerPersonalId,
   };
 }
 

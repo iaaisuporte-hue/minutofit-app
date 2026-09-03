@@ -41,6 +41,9 @@ import { useWorkoutBuilderExerciseOps } from "./workoutBuilder/useWorkoutBuilder
 import { useWorkoutBuilderSave } from "./workoutBuilder/useWorkoutBuilderSave";
 import { useWorkoutBuilderWeekPreset } from "./workoutBuilder/useWorkoutBuilderWeekPreset";
 import { useBuilderCatalog } from "./workoutBuilder/useBuilderCatalog";
+import { ExerciseOriginBadge } from "../../features/training/ExerciseOriginBadge";
+import { useAuth } from "../../auth/AuthContext";
+import { trackPersonalExerciseEvent } from "./exercises/personalExerciseEvents";
 import "./personalPremium.css";
 
 const BUILDER_BASE = "/app/personal/students";
@@ -101,6 +104,9 @@ export default function WorkoutBuilderPage() {
 
   const narrow = useNarrowLayout(900);
   const thumbTick = useThumbTick();
+  // `AuthState.id` (não `user.id`, que é numérico) é a forma string comparável
+  // a `Exercise.ownerPersonalId` (o backend devolve o dono como string).
+  const { id: currentPersonalId } = useAuth();
 
   // ── Students ──────────────────────────────────────────────────────
   const [students, setStudents] = useState<Student[]>([]);
@@ -447,6 +453,20 @@ export default function WorkoutBuilderPage() {
     setItemTechnique,
     pairBiSet,
   } = useWorkoutBuilderExerciseOps({ selectedDayIdx, setDaysItems });
+
+  // Instrumentação (Sprint P1 §telemetria): mede quando um exercício DA
+  // PRÓPRIA biblioteca (não do catálogo global) entra numa ficha — sem nome
+  // nem descrição, só o fato. `addExercise` em si fica sem essa
+  // responsabilidade porque não sabe quem é o personal logado.
+  const addExerciseToPlan = useCallback(
+    (ex: Exercise) => {
+      addExercise(ex);
+      if (ex.ownerPersonalId != null && currentPersonalId != null && ex.ownerPersonalId === currentPersonalId) {
+        trackPersonalExerciseEvent("personal_custom_exercise_added_to_plan");
+      }
+    },
+    [addExercise, currentPersonalId],
+  );
   const [dragEnabledIdx, setDragEnabledIdx] = useState<number | null>(null);
   const [dragIdx, setDragIdx] = useState<number | null>(null);
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
@@ -691,7 +711,7 @@ export default function WorkoutBuilderPage() {
           alreadyAdded={items.some((i) => i.exerciseId === viewingExerciseId)}
           onAdd={() => {
             const ex = allExercises.find((e) => e.id === viewingExerciseId);
-            if (ex) addExercise(ex);
+            if (ex) addExerciseToPlan(ex);
             setViewingExerciseId(null);
           }}
           onClose={() => setViewingExerciseId(null)}
@@ -850,7 +870,10 @@ export default function WorkoutBuilderPage() {
                         </div>
                       )}
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontWeight: 650, fontSize: 13, lineHeight: 1.3 }}>{ex.name}</div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                          <div style={{ fontWeight: 650, fontSize: 13, lineHeight: 1.3 }}>{ex.name}</div>
+                          <ExerciseOriginBadge ownerPersonalId={ex.ownerPersonalId ?? null} context="personal" compact />
+                        </div>
                         <div style={{ fontSize: 11, color: WB.muted, marginTop: 1 }}>
                           {ex.equipment ? `${ex.group} · ${ex.equipment}` : ex.group}
                         </div>
@@ -880,7 +903,7 @@ export default function WorkoutBuilderPage() {
                       <button
                         type="button"
                         disabled={already}
-                        onClick={() => addExercise(ex)}
+                        onClick={() => addExerciseToPlan(ex)}
                         title={already ? "Já na lista" : "Adicionar"}
                         style={{
                           width: 28,

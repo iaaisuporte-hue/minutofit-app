@@ -4,6 +4,7 @@ import WorkoutLibraryPage from "./WorkoutLibraryPage";
 import "../../features/performance/challenges.css";
 
 const PersonalChallengesPanel = lazy(() => import("./challenges/PersonalChallengesPanel"));
+const PersonalExerciseLibraryPage = lazy(() => import("./exercises/PersonalExerciseLibraryPage"));
 
 /**
  * Destino "Programas" — host de abas (Spec 034, C2).
@@ -19,6 +20,7 @@ const PersonalChallengesPanel = lazy(() => import("./challenges/PersonalChalleng
 export const PROGRAM_TABS = [
   { id: "protocolos", label: "Protocolos" },
   { id: "desafios", label: "Desafios" },
+  { id: "exercicios", label: "Meus Exercícios" },
 ] as const;
 
 export type ProgramTabId = (typeof PROGRAM_TABS)[number]["id"];
@@ -69,6 +71,10 @@ export default function ProgramsPage() {
         {active === "desafios" ? (
           <Suspense fallback={<p className="ch-card-hint">Carregando…</p>}>
             <PersonalChallengesPanel />
+          </Suspense>
+        ) : active === "exercicios" ? (
+          <Suspense fallback={<p className="ch-card-hint">Carregando…</p>}>
+            <PersonalExerciseLibraryPage />
           </Suspense>
         ) : (
           <WorkoutLibraryPage />
