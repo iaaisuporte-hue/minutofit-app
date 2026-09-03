@@ -37,6 +37,15 @@ interface Props {
   onPick: (exercise: PickedExercise) => void;
   /** "Buscar outro exercício" — abre o picker manual existente, sem duplicar sua lógica. */
   onManualSearch: () => void;
+  /**
+   * Ids já presentes na sessão ao vivo (mesmo conjunto de `selectedIds` do
+   * `FreeExercisePickerSheet`). `replaceLiveExercise` recusa em silêncio
+   * (`unchanged`) quando o alvo já existe em outra posição — sem este filtro,
+   * o motor podia sugerir um exercício que já está na ficha (comum: mesmo
+   * grupo muscular), o aluno confirmava a troca e a folha fechava sem
+   * NADA acontecer, sem aviso nenhum (achado em QA real, Sprint P2B).
+   */
+  excludeExerciseIds?: Set<string>;
 }
 
 type LoadState = "loading" | "ready" | "empty" | "error";
@@ -48,6 +57,7 @@ export function ReplacementSuggestionsSheet({
   onClose,
   onPick,
   onManualSearch,
+  excludeExerciseIds,
 }: Props) {
   const [state, setState] = useState<LoadState>("loading");
   const [suggestions, setSuggestions] = useState<ReplacementSuggestion[]>([]);
@@ -80,15 +90,21 @@ export function ReplacementSuggestionsSheet({
         trackReplacementSuggestionEvent("replacement_suggestions_error");
         return;
       }
+      // Filtra sugestões que duplicariam um exercício já presente na sessão —
+      // mesma regra que o picker manual já aplica via `selectedIds`, sem a
+      // qual a troca era aceita na tela e recusada em silêncio mais adiante.
+      const filtered = excludeExerciseIds
+        ? result.suggestions.filter((s) => !excludeExerciseIds.has(s.exercise.id))
+        : result.suggestions;
       setCautionAdvisory(result.cautionAdvisory);
-      setSuggestions(result.suggestions);
-      if (result.suggestions.length === 0) {
+      setSuggestions(filtered);
+      if (filtered.length === 0) {
         setState("empty");
         trackReplacementSuggestionEvent("replacement_suggestions_empty");
       } else {
         setState("ready");
         trackReplacementSuggestionEvent("replacement_suggestion_impression", {
-          count: result.suggestions.length,
+          count: filtered.length,
           cautionAdvisory: result.cautionAdvisory,
         });
       }
@@ -96,6 +112,7 @@ export function ReplacementSuggestionsSheet({
     return () => {
       alive = false;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `excludeExerciseIds` é recriado a cada render do pai (novo Set); recarregar por identidade dispararia o fetch de novo sem necessidade. Reavaliado só quando a folha (re)abre ou o exercício original muda, igual antes desta mudança.
   }, [open, originalExerciseId]);
 
   function handleClose() {

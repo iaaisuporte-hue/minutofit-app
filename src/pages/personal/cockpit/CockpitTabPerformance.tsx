@@ -9,6 +9,7 @@ import {
   type PerformanceSnapshot,
 } from "../../../services/personalPerformanceApi";
 import { postPerformanceEvent } from "../../../features/performance/performanceEvents";
+import { CockpitAdherenceInsights } from "./CockpitAdherenceInsights";
 
 /**
  * Aba Performance do cockpit (Spec 033, Onda P5).
@@ -300,6 +301,9 @@ export function CockpitTabPerformance({ studentId }: { studentId: string }) {
           </button>
         )}
       </section>
+
+      {/* ── Como a ficha foi seguida + Padrões de execução (Sprint P2B) ─ */}
+      <CockpitAdherenceInsights studentId={studentId} />
 
       {/* ── Metas (somente leitura) ──────────────────────────────────── */}
       <section className="ppf-panel">

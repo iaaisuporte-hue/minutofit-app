@@ -1597,6 +1597,13 @@ export default function WorkoutSessionPage() {
             setSuggestionsOpen(false);
             setSwapPickerOpen(true);
           }}
+          // Mesmo conjunto do `selectedIds` do picker manual logo abaixo —
+          // sem isso o motor podia sugerir um exercício já presente em outra
+          // posição da ficha, o aluno confirmava e nada acontecia (achado em
+          // QA real, Sprint P2B).
+          excludeExerciseIds={
+            new Set(exercises.map((ex) => ex.exerciseId).filter((id): id is string => !!id))
+          }
         />
       ) : null}
 

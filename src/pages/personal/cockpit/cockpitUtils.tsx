@@ -56,6 +56,13 @@ export function metabolismNarrative(
   return "Em ritmo moderado — espaço para evoluir consistência sem sobrecarregar.";
 }
 
+/**
+ * Lê a tendência do histórico de SCORE METABÓLICO (14 dias), não de aderência à
+ * ficha — o nome da função é legado (D-BUG1, Sprint P2B: o rótulo visível na UI
+ * já foi corrigido em `CockpitTabWeek.tsx`; renomear a função tocaria os dois
+ * arquivos que a importam por puro ganho de nomenclatura, fora do escopo fechado
+ * da correção — ver FUTURE_WORK em `docs/sprints/P2B_ADHERENCE_RECURRING_INSIGHTS.md`).
+ */
 export function buildAdherenceNarrative(series: Array<{ date: string; score: number }>): string {
   if (!series.length) return "Sem snapshots suficientes para leitura semanal.";
   if (series.length < 4) return "Histórico curto — leitura ainda em formação.";
@@ -65,9 +72,9 @@ export function buildAdherenceNarrative(series: Array<{ date: string; score: num
   const avg = (xs: typeof series) =>
     xs.reduce((sum, item) => sum + Number(item.score || 0), 0) / Math.max(xs.length, 1);
   const delta = avg(recent) - avg(older);
-  if (delta <= -8) return "Aderência caindo na última semana.";
-  if (delta >= 8) return "Aderência subindo nos últimos dias — boa fase.";
-  return "Aderência estável no período.";
+  if (delta <= -8) return "Score metabólico em queda na última semana.";
+  if (delta >= 8) return "Score metabólico subindo nos últimos dias — boa fase.";
+  return "Score metabólico estável no período.";
 }
 
 export function Surface({ children }: { children: React.ReactNode }) {

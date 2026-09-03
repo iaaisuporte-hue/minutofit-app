@@ -245,7 +245,13 @@ export default function WorkoutBuilderPage() {
 
         setDaysItems(nextItems);
         setDaysMeta(nextMeta);
-        setSelectedDayIdx(0);
+        // `?day=` (0-based — mesma convenção de `selectedDayIdx`/`daysMeta`
+        // abaixo; quem manda o link converte, ver `PlanReviewModal.tsx`).
+        // Sprint P2B: a revisão assistida de Bi-Set direciona o Personal para
+        // o dia exato onde a ficha precisa de edição manual; fora dessa faixa,
+        // cai no comportamento de sempre (primeiro dia).
+        const dayParam = Number(searchParams.get("day"));
+        setSelectedDayIdx(Number.isInteger(dayParam) && dayParam >= 0 && dayParam < nextMeta.length ? dayParam : 0);
       } catch {
         // silent — builder opens empty if plan can't be fetched
       }

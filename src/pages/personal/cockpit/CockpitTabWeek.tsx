@@ -69,7 +69,7 @@ export function CockpitTabWeek({ data }: Props) {
     <>
       <Surface>
         <div style={{ display: "grid", gap: 10 }}>
-          <div style={{ fontWeight: 650, color: COLORS.text }}>Aderência metabólica (14 dias)</div>
+          <div style={{ fontWeight: 650, color: COLORS.text }}>Score metabólico (14 dias)</div>
           {chartHistory.length >= 2 ? (
             <MetabolicChart
               data={buildForecastHistory(chartHistory, metabolicForecast)}

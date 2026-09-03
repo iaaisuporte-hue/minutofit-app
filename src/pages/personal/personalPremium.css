@@ -142,6 +142,20 @@ html:not([data-theme="dark"]) .personal-app-canvas {
   box-shadow: 0 8px 18px rgba(123, 153, 25, 0.14);
 }
 
+/* `.pp-btn:hover` (especificidade classe+pseudo) vence `.pp-btn--primary` (só
+ * classe) e substituía o fundo por `--color-surface` (branco no claro) sem
+ * tocar `color`, deixando o botão texto-branco-sobre-fundo-branco ao passar o
+ * mouse — reproduzido no fluxo de revisão assistida (P2B): o cursor já está
+ * em cima do botão "Confirmar substituição" assim que ele aparece, porque
+ * ocupa a mesma posição do botão anterior ("Substituir na ficha"). Regra
+ * própria com a MESMA especificidade, declarada depois, para vencer o empate
+ * por ordem de declaração. */
+.pp-btn--primary:hover {
+  border-color: rgba(123, 153, 25, 0.4);
+  background: var(--action-primary-hover, var(--action-primary));
+  color: #fff;
+}
+
 .pp-btn--ghost {
   background: transparent;
 }
@@ -1988,6 +2002,156 @@ html:not([data-theme="dark"]) .personal-app-canvas {
 .ppf-pr-name {
   min-width: 0;
   overflow-wrap: anywhere;
+}
+
+/* ── Aderência, recorrência e insights do personal (Sprint P2B) ────────────
+ *
+ * Prefixo `ppi-`, vizinho de `ppf-` (mesma aba Performance, mesmo painel
+ * `.ppf-panel`) — os dois convivem porque respondem perguntas diferentes
+ * (ADHERENCE_DEFINITION do harness da sprint). Cores dos buckets vêm SOMENTE
+ * de tokens semânticos (`--color-success/info/warn/danger`) — nunca HEX, e
+ * nunca os tokens de branding (proibidos para esse tipo de dado). */
+
+.ppi-buckets {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.ppi-bucket-row {
+  display: grid;
+  gap: 4px;
+}
+
+.ppi-bucket-label {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--color-text);
+}
+
+.ppi-bucket-bar {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--color-surface-subtle);
+  overflow: hidden;
+}
+
+.ppi-bucket-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.2s ease;
+}
+
+.ppi-insights {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.ppi-insight {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-left-width: 3px;
+  border-radius: var(--radius-md);
+  background: var(--color-surface-subtle);
+}
+
+/* Desconforto tem prioridade/severidade maior (INSIGHT_RULES do harness) —
+ * destaque visual mais forte, mas sem virar alarme médico: só cor e peso. */
+.ppi-insight.is-recurring {
+  border-left-color: var(--color-info);
+}
+
+.ppi-insight.is-discomfort {
+  border-left-color: var(--color-warn);
+  background: var(--color-warn-soft);
+}
+
+.ppi-insight-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.ppi-insight-title {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text);
+}
+
+.ppi-insight-desc {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.ppi-insight-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.ppi-approved-badge {
+  color: var(--color-success-text);
+  font-weight: 600;
+}
+
+.ppi-occurrence-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-2);
+}
+
+.ppi-occurrence {
+  display: grid;
+  gap: 2px;
+  padding: var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.ppi-occurrence-head {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.ppi-occurrence-category {
+  color: var(--color-text-tertiary);
+  font-weight: 400;
+}
+
+.ppi-review-compare {
+  display: grid;
+  gap: var(--space-3);
+}
+
+@media (min-width: 480px) {
+  .ppi-review-compare {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.ppi-review-col {
+  display: grid;
+  gap: var(--space-2);
+  align-content: start;
+}
+
+.ppi-review-alt-option {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--color-text);
+  cursor: pointer;
 }
 
 /* ── Financeiro do personal (Onda F2) ──────────────────────────────────────

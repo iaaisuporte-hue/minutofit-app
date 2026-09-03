@@ -201,6 +201,35 @@ describe("escolha de sugestão", () => {
   });
 });
 
+describe("QA sprint P2B — sugestão que já está na ficha nunca é oferecida", () => {
+  it("filtra do topo da lista o exercício que já ocupa outra posição da sessão", async () => {
+    fetchReplacementSuggestions.mockResolvedValue({
+      originalExerciseId: "ex-original",
+      cautionAdvisory: false,
+      suggestions: [
+        sugestao({ exercise: exercicio({ id: "ex-ja-na-ficha", name: "Supino Reto" }) }),
+        sugestao({ exercise: exercicio({ id: "ex-livre", name: "Supino Halteres" }) }),
+      ],
+    });
+    renderSheet({ excludeExerciseIds: new Set(["ex-ja-na-ficha"]) });
+
+    expect(await screen.findByText("Supino Halteres")).toBeTruthy();
+    expect(screen.queryByText("Supino Reto")).toBeNull();
+  });
+
+  it("todas as sugestões duplicadas → cai no mesmo fallback de lista vazia (nunca confirma uma troca que vai falhar em silêncio)", async () => {
+    fetchReplacementSuggestions.mockResolvedValue({
+      originalExerciseId: "ex-original",
+      cautionAdvisory: false,
+      suggestions: [sugestao({ exercise: exercicio({ id: "ex-ja-na-ficha" }) })],
+    });
+    renderSheet({ excludeExerciseIds: new Set(["ex-ja-na-ficha"]) });
+
+    expect(await screen.findByText("Não encontramos uma sugestão pronta agora.")).toBeTruthy();
+    expect(trackReplacementSuggestionEvent).toHaveBeenCalledWith("replacement_suggestions_empty");
+  });
+});
+
 describe("D8 — motivo dor/desconforto reduz confiança, nunca elimina opções", () => {
   it("cautionAdvisory suprime os rótulos de confiança e mostra o aviso fixo, sem afirmar segurança", async () => {
     fetchReplacementSuggestions.mockResolvedValue({
