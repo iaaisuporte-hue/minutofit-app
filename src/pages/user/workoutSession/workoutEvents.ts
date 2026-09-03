@@ -24,6 +24,12 @@ export type WorkoutEventType =
   | "workout.set_completed"
   | "workout.exercise_skipped"
   | "workout.exercise_reordered"
+  // Execução dinâmica: o aluno troca, desfaz, acrescenta e remove exercício
+  // durante a sessão. Medem a MUDANÇA, nunca o que entrou no lugar do quê.
+  | "workout.exercise_substituted"
+  | "workout.substitution_undone"
+  | "workout.exercise_added"
+  | "workout.exercise_removed"
   | "workout.free_started"
   | "workout.repeat_started"
   | "workout.share_opened";
@@ -43,6 +49,12 @@ export interface WorkoutEventPayload {
   pendingExercises?: number;
   /** Concluiu offline e ficou para sincronizar. */
   offline?: boolean;
+  /**
+   * A substituição veio com motivo? Booleano de propósito: saber QUANTAS trocas
+   * são justificadas responde se a pergunta vale a fricção; o motivo em si é
+   * conversa entre aluno e personal, e vai no registro da série, não no evento.
+   */
+  hadReason?: boolean;
 }
 
 export function postWorkoutEvent(

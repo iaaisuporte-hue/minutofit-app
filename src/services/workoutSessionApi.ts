@@ -126,6 +126,8 @@ export interface WorkoutSessionListItem {
   setsDone: number;
 }
 
+export type ExecutionSource = "prescribed" | "replacement" | "user_added";
+
 export interface WorkoutSetLogRow {
   /**
    * UUID do exercício no catálogo, quando a execução veio de um item
@@ -144,6 +146,16 @@ export interface WorkoutSetLogRow {
   rpe: number | null;
   discomfort: string | null;
   status: "done" | "skipped";
+  /**
+   * Origem da execução deste exercício dentro da sessão. Opcional porque o
+   * backend pode estar uma versão atrás durante o skew de deploy — nesse caso
+   * o histórico segue sem selo, que é o comportamento de sempre.
+   */
+  executionSource?: ExecutionSource;
+  substitutedFromExerciseId?: string | null;
+  /** Nome do exercício substituído. `null` quando ele saiu do catálogo. */
+  substitutedFromName?: string | null;
+  substitutionReason?: string | null;
 }
 
 export interface WorkoutSessionDetail extends WorkoutSessionListItem {
@@ -156,6 +168,13 @@ function num(v: unknown): number | null {
   if (v == null || v === "") return null;
   const n = Number(v);
   return Number.isFinite(n) ? n : null;
+}
+
+// Valor desconhecido vira `undefined` (e não um selo errado na tela) — o
+// servidor pode ganhar novas origens antes do cliente saber lê-las.
+const EXECUTION_SOURCES: readonly ExecutionSource[] = ["prescribed", "replacement", "user_added"];
+function execSource(v: unknown): ExecutionSource | undefined {
+  return EXECUTION_SOURCES.find((s) => s === v);
 }
 
 function mapListItem(r: Record<string, unknown>): WorkoutSessionListItem {
@@ -277,6 +296,12 @@ export async function getWorkoutSessionDetail(id: number): Promise<WorkoutSessio
         rpe: num(s.rpe),
         discomfort: (s.discomfort as string | null) ?? null,
         status: s.status === "skipped" ? "skipped" : "done",
+        executionSource: execSource(s.execution_source),
+        substitutedFromExerciseId:
+          typeof s.substituted_from_exercise_id === "string" ? s.substituted_from_exercise_id : null,
+        substitutedFromName:
+          typeof s.substituted_from_name === "string" ? s.substituted_from_name : null,
+        substitutionReason: typeof s.substitution_reason === "string" ? s.substitution_reason : null,
       })),
     };
   } catch {

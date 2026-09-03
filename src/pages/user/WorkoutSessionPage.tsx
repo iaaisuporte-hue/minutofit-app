@@ -21,6 +21,7 @@ import { useRestTimer } from "./workoutSession/useRestTimer";
 import {
   clearDraft,
   clearFreeDraft,
+  computePrescribedBaseline,
   loadDraft,
   loadFreeDraft,
   saveDraft,
@@ -30,14 +31,23 @@ import {
   type SessionDraft,
 } from "./workoutSession/sessionDraft";
 import { LiveExerciseSheet } from "./freeWorkout/LiveExerciseSheet";
-import type { PickedExercise } from "./freeWorkout/FreeExercisePickerSheet";
+import {
+  FreeExercisePickerSheet,
+  type PickedExercise,
+} from "./freeWorkout/FreeExercisePickerSheet";
 import {
   addLiveExercise,
+  countDoneSets,
+  hasRecordedWork,
   moveLiveExercise,
   removeLiveExercise,
+  replaceLiveExercise,
+  undoReplaceLiveExercise,
   type LiveSessionResult,
   type LiveSessionState,
 } from "./freeWorkout/liveSessionOps";
+import { MAX_EXERCISES } from "./freeWorkout/freeSessionOps";
+import { SubstitutionConfirmSheet } from "./workoutSession/SubstitutionConfirmSheet";
 import { freeWorkoutTitle } from "../../features/training/freeWorkout/muscleGroupMap";
 import { findFilledUnchecked, markFilledDone } from "./workoutSession/filledSets";
 import { SetActionBar } from "./workoutSession/SetActionBar";
@@ -93,6 +103,10 @@ function buildExercises(items: UserWorkoutPlanItem[]): DraftExercise[] {
       exerciseId: it.exerciseId ?? null,
       name: it.name,
       biSetGroupId: it.technique?.type === "bi_set" ? it.technique.biSetGroupId ?? null : null,
+      // A técnica viaja com o exercício, e não fica sendo relida da ficha por
+      // posição: assim que o aluno troca ou acrescenta alguém, o índice do
+      // rascunho deixa de casar com o do plano.
+      technique: it.technique ?? null,
       sets: Array.from({ length: count }, (_, i) => ({
         setIndex: i + 1,
         plannedReps: it.reps,
@@ -105,6 +119,28 @@ function buildExercises(items: UserWorkoutPlanItem[]): DraftExercise[] {
       })),
     };
   });
+}
+
+/**
+ * Fingerprint da ficha do dia, para a retomada saber se o personal editou o
+ * plano desde que o rascunho nasceu. A comparação por COMPRIMENTO que existia
+ * antes não enxerga troca de exercício nem mudança de reps — e, agora que o
+ * aluno pode acrescentar e remover na sessão, passou a acusar diferença
+ * justamente onde não houve nenhuma.
+ */
+function planBaseline(items: UserWorkoutPlanItem[]): string {
+  return computePrescribedBaseline(
+    items.map((it) => ({
+      exerciseId: it.exerciseId ?? null,
+      name: it.name,
+      sets: it.sets,
+      reps: it.reps,
+      rest: it.rest,
+      technique: it.technique
+        ? { type: it.technique.type, biSetGroupId: it.technique.biSetGroupId ?? null }
+        : null,
+    })),
+  );
 }
 
 type Phase = "loading" | "empty" | "running" | "summary";
@@ -127,6 +163,8 @@ export default function WorkoutSessionPage() {
   // Mesma engine nos dois modos: sem :planId na rota é treino livre. Tudo que
   // difere passa por este booleano — o caminho da ficha continua idêntico.
   const isFree = params.planId === undefined;
+  /** Rótulo do modo nos eventos de instrumentação. */
+  const modo: "free" | "plan" = isFree ? "free" : "plan";
 
   const [phase, setPhase] = useState<Phase>("loading");
   const [plan, setPlan] = useState<UserWorkoutPlan | null>(null);
@@ -158,7 +196,22 @@ export default function WorkoutSessionPage() {
   const [showManage, setShowManage] = useState(false);
   const [finishError, setFinishError] = useState<string | null>(null);
   const [confirmFreeDiscard, setConfirmFreeDiscard] = useState(false);
+  /**
+   * Troca do exercício atual, em três estados possíveis: escolhendo o
+   * substituto, confirmando a troca, ou decidindo o que fazer com o trabalho já
+   * registrado no exercício que sairia.
+   */
+  const [swapPickerOpen, setSwapPickerOpen] = useState(false);
+  const [swapPending, setSwapPending] = useState<PickedExercise | null>(null);
+  const [swapKeepAsk, setSwapKeepAsk] = useState<PickedExercise | null>(null);
   const freeClientKey = useRef<string | null>(null);
+  /**
+   * Fingerprint da ficha com que ESTA sessão está sendo executada. Preenchido na
+   * montagem (ou na retomada) e regravado a cada `persist`, é o que permite
+   * aceitar de volta um rascunho com exercício trocado ou acrescentado sem
+   * confundi-lo com um rascunho de uma ficha que o personal reescreveu.
+   */
+  const prescribedBaseline = useRef<string | null>(null);
   /**
    * Trava a gravação do rascunho depois que a sessão foi finalizada.
    *
@@ -318,6 +371,7 @@ export default function WorkoutSessionPage() {
         restEndsAt,
         restForKey,
       };
+      if (prescribedBaseline.current) draft.prescribedBaseline = prescribedBaseline.current;
       saveDraft(draft);
     },
     [isFree, planId, dayIndex],
@@ -405,8 +459,24 @@ export default function WorkoutSessionPage() {
     if (adaptive.loading) return; // aguarda p/ não montar com prescrito errado
 
     const fresh = buildExercises(resolvedItems);
+    const baseline = planBaseline(resolvedItems);
     const draft = loadDraft(planId, dayIndex);
-    if (draft && draft.exercises.length === fresh.length) {
+    /*
+      A ficha é a MESMA de quando o rascunho nasceu?
+
+      Com fingerprint a resposta é direta, e o rascunho volta INTEIRO — inclusive
+      com um exercício a mais ou trocado, que agora é execução legítima e não
+      sinal de ficha desatualizada. Sem fingerprint (rascunho gravado antes deste
+      campo existir) vale a comparação por comprimento que sempre valeu: aqueles
+      rascunhos não têm edição nenhuma do aluno, então ela continua correta.
+    */
+    const mesmaFicha = draft
+      ? draft.prescribedBaseline != null
+        ? draft.prescribedBaseline === baseline
+        : draft.exercises.length === fresh.length
+      : false;
+    prescribedBaseline.current = baseline;
+    if (draft && mesmaFicha) {
       setExercises(draft.exercises);
       setCurrentIndex(Math.min(draft.currentIndex, draft.exercises.length - 1));
       setStartedAt(draft.startedAt);
@@ -442,17 +512,16 @@ export default function WorkoutSessionPage() {
   /**
    * Ids dos exercícios da sessão, como chave estável.
    *
-   * No livre a lista muda DURANTE o treino (o aluno inclui exercício na folha de
-   * gestão), então a fonte é o rascunho e não `resolvedItems`, que é sempre null
-   * ali. A chave é string para o efeito não refazer a busca a cada tecla digitada
-   * numa série — `exercises` muda de identidade o tempo todo, os ids não.
+   * A fonte é a lista EXECUTADA nos dois modos, não a ficha: quem entra por
+   * substituição ou por acréscimo também precisa de GIF e do atalho do Lab, e
+   * quem saiu não precisa mais. A chave é string para o efeito não refazer a
+   * busca a cada tecla digitada numa série — `exercises` muda de identidade o
+   * tempo todo, os ids não.
    */
   const mediaIdsKey = useMemo(() => {
-    const ids = isFree
-      ? exercises.map((ex) => ex.exerciseId)
-      : (resolvedItems ?? []).map((it) => it.exerciseId);
+    const ids = exercises.map((ex) => ex.exerciseId);
     return Array.from(new Set(ids.filter(Boolean) as string[])).join("|");
-  }, [isFree, exercises, resolvedItems]);
+  }, [exercises]);
 
   useEffect(() => {
     let alive = true;
@@ -520,9 +589,28 @@ export default function WorkoutSessionPage() {
 
   const current = exercises[currentIndex];
   const currentItem = (resolvedItems ?? [])[currentIndex];
-  // No livre não existe item de ficha: as repetições planejadas moram na própria
-  // série. O fallback vale para os dois modos (a série copia o prescrito).
-  const currentReps = currentItem?.reps ?? current?.sets[0]?.plannedReps ?? "";
+  /**
+   * O item da ficha na MESMA posição, quando ainda é o mesmo exercício.
+   *
+   * A leitura por índice deixou de ser confiável assim que o aluno passou a
+   * poder trocar e acrescentar exercício no meio da sessão — dali em diante a
+   * posição 3 do rascunho pode não ser a posição 3 do plano. Só sobra como
+   * fonte para rascunho gravado antes de a técnica viajar no próprio exercício,
+   * e mesmo assim confirmando que é o mesmo id.
+   */
+  const itemDaFicha =
+    currentItem && current && currentItem.exerciseId === current.exerciseId ? currentItem : null;
+  // As repetições planejadas moram na própria série (a montagem copia o
+  // prescrito), e é dali que saem — no livre não existe ficha, e no prescrito a
+  // série do substituto herda o planejado do exercício que ela substituiu.
+  const currentReps = current?.sets[0]?.plannedReps ?? itemDaFicha?.reps ?? "";
+  // `??` trataria `null` igual a "campo nunca existiu" e voltaria a ler a
+  // ficha — exatamente o que reabriria o chip "Bi-set" depois que o par foi
+  // desfeito (a técnica do rascunho é `null` de propósito ali, não ausente).
+  // `undefined` é o único caso que deve cair no fallback: rascunho gravado
+  // antes de a técnica passar a viajar com o próprio exercício.
+  const currentTechnique =
+    current?.technique !== undefined ? current?.technique ?? null : itemDaFicha?.technique ?? null;
 
   function updateSet(setIdx: number, patch: Partial<DraftExercise["sets"][number]>) {
     setExercises((prev) => {
@@ -610,16 +698,70 @@ export default function WorkoutSessionPage() {
   }
 
   function handleLiveAdd(picked: PickedExercise) {
-    applyLiveResult(addLiveExercise(liveState(), picked));
+    // No prescrito o acréscimo é marcado: é o que separa, depois, o que a ficha
+    // pediu do que o aluno resolveu fazer a mais — e é dessa distinção que a
+    // aderência vive. No livre não existe prescrição, então marcar seria só
+    // ruído: tudo ali é escolha do aluno.
+    const result = isFree
+      ? addLiveExercise(liveState(), picked)
+      : addLiveExercise(liveState(), picked, { origin: "user_added" });
+    applyLiveResult(result);
+    if (result.changed) postWorkoutEvent("workout.exercise_added", { mode: modo });
   }
 
   function handleLiveMove(index: number, direction: -1 | 1) {
-    postWorkoutEvent("workout.exercise_reordered", { mode: isFree ? "free" : "plan" });
+    postWorkoutEvent("workout.exercise_reordered", { mode: modo });
     applyLiveResult(moveLiveExercise(liveState(), index, direction));
   }
 
   function handleLiveRemove(index: number) {
-    applyLiveResult(removeLiveExercise(liveState(), index));
+    const result = removeLiveExercise(liveState(), index);
+    applyLiveResult(result);
+    if (result.changed) postWorkoutEvent("workout.exercise_removed", { mode: modo });
+  }
+
+  // ── troca do exercício atual ──────────────────────────
+  // Vale nos DOIS modos. A troca é resposta a banco ocupado, dor ou preferência
+  // — situações de quem está na academia, com ou sem ficha —, e as operações são
+  // as mesmas: no livre o "substituiu X" apenas registra o que aconteceu, sem
+  // prescrição nenhuma para contrariar.
+  function handleSwapPick(picked: PickedExercise) {
+    const alvo = exercises[currentIndex];
+    // Trocar apagaria carga e séries já registradas no exercício que sai. Quando
+    // há trabalho, a pergunta muda: não é "por que trocou", é "e o que já foi
+    // feito?".
+    if (alvo && hasRecordedWork(alvo)) setSwapKeepAsk(picked);
+    else setSwapPending(picked);
+  }
+
+  function confirmSwap(reason: string | null) {
+    const picked = swapPending;
+    setSwapPending(null);
+    if (!picked) return;
+    const result = replaceLiveExercise(liveState(), currentIndex, picked, reason);
+    applyLiveResult(result);
+    if (result.changed) {
+      postWorkoutEvent("workout.exercise_substituted", { mode: modo, hadReason: reason != null });
+    }
+  }
+
+  /** Mantém o que já foi feito e entra com o novo exercício logo em seguida. */
+  function keepAndAdd() {
+    const picked = swapKeepAsk;
+    setSwapKeepAsk(null);
+    if (!picked) return;
+    const result = addLiveExercise(liveState(), picked, {
+      origin: "user_added",
+      atIndex: currentIndex + 1,
+    });
+    applyLiveResult(result);
+    if (result.changed) postWorkoutEvent("workout.exercise_added", { mode: modo });
+  }
+
+  function undoSwap() {
+    const result = undoReplaceLiveExercise(liveState(), currentIndex);
+    applyLiveResult(result);
+    if (result.changed) postWorkoutEvent("workout.substitution_undone", { mode: modo });
   }
 
   function buildSessionPayload(): { sets: unknown[]; status: RegisterSessionStatus } {
@@ -639,6 +781,14 @@ export default function WorkoutSessionPage() {
           restDoneS: s.restDoneS,
           discomfort: discomfortEx.has(orderIndex) ? "desconforto relatado" : null,
           status: s.done ? "done" : "skipped",
+          // Procedência da série. `undefined` quando o exercício não tem origem
+          // marcada — o servidor assume `prescribed`, que é o comportamento de
+          // todo cliente anterior a esta coluna.
+          executionSource: ex.origin ?? undefined,
+          substitutedFromExerciseId:
+            ex.origin === "replacement" ? ex.replacedSnapshot?.exerciseId ?? undefined : undefined,
+          substitutionReason:
+            ex.origin === "replacement" ? ex.substitutionReason ?? undefined : undefined,
         });
       });
     });
@@ -863,6 +1013,7 @@ export default function WorkoutSessionPage() {
   useDismissable(() => setShowUnchecked(false), showUnchecked);
   useDismissable(() => setShowPendentes(false), showPendentes);
   useDismissable(() => setShowManage(false), showManage);
+  useDismissable(() => setSwapKeepAsk(null), swapKeepAsk !== null);
 
   function closeExitDialog() {
     setShowExit(false);
@@ -1209,6 +1360,28 @@ export default function WorkoutSessionPage() {
               </button>
               <div style={{ minWidth: 0 }}>
                 <div className="ws-ex-name">{current.name}</div>
+                {/*
+                  Procedência do exercício. Quem trocou precisa reconhecer o que
+                  está na tela ("não pedi isso" é o risco), e o desfazer só
+                  aparece enquanto nada foi feito no substituto — depois da
+                  primeira série há execução real, e voltar atrás a apagaria.
+                */}
+                {current.origin === "replacement" ? (
+                  <div className="ws-ex-origin">
+                    <span>
+                      {current.replacedSnapshot?.name
+                        ? `Substituiu: ${current.replacedSnapshot.name}`
+                        : "Exercício substituído"}
+                    </span>
+                    {countDoneSets(current) === 0 ? (
+                      <button type="button" className="ws-origin-undo" onClick={undoSwap}>
+                        Desfazer
+                      </button>
+                    ) : null}
+                  </div>
+                ) : current.origin === "user_added" ? (
+                  <div className="ws-ex-origin">Adicionado ao treino</div>
+                ) : null}
                 <div className="ws-chips">
                   <span className="ws-chip">
                     {current.sets.length}×{currentReps}
@@ -1216,11 +1389,11 @@ export default function WorkoutSessionPage() {
                   {current.sets[0]?.plannedRestS ? (
                     <span className="ws-chip">descanso {current.sets[0].plannedRestS}s</span>
                   ) : null}
-                  {currentItem?.technique && currentItem.technique.type !== "none" ? (
+                  {currentTechnique && currentTechnique.type !== "none" ? (
                     <span className="ws-chip">
-                      {currentItem.technique.type === "drop_set"
+                      {currentTechnique.type === "drop_set"
                         ? "Drop set"
-                        : currentItem.technique.type === "rest_pause"
+                        : currentTechnique.type === "rest_pause"
                           ? "Rest-pause"
                           : "Bi-set"}
                     </span>
@@ -1246,6 +1419,15 @@ export default function WorkoutSessionPage() {
                     Analisar com o Lab
                   </button>
                 ) : null}
+                <div>
+                  <button
+                    type="button"
+                    className="ws-swap-btn"
+                    onClick={() => setSwapPickerOpen(true)}
+                  >
+                    Substituir exercício
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -1392,6 +1574,69 @@ export default function WorkoutSessionPage() {
           onRemove={handleLiveRemove}
           onAdd={handleLiveAdd}
         />
+      ) : null}
+
+      {/* Escolha do substituto. O exercício atual entra em `selectedIds` junto
+          com os demais: trocar por alguém que já está no treino duplicaria a
+          lista, e a folha mostra isso desabilitado em vez de recusar no toque. */}
+      <FreeExercisePickerSheet
+        open={swapPickerOpen}
+        title="Substituir por"
+        onClose={() => setSwapPickerOpen(false)}
+        onPick={handleSwapPick}
+        selectedIds={
+          new Set(exercises.map((ex) => ex.exerciseId).filter((id): id is string => !!id))
+        }
+      />
+
+      {swapPending && current ? (
+        <SubstitutionConfirmSheet
+          key={swapPending.id}
+          open
+          originalName={current.name}
+          newName={swapPending.name}
+          onCancel={() => setSwapPending(null)}
+          onConfirm={confirmSwap}
+        />
+      ) : null}
+
+      {/*
+        Trocar apagaria trabalho já registrado. Em vez de avisar que vai
+        descartar, a tela oferece a saída que o aluno de fato quer na academia:
+        fechar o exercício onde parou e fazer o novo em seguida, como exercício
+        extra — sem selo de substituição, porque substituição não foi.
+      */}
+      {swapKeepAsk && current ? (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="ws-keep-title"
+          style={{ position: "fixed", inset: 0, zIndex: 1300, background: "rgba(10,19,13,.5)", display: "flex", alignItems: "flex-end", justifyContent: "center", padding: 12 }}
+          onClick={() => setSwapKeepAsk(null)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{ width: "min(480px,100%)", background: "var(--color-surface)", borderRadius: 18, border: "1px solid var(--color-border)", padding: 18, display: "grid", gap: 10 }}
+          >
+            <div id="ws-keep-title" style={{ fontWeight: 700, fontSize: 17 }}>
+              Você já registrou trabalho em {current.name}
+            </div>
+            <div style={{ fontSize: 13, color: "var(--color-text-muted)", lineHeight: 1.45 }}>
+              {exercises.length >= MAX_EXERCISES
+                ? `Substituir agora descartaria o que foi feito, e o treino já está no limite de ${MAX_EXERCISES} exercícios — não dá para incluir mais um.`
+                : `Substituir agora descartaria o que foi feito. Dá para manter ${current.name} como está e fazer ${swapKeepAsk.name} logo depois, como exercício extra.`}
+            </div>
+            {/* No teto, acrescentar seria um toque sem efeito — melhor dizer. */}
+            {exercises.length < MAX_EXERCISES ? (
+              <button className="ws-btn ws-btn-primary" onClick={keepAndAdd}>
+                Encerrar {current.name} e adicionar {swapKeepAsk.name}
+              </button>
+            ) : null}
+            <button className="ws-btn ws-btn-ghost" onClick={() => setSwapKeepAsk(null)}>
+              Continuar com {current.name}
+            </button>
+          </div>
+        </div>
       ) : null}
 
       {/*

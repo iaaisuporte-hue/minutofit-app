@@ -4,6 +4,15 @@
 // acontece na finalização. Uma chave por plano+dia no treino prescrito; uma
 // chave fixa no treino livre (ver bloco no fim do arquivo).
 
+import type { TechniqueConfig } from "../../../features/training/techniques/technique.types";
+
+/**
+ * De onde saiu o exercício que está sendo executado. Ausente é o mesmo que
+ * `prescribed`: rascunhos gravados antes deste campo existir não têm nada aqui,
+ * e todos eles são da ficha.
+ */
+export type DraftExerciseOrigin = "prescribed" | "replacement" | "user_added";
+
 export interface DraftSetEntry {
   setIndex: number;
   plannedReps: string;
@@ -26,6 +35,22 @@ export interface DraftExercise {
    * para derivar `muscleGroups` e o título da sessão sem ir ao servidor.
    */
   bodyPart?: string | null;
+  /** Origem do exercício na execução. Ausente = prescrito (default histórico). */
+  origin?: DraftExerciseOrigin;
+  /**
+   * Estado completo do exercício ANTES da substituição — desfazer restaura
+   * séries e técnica exatamente como estavam. Ausente quando `origin` não é
+   * `replacement`.
+   */
+  replacedSnapshot?: DraftExercise;
+  /** Motivo opcional informado na substituição (≤ 280 chars, o cap do backend). */
+  substitutionReason?: string | null;
+  /**
+   * Técnica do item, copiada da ficha na montagem. Guardar aqui desacopla a
+   * execução de reler o plano por índice — que deixa de casar assim que o aluno
+   * adiciona, remove ou substitui alguém no meio do treino.
+   */
+  technique?: TechniqueConfig | null;
 }
 
 export interface SessionDraft {
@@ -38,6 +63,44 @@ export interface SessionDraft {
   /** Instante (ms) em que um descanso ativo termina — recalculado ao retomar. */
   restEndsAt: number | null;
   restForKey: string | null;
+  /**
+   * Fingerprint da ficha no instante em que o rascunho nasceu. Na retomada diz
+   * se o personal editou a ficha desde então — o que a contagem de exercícios
+   * sozinha não vê (trocar reps ou o exercício mantém o comprimento). Ausente em
+   * rascunho antigo, que cai no fallback por comprimento que já existia.
+   */
+  prescribedBaseline?: string;
+}
+
+/** Item da ficha, no mínimo que a comparação de baseline precisa enxergar. */
+export interface PrescribedBaselineItem {
+  exerciseId: string | null;
+  name: string;
+  sets: string;
+  reps: string;
+  rest: string;
+  technique?: { type: string; biSetGroupId?: string | null } | null;
+}
+
+/**
+ * Serializa a ficha para comparação por igualdade de string.
+ *
+ * É posicional de propósito: reordenar os exercícios do dia muda o treino que o
+ * aluno vai executar, então tem de contar como ficha diferente. Não é hash — só
+ * precisa ser determinístico, e um JSON de tuplas já é.
+ */
+export function computePrescribedBaseline(items: readonly PrescribedBaselineItem[]): string {
+  return JSON.stringify(
+    items.map((item) => [
+      item.exerciseId ?? null,
+      item.name,
+      item.sets,
+      item.reps,
+      item.rest,
+      item.technique?.type ?? null,
+      item.technique?.biSetGroupId ?? null,
+    ]),
+  );
 }
 
 const PREFIX = "s2core:workout:draft:";

@@ -72,6 +72,36 @@ function StatusPill({ status }: { status: WorkoutSessionStatus }) {
   );
 }
 
+/**
+ * Selo de origem do exercício dentro da sessão (execução dinâmica). Prescrito
+ * não recebe selo — é o caso normal e poluiria o histórico inteiro.
+ */
+function OriginBadge({ set }: { set: WorkoutSessionDetail["sets"][number] }) {
+  let label: string;
+  if (set.executionSource === "replacement") {
+    // Sem nome quando o exercício original saiu do catálogo — não inventamos um.
+    label = set.substitutedFromName ? `Substituiu ${set.substitutedFromName}` : "Substituiu outro exercício";
+  } else if (set.executionSource === "user_added") {
+    label = "Adicionado durante o treino";
+  } else {
+    return null;
+  }
+  return (
+    <span
+      style={{
+        fontSize: 11,
+        fontWeight: 600,
+        color: "var(--color-text-muted)",
+        border: "1px solid var(--color-border)",
+        borderRadius: "var(--radius-full, 999px)",
+        padding: "1px 8px",
+      }}
+    >
+      {label}
+    </span>
+  );
+}
+
 function SetsDetail({ detail }: { detail: WorkoutSessionDetail }) {
   if (detail.sets.length === 0) {
     return <p className="metabolic-section-copy">Sessão registrada sem detalhe de séries.</p>;
@@ -93,6 +123,8 @@ function SetsDetail({ detail }: { detail: WorkoutSessionDetail }) {
         <div key={gi} style={{ display: "grid", gap: 4 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
             <strong style={{ color: "var(--color-text)", fontSize: 14 }}>{g.name}</strong>
+            {/* A origem é do exercício, não da série: basta a primeira do grupo. */}
+            <OriginBadge set={g.sets[0]} />
             {hadDiscomfort && (
               <span
                 style={{

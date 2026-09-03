@@ -71,6 +71,16 @@ export function StudentExecutionCard({ studentId }: { studentId: string }) {
             const dis = s.discomfortExercises ?? [];
             const hasDiscomfort = dis.length > 0;
             const retro = s.isRetroactive === true;
+            // Execução dinâmica: o que o aluno trocou/acrescentou na ficha.
+            // Fato, sem juízo — a leitura do porquê é do personal.
+            const subs = s.substitutionsCount ?? 0;
+            const extras = s.extraExercisesCount ?? 0;
+            const dynamicLabel = [
+              subs > 0 ? `${subs} ${subs === 1 ? "substituição" : "substituições"}` : null,
+              extras > 0 ? `${extras} ${extras === 1 ? "extra" : "extras"}` : null,
+            ]
+              .filter(Boolean)
+              .join(" · ");
             return (
               <span
                 key={s.id}
@@ -79,6 +89,7 @@ export function StudentExecutionCard({ studentId }: { studentId: string }) {
                   (retro
                     ? ` · registrado retroativamente${s.createdAt ? ` em ${fmtDate(s.createdAt)}` : ""} — não é acompanhamento em tempo real`
                     : "") +
+                  (dynamicLabel ? ` · ${dynamicLabel}` : "") +
                   (hasDiscomfort ? ` · desconforto: ${dis.join(", ")}` : "")
                 }
                 style={{
@@ -98,6 +109,7 @@ export function StudentExecutionCard({ studentId }: { studentId: string }) {
                 }}
               >
                 {fmtDate(s.date)} · {s.setsDone}/{s.prescribedSets || "?"}
+                {dynamicLabel ? ` · ${dynamicLabel}` : ""}
                 {retro ? <RotateCcw size={11} style={{ marginLeft: 4, verticalAlign: "-1px" }} aria-label="Retroativo" /> : null}
                 {hasDiscomfort ? <AlertTriangle size={11} style={{ marginLeft: 4, verticalAlign: "-1px" }} aria-label="Desconforto relatado" /> : null}
               </span>

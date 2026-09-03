@@ -8,6 +8,11 @@ import "./freeWorkout.css";
 // tela. A folha NÃO fecha ao adicionar — montar um treino é escolher cinco ou
 // seis exercícios seguidos, e reabrir a cada um custaria dois toques por
 // exercício. Quem terminou fecha explicitamente.
+//
+// Com `onPick` a folha vira ESCOLHA ÚNICA (substituir um exercício): escolher é
+// o fim da tarefa, então ela mesma fecha logo em seguida. O fechamento fica
+// aqui, e não em quem usa a prop, para não haver duas regras de quando a folha
+// some — quem escuta `onPick` só decide o que fazer com o exercício.
 
 const RESULT_LIMIT = 60;
 const SEARCH_DEBOUNCE_MS = 300;
@@ -22,12 +27,28 @@ export interface PickedExercise {
 interface Props {
   open: boolean;
   onClose: () => void;
-  onAdd: (exercise: PickedExercise) => void;
+  /** Montagem (vários): a folha continua aberta. Dispensável em modo `onPick`. */
+  onAdd?: (exercise: PickedExercise) => void;
   /** Ids já montados — evita duplicar e mostra o que já entrou. */
   selectedIds: Set<string>;
+  /**
+   * Escolha única: recebe o exercício e a folha fecha. Quando presente,
+   * substitui `onAdd` — o modo de montagem (adicionar vários) fica intacto para
+   * quem não passa a prop.
+   */
+  onPick?: (exercise: PickedExercise) => void;
+  /** Cabeçalho da folha. Default: o texto do modo de montagem. */
+  title?: string;
 }
 
-export function FreeExercisePickerSheet({ open, onClose, onAdd, selectedIds }: Props) {
+export function FreeExercisePickerSheet({
+  open,
+  onClose,
+  onAdd,
+  selectedIds,
+  onPick,
+  title = "Adicionar exercício",
+}: Props) {
   const [bodyPart, setBodyPart] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
@@ -87,12 +108,23 @@ export function FreeExercisePickerSheet({ open, onClose, onAdd, selectedIds }: P
 
   const handleAdd = useCallback(
     (exercise: ExerciseSummary) => {
-      onAdd({ id: exercise.id, name: exercise.name, bodyPart: exercise.bodyPart ?? null });
+      const picked: PickedExercise = {
+        id: exercise.id,
+        name: exercise.name,
+        bodyPart: exercise.bodyPart ?? null,
+      };
+      if (onPick) {
+        onPick(picked);
+        onClose();
+        return;
+      }
+      onAdd?.(picked);
+      // Confirmação de "entrou" — só faz sentido na folha que continua aberta.
       setJustAddedId(exercise.id);
       if (justAddedTimer.current) clearTimeout(justAddedTimer.current);
       justAddedTimer.current = setTimeout(() => setJustAddedId(null), JUST_ADDED_MS);
     },
-    [onAdd],
+    [onAdd, onPick, onClose],
   );
 
   if (!open) return null;
@@ -115,11 +147,13 @@ export function FreeExercisePickerSheet({ open, onClose, onAdd, selectedIds }: P
       <div className="drawer-panel fw-sheet">
         <div className="fw-sheet-head">
           <div>
-            <h2 id="fw-picker-title" className="fw-sheet-title">Adicionar exercício</h2>
+            <h2 id="fw-picker-title" className="fw-sheet-title">{title}</h2>
             <div className="fw-sheet-count">
-              {selectedCount === 0
-                ? "Toque para incluir no treino."
-                : `${selectedCount} ${selectedCount === 1 ? "exercício no treino" : "exercícios no treino"}`}
+              {onPick
+                ? "Toque no exercício que vai entrar."
+                : selectedCount === 0
+                  ? "Toque para incluir no treino."
+                  : `${selectedCount} ${selectedCount === 1 ? "exercício no treino" : "exercícios no treino"}`}
             </div>
           </div>
           <button type="button" className="fw-sheet-close" onClick={onClose} aria-label="Fechar seleção">

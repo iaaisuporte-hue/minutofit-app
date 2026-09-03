@@ -58,6 +58,12 @@ export interface StudentTrainingSummary {
     prescribedSets: number;
     /** Movimentos em que o aluno relatou desconforto/dor nesta sessão (P1-3). */
     discomfortExercises: string[];
+    /**
+     * Execução dinâmica: exercícios que o aluno trocou e exercícios que ele
+     * acrescentou. Opcionais para tolerar um backend uma versão atrás.
+     */
+    substitutionsCount?: number;
+    extraExercisesCount?: number;
   }[];
 }
 
