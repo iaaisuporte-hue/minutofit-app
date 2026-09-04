@@ -425,7 +425,17 @@ export default function WorkoutBuilderPage() {
     if (showVideoOnly) {
       base = allExercises.filter((e) => e.primaryMediaUrl != null || e.videoUrl != null);
     } else if (libGroupFilter === "all") {
-      base = allExercises;
+      // "Todos" agrupado por músculo (ordem de CATALOG_GROUPS), não alfabético
+      // solto — a lista alfabética misturava "Ab Wheel" com "Agachamento" e
+      // "Alongamento", e montar um treino de perna virava rolar a lista
+      // inteira caçando nomes espalhados (QA 04/set/2026). O filtro por chip
+      // continua existindo pra quem quer só um grupo.
+      const order = new Map(CATALOG_GROUPS.map((g, i) => [g, i]));
+      base = [...allExercises].sort((a, b) => {
+        const ga = order.get(a.group) ?? CATALOG_GROUPS.length;
+        const gb = order.get(b.group) ?? CATALOG_GROUPS.length;
+        return ga !== gb ? ga - gb : a.name.localeCompare(b.name, "pt-BR");
+      });
     } else {
       base = allExercises.filter((e) => e.group === libGroupFilter);
     }
@@ -739,8 +749,15 @@ export default function WorkoutBuilderPage() {
         style={{ gridTemplateColumns: narrow ? "1fr" : "1fr minmax(300px, 380px)" }}
       >
         {/* ── Library ─────────────────────────────────────────────── */}
-        <WbCard>
-          <div className="wb-library" style={{ padding: 16, display: "grid", gridTemplateColumns: "minmax(0, 1fr)", gap: 12, order: narrow ? 2 : 1 }}>
+        {/* `order` precisa estar neste wrapper — é ele o item direto do grid
+            `.wb-split`. Estava no <div className="wb-library"> logo abaixo,
+            um nível a mais dentro do WbCard: `order` em elemento que não é
+            item de grid/flex não tem efeito nenhum, então no mobile a lista
+            de exercícios sempre renderizava antes de "Lista do treino",
+            nunca depois — o valor "narrow ? 2 : 1" nunca chegou a rodar. */}
+        <div style={{ order: narrow ? 2 : 1 }}>
+          <WbCard>
+          <div className="wb-library" style={{ padding: 16, display: "grid", gridTemplateColumns: "minmax(0, 1fr)", gap: 12 }}>
             <div style={{ fontWeight: 650, fontSize: 15, color: WB.text }}>Exercícios</div>
 
             {/* Search */}
@@ -788,11 +805,29 @@ export default function WorkoutBuilderPage() {
                   {exerciseQuery ? "Nenhum resultado para esta busca." : "Nenhum exercício neste grupo."}
                 </div>
               ) : (
-                pagedLibraryList.map((ex) => {
+                pagedLibraryList.map((ex, idx) => {
                   const already = items.some((i) => i.exerciseId === ex.id);
+                  const showGroupHeader =
+                    libGroupFilter === "all" &&
+                    !showVideoOnly &&
+                    (idx === 0 || pagedLibraryList[idx - 1].group !== ex.group);
                   return (
+                    <React.Fragment key={ex.id}>
+                      {showGroupHeader ? (
+                        <div
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 700,
+                            color: WB.muted,
+                            textTransform: "uppercase",
+                            letterSpacing: "0.04em",
+                            padding: idx === 0 ? "0 0 2px" : "10px 0 2px",
+                          }}
+                        >
+                          {ex.group}
+                        </div>
+                      ) : null}
                     <div
-                      key={ex.id}
                       style={{
                         display: "flex",
                         alignItems: "center",
@@ -890,9 +925,9 @@ export default function WorkoutBuilderPage() {
                         onClick={() => setViewingExerciseId(ex.id)}
                         title="Ver detalhes"
                         style={{
-                          width: 28,
-                          height: 28,
-                          borderRadius: 8,
+                          width: 44,
+                          height: 44,
+                          borderRadius: 10,
                           border: `1px solid ${WB.border}`,
                           background: "transparent",
                           color: WB.muted,
@@ -912,9 +947,9 @@ export default function WorkoutBuilderPage() {
                         onClick={() => addExerciseToPlan(ex)}
                         title={already ? "Já na lista" : "Adicionar"}
                         style={{
-                          width: 28,
-                          height: 28,
-                          borderRadius: 8,
+                          width: 44,
+                          height: 44,
+                          borderRadius: 10,
                           border: `1px solid ${already ? WB.border : WB.primaryBorder}`,
                           background: already ? "transparent" : WB.ctaBg,
                           color: already ? WB.muted : "#FFFFFF",
@@ -930,6 +965,7 @@ export default function WorkoutBuilderPage() {
                         {already ? "✓" : "+"}
                       </button>
                     </div>
+                    </React.Fragment>
                   );
                 })
               )}
@@ -990,7 +1026,8 @@ export default function WorkoutBuilderPage() {
               </div>
             ) : null}
           </div>
-        </WbCard>
+          </WbCard>
+        </div>
 
         {/* ── Workout list ─────────────────────────────────────────── */}
         <div
