@@ -147,7 +147,18 @@ export function buildPortfolioHeadline(
     return "Sua carteira ainda está vazia.";
   }
 
+  // Deriva os contadores de `engagementStatus`, a mesma fonte que os chips do
+  // dashboard ("Atenção"/"Risco") e a tela Alunos ("EM RISCO") já usam. Antes
+  // esta manchete lia `summary.criticalCount`/`alertCount` — contadores do
+  // backend derivados de `risk`, um critério DIFERENTE (sem a carência de
+  // vínculo novo que `engagementStatus` tem) — e podia anunciar "1 aluno em
+  // risco crítico" na mesma tela em que os chips diziam "Risco (0)" (QA
+  // 04/set/2026: aluno com 1 dia de vínculo e zero treino na semana).
   const evolving = students.filter((s) => s.engagementStatus === "evolving").length;
+  const onTrack = students.filter((s) => s.engagementStatus === "on_track").length;
+  const attention = students.filter((s) => s.engagementStatus === "attention").length;
+  const atRisk =
+    students.filter((s) => s.engagementStatus === "fading" || s.engagementStatus === "at_risk").length;
   const dist = summary.metabolismDistribution;
   const lowMetabolism = dist?.low ?? 0;
 
@@ -155,13 +166,12 @@ export function buildPortfolioHeadline(
     return `Cluster de fadiga: ${lowMetabolism} alunos com score metabólico baixo hoje.`;
   }
 
-  if (summary.criticalCount >= 1) {
-    const c = summary.criticalCount;
-    return `${c} ${pluralize(c, "aluno em risco crítico", "alunos em risco crítico")} — priorize contato.`;
+  if (atRisk >= 1) {
+    return `${atRisk} ${pluralize(atRisk, "aluno em risco", "alunos em risco")} — priorize contato.`;
   }
 
-  if (summary.alertCount >= 2) {
-    return `${summary.alertCount} alunos pedem atenção, ${evolving} ${pluralize(
+  if (attention >= 2) {
+    return `${attention} alunos pedem atenção, ${evolving} ${pluralize(
       evolving,
       "está evoluindo",
       "estão evoluindo"
@@ -169,7 +179,7 @@ export function buildPortfolioHeadline(
   }
 
   if (evolving >= 2) {
-    return `Carteira em boa fase: ${evolving} alunos evoluindo, ${summary.okCount} no ritmo.`;
+    return `Carteira em boa fase: ${evolving} alunos evoluindo, ${onTrack} no ritmo.`;
   }
 
   return "Carteira em equilíbrio — sem alertas críticos hoje.";
