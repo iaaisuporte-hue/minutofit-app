@@ -30,6 +30,11 @@ export type WorkoutEventType =
   | "workout.substitution_undone"
   | "workout.exercise_added"
   | "workout.exercise_removed"
+  // Lembrete de treino não finalizado. Medem se o mecanismo funciona — quantas
+  // sessões chegam a ser lembradas e quantas voltam pelo toque — e nada sobre o
+  // treino em si.
+  | "workout.reminder_scheduled"
+  | "workout.reminder_opened"
   | "workout.free_started"
   | "workout.repeat_started"
   | "workout.share_opened";

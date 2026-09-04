@@ -27,6 +27,7 @@ import {
   saveFreeDraft,
   type FreeSessionDraft,
 } from "../workoutSession/sessionDraft";
+import { cancelarLembretesTreino } from "../workoutSession/pendingWorkoutReminder";
 import { clearFreeSetupDraft, loadFreeSetupDraft, saveFreeSetupDraft } from "./freeSetupDraft";
 import { describeTitleGroupsPt } from "../../../features/training/freeWorkout/muscleGroupMap";
 import "./freeWorkout.css";
@@ -81,6 +82,9 @@ export default function FreeWorkoutSetupPage() {
 
   function handleDiscard() {
     clearFreeDraft();
+    // Descartar aqui é o mesmo que encerrar o treino: sem isto o lembrete ainda
+    // tocaria horas depois apontando para uma sessão que não existe mais.
+    void cancelarLembretesTreino();
     setDraft(null);
     setConfirmingDiscard(false);
   }

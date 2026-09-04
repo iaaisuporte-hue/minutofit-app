@@ -7,6 +7,7 @@ import {
   sessaoAtiva,
   type InProgressSession,
 } from "../workoutSession/inProgressSession";
+import { cancelarLembretesTreino } from "../workoutSession/pendingWorkoutReminder";
 
 /**
  * Aviso de treino em andamento.
@@ -100,6 +101,9 @@ export function ResumeWorkoutCard() {
         danger
         onConfirm={() => {
           discardInProgressSession(session);
+          // Encerrar aqui é fechar o treino: os lembretes pendentes daquela
+          // sessão perdem o objeto e não podem tocar depois.
+          void cancelarLembretesTreino();
           setConfirmEnd(false);
           refresh();
         }}

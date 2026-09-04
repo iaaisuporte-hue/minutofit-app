@@ -15,9 +15,17 @@ vi.mock("../../../services/exercisesApi", () => ({
   searchExercises: vi.fn().mockResolvedValue([]),
 }));
 
+const { cancelarLembretesTreino } = vi.hoisted(() => ({ cancelarLembretesTreino: vi.fn() }));
+vi.mock("../workoutSession/pendingWorkoutReminder", () => ({
+  cancelarLembretesTreino: () => {
+    cancelarLembretesTreino();
+    return Promise.resolve();
+  },
+}));
+
 import FreeWorkoutSetupPage from "./FreeWorkoutSetupPage";
 import { loadFreeSetupDraft, saveFreeSetupDraft } from "./freeSetupDraft";
-import { loadFreeDraft } from "../workoutSession/sessionDraft";
+import { loadFreeDraft, saveFreeDraft } from "../workoutSession/sessionDraft";
 import type { FreeWorkoutItem } from "./freeSessionOps";
 
 const item = (id: string, name: string, bodyPart: string): FreeWorkoutItem => ({
@@ -73,5 +81,51 @@ describe("FreeWorkoutSetupPage — persistência da montagem", () => {
     await user.click(screen.getByRole("button", { name: "Começar treino" }));
     expect(loadFreeSetupDraft()).toEqual([]);
     expect(loadFreeDraft()?.exercises.map((e) => e.name)).toEqual(["Supino reto"]);
+  });
+});
+
+/**
+ * Descartar aqui é uma SAÍDA do treino que não passa pela tela de sessão — e
+ * por isso escapou quando o lembrete foi ligado. Sem o cancelamento, a
+ * notificação tocava horas depois apontando para um treino que já não existia.
+ */
+describe("FreeWorkoutSetupPage — descarte cancela o lembrete", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    cancelarLembretesTreino.mockClear();
+  });
+
+  it("descartar o treino aberto cancela os lembretes pendentes", async () => {
+    saveFreeDraft({
+      version: 1,
+      mode: "free",
+      startedAt: Date.now() - 60 * 60 * 1000,
+      currentIndex: 0,
+      exercises: [
+        {
+          exerciseId: "ex-1",
+          name: "Supino",
+          biSetGroupId: null,
+          sets: [
+            {
+              setIndex: 1, plannedReps: "10", plannedRestS: 60,
+              loadKg: "40", reps: "10", done: true,
+              restDoneS: null, completedAt: Date.now() - 60 * 60 * 1000,
+            },
+          ],
+        },
+      ],
+      restEndsAt: null,
+      restForKey: null,
+      clientKey: "k",
+    });
+    abrirTela();
+    const user = userEvent.setup();
+
+    await user.click(screen.getByRole("button", { name: "Descartar e começar novo" }));
+    await user.click(screen.getByRole("button", { name: "Sim, descartar" }));
+
+    expect(cancelarLembretesTreino).toHaveBeenCalled();
+    expect(loadFreeDraft()).toBeNull();
   });
 });

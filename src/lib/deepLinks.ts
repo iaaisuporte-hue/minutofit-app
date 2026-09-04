@@ -43,6 +43,9 @@ const MAPA: Array<{ padrao: RegExp; rota: (m: RegExpMatchArray) => string }> = [
   // Treino
   { padrao: /^workout\/today$/, rota: () => "/app/user/ficha" },
   { padrao: /^workout\/free$/, rota: () => "/app/user/treino-livre" },
+  // A sessão livre em execução é destino próprio: o lembrete de treino não
+  // finalizado precisa reabrir a EXECUÇÃO, e `workout/free` leva à montagem.
+  { padrao: /^workout\/free\/session$/, rota: () => "/app/user/treino-livre/sessao" },
   { padrao: /^workout\/session\/(\d+)\/(\d+)$/, rota: (m) => `/app/user/treino/${m[1]}/${m[2]}` },
   { padrao: /^workout\/resume$/, rota: () => "/app/user/ficha" },
   // Atividade

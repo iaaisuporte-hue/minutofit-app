@@ -57,6 +57,12 @@ import { useDismissable } from "../../lib/overlayStack";
 import { ExerciseHistorySheet } from "./workoutSession/ExerciseHistorySheet";
 import { postWorkoutEvent } from "./workoutSession/workoutEvents";
 import { agendarAvisoDescanso, cancelarAvisoDescanso } from "./workoutSession/restNotification";
+import {
+  agendarLembretesTreino,
+  cancelarLembretesTreino,
+  type SessaoLembrete,
+} from "./workoutSession/pendingWorkoutReminder";
+import { ultimaAtividade } from "./workoutSession/inProgressSession";
 import { computeSessionComparison, deriveFatigueInsight } from "./workoutSession/sessionSummary";
 import { WorkoutShareTrigger } from "./components/WorkoutShareTrigger";
 import { splitShareTitle } from "./lib/sessionShareData";
@@ -306,6 +312,53 @@ export default function WorkoutSessionPage() {
     startedAtRef.current = startedAt;
   }, [startedAt]);
 
+  // ── lembrete de treino não finalizado ─────────────────
+  // O rascunho já sobrevive ao app morrer; o que faltava era avisar quem NÃO
+  // reabre o app. Os dois lembretes (45 min e 2 h) são entregues ao sistema
+  // operacional a partir da última atividade REAL — ver `pendingWorkoutReminder`.
+  const sessaoLembrete = useMemo<SessaoLembrete>(
+    () => ({
+      mode: isFree ? "free" : "plan",
+      planId: isFree ? null : planId,
+      dayIndex: isFree ? null : dayIndex,
+    }),
+    [isFree, planId, dayIndex],
+  );
+  /** Última atividade já entregue ao sistema — base do afunilamento abaixo. */
+  const lembreteAgendadoEm = useRef(0);
+  /** `reminder_scheduled` é por SESSÃO, não por reagendamento. */
+  const lembreteInstrumentado = useRef(false);
+
+  const reagendarLembretes = useCallback(
+    (quando: number) => {
+      // Mesma trava do rascunho: sessão finalizada não volta a agendar nada.
+      if (sessionSaved.current) return;
+      // Afunilamento de um minuto. `updateSet` dispara a cada tecla digitada na
+      // carga, e uma chamada nativa por caractere seria desperdício — num
+      // horizonte de 45 minutos, um minuto de defasagem não muda nada.
+      if (quando - lembreteAgendadoEm.current < 60_000) return;
+      lembreteAgendadoEm.current = quando;
+      void agendarLembretesTreino(sessaoLembrete, quando).then((quantos) => {
+        if (quantos > 0 && !lembreteInstrumentado.current) {
+          lembreteInstrumentado.current = true;
+          postWorkoutEvent("workout.reminder_scheduled", { mode: isFree ? "free" : "plan" });
+        }
+      });
+    },
+    [sessaoLembrete, isFree],
+  );
+
+  /**
+   * Atividade REAL dentro do treino — adia os lembretes.
+   *
+   * Chamado de série marcada, carga/repetições registradas, descanso concluído
+   * e mudança da lista de exercícios. Deliberadamente NÃO chamado de abrir a
+   * tela, voltar do segundo plano, rolar a página ou sair guardando o progresso:
+   * o lembrete existe justamente para quem parou de treinar sem fechar o treino,
+   * e adiá-lo por presença o tornaria inútil.
+   */
+  const marcarAtividade = useCallback(() => reagendarLembretes(Date.now()), [reagendarLembretes]);
+
   /**
    * `workout.started` / `workout.resumed` (§51).
    *
@@ -323,7 +376,11 @@ export default function WorkoutSessionPage() {
       totalExercises: exercises.length,
     });
     if (isFree && !jaTinhaSerie) postWorkoutEvent("workout.free_started", { mode: "free" });
-  }, [phase, exercises, isFree]);
+    // Numa retomada a referência é a última série marcada, não o início: um
+    // treino reaberto três horas depois não pode agendar o primeiro lembrete
+    // para "três horas atrás + 45 min", que já passou.
+    reagendarLembretes(Math.max(startedAt, ultimaAtividade(exercises)));
+  }, [phase, exercises, isFree, startedAt, reagendarLembretes]);
 
   // Aplica itens adaptados quando o motor adaptou ESTE dia hoje (mesma regra da ficha).
   const resolvedItems = useMemo<UserWorkoutPlanItem[] | null>(() => {
@@ -402,8 +459,9 @@ export default function WorkoutSessionPage() {
         persist(next, currentIndexRef.current, startedAtRef.current);
         return next;
       });
+      marcarAtividade();
     },
-    [persist],
+    [persist, marcarAtividade],
   );
 
   const rest = useRestTimer({ onComplete: () => finalizeRest(restCtx.current?.planned ?? 0) });
@@ -585,6 +643,7 @@ export default function WorkoutSessionPage() {
       persist(next, currentIndex, startedAt);
       return next;
     });
+    marcarAtividade();
     setShowUnchecked(false);
     // O aluno já tinha pedido para finalizar; marcar era o que faltava.
     setPhase("summary");
@@ -625,6 +684,7 @@ export default function WorkoutSessionPage() {
       persist(next, currentIndex, startedAt);
       return next;
     });
+    marcarAtividade();
   }
 
   function toggleDone(setIdx: number) {
@@ -668,6 +728,9 @@ export default function WorkoutSessionPage() {
     const clamped = Math.max(0, Math.min(exercises.length - 1, idx));
     setCurrentIndex(clamped);
     persist(exercises, clamped, startedAt);
+    // Avanço dentro da execução conta como atividade — trocar de exercício é
+    // treinar. Trocar de ABA do app não passa por aqui.
+    marcarAtividade();
   }
 
   // ── edição da lista durante o treino livre ────────────
@@ -698,6 +761,7 @@ export default function WorkoutSessionPage() {
     setCurrentIndex(result.currentIndex);
     setDiscomfortEx(result.discomfort);
     persist(result.exercises, result.currentIndex, startedAt);
+    marcarAtividade();
   }
 
   function handleLiveAdd(picked: PickedExercise) {
@@ -891,6 +955,9 @@ export default function WorkoutSessionPage() {
       rest.skip();
       restCtx.current = null;
       void cancelarAvisoDescanso();
+      // Treino concluído nunca pode ser lembrado. A varredura cancela também um
+      // lembrete deixado por execução anterior desta mesma sessão.
+      void cancelarLembretesTreino();
       clearFreeDraft();
       postWorkoutEvent("workout.completed", {
         mode: "free",
@@ -963,6 +1030,7 @@ export default function WorkoutSessionPage() {
     rest.skip();
     restCtx.current = null;
     void cancelarAvisoDescanso();
+    void cancelarLembretesTreino();
     clearDraft(planId, dayIndex);
     // NÃO navega embora: entra no estado "salvo" com o Compartilhar em destaque.
     // Sair na hora escondia a divulgação orgânica (regressão reportada jun/2026).
@@ -981,6 +1049,9 @@ export default function WorkoutSessionPage() {
   function discardAndExit() {
     rest.skip();
     void cancelarAvisoDescanso();
+    // Descartado é o mesmo que fechado, para efeito de lembrete: não há mais
+    // treino aberto sobre o que avisar.
+    void cancelarLembretesTreino();
     postWorkoutEvent("workout.abandoned", {
       mode: isFree ? "free" : "plan",
       durationS: Math.max(0, Math.floor((Date.now() - startedAt) / 1000)),

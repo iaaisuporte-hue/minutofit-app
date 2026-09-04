@@ -21,6 +21,8 @@ import { SportProfileSection } from "../../features/sport/components/SportProfil
 import { AccountDataSection } from "../../features/account/AccountDataSection";
 import { ProfileNavList, type ProfileNavSection } from "../../features/profile/ProfileNavList";
 import { Users, BookOpen, Target, TrendingUp, Moon, Sun } from "lucide-react";
+import { isNativeApp } from "../../lib/platform";
+import { WorkoutReminderSetting } from "./components/WorkoutReminderSetting";
 import { useTheme } from "../../lib/useTheme";
 import { useProfessionalContext } from "../../features/professionalVoice";
 import { COLORS } from "../../styles/colors";
@@ -762,6 +764,16 @@ export default function UserProfilePage({ onLogout }: Props) {
           </div>
         </Card>
       </motion.div>
+
+      {/* Só no app empacotado: na web não há quem entregue a notificação com a
+          aba fechada, e um controle que não liga nada confunde mais que ajuda. */}
+      {isNativeApp() && (
+        <motion.div variants={sectionRevealVariants}>
+          <Card flat>
+            <WorkoutReminderSetting />
+          </Card>
+        </motion.div>
+      )}
 
       <motion.div variants={sectionRevealVariants}>
         <ProfileNavList sections={navSections} />

@@ -73,8 +73,14 @@ function exercicioAtual(exercises: DraftExercise[], idx: number): string | null 
   return exercises[idx]?.name?.trim() || null;
 }
 
-/** Instante da série concluída mais recente, ou 0 se nenhuma. */
-function ultimaAtividade(exercises: DraftExercise[]): number {
+/**
+ * Instante da série concluída mais recente, ou 0 se nenhuma.
+ *
+ * Exportado porque a tela de sessão precisa da MESMA definição ao retomar um
+ * treino: o lembrete de treino não finalizado parte da última atividade real,
+ * e derivá-la de novo lá abriria espaço para as duas contas divergirem.
+ */
+export function ultimaAtividade(exercises: DraftExercise[]): number {
   let max = 0;
   for (const ex of exercises) {
     for (const s of ex.sets ?? []) {

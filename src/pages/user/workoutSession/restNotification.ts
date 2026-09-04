@@ -34,41 +34,14 @@
 
 import { LocalNotifications } from "@capacitor/local-notifications";
 import { isNativeApp } from "../../../lib/platform";
+import { garantirPermissaoNotificacao } from "./notificationPermission";
 
 /** Id fixo: existe no máximo um descanso por vez, então reagendar substitui. */
 const ID_DESCANSO = 90_001;
 
-let permissaoConcedida: boolean | null = null;
-
-/**
- * Pede permissão de notificação — só quando há um descanso para avisar.
- *
- * Nunca no boot do app: a mesma regra contextual que a P0 aplicou à câmera
- * (§13 daquela SPEC) vale aqui. Quem nunca inicia um treino nunca é
- * interrompido por um prompt de notificação.
- */
-async function garantirPermissao(): Promise<boolean> {
-  if (permissaoConcedida !== null) return permissaoConcedida;
-  try {
-    const atual = await LocalNotifications.checkPermissions();
-    if (atual.display === "granted") {
-      permissaoConcedida = true;
-      return true;
-    }
-    // `denied` não vira novo pedido: o sistema não mostraria o diálogo de novo,
-    // e insistir a cada série seria ruído.
-    if (atual.display === "denied") {
-      permissaoConcedida = false;
-      return false;
-    }
-    const pedido = await LocalNotifications.requestPermissions();
-    permissaoConcedida = pedido.display === "granted";
-    return permissaoConcedida;
-  } catch {
-    permissaoConcedida = false;
-    return false;
-  }
-}
+// A permissão vive em `notificationPermission.ts`: o lembrete de treino não
+// finalizado usa a mesma, e dois caches separados pediriam duas vezes. A
+// política é a de sempre — nunca no boot, só quando há algo a avisar (§13 da P0).
 
 /**
  * Agenda o aviso para `endsAt` (instante absoluto em ms).
@@ -83,7 +56,7 @@ export async function agendarAvisoDescanso(endsAt: number): Promise<void> {
   if (endsAt - Date.now() < 1500) return;
 
   try {
-    if (!(await garantirPermissao())) return;
+    if (!(await garantirPermissaoNotificacao())) return;
     await LocalNotifications.schedule({
       notifications: [
         {
@@ -113,6 +86,4 @@ export async function cancelarAvisoDescanso(): Promise<void> {
 }
 
 /** Exportado só para teste: zera o cache de permissão entre casos. */
-export function __resetPermissaoCache(): void {
-  permissaoConcedida = null;
-}
+export { __resetPermissaoCache } from "./notificationPermission";

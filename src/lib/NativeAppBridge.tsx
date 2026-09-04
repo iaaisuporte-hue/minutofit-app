@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { App as CapApp } from "@capacitor/app";
 import { isNativeApp } from "./platform";
 import { traduzirDeepLink } from "./deepLinks";
+import { escutarToqueDeLembrete } from "../pages/user/workoutSession/pendingWorkoutReminder";
+import { postWorkoutEvent } from "../pages/user/workoutSession/workoutEvents";
 import { fecharTopo } from "./overlayStack";
 import { postActivityEvent } from "../features/tracker/activityEvents";
 
@@ -113,6 +115,22 @@ export function NativeAppBridge() {
     }).then((handle) => {
       removers.push(() => void handle.remove());
     });
+
+    /**
+     * Toque no lembrete de treino não finalizado.
+     *
+     * `appUrlOpen` NÃO cobre este caso: a notificação local não abre uma URL,
+     * ela entrega um evento do plugin. Sem este ouvinte o toque só traz o app
+     * para a frente, na última tela aberta — que, horas depois e com o processo
+     * morto, é a Hoje, devolvendo justamente o problema que o lembrete existe
+     * para resolver. O destino passa pela mesma allow-list de qualquer link
+     * externo.
+     */
+    void escutarToqueDeLembrete((link) => {
+      const destino = traduzirDeepLink(link);
+      postWorkoutEvent("workout.reminder_opened");
+      navigate(destino.rota);
+    }).then((remove) => removers.push(remove));
 
     return () => removers.forEach((remove) => remove());
   }, [navigate]);
