@@ -12,16 +12,33 @@ export type StudentNarrative = {
   headline: string;
 };
 
-function daysSinceISO(iso: string | null): number {
-  if (!iso) return 999;
+// `null` = sem essa data (nunca treinou / nunca fez check-in). Nunca usar um
+// número-sentinela aqui: virou texto ("Sumiu há 999 dias") quando propagado
+// sem querer, e "sem dado" não é o mesmo estado que "sumiu há muito tempo" —
+// o backend já resolve essa distinção via `riskScore`/`engagementStatus`
+// (carência de onboarding), que este arquivo precisa respeitar, não pisar.
+function daysSinceISO(iso: string | null): number | null {
+  if (!iso) return null;
   const t = new Date(iso).getTime();
-  if (Number.isNaN(t)) return 999;
+  if (Number.isNaN(t)) return null;
   return Math.floor((Date.now() - t) / (1000 * 60 * 60 * 24));
 }
 
 export function buildStudentNarrative(student: PersonalDashboardStudent): StudentNarrative {
   const daysSinceWorkout = daysSinceISO(student.lastWorkoutISO);
   const daysSinceCheckin = daysSinceISO(student.lastCheckinISO);
+
+  // Carência de onboarding (ver doc de `riskScore` no tipo canônico): aluno
+  // recém-vinculado, sem sinal nenhum ainda. Não é "no ritmo" (não há ritmo
+  // pra medir) nem risco — é um terceiro estado, neutro.
+  if (student.riskScore === null && student.workouts7d === 0) {
+    return {
+      studentId: student.id,
+      studentName: student.name,
+      tone: "neutral",
+      headline: "Aguardando o primeiro treino ou check-in.",
+    };
+  }
 
   if (
     student.metabolismScore !== null &&
@@ -51,16 +68,19 @@ export function buildStudentNarrative(student: PersonalDashboardStudent): Studen
     };
   }
 
-  if (student.engagementStatus === "at_risk" || daysSinceCheckin >= 10) {
+  if (student.engagementStatus === "at_risk" || (daysSinceCheckin !== null && daysSinceCheckin >= 10)) {
+    const gapDays = Math.min(daysSinceWorkout ?? Infinity, daysSinceCheckin ?? Infinity);
     return {
       studentId: student.id,
       studentName: student.name,
       tone: "risk",
-      headline: `Sumiu há ${Math.min(daysSinceWorkout, daysSinceCheckin)} dias — janela curta para reengajar.`,
+      headline: Number.isFinite(gapDays)
+        ? `Sumiu há ${gapDays} dias — janela curta para reengajar.`
+        : "Ainda não treinou nem fez check-in — vale um primeiro contato.",
     };
   }
 
-  if (student.engagementStatus === "fading" || daysSinceWorkout >= 5) {
+  if (student.engagementStatus === "fading" || (daysSinceWorkout !== null && daysSinceWorkout >= 5)) {
     return {
       studentId: student.id,
       studentName: student.name,

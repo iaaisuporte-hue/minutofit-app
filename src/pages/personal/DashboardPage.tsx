@@ -3,7 +3,6 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   fetchPersonalDashboard,
   type PersonalDashboardAlert,
-  type PersonalDashboardEngagementStatus,
   type PersonalDashboardResponse,
   type PersonalDashboardStudent,
   type RecognitionMilestone,
@@ -91,7 +90,13 @@ function Card({
   );
 }
 
-function statusLabel(status: PersonalDashboardEngagementStatus) {
+// `riskScore === null` é a carência de onboarding (ver doc no tipo canônico
+// `PersonalDashboardStudent`) — aluno recém-vinculado sem sinal ainda. Sem
+// este caso, quem nunca treinou caía no branch "on_track" e ganhava o selo
+// mais positivo do sistema ("No ritmo") lado a lado com "Sumiu há 999 dias".
+function statusLabel(student: PersonalDashboardStudent) {
+  if (student.riskScore === null && student.workouts7d === 0) return "Aguardando 1º treino";
+  const status = student.engagementStatus;
   if (status === "evolving") return "Evoluindo";
   if (status === "on_track") return "No ritmo";
   if (status === "attention") return "Atenção";
@@ -666,7 +671,7 @@ export default function DashboardPage() {
                         >
                           {item.studentName}
                         </button>
-                        <Badge tone={narrativeTone(item.tone)}>{statusLabel(student.engagementStatus)}</Badge>
+                        <Badge tone={narrativeTone(item.tone)}>{statusLabel(student)}</Badge>
                       </div>
                       <button
                         type="button"
