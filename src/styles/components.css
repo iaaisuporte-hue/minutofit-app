@@ -852,10 +852,24 @@ html[data-color-mode="daltonic"] .navLinkActive {
   .mobileBottomNav--compact .mobileBottomNav__item {
     padding-left: 2px;
     padding-right: 2px;
+    /* --color-text-subtle (base, herdado de .mobileBottomNav__item) mede
+       2.54:1 nesta barra — abaixo do mínimo (QA 04/set/2026).
+       --color-text-muted passa em 4.83:1. Escopado só no personal
+       (--compact): o nav do aluno usa a mesma classe base e fica de fora
+       desta troca por decisão explícita, pra não misturar token global
+       nesta rodada. */
+    color: var(--color-text-muted);
+  }
+
+  .mobileBottomNav--compact .mobileBottomNav__item.is-active {
+    /* --color-primary (oliva vibrante) como cor de texto mede 3.27:1 aqui —
+       mesma classe de bug do achado #10 (oliva-como-texto), mesmo fix:
+       --action-primary, 5.27:1. */
+    color: var(--action-primary);
   }
 
   .mobileBottomNav--compact .mobileBottomNav__label {
-    font-size: 9px;
+    font-size: 11px;
     letter-spacing: 0;
   }
 

@@ -214,19 +214,21 @@ export default function StudentProfileModal({
       </div>
 
       {!error ? (
-        <div className="pp-tabs" role="tablist">
-          {COCKPIT_TABS.map((t) => (
-            <button
-              key={t.id}
-              type="button"
-              role="tab"
-              className="pp-tab"
-              aria-selected={tab === t.id}
-              onClick={() => setTab(t.id)}
-            >
-              {t.label}
-            </button>
-          ))}
+        <div className="pp-tabs-wrap">
+          <div className="pp-tabs" role="tablist">
+            {COCKPIT_TABS.map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                role="tab"
+                className="pp-tab"
+                aria-selected={tab === t.id}
+                onClick={() => setTab(t.id)}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
         </div>
       ) : null}
 

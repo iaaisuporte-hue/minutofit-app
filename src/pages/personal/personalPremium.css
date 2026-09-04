@@ -780,7 +780,10 @@ html:not([data-theme="dark"]) .personal-app-canvas {
   border: 1px solid transparent;
   border-radius: 9px;
   background: transparent;
-  color: var(--color-text-secondary);
+  /* --color-text-secondary (=--color-text-muted, #6B7280) mede 4.31:1 sobre
+     o fundo desta barra (--color-surface-subtle) — abaixo do mínimo 4.5:1
+     pra 13px (QA 04/set/2026). --color-text-tertiary passa em 6.32:1. */
+  color: var(--color-text-tertiary);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -1117,6 +1120,27 @@ html:not([data-theme="dark"]) .personal-app-canvas {
     scroll-snap-align: start;
   }
 
+  /* Sinal de que há mais abas fora da tela (QA 04/set/2026): a barra rola,
+     mas nada indicava isso — "Performance" e "IA" ficavam cortados sem
+     sombra, seta ou qualquer pista, em 320-390px. O wrapper .pp-tabs-wrap é
+     quem NÃO rola (o ::after fica fixo nele), enquanto .pp-tabs rola por
+     dentro — se o gradiente ficasse no próprio .pp-tabs ele rolaria junto
+     com o conteúdo e sumiria da borda. */
+  .pp-tabs-wrap {
+    position: relative;
+  }
+  .pp-tabs-wrap::after {
+    content: "";
+    position: absolute;
+    top: 1px;
+    right: 1px;
+    bottom: 1px;
+    width: 28px;
+    background: linear-gradient(to right, transparent, var(--color-surface-subtle));
+    border-radius: 0 11px 11px 0;
+    pointer-events: none;
+  }
+
   /* Hero/panel padding reduzido. */
   .pp-hero {
     padding: 14px;
@@ -1334,7 +1358,11 @@ html:not([data-theme="dark"]) .personal-app-canvas {
   font-weight: 600;
   white-space: nowrap;
   background: var(--color-success-soft);
-  color: var(--color-success, #5E7412);
+  /* --color-success (#7B9919, oliva vibrante) é token semântico protegido —
+     não se altera (CLAUDE.md). Mas como COR DE TEXTO aqui ele media 3.02:1,
+     abaixo do mínimo (QA 04/set/2026). --action-primary é o tom deep já
+     usado pra texto/CTA sobre oliva no resto do design system — 5.27:1. */
+  color: var(--action-primary);
 }
 
 /* ── Insights Strip ────────────────────────────────────── */
@@ -1375,7 +1403,12 @@ html:not([data-theme="dark"]) .personal-app-canvas {
   background: transparent;
   padding: 0;
   font-size: 11px;
-  color: var(--color-primary);
+  /* --color-primary (oliva vibrante) como COR DE TEXTO sobre superfície
+     clara mede 2.85-3.27:1 — abaixo do mínimo 4.5:1 (QA 04/set/2026). O
+     design system já proíbe oliva em CTA de texto branco pelo mesmo motivo
+     (usa --action-primary); esta é a mesma regra aplicada ao caso espelhado
+     (oliva como o próprio texto). --action-primary mede 5.27:1. */
+  color: var(--action-primary);
   font-weight: 600;
   cursor: pointer;
   text-decoration: none;

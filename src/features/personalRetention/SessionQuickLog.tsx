@@ -66,7 +66,7 @@ export function SessionQuickLog({ studentId, studentName, onSaved }: Props) {
           alignItems: "center",
           gap: 6,
           fontSize: 12,
-          color: savedStatus === "absent" ? "var(--color-danger, #dc2626)" : "var(--color-success, #5E7412)",
+          color: savedStatus === "absent" ? "var(--color-danger, #dc2626)" : "var(--action-primary, #5E7412)",
           fontWeight: 600,
         }}
       >
@@ -168,7 +168,11 @@ export function SessionQuickLog({ studentId, studentName, onSaved }: Props) {
           borderRadius: 999,
           border: "1px solid rgba(123,153,25,0.4)",
           background: "rgba(123,153,25,0.06)",
-          color: "var(--color-success, #5E7412)",
+          // --color-success é o oliva vibrante (#7B9919) — como texto sobre
+          // este fundo claro mede só ~3:1 (QA 04/set/2026). --action-primary
+          // é o tom deep que o design system já usa pra texto/CTA sobre
+          // oliva; passa em 5.27:1.
+          color: "var(--action-primary, #5E7412)",
           cursor: "pointer",
           fontWeight: 600,
         }}
