@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { dayKey } from '../../lib/appDay';
 
 export type DailyFeeling = 'tired' | 'normal' | 'energized';
@@ -55,8 +55,70 @@ function writeToStorage(condition: DailyCondition): void {
   }
 }
 
-export function useDailyCondition() {
+/**
+ * Resposta do servidor → `DailyCondition`, com validação.
+ *
+ * Vem de `gamification.todayCondition` (JSON não tipado): se o formato mudar ou
+ * vier lixo, devolvemos `null` e o app segue com o estado local em vez de
+ * quebrar a Home.
+ */
+export function parseRemoteCondition(raw: unknown): DailyCondition | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const r = raw as Record<string, unknown>;
+  const feeling = r.feeling;
+  if (feeling !== 'tired' && feeling !== 'normal' && feeling !== 'energized') return null;
+  if (typeof r.date !== 'string') return null;
+  const d = (r.details ?? null) as Record<string, unknown> | null;
+  return {
+    date: r.date,
+    feeling,
+    details: d
+      ? {
+          sleptWell: d.sleptWell === true,
+          inPain: d.inPain === true,
+          stressed: d.stressed === true,
+          ...(typeof d.hydrationOk === 'boolean' ? { hydrationOk: d.hydrationOk } : {}),
+          ...(d.nutritionLevel === 'poor' || d.nutritionLevel === 'ok' || d.nutritionLevel === 'good'
+            ? { nutritionLevel: d.nutritionLevel }
+            : {}),
+          ...(d.mentalLoadLevel === 'low' || d.mentalLoadLevel === 'medium' || d.mentalLoadLevel === 'high'
+            ? { mentalLoadLevel: d.mentalLoadLevel }
+            : {}),
+        }
+      : null,
+  };
+}
+
+/**
+ * Condição do dia do aluno.
+ *
+ * `remote` é a resposta já gravada no servidor (`gamification.todayCondition`).
+ * Sem ela o estado era SÓ localStorage, e o check-in reaparecia no mesmo dia em
+ * qualquer contexto sem aquele storage: outro aparelho, aba anônima, dados do
+ * app limpos, reinstalação — e, no app empacotado, sempre que o WebView
+ * descartava o storage. O servidor é a fonte da verdade; o storage vira cache
+ * (mantém a resposta à vista offline e antes do fetch chegar).
+ *
+ * Só o servidor DIZENDO que respondeu sobrescreve o local. O contrário não:
+ * quem responde offline tem a resposta preservada até a escrita subir, em vez
+ * de ver a pergunta voltar porque o servidor ainda não sabe.
+ */
+export function useDailyCondition(remote?: unknown) {
   const [condition, setConditionState] = useState<DailyCondition | null>(() => readFromStorage());
+
+  // Serializado de propósito: o valor cru vem de um objeto de estado e trocaria
+  // de identidade a cada render se fosse comparado por referência.
+  const remoteKey = remote == null ? null : JSON.stringify(remote);
+  useEffect(() => {
+    if (!remoteKey) return;
+    const vinda = parseRemoteCondition(JSON.parse(remoteKey));
+    if (!vinda || vinda.date !== todayISO()) return;
+    setConditionState((atual) => {
+      if (atual && atual.date === vinda.date && atual.feeling === vinda.feeling) return atual;
+      writeToStorage(vinda);
+      return vinda;
+    });
+  }, [remoteKey]);
 
   const setCondition = useCallback((feeling: DailyFeeling, details?: DailyConditionDetails) => {
     const next: DailyCondition = {

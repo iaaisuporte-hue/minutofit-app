@@ -144,6 +144,7 @@ export function WelcomeCard({ firstName, state, workoutsThisWeek }: Props) {
                 cursor: "pointer",
                 whiteSpace: "nowrap",
               }}
+              className="hit-target-44"
             >
               Configurar agora
             </button>

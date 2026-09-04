@@ -518,9 +518,15 @@
   position: fixed;
   left: 0;
   right: 0;
-  bottom: 0;
+  /* Sobe junto com o teclado. Sem isto a barra ficava ancorada no rodapé da
+     viewport de LAYOUT — que não encolhe quando o teclado abre — e tanto o
+     campo de carga/reps quanto o "Concluir série" ficavam ATRÁS do teclado,
+     fora de alcance por rolagem (elemento fixo não rola). `--kb-inset` é a
+     altura medida do teclado; ver `lib/KeyboardAwareFocus.tsx`. */
+  bottom: var(--kb-inset, 0px);
   z-index: 1200; /* abaixo da barra de descanso (1210), que a substitui */
   padding: 10px 14px calc(10px + env(safe-area-inset-bottom));
+  transition: bottom 120ms ease-out;
   background: var(--color-surface);
   border-top: 1px solid var(--color-border);
   box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.12);
@@ -528,6 +534,13 @@
   margin: 0 auto;
   display: grid;
   gap: 8px;
+}
+
+/* Com o teclado aberto a barra não encosta mais na borda do aparelho: o respiro
+   da safe area só roubaria altura útil da tela já espremida. */
+:root.kb-open .ws-action-bar {
+  padding-bottom: 10px;
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.18);
 }
 
 .ws-ab-head {

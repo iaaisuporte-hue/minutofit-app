@@ -390,6 +390,7 @@ export default function SuggestedTrainingPage() {
                               fontSize: 12,
                               cursor: "pointer",
                             }}
+                            className="hit-target-44"
                           >
                             Ver demonstração
                           </button>

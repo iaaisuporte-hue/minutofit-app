@@ -239,7 +239,11 @@ describe("D8 — motivo dor/desconforto reduz confiança, nunca elimina opções
     });
     renderSheet();
 
-    await waitFor(() => expect(screen.getAllByRole("button").length).toBeGreaterThan(1));
+    // Espera o CONTEÚDO assíncrono, não "mais de um botão": a folha já nasce com
+    // botões próprios (fechar/buscar), então a contagem podia ser satisfeita
+    // antes de as sugestões chegarem — e as asserções abaixo rodavam num DOM
+    // ainda vazio. Flake real, visto na suíte completa.
+    expect(await screen.findByText("Outras opções")).toBeTruthy();
     // Nenhum rótulo de confiança no DOM.
     expect(screen.queryByText("Recomendado")).toBeNull();
     expect(screen.queryByText("Boa alternativa")).toBeNull();

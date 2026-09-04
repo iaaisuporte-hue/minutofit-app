@@ -37,6 +37,23 @@ function ehCampo(el: EventTarget | null): el is HTMLElement {
  * certo: em telas como o Modo Treino quem rola é um container interno, não o
  * documento.
  */
+/**
+ * O campo está dentro de um container `position: fixed` (barra ancorada no
+ * rodapé)? Nesse caso rolar não adianta NADA: o elemento é posicionado contra a
+ * viewport de layout, que não encolhe quando o teclado abre, então ele fica
+ * atrás do teclado por mais que a página role. Quem resolve esse caso é a
+ * variável `--kb-inset` (abaixo), que levanta a barra. Aqui só saímos do
+ * caminho — insistir na rolagem empurraria a página sem motivo.
+ */
+function dentroDeBarraFixa(el: HTMLElement): boolean {
+  let p: HTMLElement | null = el;
+  while (p && p !== document.body) {
+    if (getComputedStyle(p).position === "fixed") return true;
+    p = p.parentElement;
+  }
+  return false;
+}
+
 function scrollerDe(el: HTMLElement): HTMLElement {
   let p: HTMLElement | null = el.parentElement;
   while (p && p !== document.body) {
@@ -50,7 +67,54 @@ function scrollerDe(el: HTMLElement): HTMLElement {
     : document.documentElement;
 }
 
+/**
+ * Publica a altura REAL do teclado em `--kb-inset` (e a classe `kb-open` na
+ * raiz), para que barras ancoradas no rodapé subam junto.
+ *
+ * Por que não bastava um `padding-bottom`: a barra de ação do Modo Treino é
+ * `position: fixed; bottom: 0`, ancorada na viewport de LAYOUT — e a viewport
+ * de layout não encolhe quando o teclado abre (no Android 15+ o teclado chega
+ * como IME inset, não como resize). A barra, com o campo de carga/reps E o
+ * botão "Concluir série" dentro dela, ficava atrás do teclado, e nenhuma
+ * rolagem alcançava: não há para onde rolar um elemento fixo. Um valor fixo de
+ * padding também não serviria — teclado varia por aparelho, idioma, sugestões
+ * e emoji.
+ *
+ * `offsetTop` entra na conta por causa do iOS, onde o teclado desloca a
+ * viewport visual em vez de encolhê-la.
+ */
+function useInsetDeTeclado() {
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const raiz = document.documentElement;
+
+    function medir() {
+      const alturaTeclado = Math.max(
+        0,
+        Math.round(window.innerHeight - (vv!.height + vv!.offsetTop)),
+      );
+      // Abaixo do limiar é barra de endereço/UI do navegador, não teclado.
+      const inset = alturaTeclado > MIN_TECLADO ? alturaTeclado : 0;
+      raiz.style.setProperty("--kb-inset", `${inset}px`);
+      raiz.classList.toggle("kb-open", inset > 0);
+    }
+
+    medir();
+    vv.addEventListener("resize", medir);
+    vv.addEventListener("scroll", medir);
+    return () => {
+      vv.removeEventListener("resize", medir);
+      vv.removeEventListener("scroll", medir);
+      raiz.style.removeProperty("--kb-inset");
+      raiz.classList.remove("kb-open");
+    };
+  }, []);
+}
+
 export function KeyboardAwareFocus() {
+  useInsetDeTeclado();
+
   useEffect(() => {
     const vv = window.visualViewport;
     let alvo: HTMLElement | null = null;
@@ -105,6 +169,7 @@ export function KeyboardAwareFocus() {
 
     function onFocusIn(e: FocusEvent) {
       if (!ehCampo(e.target)) return;
+      if (dentroDeBarraFixa(e.target)) { alvo = null; return; }
       alvo = e.target;
       // Dois tempos de propósito: o teclado abre DEPOIS do focus, então a
       // primeira medição ainda vê a tela inteira. O segundo ajuste é o que

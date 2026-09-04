@@ -163,8 +163,14 @@ export function ShareWorkoutModal({ focus, dayName, stats, exercises, eyebrow, p
   async function onDownload() {
     if (!image) return;
     const r = await salvarArte(image);
-    if (r.ok) mostrar("ok", "Imagem salva com sucesso.");
-    else if (!r.cancelado) mostrar("erro", r.motivo);
+    if (r.ok) {
+      // No app empacotado quem grava é o seletor do sistema: afirmar "salva com
+      // sucesso" aqui seria mentira — a pessoa pode ter fechado a folha. O
+      // próprio sistema já dá o retorno da ação que ela escolheu.
+      if (!r.escolhaDoSistema) mostrar("ok", "Imagem salva com sucesso.");
+    } else if (!r.cancelado) {
+      mostrar("erro", r.motivo);
+    }
   }
 
   async function onCopy() {
@@ -390,7 +396,7 @@ export function ShareWorkoutModal({ focus, dayName, stats, exercises, eyebrow, p
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
             </svg>
-            Salvar imagem
+            {nativeShare ? "Salvar no aparelho" : "Salvar imagem"}
           </button>
           <button
             type="button"

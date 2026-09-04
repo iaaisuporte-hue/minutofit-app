@@ -303,6 +303,7 @@ export function MinhaEquipeSection({
               <button
                 type="button"
                 onClick={() => setShowAddSheet(slot.role)}
+                className="hit-target-44"
                 aria-label={`Escolher ${slot.label.toLowerCase()} para acompanhamento`}
                 style={{
                   display: 'flex',

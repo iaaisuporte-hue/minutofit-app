@@ -63,6 +63,7 @@ export function AdaptationBanner({
         {changes.length > 0 && (
           <button
             onClick={handleToggle}
+            className="hit-target-44"
             style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: 'var(--color-warn, #b35a00)', padding: 0, fontWeight: 500 }}
           >
             {expanded ? 'Ocultar' : `Ver ${changes.length} ajuste${changes.length > 1 ? 's' : ''}`}

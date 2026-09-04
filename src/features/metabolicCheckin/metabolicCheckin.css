@@ -233,6 +233,24 @@
   color: var(--color-text);
 }
 
+/* Área de toque: o link é propositalmente pequeno na tipografia, mas o dedo
+   precisa de 44px. `::before` amplia só o alvo — sem mexer no layout. */
+.metabolic-summary-link {
+  position: relative;
+}
+
+.metabolic-summary-link::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100%;
+  min-width: 44px;
+  height: 44px;
+  transform: translate(-50%, -50%);
+  background: transparent;
+}
+
 .metabolic-summary-link {
   justify-self: start;
   margin-top: var(--space-1);

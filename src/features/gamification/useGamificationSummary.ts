@@ -8,6 +8,12 @@ export interface GamificationSummary {
   streak: number;
   todayCheckedIn: boolean;
   alreadyCheckedIn: boolean;
+  /**
+   * Condição de bem-estar já respondida HOJE (dia do aluno), ou `null`.
+   * Diferente de `todayCheckedIn`, que é fonte-agnóstico e fica `true` só por
+   * ter treinado. Cru de propósito: quem valida é `parseRemoteCondition`.
+   */
+  todayCondition: unknown;
   heatmap: string[];
   lastWorkout: {
     workoutId: string;
@@ -29,6 +35,7 @@ const FALLBACK: GamificationSummary = {
   streak: 0,
   todayCheckedIn: false,
   alreadyCheckedIn: false,
+  todayCondition: null,
   heatmap: [],
   lastWorkout: null,
 };
@@ -45,7 +52,15 @@ export function useGamificationSummary(): UseGamificationSummaryResult {
       if (signal.aborted) return;
       const payload = await parseJson(response);
       if (signal.aborted) return;
-      setData(response.ok ? (payload as GamificationSummary) : FALLBACK);
+      // A API responde no envelope `{ success, data }` — `parseJson` não
+      // desembrulha. Sem este `.data`, TODO o resumo chegava como `undefined`
+      // e caía nos `?? 0` / `?? false` dos consumidores: streak sempre 0, XP
+      // sempre 0, `todayCheckedIn` sempre falso. Silencioso porque o tipo
+      // afirmava a forma certa e um cast escondia a diferença.
+      const corpo = (payload && typeof payload === 'object' && 'data' in payload
+        ? (payload as { data: unknown }).data
+        : payload) as GamificationSummary | null;
+      setData(response.ok && corpo ? corpo : FALLBACK);
     } catch {
       if (!signal.aborted) setData(FALLBACK);
     } finally {

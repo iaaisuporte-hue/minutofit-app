@@ -213,7 +213,8 @@ export default function TodayPage() {
     loading: metabolicCheckinsLoading,
     saveCheckin: saveMetabolicCheckin,
   } = useMetabolicCheckins();
-  const { condition: dailyCondition, setCondition: setDailyCondition, clearCondition: clearDailyCondition } = useDailyCondition();
+  const { condition: dailyCondition, setCondition: setDailyCondition, clearCondition: clearDailyCondition } =
+    useDailyCondition(gamification?.todayCondition);
   const hasWeeklyLoopInsights = useHasWeeklyLoopInsights(dailyCondition);
   const { conversation: incomingMessage, dismissLocally: dismissIncomingMessage } =
     useLatestUnreadFromProfessional({ enabled: canMessages });

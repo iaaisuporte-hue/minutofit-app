@@ -23,7 +23,12 @@
     </script>
     <link rel="icon" type="image/svg+xml" href="/corefit-icon.svg" />
     <link rel="manifest" href="/manifest.webmanifest" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <!-- `interactive-widget=resizes-content`: faz a viewport de layout encolher quando o
+         teclado abre (Chrome/Android 108+). Sem isso o teclado vira um "inset" invisível
+         para o CSS e qualquer barra `position: fixed; bottom: 0` fica atrás dele. É a
+         metade declarativa da correção; a outra metade (iOS e WebViews antigos) é a
+         variável `--kb-inset`, publicada por `lib/KeyboardAwareFocus.tsx`. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
     <meta name="theme-color" content="#7B9919" />
     <meta name="description" content="S2Core — metabolismo, constância e acompanhamento em um só lugar." />
     <!-- PWA — iOS standalone (Adicionar à Tela de Início) -->

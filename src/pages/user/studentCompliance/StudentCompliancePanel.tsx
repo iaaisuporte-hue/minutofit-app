@@ -330,6 +330,27 @@ export default function StudentCompliancePanel() {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [hasSignatureInk, setHasSignatureInk] = useState(false);
+  // Depois de assinado, o questionário inteiro (declarações + onboarding +
+  // PAR-Q + quadro de assinatura) continuava renderizado no perfil, desativado
+  // mas ocupando a tela toda — quem já cumpriu a obrigação rolava por centenas
+  // de pixels de formulário morto para chegar no resto do perfil. Agora vira um
+  // resumo compacto, e as respostas ficam a um toque de distância.
+  const [verRespostas, setVerRespostas] = useState(false);
+
+  // "Assinado em … · válido até …". Datas vindas do servidor podem faltar em
+  // vínculos antigos — sem elas o resumo continua fazendo sentido.
+  const resumoValidade = (() => {
+    const fmt = (iso: string | null) => {
+      if (!iso) return null;
+      const d = new Date(iso);
+      return Number.isNaN(d.getTime()) ? null : d.toLocaleDateString("pt-BR");
+    };
+    const assinado = fmt(clearance.signedAt);
+    const expira = fmt(clearance.expiresAt);
+    if (assinado && expira) return `Assinado em ${assinado} · válido até ${expira}`;
+    if (assinado) return `Assinado em ${assinado}`;
+    return "Declarações de saúde e PAR-Q assinados";
+  })();
   // Modo de assinatura: traço manual no quadro ou aceite eletrônico digitado.
   const [sigMode, setSigMode] = useState<"draw" | "type">("draw");
   const [typedName, setTypedName] = useState("");
@@ -570,7 +591,9 @@ export default function StudentCompliancePanel() {
       <div>
         <div style={{ fontWeight: 700, fontSize: 17 }}>Saúde, treino e PAR-Q</div>
         <div style={{ color: neon.muted, fontSize: 13, marginTop: 6, lineHeight: 1.45 }}>
-          {isFreePlan ? (
+          {locked ? (
+            <>Suas respostas ficam guardadas e podem ser consultadas a qualquer momento.</>
+          ) : isFreePlan ? (
             <>
               Obrigatório para uso do app: declarações de saúde e questionário PAR-Q com assinatura digital. Texto orientativo —
               consulte profissional de saúde e assessoria jurídica.
@@ -585,16 +608,44 @@ export default function StudentCompliancePanel() {
       </div>
 
       {locked ? (
-        <div style={{ color: neon.muted, fontSize: 14 }}>
-          Seu cadastro de compliance está completo.
+        <div style={{ display: "grid", gap: 10 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            <span
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 6,
+                padding: "4px 10px", borderRadius: 999,
+                background: "var(--color-success-soft, rgba(34,197,94,0.12))",
+                color: "var(--color-success-text)",
+                fontSize: 12, fontWeight: 700,
+              }}
+            >
+              ✓ Concluído
+            </span>
+            <span style={{ color: neon.muted, fontSize: 13 }}>{resumoValidade}</span>
+          </div>
           {user.parqAnyYes ? (
-            <div style={{ marginTop: 10, color: neon.danger, fontWeight: 600 }}>
+            <div style={{ color: neon.danger, fontWeight: 600, fontSize: 13, lineHeight: 1.45 }}>
               Você respondeu “sim” a pelo menos uma pergunta do PAR-Q. Recomenda-se liberação médica antes de intensificar o treino.
             </div>
           ) : null}
+          <button
+            type="button"
+            onClick={() => setVerRespostas((v) => !v)}
+            aria-expanded={verRespostas}
+            style={{
+              justifySelf: "start", minHeight: 44, padding: "10px 14px",
+              borderRadius: 12, border: `1px solid ${neon.border}`,
+              background: "transparent", color: neon.text,
+              fontSize: 14, fontWeight: 600, cursor: "pointer",
+              touchAction: "manipulation",
+            }}
+          >
+            {verRespostas ? "Ocultar respostas" : "Ver respostas"}
+          </button>
         </div>
       ) : null}
 
+      {!locked || verRespostas ? (
       <form onSubmit={(e) => void handleSubmit(e)} style={{ display: "grid", gap: 18 }}>
         <section style={{ display: "grid", gap: 10 }}>
           <div style={{ fontWeight: 600 }}>Declarações de saúde</div>
@@ -950,6 +1001,7 @@ export default function StudentCompliancePanel() {
           </button>
         ) : null}
       </form>
+      ) : null}
     </div>
   );
 }

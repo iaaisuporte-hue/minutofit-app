@@ -2398,9 +2398,15 @@ html[data-academy-branding="applied"] .admin-pill-positive {
   transition: border-color 150ms ease, transform 150ms ease;
 }
 
-/* ≤720px o app usa bottom nav: o FAB brigava com ela e com o conteúdo.
-   A troca de tema mora em Perfil › Aparência. */
-@media (max-width: 720px) {
+/* Onde existe bottom nav o FAB brigava com ela e com o conteúdo. A troca de
+   tema mora em Perfil › Aparência (aluno, personal e nutri).
+
+   A altura entrou na regra junto com a largura: a condição era só
+   `max-width: 720px`, e um celular DEITADO tem ~844px de largura — o mesmo
+   aparelho mostrava o FAB em paisagem e o escondia em retrato, então o
+   controle de tema aparecia e desaparecia ao girar a tela. Girar não muda o
+   aparelho; a regra não pode mudar de resposta por causa disso. */
+@media (max-width: 720px), (max-height: 560px) {
   .theme-toggle-fab {
     display: none;
   }

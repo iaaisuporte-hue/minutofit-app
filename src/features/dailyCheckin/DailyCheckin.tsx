@@ -200,6 +200,7 @@ export const DailyCheckin = forwardRef<DailyCheckinHandle, Props>(function Daily
           <button
             type="button"
             onClick={handleChange}
+            className="hit-target-44"
             style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600, color: 'var(--color-text-muted)', padding: '4px 8px', borderRadius: 8 }}
           >
             Alterar

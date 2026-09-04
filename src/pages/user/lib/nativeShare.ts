@@ -37,7 +37,8 @@ function nomeArquivo(ext = "jpg"): string {
 
 /** Resultado de uma ação: a UI transforma em toast de sucesso/erro/cancelado. */
 export type AcaoResultado =
-  | { ok: true }
+  /** `escolhaDoSistema`: quem conclui é o seletor nativo — não afirme sucesso. */
+  | { ok: true; escolhaDoSistema?: boolean }
   | { ok: false; cancelado: true }
   | { ok: false; cancelado?: false; motivo: string };
 
@@ -110,23 +111,42 @@ export async function compartilharArte(
 /**
  * Salva a arte no aparelho.
  *
- * Android: `Directory.Documents` grava em armazenamento compartilhado sem pedir
- * permissão a partir do Android 10 (escopo por app). Não usamos a galeria: isso
- * exigiria WRITE_EXTERNAL_STORAGE/MediaStore e uma permissão a mais, que a
- * SPEC §13 manda evitar quando não é indispensável. Quem quer a foto na
- * galeria usa "Compartilhar" → "Salvar imagem" do próprio sistema.
+ * Web: download direto, como sempre.
+ *
+ * Nativo: entrega o arquivo ao seletor do sistema ("Salvar imagem" / "Salvar em
+ * Fotos" / "Salvar em Arquivos"), que é quem sabe gravar na galeria.
+ *
+ * Por que não gravamos direto: a versão anterior escrevia em
+ * `Directory.Documents`, que o plugin resolve para
+ * `Environment.getExternalStoragePublicDirectory(DIRECTORY_DOCUMENTS)` via
+ * `java.io.File`. Do Android 10 em diante o armazenamento é escopado e esse
+ * caminho não é gravável pelo app — e, mesmo quando a escrita não falhava, o
+ * arquivo caía numa pasta que a galeria não indexa: nenhum app de fotos jamais
+ * o encontrava. Pior, a tela dizia "Imagem salva com sucesso" de qualquer jeito.
+ * Chegar à galeria de verdade exige MediaStore (Android) / PHPhotoLibrary
+ * (iOS), que nenhum plugin instalado neste projeto expõe. O share sheet é o
+ * mecanismo nativo disponível que REALMENTE grava — e é o mesmo nos dois
+ * sistemas, sem pedir permissão nova.
+ *
+ * `escolhaDoSistema` avisa a UI que quem confirma o resultado é o sistema, para
+ * ela não afirmar um sucesso que não tem como verificar.
  */
 export async function salvarArte(image: ComposedImage): Promise<AcaoResultado> {
   if (isNativeApp()) {
     try {
-      await Filesystem.writeFile({
+      const escrita = await Filesystem.writeFile({
         path: nomeArquivo(),
         data: base64Puro(image.dataUrl),
-        directory: Directory.Documents,
-        recursive: true,
+        directory: Directory.Cache,
       });
-      return { ok: true };
-    } catch {
+      await Share.share({
+        title: `${BRAND} — treino concluído`,
+        files: [escrita.uri],
+        dialogTitle: "Salvar imagem",
+      });
+      return { ok: true, escolhaDoSistema: true };
+    } catch (err) {
+      if (foiCancelado(err)) return { ok: false, cancelado: true };
       return { ok: false, motivo: "Não consegui salvar a imagem no aparelho." };
     }
   }

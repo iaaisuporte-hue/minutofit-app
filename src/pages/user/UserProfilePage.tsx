@@ -458,7 +458,9 @@ export default function UserProfilePage({ onLogout }: Props) {
 
   // Hub de navegação secundária (Perfil) — casa dos destinos fora do bottom nav.
   // Substitui o antigo menu "⋯". Evolução (estado metabólico) mora aqui (saiu do
-  // nav, que agora tem Tracker); o tema volta ao FAB (ThemeToggle), não aqui.
+  // nav, que agora tem Tracker). A troca de tema NÃO mora aqui: virou controle
+  // explícito (ver "Aparência" no corpo da página) porque, como item de lista,
+  // era indistinguível de um link de navegação e ninguém achava.
   const navSections: ProfileNavSection[] = [
     {
       title: "Minha rede",
@@ -472,17 +474,6 @@ export default function UserProfilePage({ onLogout }: Props) {
           ? [{ label: "Treino do dia", icon: <Target size={18} />, to: "/app/user/suggested-training" }]
           : []),
         { label: "Glossário", icon: <BookOpen size={18} />, to: "/app/user/glossario" },
-      ],
-    },
-    {
-      title: "Aplicativo",
-      items: [
-        {
-          label: "Aparência",
-          icon: isDark ? <Moon size={18} /> : <Sun size={18} />,
-          onClick: toggleTheme,
-          right: <span style={{ fontSize: "var(--text-xs)", color: COLORS.mutedSoft }}>{isDark ? "Escuro" : "Claro"}</span>,
-        },
       ],
     },
   ];
@@ -554,6 +545,7 @@ export default function UserProfilePage({ onLogout }: Props) {
               <Chip>{`${gamification?.streak ?? 0} dias de consistência`}</Chip>
               <Link
                 to="/app/user/equipe"
+                className="hit-target-44"
                 style={{ marginLeft: "auto", color: COLORS.primary, fontWeight: "var(--font-semibold)", textDecoration: "none", fontSize: "var(--text-sm)" }}
               >
                 Minha equipe →
@@ -572,6 +564,7 @@ export default function UserProfilePage({ onLogout }: Props) {
                   <div style={{ color: COLORS.mutedSoft, fontSize: "var(--text-xs)", fontWeight: "var(--font-bold)", letterSpacing: "0.07em", textTransform: "uppercase" }}>Como o S2Core te lê hoje</div>
                   <Link
                     to="/app/user/estado-metabolico"
+                    className="hit-target-44"
                     style={{ color: COLORS.primary, fontWeight: "var(--font-semibold)", textDecoration: "none", fontSize: "var(--text-sm)" }}
                   >
                     Ver evolução →
@@ -719,6 +712,54 @@ export default function UserProfilePage({ onLogout }: Props) {
       <motion.div variants={sectionRevealVariants}>
         <Card flat>
           <SportProfileSection />
+        </Card>
+      </motion.div>
+
+      {/* Aparência — controle explícito, não item de lista.
+          O único caminho real de troca de tema no app era o FAB flutuante, e ele
+          é ocultado onde existe bottom nav. Como a regra era por LARGURA
+          (≤720px), o mesmo aparelho mostrava o botão em paisagem (≈844px de
+          largura) e o escondia em retrato: o controle aparecia e sumia ao girar
+          a tela. Aqui ele é estável, rotulado e mostra o estado atual. */}
+      <motion.div variants={sectionRevealVariants}>
+        <Card flat>
+          <div style={{ display: "grid", gap: "var(--space-3)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              {isDark ? <Moon size={18} /> : <Sun size={18} />}
+              <div style={{ fontSize: "var(--text-base)", fontWeight: "var(--font-bold)", color: COLORS.text }}>Aparência</div>
+            </div>
+            <div
+              role="group"
+              aria-label="Tema do aplicativo"
+              style={{
+                display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6,
+                padding: 4, borderRadius: 14,
+                border: `1px solid ${COLORS.border}`, background: COLORS.panelDeep,
+              }}
+            >
+              {([["Claro", false], ["Escuro", true]] as const).map(([rotulo, escuro]) => {
+                const ativo = isDark === escuro;
+                return (
+                  <button
+                    key={rotulo}
+                    type="button"
+                    aria-pressed={ativo}
+                    onClick={() => { if (!ativo) toggleTheme(); }}
+                    style={{
+                      minHeight: 44, borderRadius: 11, cursor: "pointer",
+                      border: ativo ? `1px solid ${COLORS.border}` : "1px solid transparent",
+                      background: ativo ? "var(--color-surface)" : "transparent",
+                      color: ativo ? COLORS.text : COLORS.muted,
+                      fontSize: "var(--text-sm)", fontWeight: "var(--font-semibold)",
+                      touchAction: "manipulation",
+                    }}
+                  >
+                    {rotulo}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </Card>
       </motion.div>
 
