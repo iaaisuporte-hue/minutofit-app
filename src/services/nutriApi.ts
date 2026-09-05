@@ -3,6 +3,41 @@ import { authFetch } from './apiClient';
 import type { MetabolicEvolutionPayload } from '../features/metabolicCheckin';
 
 // ---------------------------------------------------------------------------
+// SPEC 035 / NUTRI-11 — tratamento de erro único para todo o módulo
+// ---------------------------------------------------------------------------
+//
+// Antes, 26 das 27 funções deste arquivo faziam `json.data ?? fallback` sem
+// checar `res.ok` — um 403 (consentimento revogado) ou um 500 real virava
+// silenciosamente "sem dado", e a tela renderizava o mesmo estado vazio de um
+// paciente que nunca teve plano. `readNutriJson` é o único ponto de leitura
+// de resposta: toda função passa por aqui, então nenhuma pode mais engolir
+// erro. `NutriApiError.consentRevoked` deixa a tela distinguir "revogado"
+// de "vazio de verdade" sem cada componente reimplementar a checagem.
+
+export class NutriApiError extends Error {
+  status: number;
+  code: string;
+  consentRevoked: boolean;
+
+  constructor(status: number, code: string) {
+    super(code);
+    this.name = 'NutriApiError';
+    this.status = status;
+    this.code = code;
+    this.consentRevoked = status === 403 && /consent/i.test(code);
+  }
+}
+
+async function readNutriJson(res: Response): Promise<any> {
+  const json = await parseJson(res);
+  if (!res.ok || json?.success === false) {
+    const code = typeof json?.error === 'string' ? json.error : `http_${res.status}`;
+    throw new NutriApiError(res.status, code);
+  }
+  return json;
+}
+
+// ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
@@ -119,21 +154,32 @@ export interface NutritionCheckin {
   created_at: string;
 }
 
+export type AdherenceState = 'calibrating' | 'ready';
+export type AdherenceTrend = 'up' | 'down' | 'stable';
+
 export interface PatientSummary {
   id: number;
-  name: string;
-  email: string;
+  name: string | null;
+  email: string | null;
   photo_url: string | null;
   academy_id: number | null;
   activePlan: { plan_id: number; title: string; started_at: string } | null;
+  /** @deprecated proxy legado (dias com check-in ÷ janela) — usar mealAdherence*Pct. */
   adherence7d: number;
+  /** @deprecated ver adherence7d. */
   adherence30d: number;
-  /** Aderência REAL por refeição (P1-6); null = sem dado granular → usar legado. */
+  /** Aderência REAL por refeição (SPEC 035), proporcional ao tempo de vida do plano. */
   mealAdherence7dPct: number | null;
   mealAdherence30dPct: number | null;
   lastCheckinDate: string | null;
   riskFlag: boolean;
   adherenceDropFlag: boolean;
+  /** SPEC 035 — fonte única de verdade; usar em vez de recalcular no cliente. */
+  adherenceState: AdherenceState | null;
+  streakDays: number;
+  trend: AdherenceTrend | null;
+  /** true quando o paciente revogou consentimento — campos acima vêm nulos/zerados por redação, não por ausência de dado. */
+  consentRevoked: boolean;
 }
 
 export interface NutritionObservation {
@@ -149,7 +195,7 @@ export interface NutritionObservation {
 
 export async function fetchPatients(): Promise<PatientSummary[]> {
   const res = await authFetch(`${API_URL}/nutri/patients`);
-  const json = await parseJson(res);
+  const json = await readNutriJson(res);
   return json.data ?? [];
 }
 
@@ -162,11 +208,19 @@ export async function fetchPatientPlans(patientId: number): Promise<{
   history: Array<{ id: number; title: string; objective: NutriObjective; started_at: string; ended_at: string | null }>;
 }> {
   const res = await authFetch(`${API_URL}/nutri/patients/${patientId}/nutrition-plans`);
-  const json = await parseJson(res);
+  const json = await readNutriJson(res);
   return json.data ?? { active: null, history: [] };
 }
 
 export type MealPayload = {
+  /**
+   * Identidade da refeição já existente no plano (SPEC 035 / P1A.1).
+   * OBRIGATÓRIO ecoar de volta ao editar — sem ele o backend trata a
+   * refeição como nova e a antiga como removida, e todo histórico de
+   * check-in daquela refeição vira órfão (a informação sobrevive, mas some
+   * da visão ativa). Ausente apenas para refeição realmente nova.
+   */
+  id?: number;
   name: string;
   orientation: string;
   order_index: number;
@@ -177,7 +231,7 @@ export type MealPayload = {
   workout_relation?: WorkoutRelation | null;
   hydration_note?: string | null;
   supplement_note?: string | null;
-  alternatives?: Array<{ description: string; order_index: number }>;
+  alternatives?: Array<{ id?: number; description: string; order_index: number }>;
 };
 
 export async function createNutritionPlan(
@@ -194,8 +248,7 @@ export async function createNutritionPlan(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   });
-  const json = await parseJson(res);
-  if (!json.success) throw new Error(json.error ?? 'Failed to create plan');
+  const json = await readNutriJson(res);
   return json.data;
 }
 
@@ -203,8 +256,7 @@ export async function endNutritionPlan(patientId: number, planId: number): Promi
   const res = await authFetch(`${API_URL}/nutri/patients/${patientId}/nutrition-plans/${planId}`, {
     method: 'DELETE',
   });
-  const json = await parseJson(res);
-  if (!json.success) throw new Error(json.error ?? 'Failed to end plan');
+  await readNutriJson(res);
 }
 
 export async function updateNutritionPlan(
@@ -222,8 +274,7 @@ export async function updateNutritionPlan(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   });
-  const json = await parseJson(res);
-  if (!json.success) throw new Error(json.error ?? 'Failed to update plan');
+  const json = await readNutriJson(res);
   return json.data;
 }
 
@@ -236,7 +287,7 @@ export async function fetchAdherence(patientId: number, days = 7): Promise<{
   checkins: Array<{ check_date: string; adherence: Adherence; note: string | null }>;
 }> {
   const res = await authFetch(`${API_URL}/nutri/patients/${patientId}/adherence?days=${days}`);
-  const json = await parseJson(res);
+  const json = await readNutriJson(res);
   return json.data ?? { plan: null, checkins: [] };
 }
 
@@ -269,7 +320,7 @@ export async function fetchPatientContext(patientId: number): Promise<{
   dailyCheckins?: PatientDailyCheckin[];
 }> {
   const res = await authFetch(`${API_URL}/nutri/patients/${patientId}/context`);
-  const json = await parseJson(res);
+  const json = await readNutriJson(res);
   return json.data ?? { hasMetabolicConsent: false, hasDailyConsent: false };
 }
 
@@ -283,7 +334,7 @@ export async function fetchObservations(
   offset = 0
 ): Promise<{ rows: NutritionObservation[]; total: number }> {
   const res = await authFetch(`${API_URL}/nutri/patients/${patientId}/observations?limit=${limit}&offset=${offset}`);
-  const json = await parseJson(res);
+  const json = await readNutriJson(res);
   return { rows: json.data ?? [], total: json.meta?.total ?? 0 };
 }
 
@@ -293,8 +344,7 @@ export async function createObservation(patientId: number, body: string): Promis
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ body }),
   });
-  const json = await parseJson(res);
-  if (!json.success) throw new Error(json.error ?? 'Failed to save observation');
+  const json = await readNutriJson(res);
   return json.data;
 }
 
@@ -304,7 +354,7 @@ export async function createObservation(patientId: number, body: string): Promis
 
 export async function fetchMyNutritionPlan(): Promise<NutritionPlan | null> {
   const res = await authFetch(`${API_URL}/user/nutrition-plan`);
-  const json = await parseJson(res);
+  const json = await readNutriJson(res);
   return json.data ?? null;
 }
 
@@ -316,7 +366,7 @@ export async function fetchMyAdherenceHistory(days = 30): Promise<Array<{
   created_at: string;
 }>> {
   const res = await authFetch(`${API_URL}/user/nutrition-adherence-checkins?days=${days}`);
-  const json = await parseJson(res);
+  const json = await readNutriJson(res);
   return json.data ?? [];
 }
 
@@ -338,7 +388,7 @@ export interface MealTimeline {
 
 export async function fetchMealTimeline(): Promise<MealTimeline | null> {
   const res = await authFetch(`${API_URL}/user/meals/today`);
-  const json = await parseJson(res);
+  const json = await readNutriJson(res);
   return json.data ?? null;
 }
 
@@ -358,8 +408,7 @@ export async function recordMealCheckin(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   });
-  const json = await parseJson(res);
-  if (!json.success) throw new Error(json.error ?? 'Failed to record meal checkin');
+  const json = await readNutriJson(res);
   return json.data;
 }
 
@@ -367,16 +416,33 @@ export async function recordMealCheckin(
 // Nutri — meal heatmap  (Onda A)
 // ---------------------------------------------------------------------------
 
+export interface CanonicalAdherence {
+  adherencePct: number | null;
+  adherenceWindowDays: number;
+  adherenceEffectiveDays: number;
+  adherenceState: AdherenceState;
+  streakDays: number;
+  trend: AdherenceTrend | null;
+}
+
 export interface MealHeatmapData {
   plan: { id: number; title: string } | null;
   meals: Array<{ id: number; name: string; meal_time: string | null; order_index: number }>;
   checkins: Array<{ meal_id: number; check_date: string; status: MealCheckinStatus }>;
+  /**
+   * SPEC 035 — bloco canônico de verdade (o mesmo que alimenta a carteira).
+   * `null` só quando não há plano ativo. A tela deve consumir ESTES campos
+   * para o percentual/streak/tendência do cabeçalho — nunca recalcular a
+   * partir de `checkins`, que é só o grid visual (pode vir em janela menor
+   * no mobile sem afetar o número de verdade).
+   */
+  adherence: CanonicalAdherence | null;
 }
 
 export async function fetchMealHeatmap(patientId: number, days = 14): Promise<MealHeatmapData> {
   const res = await authFetch(`${API_URL}/nutri/patients/${patientId}/meal-heatmap?days=${days}`);
-  const json = await parseJson(res);
-  return json.data ?? { plan: null, meals: [], checkins: [] };
+  const json = await readNutriJson(res);
+  return json.data ?? { plan: null, meals: [], checkins: [], adherence: null };
 }
 
 // ---------------------------------------------------------------------------
@@ -388,7 +454,8 @@ export interface VoiceNote {
   nutriId: number;
   patientId: number;
   body: string;
-  anchorMealId: string | null;
+  /** SPEC 035: id de `nutrition_plan_meals` (integer) — era uuid, tipo incompatível. */
+  anchorMealId: number | null;
   publishedAt: string;
   readAt: string | null;
 }
@@ -402,27 +469,26 @@ export interface NutriInsight {
 export async function publishVoiceNote(
   patientId: number,
   body: string,
-  anchorMealId?: string,
+  anchorMealId?: number,
 ): Promise<VoiceNote> {
   const res = await authFetch(`${API_URL}/nutri/patients/${patientId}/voice-notes`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ body, anchorMealId }),
   });
-  const json = await parseJson(res);
-  if (!res.ok) throw new Error(json?.error ?? 'publish_failed');
+  const json = await readNutriJson(res);
   return json.data as VoiceNote;
 }
 
 export async function listVoiceNotes(patientId: number): Promise<VoiceNote[]> {
   const res = await authFetch(`${API_URL}/nutri/patients/${patientId}/voice-notes`);
-  const json = await parseJson(res);
+  const json = await readNutriJson(res);
   return (json.data ?? []) as VoiceNote[];
 }
 
 export async function fetchPatientInsights(patientId: number): Promise<NutriInsight[]> {
   const res = await authFetch(`${API_URL}/nutri/patients/${patientId}/insights`);
-  const json = await parseJson(res);
+  const json = await readNutriJson(res);
   return (json.data ?? []) as NutriInsight[];
 }
 
@@ -430,8 +496,7 @@ export async function fetchPatientInsights(patientId: number): Promise<NutriInsi
 export async function fetchPatientEvolution(patientId: number): Promise<MetabolicEvolutionPayload | null> {
   const res = await authFetch(`${API_URL}/nutri/patients/${patientId}/evolution`);
   if (res.status === 401) return null;
-  const json = await parseJson(res);
-  if (!json.success) throw new Error(json.error ?? 'Não foi possível carregar a evolução do paciente.');
+  const json = await readNutriJson(res);
   return (json.data ?? null) as MetabolicEvolutionPayload | null;
 }
 
@@ -513,7 +578,7 @@ export interface ProfileItemPayload {
 export async function fetchDietaryCatalog(kind?: DietaryKind): Promise<CatalogEntry[]> {
   const qs = kind ? `?kind=${kind}` : '';
   const res = await authFetch(`${API_URL}/nutri/dietary-catalog${qs}`);
-  const json = await parseJson(res);
+  const json = await readNutriJson(res);
   return json.data?.catalog ?? [];
 }
 
@@ -522,7 +587,7 @@ export async function fetchClinicalProfile(patientId: number): Promise<{
   hasSevereAllergy: boolean;
 }> {
   const res = await authFetch(`${API_URL}/nutri/patients/${patientId}/clinical-profile`);
-  const json = await parseJson(res);
+  const json = await readNutriJson(res);
   return json.data ?? { items: [], hasSevereAllergy: false };
 }
 
@@ -535,8 +600,7 @@ export async function addClinicalProfileItem(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   });
-  const json = await parseJson(res);
-  if (!json.success) throw new Error(json.error ?? 'Falha ao adicionar item');
+  const json = await readNutriJson(res);
   return json.data.item;
 }
 
@@ -550,8 +614,7 @@ export async function updateClinicalProfileItem(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   });
-  const json = await parseJson(res);
-  if (!json.success) throw new Error(json.error ?? 'Falha ao editar item');
+  const json = await readNutriJson(res);
   return json.data.item;
 }
 
@@ -559,8 +622,7 @@ export async function deleteClinicalProfileItem(patientId: number, itemId: numbe
   const res = await authFetch(`${API_URL}/nutri/patients/${patientId}/clinical-profile/items/${itemId}`, {
     method: 'DELETE',
   });
-  const json = await parseJson(res);
-  if (!json.success) throw new Error(json.error ?? 'Falha ao remover item');
+  await readNutriJson(res);
 }
 
 export async function checkDietAgainstProfile(
@@ -572,7 +634,7 @@ export async function checkDietAgainstProfile(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ meals }),
   });
-  const json = await parseJson(res);
+  const json = await readNutriJson(res);
   return json.data?.alerts ?? [];
 }
 
@@ -593,7 +655,7 @@ export async function suggestSubstitution(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ meal }),
   });
-  const json = await parseJson(res);
+  const json = await readNutriJson(res);
   return json.data ?? { hasConflict: false, conflicts: [], alternatives: [], swapHints: [] };
 }
 
@@ -603,7 +665,7 @@ export async function fetchMyDietaryProfile(): Promise<{
   hasSevereAllergy: boolean;
 }> {
   const res = await authFetch(`${API_URL}/user/dietary-profile`);
-  const json = await parseJson(res);
+  const json = await readNutriJson(res);
   return json.data ?? { items: [], hasSevereAllergy: false };
 }
 
@@ -613,11 +675,6 @@ export async function recordNutritionCheckin(adherence: Adherence, note?: string
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ adherence, note }),
   });
-  const json = await parseJson(res);
-  if (!json.success) {
-    const err = new Error(json.error ?? 'Failed to record checkin') as Error & { status?: number };
-    if (res.status === 409) err.status = 409;
-    throw err;
-  }
+  const json = await readNutriJson(res);
   return json.data;
 }

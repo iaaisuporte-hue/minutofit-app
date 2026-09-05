@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { COLORS } from "../../styles/colors";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
+import { dayKey } from "../../lib/appDay";
 import {
   fetchPatientPlans,
   fetchAdherence,
@@ -23,12 +24,28 @@ import {
   type Adherence,
   type MealCheckinStatus,
   type MealHeatmapData,
+  type MetabolicGoal,
+  type WorkoutRelation,
   type PatientMetabolism,
   type PatientDailyCheckin,
   type VoiceNote,
   type NutriInsight,
   type DietAlert,
+  NutriApiError,
 } from "../../services/nutriApi";
+
+/**
+ * SPEC 035 / §7: consentimento revogado não pode ser renderizado como "sem
+ * dado" — o paciente revogou um direito, e a nutri precisa saber disso, não
+ * concluir que nunca existiu plano/observação/nota.
+ */
+function ConsentRevokedNotice() {
+  return (
+    <div className="card cardPad" style={{ fontSize: 14, color: COLORS.muted, fontStyle: "italic" }}>
+      O paciente revogou o acesso a esta informação. Fale com ele para restabelecer o compartilhamento.
+    </div>
+  );
+}
 
 const ALERT_KIND_LABEL: Record<DietAlert["kind"], string> = {
   allergy: "Alergia", intolerance: "Intolerância", restriction: "Restrição",
@@ -98,11 +115,36 @@ function TabBar({
 // Tab: Plano
 // ---------------------------------------------------------------------------
 
+type EditDraftMeal = {
+  /**
+   * SPEC 035 / P1A.1: identidade da refeição já existente. Preservar e
+   * ecoar de volta no PATCH é o que impede o backend de tratar uma edição
+   * de título como "apagar tudo e recriar" — sem isso, todo o histórico de
+   * check-in daquela refeição vira órfão a cada salvamento.
+   */
+  id?: number;
+  name: string;
+  orientation: string;
+  meal_time: string;
+  order_index: number;
+  // Campos que esta tela não edita, mas que precisam sobreviver ao
+  // round-trip do PATCH intocados — perdê-los aqui era o outro metade do
+  // BLOCKER NUTRI-01 (a edição de título zerava objetivo metabólico,
+  // hidratação, suplemento e as alternativas cadastradas na criação).
+  tolerance_minutes: number | null;
+  reminder_minutes: number | null;
+  metabolic_goal: MetabolicGoal | null;
+  workout_relation: WorkoutRelation | null;
+  hydration_note: string | null;
+  supplement_note: string | null;
+  alternatives: Array<{ id?: number; description: string; order_index: number }>;
+};
+
 type EditDraft = {
   title: string;
   objective: NutriObjective;
   general_notes: string;
-  meals: Array<{ name: string; orientation: string; meal_time: string; order_index: number }>;
+  meals: EditDraftMeal[];
 };
 
 function PlanTab({ patientId }: { patientId: number }) {
@@ -116,10 +158,16 @@ function PlanTab({ patientId }: { patientId: number }) {
   const [draft, setDraft] = useState<EditDraft | null>(null);
   const [editAlerts, setEditAlerts] = useState<DietAlert[]>([]);
   const [editAck, setEditAck] = useState(false);
+  const [consentRevoked, setConsentRevoked] = useState(false);
 
   useEffect(() => {
+    setConsentRevoked(false);
     fetchPatientPlans(patientId)
       .then((d) => setData(d as { active: NutritionPlan | null; history: NutritionPlan[] }))
+      .catch((err) => {
+        if (err instanceof NutriApiError && err.consentRevoked) setConsentRevoked(true);
+        setData({ active: null, history: [] });
+      })
       .finally(() => setLoading(false));
   }, [patientId]);
 
@@ -128,7 +176,20 @@ function PlanTab({ patientId }: { patientId: number }) {
       title: plan.title,
       objective: plan.objective,
       general_notes: plan.general_notes ?? "",
-      meals: plan.meals?.map((m) => ({ name: m.name, orientation: m.orientation, meal_time: m.meal_time ?? '', order_index: m.order_index })) ?? [],
+      meals: plan.meals?.map((m) => ({
+        id: m.id,
+        name: m.name,
+        orientation: m.orientation,
+        meal_time: m.meal_time ?? '',
+        order_index: m.order_index,
+        tolerance_minutes: m.tolerance_minutes,
+        reminder_minutes: m.reminder_minutes,
+        metabolic_goal: m.metabolic_goal,
+        workout_relation: m.workout_relation,
+        hydration_note: m.hydration_note,
+        supplement_note: m.supplement_note,
+        alternatives: m.alternatives?.map((a) => ({ id: a.id, description: a.description, order_index: a.order_index })) ?? [],
+      })) ?? [],
     });
     setEditing(true);
   }
@@ -146,7 +207,12 @@ function PlanTab({ patientId }: { patientId: number }) {
     if (editAck) { setEditAck(false); setEditAlerts([]); }
     setDraft((prev) => {
       if (!prev || prev.meals.length >= 6) return prev;
-      return { ...prev, meals: [...prev.meals, { name: "", orientation: "", meal_time: "", order_index: prev.meals.length }] };
+      const novaRefeicao: EditDraftMeal = {
+        name: "", orientation: "", meal_time: "", order_index: prev.meals.length,
+        tolerance_minutes: null, reminder_minutes: null, metabolic_goal: null,
+        workout_relation: null, hydration_note: null, supplement_note: null, alternatives: [],
+      };
+      return { ...prev, meals: [...prev.meals, novaRefeicao] };
     });
   }
 
@@ -208,6 +274,7 @@ function PlanTab({ patientId }: { patientId: number }) {
   }
 
   if (loading) return <div style={{ color: COLORS.muted, fontSize: 14 }}>Carregando...</div>;
+  if (consentRevoked) return <ConsentRevokedNotice />;
 
   const { active, history } = data ?? { active: null, history: [] };
 
@@ -468,8 +535,13 @@ function computeAdherenceIntel(
   meals: MealHeatmapData["meals"],
   dates: string[],
 ) {
+  // SPEC 035 / NUTRI-05: `check_date` chega da API como timestamp ISO
+  // completo (ex. "2026-09-04T03:00:00.000Z"), não como "YYYY-MM-DD". Sem o
+  // `.slice(0,10)`, a chave nunca batia com as de `dates` — todo o
+  // breakdown por refeição lia "0%, nenhum registro" com o heatmap ao lado
+  // cheio de check-ins.
   const map = new Map<string, MealCheckinStatus>();
-  for (const c of checkins) map.set(`${c.meal_id}:${c.check_date}`, c.status);
+  for (const c of checkins) map.set(`${c.meal_id}:${String(c.check_date).slice(0, 10)}`, c.status);
 
   function mealPct(mealId: number, window: string[]): number {
     const done = window.filter((d) => {
@@ -559,11 +631,14 @@ const HEATMAP_ABBR: Record<MealCheckinStatus | "none", string> = {
 };
 
 function buildDateRange(days: number): string[] {
+  // dayKey() (fuso do aluno) — não `toISOString()` (UTC do navegador, que
+  // costuma coincidir com BRT mas não deveria ser a premissa).
+  const todayKey = dayKey();
+  const [y, m, d0] = todayKey.split('-').map(Number);
   const dates: string[] = [];
   for (let i = days - 1; i >= 0; i--) {
-    const d = new Date();
-    d.setDate(d.getDate() - i);
-    dates.push(d.toISOString().slice(0, 10));
+    const d = new Date(Date.UTC(y, m - 1, d0 - i));
+    dates.push(`${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`);
   }
   return dates;
 }
@@ -571,6 +646,7 @@ function buildDateRange(days: number): string[] {
 function AdherenceTab({ patientId }: { patientId: number }) {
   const [heatmap, setHeatmap] = useState<MealHeatmapData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [consentRevoked, setConsentRevoked] = useState(false);
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 640);
 
   useEffect(() => {
@@ -581,14 +657,26 @@ function AdherenceTab({ patientId }: { patientId: number }) {
 
   // Always fetch 14 days — display window narrows on mobile without extra requests
   useEffect(() => {
+    setConsentRevoked(false);
     fetchMealHeatmap(patientId, 14)
       .then(setHeatmap)
+      .catch((err) => {
+        // SPEC 035 / NUTRI-11 (§7): 403 de consent NÃO pode cair no fallback
+        // legado — o fallback tem seu PRÓPRIO gate (daily_checkins) e
+        // renderizaria "sem dado" para um caso que é revogação, não ausência.
+        if (err instanceof NutriApiError && err.consentRevoked) {
+          setConsentRevoked(true);
+        } else {
+          setHeatmap({ plan: null, meals: [], checkins: [], adherence: null });
+        }
+      })
       .finally(() => setLoading(false));
   }, [patientId]);
 
   const DAYS = isMobile ? 7 : 14;
 
   if (loading) return <div style={{ color: COLORS.muted, fontSize: 14 }}>Carregando...</div>;
+  if (consentRevoked) return <ConsentRevokedNotice />;
 
   // Fallback to legacy adherence if no meal checkins schema yet
   if (!heatmap?.plan || heatmap.meals.length === 0) {
@@ -602,13 +690,19 @@ function AdherenceTab({ patientId }: { patientId: number }) {
     checkinMap.set(`${c.meal_id}:${dateKey}`, c.status);
   }
 
-  // Summary stats
-  const total = heatmap.meals.length * dates.length;
-  const doneCount = heatmap.checkins.filter(
-    (c) => c.status === "done" || c.status === "substituted"
-  ).length;
-  const partialCount = heatmap.checkins.filter((c) => c.status === "partial").length;
-  const adherePct = Math.round(((doneCount + partialCount * 0.5) / total) * 100);
+  // SPEC 035 / NUTRI-04: o cabeçalho (%, streak, tendência) vem do bloco
+  // CANÔNICO que o backend calcula sobre uma janela fixa (14d/60d),
+  // independente de quantos dias esta tela pediu para o grid visual — antes,
+  // o numerador vinha de 14 dias e o denominador de `dates.length` (7 no
+  // mobile), e o mesmo paciente lia 46% no desktop e 93% no celular no
+  // mesmo instante. O grid e o breakdown por refeição abaixo continuam
+  // locais (são "como foi cada refeição NESTA janela visível", um conceito
+  // diferente de "aderência real do paciente").
+  const canonical = heatmap.adherence;
+  const calibrating = canonical?.adherenceState === "calibrating";
+  const adherePct = canonical?.adherencePct ?? 0;
+  const streakDays = canonical?.streakDays ?? 0;
+  const trend = canonical?.trend ?? null;
 
   const intel = computeAdherenceIntel(heatmap.checkins, heatmap.meals, dates);
 
@@ -630,35 +724,49 @@ function AdherenceTab({ patientId }: { patientId: number }) {
         {/* Header row: % + narrative + trend */}
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, marginBottom: 10 }}>
           <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
-            <span style={{ fontSize: 32, fontWeight: 800, color: barColor, lineHeight: 1 }}>
-              {adherePct}%
-            </span>
-            <AdherenceNarrative pct={adherePct} />
+            {calibrating ? (
+              <span style={{ fontSize: 22, fontWeight: 800, color: COLORS.muted, lineHeight: 1 }}>Calibrando</span>
+            ) : (
+              <>
+                <span style={{ fontSize: 32, fontWeight: 800, color: barColor, lineHeight: 1 }}>
+                  {adherePct}%
+                </span>
+                <AdherenceNarrative pct={adherePct} />
+              </>
+            )}
           </div>
-          {intel.trend && (
+          {trend && (
             <span style={{
-              fontSize: 12, fontWeight: 700, color: TREND_LABEL[intel.trend].color,
-              background: `color-mix(in srgb, ${TREND_LABEL[intel.trend].color} 12%, transparent)`,
-              border: `1px solid color-mix(in srgb, ${TREND_LABEL[intel.trend].color} 30%, transparent)`,
+              fontSize: 12, fontWeight: 700, color: TREND_LABEL[trend].color,
+              background: `color-mix(in srgb, ${TREND_LABEL[trend].color} 12%, transparent)`,
+              border: `1px solid color-mix(in srgb, ${TREND_LABEL[trend].color} 30%, transparent)`,
               borderRadius: 20, padding: "3px 10px",
               display: "flex", alignItems: "center", gap: 4, flexShrink: 0,
             }}>
-              {TREND_LABEL[intel.trend].icon} {TREND_LABEL[intel.trend].text}
+              {TREND_LABEL[trend].icon} {TREND_LABEL[trend].text}
             </span>
           )}
         </div>
 
+        {calibrating && (
+          <div style={{ fontSize: 12.5, color: COLORS.muted, marginBottom: 10, lineHeight: 1.5 }}>
+            Plano recente — ainda não há dias suficientes para um percentual confiável.
+          </div>
+        )}
+
         {/* Progress bar */}
-        <div style={{ height: 7, borderRadius: 99, background: "var(--color-surface-raised)", overflow: "hidden", marginBottom: 14 }}>
-          <div style={{ height: "100%", width: `${adherePct}%`, background: barColor, borderRadius: 99, transition: "width 0.5s" }} />
-        </div>
+        {!calibrating && (
+          <div style={{ height: 7, borderRadius: 99, background: "var(--color-surface-raised)", overflow: "hidden", marginBottom: 14 }}>
+            <div style={{ height: "100%", width: `${adherePct}%`, background: barColor, borderRadius: 99, transition: "width 0.5s" }} />
+          </div>
+        )}
 
         {/* Stats strip */}
         <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
           <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
             <span style={{ fontSize: 10, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.06em" }}>Sequência atual</span>
-            <span style={{ fontSize: 16, fontWeight: 700, color: intel.streak > 0 ? "var(--color-success,#7B9919)" : COLORS.muted }}>
-              {intel.streak} {intel.streak === 1 ? "dia" : "dias"}
+            <span style={{ fontSize: 16, fontWeight: 700, color: streakDays > 0 ? "var(--color-success,#7B9919)" : COLORS.muted }}>
+              {streakDays} {streakDays === 1 ? "dia" : "dias"}
             </span>
           </div>
           <div style={{ width: 1, background: "var(--color-border)", alignSelf: "stretch" }} />
@@ -681,7 +789,7 @@ function AdherenceTab({ patientId }: { patientId: number }) {
       {/* ── Heatmap grid ── */}
       <div className="card cardPad" style={{ overflowX: isMobile ? "hidden" : "auto" }}>
         {(() => {
-          const today = new Date().toISOString().slice(0, 10);
+          const today = dayKey();
           const COL_NAME = isMobile ? 96 : 128;
           const COL_CELL = isMobile ? 32 : 36;
           const CELL_H   = isMobile ? 26 : 28;
@@ -847,14 +955,19 @@ function LegacyAdherenceTab({ patientId }: { patientId: number }) {
     checkins: Array<{ check_date: string; adherence: Adherence; note: string | null }>;
   } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [consentRevoked, setConsentRevoked] = useState(false);
 
   useEffect(() => {
     fetchAdherence(patientId, 7)
       .then(setData)
+      .catch((err) => {
+        if (err instanceof NutriApiError && err.consentRevoked) setConsentRevoked(true);
+      })
       .finally(() => setLoading(false));
   }, [patientId]);
 
   if (loading) return <div style={{ color: COLORS.muted, fontSize: 14 }}>Carregando...</div>;
+  if (consentRevoked) return <ConsentRevokedNotice />;
   if (!data?.plan) return <div style={{ color: COLORS.muted, fontSize: 14 }}>Sem plano ativo — nenhum dado de adesão.</div>;
 
   const fullCount = data.checkins.filter((c) => c.adherence === "full").length;
@@ -1096,14 +1209,22 @@ function ObservationsTab({ patientId }: { patientId: number }) {
   const [draft, setDraft] = useState("");
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [consentRevoked, setConsentRevoked] = useState(false);
   const LIMIT = 5;
 
   useEffect(() => {
-    fetchObservations(patientId, LIMIT, offset).then(({ rows, total: t }) => {
-      setObs((prev) => offset === 0 ? rows : [...prev, ...rows]);
-      setTotal(t);
-    });
+    fetchObservations(patientId, LIMIT, offset)
+      .then(({ rows, total: t }) => {
+        setConsentRevoked(false);
+        setObs((prev) => offset === 0 ? rows : [...prev, ...rows]);
+        setTotal(t);
+      })
+      .catch((err) => {
+        if (err instanceof NutriApiError && err.consentRevoked) setConsentRevoked(true);
+      });
   }, [patientId, offset]);
+
+  if (consentRevoked) return <ConsentRevokedNotice />;
 
   async function handleSave() {
     if (!draft.trim() || saving) return;
@@ -1227,16 +1348,36 @@ const INSIGHT_COLOR: Record<NutriInsight['type'], string> = {
 function InsightsTab({ patientId }: { patientId: number }) {
   const [insights, setInsights] = useState<NutriInsight[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<'consent' | 'error' | null>(null);
 
   useEffect(() => {
     setLoading(true);
+    setLoadError(null);
     fetchPatientInsights(patientId)
       .then(setInsights)
+      .catch((err) => {
+        // SPEC 035 / NUTRI-03: o BUG central da P0 nasceu exatamente aqui —
+        // um erro (coluna inexistente, hoje corrigida; ou qualquer falha
+        // futura) virava lista vazia, e a lista vazia é o estado de
+        // sucesso desta aba. "Paciente em rota estável" NUNCA pode ser o
+        // resultado de uma falha — só de uma checagem que rodou e não achou
+        // sinal.
+        setLoadError(err instanceof NutriApiError && err.consentRevoked ? 'consent' : 'error');
+      })
       .finally(() => setLoading(false));
   }, [patientId]);
 
   if (loading) {
     return <div style={{ fontSize: 14, color: COLORS.muted }}>Calculando insights...</div>;
+  }
+
+  if (loadError === 'consent') return <ConsentRevokedNotice />;
+  if (loadError === 'error') {
+    return (
+      <div className="card cardPad" style={{ fontSize: 14, color: "var(--color-danger,#EF4444)" }}>
+        Não foi possível calcular os insights agora. Tente novamente em instantes.
+      </div>
+    );
   }
 
   if (insights.length === 0) {
@@ -1300,12 +1441,16 @@ function VozTab({ patientId }: { patientId: number }) {
   const [draft, setDraft] = useState('');
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [consentRevoked, setConsentRevoked] = useState(false);
   const MAX = 240;
 
   const reload = () => {
     setLoading(true);
     listVoiceNotes(patientId)
-      .then(setNotes)
+      .then((n) => { setConsentRevoked(false); setNotes(n); })
+      .catch((err) => {
+        if (err instanceof NutriApiError && err.consentRevoked) setConsentRevoked(true);
+      })
       .finally(() => setLoading(false));
   };
 
@@ -1326,6 +1471,8 @@ function VozTab({ patientId }: { patientId: number }) {
       setSaving(false);
     }
   }
+
+  if (consentRevoked) return <ConsentRevokedNotice />;
 
   return (
     <div>

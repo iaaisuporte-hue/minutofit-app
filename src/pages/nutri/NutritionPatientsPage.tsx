@@ -143,18 +143,20 @@ export default function NutritionPatientsPage() {
                 {p.photo_url ? (
                   <img
                     src={p.photo_url}
-                    alt={p.name}
+                    alt={p.name ?? "Paciente"}
                     style={{ width: "100%", height: "100%", objectFit: "cover" }}
                   />
                 ) : (
-                  p.name.charAt(0).toUpperCase()
+                  (p.name?.charAt(0) ?? "?").toUpperCase()
                 )}
               </div>
 
               {/* Info */}
               <div style={{ flex: 1, minWidth: 0, textAlign: "left" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                  <span style={{ fontSize: 15, fontWeight: 600, color: COLORS.text }}>{p.name}</span>
+                  <span style={{ fontSize: 15, fontWeight: 600, color: p.consentRevoked ? COLORS.muted : COLORS.text }}>
+                    {p.consentRevoked ? "Acesso revogado pelo paciente" : p.name}
+                  </span>
                   {p.adherenceDropFlag && (
                     <span
                       style={{
@@ -198,12 +200,16 @@ export default function NutritionPatientsPage() {
                     flexWrap: "wrap",
                   }}
                 >
-                  {p.activePlan ? (
+                  {p.consentRevoked ? (
+                    <span style={{ color: COLORS.muted, fontSize: 13, fontStyle: "italic" }}>
+                      Paciente revogou o acesso aos dados nutricionais
+                    </span>
+                  ) : p.activePlan ? (
                     <AdherenceLabel mealPct={p.mealAdherence7dPct} checkins7d={p.adherence7d} />
                   ) : (
                     <span style={{ color: COLORS.muted, fontSize: 13 }}>Sem plano ativo</span>
                   )}
-                  <LastCheckinLabel date={p.lastCheckinDate} />
+                  {!p.consentRevoked && <LastCheckinLabel date={p.lastCheckinDate} />}
                 </div>
               </div>
 
