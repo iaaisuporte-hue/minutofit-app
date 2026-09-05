@@ -329,9 +329,9 @@
 .tr-cta-button {
   padding: 13px 22px;
   border-radius: var(--radius-lg);
-  border: 1px solid var(--color-primary-hover);
+  border: 1px solid var(--action-primary);
   background: var(--action-primary);
-  color: #ffffff;
+  color: var(--action-primary-text);
   font-weight: var(--font-bold);
   font-size: var(--text-lg);
   cursor: pointer;
@@ -353,10 +353,138 @@
   color: var(--color-text-subtle);
 }
 
+/* ── Mapa ───────────────────────────────────────────────────────── */
+/* A moldura e o vazio "aguardando GPS" também eram escuros fixos: no tema
+   claro, um retângulo preto no meio do card. Ambos vivem dentro do Hero, então
+   herdam as variáveis dele — e, fora dele (histórico), caem nos tokens do
+   tema. */
+.tr-map-frame {
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid var(--tr-live-line, var(--color-border));
+}
+
+.tr-map-frame--live {
+  border-radius: 18px;
+}
+
+.tr-map-waiting {
+  width: 100%;
+  min-height: 220px;
+  border-radius: 18px;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  padding: 24px;
+  background: var(--tr-live-fill, var(--color-surface-subtle));
+  border: 1px solid var(--tr-live-line-weak, var(--color-border));
+  color: var(--tr-live-on-soft, var(--color-text-muted));
+}
+
+.tr-map-waiting-hint {
+  font-size: var(--text-sm);
+  color: var(--tr-live-on-faint, var(--color-text-subtle));
+}
+
+/* Mapa noturno sem trocar de provedor.
+   Só o painel de TILES é filtrado: `invert` faz o claro virar escuro e o
+   `hue-rotate(180deg)` devolve as matizes ao lugar (sem ele, o verde dos
+   parques vira rosa). Traçado da rota, marcadores e atribuição ficam em
+   painéis irmãos e não são tocados — a rota mantém o oliva de verdade.
+   Por que não um provedor com estilo escuro: CARTO, Stadia, Thunderforest e
+   MapTiler passaram a exigir chave de API — os tiles do CARTO chegam
+   carimbados com "API KEY REQUIRED", o que o QA pegou. */
+html[data-theme="dark"] .tr-map-frame .leaflet-tile-pane {
+  filter: invert(1) hue-rotate(180deg) brightness(0.92) contrast(0.88) saturate(0.75);
+}
+
+/* Controles do Leaflet: o plugin traz branco fixo com texto escuro, e ficavam
+   como dois quadrados brancos gritando sobre o mapa noturno. Ficam FORA do
+   filtro de tiles de propósito — filtrá-los inverteria o ícone junto. */
+.tr-map-frame .leaflet-bar a,
+.tr-map-frame .leaflet-bar a:hover {
+  background: var(--color-surface);
+  color: var(--color-text);
+  border-bottom-color: var(--color-border);
+}
+
+.tr-map-frame .leaflet-bar a:hover {
+  background: var(--color-surface-subtle);
+}
+
+.tr-map-frame .leaflet-bar {
+  border-color: var(--color-border);
+}
+
+/* Fundo do canvas do mapa enquanto os tiles carregam: o `#ddd` do plugin
+   piscava claro no tema escuro. */
+.tr-map-frame .leaflet-container {
+  background: var(--color-surface-subtle);
+}
+
+/* Atribuição do Leaflet: fundo branco fixo do plugin destoava no tema escuro. */
+.tr-map-frame .leaflet-control-attribution {
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+}
+
+.tr-map-frame .leaflet-control-attribution a {
+  color: var(--color-text-muted);
+}
+
 /* ── Live mode ──────────────────────────────────────────────────── */
+/*
+   O Hero da atividade em curso era escuro por construção: o gradiente
+   `#0f3d2e → #0a0f0c` estava fixo, e tudo dentro dele assumia superfície
+   escura — `rgba(255,255,255,α)` no texto secundário, nos cards de métrica e
+   nas bordas. No tema claro isso virava uma ilha escura no meio de um app
+   claro, que é o defeito relatado.
+
+   Pior: o título e o valor das métricas usavam `var(--color-surface)` como se
+   fosse sinônimo de "branco". Acertavam por acaso no tema claro (onde surface
+   É branco) e sumiriam no escuro, onde surface é #16181A — escuro sobre
+   escuro.
+
+   A correção não pinta o Hero de branco: ele continua sendo um bloco de
+   destaque nos dois temas. O que muda é que a superfície e o "sobre a
+   superfície" passam a ser variáveis próprias, resolvidas por tema. Como são
+   CSS vars sob `html[data-theme]`, a troca é instantânea e não passa pelo
+   React — nada remonta, nada perde estado.
+*/
 .tr-live {
-  background: linear-gradient(135deg, #0f3d2e, #0a0f0c);
+  /* Claro: destaque por tinta da marca sobre a superfície do tema. */
+  --tr-live-bg: linear-gradient(135deg, var(--color-primary-soft-strong), var(--color-surface));
+  --tr-live-on: var(--color-text);
+  /* Um degrau mais escuro que o "muted"/"subtle" que estes papéis usariam por
+     reflexo: medido no navegador, o rótulo da métrica dava 4.39:1 sobre o card
+     — reprova AA por pouco, e por pouco é reprovar. Aqui soft = tertiary
+     (7.4:1) e faint = muted (4.8:1): a hierarquia continua, os dois passam. */
+  --tr-live-on-soft: var(--color-text-tertiary);
+  --tr-live-on-faint: var(--color-text-muted);
+  --tr-live-fill: var(--color-surface);
+  --tr-live-fill-weak: var(--color-surface-raised);
+  --tr-live-line: var(--color-border);
+  --tr-live-line-weak: var(--color-border-subtle);
+  --tr-live-hover: var(--color-primary-soft);
+
+  background: var(--tr-live-bg);
   border-color: var(--color-border-strong);
+  color: var(--tr-live-on);
+}
+
+/* Escuro: o verde profundo original — é a identidade do modo em atividade, e
+   aqui ele finalmente concorda com o resto da tela. Os dois literais moram só
+   neste bloco. */
+html[data-theme="dark"] .tr-live {
+  --tr-live-bg: linear-gradient(135deg, #0f3d2e, #0a0f0c);
+  --tr-live-on: #ffffff;
+  --tr-live-on-soft: rgba(255, 255, 255, 0.65);
+  --tr-live-on-faint: rgba(255, 255, 255, 0.5);
+  --tr-live-fill: rgba(255, 255, 255, 0.06);
+  --tr-live-fill-weak: rgba(255, 255, 255, 0.04);
+  --tr-live-line: rgba(255, 255, 255, 0.14);
+  --tr-live-line-weak: rgba(255, 255, 255, 0.06);
+  --tr-live-hover: rgba(255, 255, 255, 0.08);
 }
 
 .tr-live-inner {
@@ -402,11 +530,11 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  color: var(--color-surface);
+  color: var(--tr-live-on);
 }
 
 .tr-live-status-note {
-  color: rgba(255, 255, 255, 0.65);
+  color: var(--tr-live-on-soft);
   font-size: var(--text-sm);
   line-height: 1.5;
   max-width: 42ch;
@@ -420,8 +548,8 @@
 
 .tr-live-metric-card {
   padding: 16px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.10);
+  background: var(--tr-live-fill);
+  border: 1px solid var(--tr-live-line-weak);
   border-radius: var(--radius-lg);
 }
 
@@ -430,7 +558,7 @@
 }
 
 .tr-live-metric-label {
-  color: rgba(255, 255, 255, 0.55);
+  color: var(--tr-live-on-soft);
   font-size: var(--text-xs);
   font-weight: var(--font-bold);
   text-transform: uppercase;
@@ -442,7 +570,7 @@
   font-size: 34px;
   font-weight: var(--font-bold);
   font-family: monospace;
-  color: var(--color-surface);
+  color: var(--tr-live-on);
 }
 
 .tr-live-metric-value--hero {
@@ -458,7 +586,7 @@
 .tr-live-metric-unit {
   font-size: 16px;
   font-weight: var(--font-normal);
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--tr-live-on-faint);
 }
 
 .tr-live-actions {
@@ -479,41 +607,48 @@
     color var(--transition-fast);
 }
 
+/* CTA principal do Hero. Antes era `--color-primary` (oliva vibrante) com
+   `--color-text` por cima: no tema claro dava texto escuro sobre oliva, que
+   passa; no escuro `--color-text` vira #F5F5F5 e o par cai para ~3.0:1 —
+   exatamente o caso que a regra do design system proíbe ("CTA com texto branco
+   usa --action-primary, nunca --color-primary"). Aqui ele passa a ser o CTA
+   padrão do sistema, validado nos dois temas e também no modo daltônico. */
 .tr-pause-button {
   min-height: 64px;
   padding: 16px 18px;
-  border: 1px solid var(--color-primary-hover);
-  background: var(--color-primary);
-  color: var(--color-text);
+  border: 1px solid var(--action-primary);
+  background: var(--action-primary);
+  color: var(--action-primary-text);
   font-size: var(--text-lg);
   box-shadow: 0 8px 18px var(--color-primary-glow);
 }
 
 .tr-pause-button:hover {
-  background: var(--color-primary-hover);
+  background: var(--action-primary-hover);
+  border-color: var(--action-primary-hover);
   transform: translateY(-1px);
 }
 
 .tr-end-button {
   min-height: 48px;
   padding: 12px 16px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  background: rgba(255, 255, 255, 0.04);
-  color: rgba(255, 255, 255, 0.82);
+  border: 1px solid var(--tr-live-line);
+  background: var(--tr-live-fill-weak);
+  color: var(--tr-live-on);
   font-size: var(--text-base);
 }
 
 .tr-end-button:hover {
-  background: rgba(255, 255, 255, 0.08);
-  color: var(--color-surface);
+  background: var(--tr-live-hover);
+  color: var(--tr-live-on);
 }
 
 .tr-stop-button {
   padding: 14px 18px;
   border-radius: var(--radius-lg);
-  border: 1px solid var(--color-border-strong);
-  background: var(--color-primary);
-  color: var(--color-text);
+  border: 1px solid var(--action-primary);
+  background: var(--action-primary);
+  color: var(--action-primary-text);
   font-weight: var(--font-bold);
   font-size: var(--text-base);
   cursor: pointer;
@@ -522,7 +657,8 @@
 }
 
 .tr-stop-button:hover {
-  background: var(--color-primary-hover);
+  background: var(--action-primary-hover);
+  border-color: var(--action-primary-hover);
   transform: scale(1.02);
 }
 
@@ -807,8 +943,8 @@
 
 /* ── Live metric card secondary variant (score) ─────────────────── */
 .tr-live-metric-card--secondary {
-  background: rgba(255, 255, 255, 0.04);
-  border-color: rgba(255, 255, 255, 0.06);
+  background: var(--tr-live-fill-weak);
+  border-color: var(--tr-live-line-weak);
 }
 
 /* ── Validation warning (live mode, non-intrusive) ──────────────── */
@@ -965,7 +1101,7 @@
 .tr-confirm-btn--confirm {
   background: var(--action-primary);
   border: 1px solid transparent;
-  color: #ffffff;
+  color: var(--action-primary-text);
 }
 
 .tr-confirm-btn--confirm:hover {
@@ -985,18 +1121,18 @@
 }
 
 .tr-gps-status--requesting {
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--color-surface-subtle);
   color: var(--color-text-muted);
 }
 
 .tr-gps-status--ready {
-  background: rgba(123, 153, 25, 0.1);
+  background: var(--color-primary-light);
   color: var(--color-success, #7B9919);
 }
 
 .tr-gps-status--denied,
 .tr-gps-status--unavailable {
-  background: rgba(239, 68, 68, 0.1);
+  background: var(--color-danger-soft);
   color: var(--color-danger-text, #f87171);
 }
 

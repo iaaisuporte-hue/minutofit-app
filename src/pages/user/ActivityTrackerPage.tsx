@@ -8,6 +8,7 @@ import { addWorkoutHistoryEntry } from "./workoutHistory";
 import { authFetch } from "../../services/apiClient";
 import { API_URL } from "../../services/apiBase";
 import "./activityTracker.css";
+import { useTheme } from "../../lib/useTheme";
 import { type Activity } from "../../features/tracker/types";
 import {
   acrescentarPonto,
@@ -194,26 +195,74 @@ function WeekSparkline({ activities }: { activities: Activity[] }) {
   );
 }
 
+/**
+ * Tiles do mapa: um provedor só, escurecido por CSS no tema escuro.
+ *
+ * O OSM padrão não tem variante escura, então o mapa era sempre claro — no tema
+ * escuro virava um retângulo branco no meio da tela.
+ *
+ * A primeira tentativa foi trocar o provedor no escuro (basemaps do CARTO, que
+ * têm o par claro/escuro). O QA em navegador matou a ideia: os tiles chegam
+ * carimbados com "API KEY REQUIRED" — o serviço passou a exigir chave. Todos os
+ * outros provedores com estilo escuro (Stadia, Thunderforest, MapTiler) também
+ * exigem. Adotar qualquer um deles deixaria de ser correção de tema e viraria
+ * uma dependência externa com credencial, cota e custo.
+ *
+ * A saída é escurecer os próprios tiles do OSM por filtro CSS, aplicado só ao
+ * painel de tiles (`.leaflet-tile-pane`) — ver `activityTracker.css`. Traçado,
+ * marcadores e atribuição vivem em painéis irmãos e ficam intactos, então a
+ * rota mantém o oliva de verdade. É aproximação de cor, não um mapa noturno
+ * desenhado à mão, mas não custa chave, não muda o provedor e reage na hora,
+ * sem passar pelo React.
+ */
+const TILE_URL = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
+const TILE_ATTR = "&copy; OpenStreetMap contributors";
+
+/**
+ * A rota, desenhada em duas passadas.
+ *
+ * Uma linha só, na cor da marca, é legível no mapa claro e some contra os
+ * cinzas escuros do mapa noturno. A "capa" por baixo — mais grossa e na cor
+ * oposta à do basemap — dá o contorno que faz a rota se destacar nos dois,
+ * técnica cartográfica padrão. Também protege o caso de uma academia com
+ * branding próprio escolher um oliva mais apagado.
+ */
+function RotaNoMapa({ pontos, isDark }: { pontos: Array<[number, number]>; isDark: boolean }) {
+  return (
+    <>
+      <Polyline
+        positions={pontos}
+        pathOptions={{
+          color: isDark ? "#0A0A0A" : "#FFFFFF",
+          weight: 9,
+          opacity: 0.55,
+          lineCap: "round",
+          lineJoin: "round",
+        }}
+      />
+      <Polyline
+        positions={pontos}
+        pathOptions={{
+          color: "#7B9919",
+          weight: 5,
+          opacity: 0.95,
+          lineCap: "round",
+          lineJoin: "round",
+        }}
+      />
+    </>
+  );
+}
+
 function MapViewer({ coordinates }: { coordinates: Array<{ lat: number; lng: number }> }) {
+  const { isDark } = useTheme();
+
   if (coordinates.length === 0) {
     return (
-      <div
-        style={{
-          width: "100%",
-          minHeight: 220,
-          background: "linear-gradient(180deg, rgba(14,18,16,.96), rgba(12,14,13,.98))",
-          borderRadius: 18,
-          border: "1px solid rgba(255,255,255,0.08)",
-          display: "grid",
-          placeItems: "center",
-          color: "rgba(255,255,255,0.5)",
-          textAlign: "center",
-          padding: 24,
-        }}
-      >
+      <div className="tr-map-waiting">
         <div style={{ display: "grid", gap: 8 }}>
           <div style={{ fontWeight: 600 }}>Aguardando os primeiros pontos do GPS</div>
-          <div style={{ fontSize: 14, color: "rgba(255,255,255,0.35)" }}>
+          <div className="tr-map-waiting-hint">
             Assim que a localização começar a chegar, a rota aparece aqui em tempo real.
           </div>
         </div>
@@ -228,16 +277,10 @@ function MapViewer({ coordinates }: { coordinates: Array<{ lat: number; lng: num
   const startPoint: [number, number] = [coordinates[0].lat, coordinates[0].lng];
 
   return (
-    <div style={{ borderRadius: 18, overflow: "hidden", border: "1px solid rgba(255,255,255,0.10)" }}>
+    <div className="tr-map-frame tr-map-frame--live">
       <MapContainer center={center} zoom={15} style={{ width: "100%", height: 300 }}>
-        <TileLayer
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          attribution="&copy; OpenStreetMap contributors"
-        />
-        <Polyline
-          positions={coordinates.map((c) => [c.lat, c.lng])}
-          pathOptions={{ color: "#7B9919", weight: 5, opacity: 0.92 }}
-        />
+        <TileLayer url={TILE_URL} attribution={TILE_ATTR} />
+        <RotaNoMapa pontos={coordinates.map((c) => [c.lat, c.lng])} isDark={isDark} />
         <Marker position={startPoint}><Popup>Início</Popup></Marker>
         <Marker position={center}><Popup>Posição atual</Popup></Marker>
       </MapContainer>
@@ -246,6 +289,8 @@ function MapViewer({ coordinates }: { coordinates: Array<{ lat: number; lng: num
 }
 
 function HistoryMapViewer({ coordinates }: { coordinates: Array<{ lat: number; lng: number }> }) {
+  const { isDark } = useTheme();
+
   if (coordinates.length === 0) return null;
   const center: [number, number] = [
     coordinates[coordinates.length - 1].lat,
@@ -253,16 +298,10 @@ function HistoryMapViewer({ coordinates }: { coordinates: Array<{ lat: number; l
   ];
   const startPoint: [number, number] = [coordinates[0].lat, coordinates[0].lng];
   return (
-    <div style={{ borderRadius: 14, overflow: "hidden", border: "1px solid var(--color-border)" }}>
+    <div className="tr-map-frame">
       <MapContainer center={center} zoom={15} style={{ width: "100%", height: 210 }}>
-        <TileLayer
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          attribution="&copy; OpenStreetMap contributors"
-        />
-        <Polyline
-          positions={coordinates.map((c) => [c.lat, c.lng])}
-          pathOptions={{ color: "#7B9919", weight: 5, opacity: 0.92 }}
-        />
+        <TileLayer url={TILE_URL} attribution={TILE_ATTR} />
+        <RotaNoMapa pontos={coordinates.map((c) => [c.lat, c.lng])} isDark={isDark} />
         <Marker position={startPoint}><Popup>Início</Popup></Marker>
         <Marker position={center}><Popup>Posição atual</Popup></Marker>
       </MapContainer>
