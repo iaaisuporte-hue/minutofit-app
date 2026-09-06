@@ -51,6 +51,20 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths"></meta-data>
         </provider>
+
+        <!--
+            Coleta de GPS que sobrevive ao WebView ser suspenso (P1B).
+            `exported="false"`: ninguém de fora do app pode iniciá-lo.
+            `stopWithTask="false"`: fechar o app da lista de recentes no meio de
+            uma corrida não deve encerrar a corrida.
+        -->
+        <service
+            android:name=".tracker.LocationForegroundService"
+            android:enabled="true"
+            android:exported="false"
+            android:stopWithTask="false"
+            android:foregroundServiceType="location" />
+
     </application>
 
     <!-- Permissions -->
@@ -62,15 +76,33 @@
         declarar a permissão — as APIs web (navigator.geolocation, getUserMedia)
         falham em silêncio no app empacotado, ainda que funcionem no navegador.
 
-        Localização: só em primeiro plano (Tracker de corrida). Não pedimos
-        ACCESS_BACKGROUND_LOCATION — o rastreio com a tela apagada não é suportado.
+        Localização: Tracker de corrida, incluindo com a tela bloqueada (P1B),
+        via serviço de primeiro plano do tipo `location`.
         Câmera: Lab de Movimento (análise roda no aparelho, nada é gravado).
-        Notificações: obrigatória a partir do Android 13.
+        Notificações: obrigatória a partir do Android 13 — e o serviço de
+        primeiro plano depende dela para existir.
     -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!--
+        Serviço de primeiro plano para o Tracker.
+
+        FOREGROUND_SERVICE_LOCATION é exigida a partir do Android 14 (API 34)
+        para um serviço declarar `foregroundServiceType="location"`; sem ela o
+        app lança SecurityException ao iniciar a corrida nesses aparelhos.
+
+        ACCESS_BACKGROUND_LOCATION continua NÃO sendo pedida, e isso é decisão,
+        não esquecimento: um serviço de primeiro plano do tipo `location`
+        iniciado com o app visível — que é sempre o caso aqui, o gatilho é o
+        toque em "iniciar atividade" — mantém acesso à localização sem ela.
+        Pedi-la obrigaria a uma declaração dedicada na Play Store, com vídeo de
+        demonstração e revisão própria, em troca de nada que este fluxo use.
+    -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
 
     <!--
         "Salvar imagem" do card de treino grava em Documents (@capacitor/filesystem).

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ConfirmModal } from "../../features/team/ConfirmModal";
 import { MapContainer, Marker, Polyline, Popup, TileLayer } from "react-leaflet";
 import L from "leaflet";
@@ -23,7 +23,8 @@ import {
   type ActivityDraft,
 } from "../../features/tracker/activityDraft";
 import { filtrarTrajetoria, metricaPrincipal } from "../../features/tracker/gpsFilter";
-import { WebLocationTracker } from "../../features/tracker/ports/WebLocationTracker";
+import { createLocationTracker } from "../../features/tracker/ports/createLocationTracker";
+import { aoVoltarAoPrimeiroPlano } from "../../features/tracker/foreground";
 import { faixaDeDistancia, postActivityEvent } from "../../features/tracker/activityEvents";
 import { ACTIVITY_META } from "../../features/tracker/constants";
 import { MedicalDisclaimer } from "../../components/MedicalDisclaimer";
@@ -335,8 +336,13 @@ export default function ActivityTrackerPage() {
   const [ultimaAtividade, setUltimaAtividade] = useState<Activity | null>(null);
   const [compartilhar, setCompartilhar] = useState<Activity | null>(null);
 
-  /** Porta de localização. Trocar por uma nativa não muda nada acima daqui. */
-  const trackerRef = useRef(new WebLocationTracker());
+  /**
+   * Porta de localização. `createLocationTracker()` escolhe a implementação
+   * pela plataforma (P1B: Android ganha o serviço de primeiro plano; iOS e
+   * web seguem em `navigator.geolocation`) — nada abaixo desta linha precisa
+   * saber qual delas está em uso.
+   */
+  const trackerRef = useRef(createLocationTracker());
 
   const [isTracking, setIsTracking] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
@@ -416,64 +422,129 @@ export default function ActivityTrackerPage() {
     setActivities(parseStoredActivities(localStorage.getItem("activities")));
   }, []);
 
+  /**
+   * Recalcula TUDO que a tela mostra a partir do rascunho: duração, rota
+   * filtrada, distância, pace, velocidades para a heurística anti-veículo e o
+   * aviso de atividade suspeita.
+   *
+   * O rascunho é o fato: guarda `startedAt`, as pausas e os pontos com
+   * instantes absolutos, e `duracaoAtivaS` deriva a duração deles. A tela é um
+   * espelho — e um espelho que pode estar velho, porque enquanto o WebView fica
+   * suspenso nada nele corre.
+   *
+   * Único caminho de atualização visível (P1B): chamado a cada ponto de GPS
+   * que chega ao vivo, a cada tique do relógio (1 s) e ao voltar do segundo
+   * plano — depois de drenar pontos acumulados. Substitui os três lugares que
+   * antes recalculavam pace/distância cada um a seu modo (um deles usando
+   * `elapsedTime` como gatilho separado, redundante com o tique do relógio que
+   * já chama esta função). É idempotente de propósito: chamar em sequência dá
+   * o mesmo resultado.
+   */
+  const reconciliarComRascunho = useCallback(() => {
+    const d = draftRef.current;
+    if (!d) return;
+
+    const segundos = duracaoAtivaS(d);
+    elapsedTimeRef.current = segundos;
+    setElapsedTime(segundos);
+
+    const r = filtrarTrajetoria(d.pontos, d.tipo);
+    speedsRef.current = r.pontos.map((x) => x.kmh).filter((v) => v > 0);
+
+    // A heurística anti-veículo roda sobre as velocidades JÁ filtradas — vendo
+    // ruído bruto ela acusaria fraude numa caminhada honesta com GPS ruim.
+    if (speedsRef.current.length >= 3 && speedsRef.current.length % 5 === 0) {
+      const analise = analyzeActivityValidity(d.tipo, speedsRef.current);
+      setLiveValidation(
+        analise.isSuspicious && analise.reason ? { isSuspicious: true, reason: analise.reason } : null,
+      );
+    }
+
+    setCurrentActivity((prev) =>
+      prev
+        ? {
+            ...prev,
+            duration: segundos,
+            routeCoordinates: r.pontos.map((x) => ({ lat: x.lat, lng: x.lng })),
+            distance: parseFloat(r.distanciaKm.toFixed(2)),
+            pace: calculatePace(segundos, r.distanciaKm),
+          }
+        : prev,
+    );
+  }, []);
+
   // ── Timer ────────────────────────────────────────────────────────────────
+  //
+  // DERIVADO, não incrementado. O contador `p + 1` que morava aqui congelava
+  // junto com o JavaScript: com a tela apagada nenhum tique corre, e ao
+  // desbloquear o cronômetro voltava atrasado exatamente pelo tempo em que a
+  // pessoa continuou correndo. Ficava assim até algo remontar a tela — e o
+  // número exibido divergia do que seria GRAVADO, que sempre saiu do rascunho.
+  // Derivando de instantes absolutos, o primeiro tique depois da retomada já
+  // mostra a verdade, e tela e registro passam a dizer a mesma coisa.
   useEffect(() => {
     if (!isTracking || isPaused) {
       if (timerRef.current) clearInterval(timerRef.current);
       return;
     }
-    timerRef.current = setInterval(() => setElapsedTime((p) => { elapsedTimeRef.current = p + 1; return p + 1; }), 1000);
+    timerRef.current = setInterval(reconciliarComRascunho, 1000);
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, [isPaused, isTracking]);
+  }, [isPaused, isTracking, reconciliarComRascunho]);
+
+  // ── Volta do segundo plano ───────────────────────────────────────────────
+  //
+  // Esperar o próximo tique do relógio custaria até um segundo de número
+  // errado bem no instante em que a pessoa olha a tela — que é justamente
+  // quando ela desbloqueia o aparelho para conferir. `drenar()` recupera os
+  // pontos que o serviço nativo acumulou enquanto o WebView esteve suspenso
+  // (na web devolve sempre lista vazia: nada acumula do lado de quem já dormiu
+  // junto) — e só DEPOIS reconcilia, para a rota e a distância já refletirem o
+  // que chegou durante o bloqueio, não só o tempo decorrido.
+  useEffect(() => {
+    if (!isTracking) return;
+    return aoVoltarAoPrimeiroPlano(() => {
+      void (async () => {
+        const pontosPendentes = await trackerRef.current.drenar();
+        if (pontosPendentes.length > 0) {
+          let atual = draftRef.current;
+          if (atual) {
+            for (const ponto of pontosPendentes) atual = acrescentarPonto(atual, ponto);
+            draftRef.current = atual;
+            setDraft(atual);
+          }
+        }
+        reconciliarComRascunho();
+      })();
+    });
+  }, [isTracking, reconciliarComRascunho]);
 
   // ── GPS: porta de localização → rascunho → filtro ───────────────────────
   //
-  // Três mudanças em relação ao que havia aqui:
+  // `iniciar()` acontece UMA VEZ por sessão de rastreamento — depende só de
+  // `isTracking`, não de `isPaused` (P1B). Repetir `iniciar()`/cleanup a cada
+  // pausa derrubaria o serviço de primeiro plano nativo e a notificação que
+  // ele sustenta; pausar e retomar a COLETA, sem desmontar a sessão, é
+  // responsabilidade do efeito seguinte.
+  //
+  // Duas mudanças em relação ao que havia aqui antes da P1B:
   //
   //  1. Os pontos vêm da porta `LocationTracker`, não de `navigator.geolocation`
-  //     direto. Trocar por um tracker nativo com foreground service não muda
-  //     nada desta função.
-  //  2. Cada ponto é GRAVADO no rascunho no instante em que chega (§36). Antes
-  //     a rota só existia no estado do React até "Finalizar".
-  //  3. A distância sai de `filtrarTrajetoria` (§28/§29), não da soma de todos
-  //     os pontos: precisão ruim, teleporte, velocidade irreal e deriva do
-  //     aparelho parado deixam de virar quilômetros.
+  //     direto — hoje escolhida por `createLocationTracker()` conforme a
+  //     plataforma (Android ganha o serviço de primeiro plano).
+  //  2. Cada ponto é GRAVADO no rascunho no instante em que chega (§36) e a
+  //     tela é recalculada por `reconciliarComRascunho`, o mesmo caminho usado
+  //     pelo tique do relógio e pela volta do segundo plano.
   useEffect(() => {
-    if (!isTracking || isPaused) return;
+    if (!isTracking) return;
 
-    const parar = trackerRef.current.iniciar({
+    trackerRef.current.iniciar({
       onPonto: (ponto) => {
         const atual = draftRef.current;
         if (!atual) return;
         const novo = acrescentarPonto(atual, ponto);
         draftRef.current = novo;
         setDraft(novo);
-
-        const r = filtrarTrajetoria(novo.pontos, novo.tipo);
-        speedsRef.current = r.pontos.map((x) => x.kmh).filter((v) => v > 0);
-
-        // A heurística anti-veículo continua rodando, agora sobre as
-        // velocidades JÁ filtradas — antes ela via os picos de ruído e
-        // acusava fraude numa caminhada honesta com GPS ruim.
-        if (speedsRef.current.length >= 3 && speedsRef.current.length % 5 === 0) {
-          const analise = analyzeActivityValidity(novo.tipo, speedsRef.current);
-          setLiveValidation(
-            analise.isSuspicious && analise.reason
-              ? { isSuspicious: true, reason: analise.reason }
-              : null,
-          );
-        }
-
-        setCurrentActivity((prev) =>
-          prev
-            ? {
-                ...prev,
-                routeCoordinates: r.pontos.map((x) => ({ lat: x.lat, lng: x.lng })),
-                distance: parseFloat(r.distanciaKm.toFixed(2)),
-                pace: calculatePace(duracaoAtivaS(novo), r.distanciaKm),
-              }
-            : prev,
-        );
+        reconciliarComRascunho();
       },
       onErro: (e) => {
         if (e.tipo === "permissao_negada") {
@@ -483,17 +554,21 @@ export default function ActivityTrackerPage() {
       },
     });
 
-    return parar;
-  }, [isPaused, isTracking]);
+    return () => trackerRef.current.parar();
+  }, [isTracking, reconciliarComRascunho]);
 
-  // ── Pace update on tick ──────────────────────────────────────────────────
+  // ── Pausa/retomada da coleta, sem derrubar a sessão (P1B) ───────────────
+  //
+  // Separado do efeito acima de propósito: aqui é onde "pausar a atividade"
+  // vira "pausar a coleta de GPS" sem tocar no serviço de primeiro plano nem
+  // na notificação. Idempotente nos dois lados — chamar `retomar()` num
+  // tracker que nunca pausou é no-op (ver `WebLocationTracker`/
+  // `LocationForegroundService.iniciarEscuta`).
   useEffect(() => {
-    setCurrentActivity((prev) => {
-      if (!prev) return prev;
-      const distance = prev.distance || 0;
-      return { ...prev, duration: elapsedTime, pace: calculatePace(elapsedTime, distance) };
-    });
-  }, [elapsedTime]);
+    if (!isTracking) return;
+    if (isPaused) trackerRef.current.pausar();
+    else trackerRef.current.retomar();
+  }, [isTracking, isPaused]);
 
   // ── Derived stats ────────────────────────────────────────────────────────
   const stats = useMemo(() => {
@@ -1493,6 +1568,13 @@ export default function ActivityTrackerPage() {
           limparRascunho();
           setRecuperavel(null);
           setConfirmarDescarte(false);
+          // Defensivo (P1B): esta montagem nunca chamou `iniciar()` para este
+          // rascunho — ele foi recuperado do localStorage, não retomado. Mas se
+          // o Android reviveu o serviço nativo sozinho (`START_STICKY`) depois
+          // de o processo anterior morrer no meio da atividade, não há NENHUM
+          // efeito React vivo para desligá-lo. `parar()` é seguro mesmo sem
+          // sessão em curso — ver o comentário na porta.
+          trackerRef.current.parar();
         }}
         onCancel={() => setConfirmarDescarte(false)}
       />

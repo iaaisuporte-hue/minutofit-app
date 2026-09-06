@@ -48,7 +48,9 @@ export interface LocationTracker {
   solicitarPermissao(): Promise<PermissaoLocalizacao>;
 
   /**
-   * Começa a emitir pontos. Devolve a função que encerra.
+   * Começa a emitir pontos para a sessão inteira de rastreamento — uma vez por
+   * atividade, não uma vez por trecho ativo (P1B). Pausa e retomada dentro da
+   * mesma sessão são `pausar()`/`retomar()`, não uma nova chamada aqui.
    *
    * `onErro` recebe perda de sinal e negação de permissão em curso — a §19/§20
    * da SPEC exige que a tela reaja a isso, não que trave.
@@ -56,7 +58,43 @@ export interface LocationTracker {
   iniciar(opts: {
     onPonto: (p: PontoBruto) => void;
     onErro?: (e: ErroLocalizacao) => void;
-  }): () => void;
+  }): void;
+
+  /**
+   * Suspende e retoma a coleta sem encerrar a sessão de rastreamento.
+   *
+   * Existe porque "pausar a atividade" e "encerrar o rastreamento" são coisas
+   * diferentes para uma implementação nativa: derrubar o serviço de primeiro
+   * plano a cada pausa apagaria a notificação, e retomar exigiria subi-lo de
+   * novo — com o app possivelmente em segundo plano, que é justamente quando o
+   * Android proíbe iniciar serviço.
+   */
+  pausar(): void;
+  retomar(): void;
+
+  /**
+   * Encerra a sessão por completo — o oposto de `iniciar()`.
+   *
+   * Seguro de chamar a qualquer momento, mesmo sem uma sessão em curso: é o
+   * que faz dele o caminho tanto da limpeza normal (fim/descarte de atividade,
+   * `isTracking` virando falso) quanto de um defensivo — descartar um
+   * RASCUNHO recuperado (que nunca chegou a retomar rastreamento nesta
+   * montagem) chama `parar()` do mesmo jeito, para o caso de o serviço nativo
+   * ter sobrevivido a uma morte de processo (`START_STICKY`) sem ninguém do
+   * lado web para desligá-lo.
+   */
+  parar(): void;
+
+  /**
+   * Entrega os pontos acumulados enquanto o JavaScript esteve suspenso, e os
+   * remove da fila.
+   *
+   * Só faz sentido em implementação com segundo plano: enquanto o WebView
+   * dorme, nenhum callback é entregue, então o lado nativo acumula e o web
+   * puxa ao acordar. A web devolve lista vazia — não há nada acumulado quando
+   * é o próprio JavaScript que coleta.
+   */
+  drenar(): Promise<PontoBruto[]>;
 }
 
 export type PermissaoLocalizacao = "concedida" | "negada" | "nao_solicitada" | "indisponivel";

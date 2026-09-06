@@ -71,13 +71,50 @@ export class WebLocationTracker implements LocationTracker {
     });
   }
 
-  iniciar(opts: { onPonto: (p: PontoBruto) => void; onErro?: (e: ErroLocalizacao) => void }): () => void {
+  /** `watchPosition` em curso, para pausar sem perder a inscrição. */
+  private watchId: number | null = null;
+  private opcoes: { onPonto: (p: PontoBruto) => void; onErro?: (e: ErroLocalizacao) => void } | null = null;
+
+  iniciar(opts: { onPonto: (p: PontoBruto) => void; onErro?: (e: ErroLocalizacao) => void }): void {
     if (!this.disponivel()) {
       opts.onErro?.({ tipo: "indisponivel" });
-      return () => {};
+      return;
     }
+    this.opcoes = opts;
+    this.escutar();
+  }
 
-    const id = navigator.geolocation.watchPosition(
+  /** Pausa solta o receptor: manter o GPS ligado sem usar só gasta bateria. */
+  pausar(): void {
+    this.pararRecepcao();
+  }
+
+  retomar(): void {
+    if (this.opcoes) this.escutar();
+  }
+
+  /** Seguro chamar sem uma sessão em curso: `pararRecepcao` já é no-op nesse caso. */
+  parar(): void {
+    this.opcoes = null;
+    this.pararRecepcao();
+  }
+
+  /** Nada acumula na web: quem coleta é o próprio JavaScript, que dorme junto. */
+  async drenar(): Promise<PontoBruto[]> {
+    return [];
+  }
+
+  private pararRecepcao(): void {
+    if (this.watchId === null) return;
+    navigator.geolocation.clearWatch(this.watchId);
+    this.watchId = null;
+  }
+
+  private escutar(): void {
+    const opts = this.opcoes;
+    if (!opts || this.watchId !== null) return;
+
+    this.watchId = navigator.geolocation.watchPosition(
       (pos) => {
         opts.onPonto({
           lat: pos.coords.latitude,
@@ -94,7 +131,5 @@ export class WebLocationTracker implements LocationTracker {
       },
       { enableHighAccuracy: true, timeout: 15_000, maximumAge: 0 },
     );
-
-    return () => navigator.geolocation.clearWatch(id);
   }
 }
