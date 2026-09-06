@@ -91,6 +91,88 @@ export interface MealAlternative {
   order_index: number;
 }
 
+// ---------------------------------------------------------------------------
+// SPEC 038 (P3A) — alimentos, medidas e itens estruturados de refeição
+// ---------------------------------------------------------------------------
+
+export interface FoodMeasure {
+  id: number;
+  name: string;
+  grams: number;
+}
+
+export interface Food {
+  id: number;
+  kind: 'catalog' | 'custom';
+  name: string;
+  category: string | null;
+  source: string;
+  referenceAmountG: number;
+  energyKcal: number;
+  proteinG: number;
+  carbohydrateG: number;
+  fatG: number;
+  /** null = não medido na fonte — nunca renderizar como "0g". */
+  fiberG: number | null;
+  sodiumMg: number | null;
+}
+
+export interface CustomFoodPayload {
+  name: string;
+  brand?: string | null;
+  notes?: string | null;
+  referenceAmountG?: number;
+  energyKcal: number;
+  proteinG: number;
+  carbohydrateG: number;
+  fatG: number;
+  fiberG?: number | null;
+  sodiumMg?: number | null;
+}
+
+export interface NutritionMealItem {
+  id: number;
+  foodId: number | null;
+  customFoodId: number | null;
+  quantity: number;
+  unitType: 'grams' | 'measure';
+  measureId: number | null;
+  customMeasureId: number | null;
+  grams: number;
+  orderIndex: number;
+  notes: string | null;
+  foodName: string;
+  energyKcal: number;
+  proteinG: number;
+  carbohydrateG: number;
+  fatG: number;
+  fiberG: number | null;
+  sodiumMg: number | null;
+}
+
+export interface MealItemPayload {
+  id?: number;
+  foodId?: number;
+  customFoodId?: number;
+  quantity: number;
+  unitType: 'grams' | 'measure';
+  measureId?: number;
+  customMeasureId?: number;
+  orderIndex?: number;
+  notes?: string | null;
+}
+
+export interface NutrientTotals {
+  energyKcal: number;
+  proteinG: number;
+  carbohydrateG: number;
+  fatG: number;
+  fiberG: number | null;
+  fiberPartial: boolean;
+  sodiumMg: number | null;
+  sodiumPartial: boolean;
+}
+
 export interface NutritionMeal {
   id: number;
   plan_id: number;
@@ -105,6 +187,9 @@ export interface NutritionMeal {
   hydration_note: string | null;
   supplement_note: string | null;
   alternatives: MealAlternative[];
+  /** SPEC 038 — aditivo; refeição pode não ter nenhum item (só texto). */
+  items: NutritionMealItem[];
+  totals: NutrientTotals;
 }
 
 export interface MealTimelineEntry extends NutritionMeal {
@@ -142,6 +227,8 @@ export interface NutritionPlan {
   patient_name?: string;
   meals: NutritionMeal[];
   todayCheckin?: NutritionCheckin | null;
+  /** SPEC 038 — soma derivada de todas as refeições, sempre recalculada na leitura. */
+  dayTotals?: NutrientTotals;
 }
 
 export interface NutritionCheckin {
@@ -232,6 +319,8 @@ export type MealPayload = {
   hydration_note?: string | null;
   supplement_note?: string | null;
   alternatives?: Array<{ id?: number; description: string; order_index: number }>;
+  /** SPEC 038 — itens estruturados, aditivos à orientação textual. */
+  items?: MealItemPayload[];
 };
 
 export async function createNutritionPlan(
@@ -721,4 +810,67 @@ export async function listNutriDirectInvites(): Promise<NutriDirectInvite[]> {
 export async function revokeNutriDirectInvite(id: number): Promise<void> {
   const res = await authFetch(`${API_URL}/nutri/direct-invites/${id}`, { method: 'DELETE' });
   await readNutriJson(res);
+}
+
+// ---------------------------------------------------------------------------
+// Nutri — alimentos (catálogo TACO + customizados) (SPEC 038 / P3A)
+// ---------------------------------------------------------------------------
+
+export async function searchFoods(query: string, limit = 20): Promise<Food[]> {
+  const res = await authFetch(`${API_URL}/nutri/foods?q=${encodeURIComponent(query)}&limit=${limit}`);
+  const json = await readNutriJson(res);
+  return json.data ?? [];
+}
+
+export async function fetchFoodMeasures(foodId: number): Promise<FoodMeasure[]> {
+  const res = await authFetch(`${API_URL}/nutri/foods/${foodId}/measures`);
+  const json = await readNutriJson(res);
+  return json.data ?? [];
+}
+
+export async function listCustomFoods(): Promise<Food[]> {
+  const res = await authFetch(`${API_URL}/nutri/custom-foods`);
+  const json = await readNutriJson(res);
+  return json.data ?? [];
+}
+
+export async function createCustomFood(payload: CustomFoodPayload): Promise<Food> {
+  const res = await authFetch(`${API_URL}/nutri/custom-foods`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  const json = await readNutriJson(res);
+  return json.data;
+}
+
+export async function updateCustomFood(id: number, payload: Partial<CustomFoodPayload>): Promise<Food> {
+  const res = await authFetch(`${API_URL}/nutri/custom-foods/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  const json = await readNutriJson(res);
+  return json.data;
+}
+
+export async function archiveCustomFood(id: number): Promise<void> {
+  const res = await authFetch(`${API_URL}/nutri/custom-foods/${id}`, { method: 'DELETE' });
+  await readNutriJson(res);
+}
+
+export async function fetchCustomFoodMeasures(customFoodId: number): Promise<FoodMeasure[]> {
+  const res = await authFetch(`${API_URL}/nutri/custom-foods/${customFoodId}/measures`);
+  const json = await readNutriJson(res);
+  return json.data ?? [];
+}
+
+export async function addCustomFoodMeasure(customFoodId: number, name: string, grams: number): Promise<FoodMeasure> {
+  const res = await authFetch(`${API_URL}/nutri/custom-foods/${customFoodId}/measures`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, grams }),
+  });
+  const json = await readNutriJson(res);
+  return json.data;
 }

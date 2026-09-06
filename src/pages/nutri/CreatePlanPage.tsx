@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronUp, ChevronDown, Plus, X } from "lucide-react";
 import { COLORS } from "../../styles/colors";
 import { useIsMobile } from "../../hooks/useIsMobile";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
+import { AddFoodItemControl, MealItemRow, previewMealTotal, type MealItemDraft } from "./MealItemsEditor";
 import {
   createNutritionPlan,
   checkDietAgainstProfile,
@@ -15,7 +16,9 @@ import {
   type MetabolicGoal,
   type WorkoutRelation,
   type MealPayload,
+  type MealItemPayload,
   type NutritionPlan,
+  type NutritionMeal,
   type DietAlert,
   type AlertLevel,
   type SubstitutionSuggestion,
@@ -48,6 +51,7 @@ function planToDrafts(plan: NutritionPlan): MealDraft[] {
     hydration_note: m.hydration_note ?? "",
     supplement_note: m.supplement_note ?? "",
     alternatives: m.alternatives.map((a) => a.description),
+    items: (m.items ?? []).map(mealItemToDraft),
   }));
 }
 
@@ -64,6 +68,8 @@ interface MealDraft {
   hydration_note: string;
   supplement_note: string;
   alternatives: string[];
+  /** SPEC 038 (P3A) — itens estruturados, aditivos à orientação. */
+  items: MealItemDraft[];
 }
 
 function emptyMeal(): MealDraft {
@@ -77,6 +83,32 @@ function emptyMeal(): MealDraft {
     hydration_note: "",
     supplement_note: "",
     alternatives: [],
+    items: [],
+  };
+}
+
+/** Reconstrói o item de um plano existente (duplicar/editar) a partir do snapshot já calculado. */
+function mealItemToDraft(item: NutritionMeal["items"][number]): MealItemDraft {
+  const factor = item.grams > 0 ? 100 / item.grams : 0;
+  return {
+    id: item.id,
+    foodId: item.foodId ?? undefined,
+    customFoodId: item.customFoodId ?? undefined,
+    foodName: item.foodName,
+    per100g: {
+      energyKcal: Math.round(item.energyKcal * factor * 100) / 100,
+      proteinG: Math.round(item.proteinG * factor * 100) / 100,
+      carbohydrateG: Math.round(item.carbohydrateG * factor * 100) / 100,
+      fatG: Math.round(item.fatG * factor * 100) / 100,
+      fiberG: item.fiberG == null ? null : Math.round(item.fiberG * factor * 100) / 100,
+      sodiumMg: item.sodiumMg == null ? null : Math.round(item.sodiumMg * factor * 100) / 100,
+    },
+    quantity: item.unitType === "measure" ? item.quantity : item.grams,
+    unitType: item.unitType,
+    measureId: item.measureId ?? undefined,
+    customMeasureId: item.customMeasureId ?? undefined,
+    measureGrams: item.unitType === "measure" ? item.grams / item.quantity : undefined,
+    orderIndex: item.orderIndex,
   };
 }
 
@@ -89,7 +121,15 @@ function draftKey(patientId: number): string {
   return `s2core:nutri:plan-draft:${patientId}`;
 }
 
+// SPEC 038 (P3A) / §55: itens estruturados mudaram a FORMA do rascunho
+// (cada refeição ganhou `items` obrigatório). v1 (sem `version` — só
+// existiu antes da P3A) não pode ser hidratado: `meal.items.length` num
+// rascunho v1 quebraria em runtime. `readDraft` já filtra por versão —
+// quem chama só recebe um bundle hidratável de verdade.
+const DRAFT_VERSION = 2;
+
 interface PlanDraftBundle {
+  version: number;
   title: string;
   objective: NutriObjective | "";
   generalNotes: string;
@@ -97,19 +137,30 @@ interface PlanDraftBundle {
   savedAt: string;
 }
 
+/** Presença de QUALQUER rascunho salvo, mesmo incompatível — só para decidir a UI do prompt. */
+function hasAnyDraft(patientId: number): boolean {
+  try {
+    return localStorage.getItem(draftKey(patientId)) != null;
+  } catch {
+    return false;
+  }
+}
+
 function readDraft(patientId: number): PlanDraftBundle | null {
   try {
     const raw = localStorage.getItem(draftKey(patientId));
     if (!raw) return null;
-    return JSON.parse(raw) as PlanDraftBundle;
+    const parsed = JSON.parse(raw) as Partial<PlanDraftBundle>;
+    if (parsed.version !== DRAFT_VERSION) return null; // incompatível — nunca hidrata parcialmente
+    return parsed as PlanDraftBundle;
   } catch {
     return null;
   }
 }
 
-function writeDraft(patientId: number, bundle: PlanDraftBundle): void {
+function writeDraft(patientId: number, bundle: Omit<PlanDraftBundle, "version">): void {
   try {
-    localStorage.setItem(draftKey(patientId), JSON.stringify(bundle));
+    localStorage.setItem(draftKey(patientId), JSON.stringify({ ...bundle, version: DRAFT_VERSION }));
   } catch { /* localStorage indisponível (modo privado etc.) — sem rascunho, sem crash */ }
 }
 
@@ -129,7 +180,7 @@ function MealRow({
   meal: MealDraft;
   index: number;
   total: number;
-  onChange: (field: keyof MealDraft, value: string | string[]) => void;
+  onChange: (field: keyof MealDraft, value: string | string[] | MealItemDraft[]) => void;
   onRemove: () => void;
 }) {
   const [expanded, setExpanded] = useState(false);
@@ -151,6 +202,16 @@ function MealRow({
   function removeAlt(i: number) {
     onChange("alternatives", meal.alternatives.filter((_, idx) => idx !== i));
   }
+
+  function addItem(item: MealItemDraft) {
+    onChange("items", [...meal.items, { ...item, orderIndex: meal.items.length }]);
+  }
+
+  function removeItem(i: number) {
+    onChange("items", meal.items.filter((_, idx) => idx !== i).map((it, idx) => ({ ...it, orderIndex: idx })));
+  }
+
+  const mealTotal = previewMealTotal(meal.items);
 
   const nameFieldId = `meal-${index}-name`;
   const timeFieldId = `meal-${index}-time`;
@@ -223,6 +284,23 @@ function MealRow({
           onChange={(e) => onChange("orientation", e.target.value)}
           style={{ resize: "vertical" }}
         />
+      </div>
+
+      {/* SPEC 038 (P3A) — itens estruturados: aditivo à orientação acima, nunca obrigatório */}
+      <div className="stack" style={{ gap: "var(--space-2)", marginBottom: "var(--space-2)" }}>
+        {meal.items.length > 0 && (
+          <div className="stack" style={{ gap: "var(--space-1)" }}>
+            {meal.items.map((item, i) => (
+              <MealItemRow key={item.id ?? `new-${i}`} item={item} onRemove={() => removeItem(i)} />
+            ))}
+          </div>
+        )}
+        <AddFoodItemControl onAdd={addItem} />
+        {meal.items.length > 0 && (
+          <div className="muted" style={{ fontSize: "var(--text-xs)", textAlign: "right" }}>
+            Subtotal: {mealTotal.energyKcal} kcal · P {mealTotal.proteinG}g · C {mealTotal.carbohydrateG}g · G {mealTotal.fatG}g
+          </div>
+        )}
       </div>
 
       {/* Toggle advanced */}
@@ -370,7 +448,11 @@ export default function CreatePlanPage() {
   // "Duplicar" (ação explícita sobre um plano específico), o rascunho antigo
   // é ignorado: a intenção explícita do clique vence um estado esquecido.
   const [pendingDraft] = useState<PlanDraftBundle | null>(() => (duplicate ? null : readDraft(id)));
-  const [draftResolved, setDraftResolved] = useState(!pendingDraft);
+  // SPEC 038 §55: rascunho de formato antigo (v1) existe mas não é
+  // hidratável — prompt oferece só Descartar, nunca finge que consegue
+  // continuar de onde parou.
+  const [hasIncompatibleDraft] = useState<boolean>(() => !duplicate && !pendingDraft && hasAnyDraft(id));
+  const [draftResolved, setDraftResolved] = useState(!pendingDraft && !hasIncompatibleDraft);
 
   const [title, setTitle] = useState(duplicate ? `Cópia — ${duplicate.title}` : "");
   const [objective, setObjective] = useState<NutriObjective | "">(duplicate?.objective ?? "");
@@ -477,6 +559,16 @@ export default function CreatePlanPage() {
         alternatives: m.alternatives
           .map((d, idx) => ({ description: d.trim(), order_index: idx }))
           .filter((a) => a.description.length > 0),
+        items: m.items.map((it, idx): MealItemPayload => ({
+          id: it.id,
+          foodId: it.foodId,
+          customFoodId: it.customFoodId,
+          quantity: it.quantity,
+          unitType: it.unitType,
+          measureId: it.measureId,
+          customMeasureId: it.customMeasureId,
+          orderIndex: idx,
+        })),
       }));
 
       // Checagem contra o perfil clínico-nutricional antes de salvar.
@@ -548,7 +640,7 @@ export default function CreatePlanPage() {
     setGeneralNotes(value);
   }
 
-  function updateMeal(index: number, field: keyof MealDraft, value: string | string[]) {
+  function updateMeal(index: number, field: keyof MealDraft, value: string | string[] | MealItemDraft[]) {
     // Editar a dieta invalida a confirmação anterior — re-checa no próximo salvar.
     resetAck();
     setIsDirty(true);
@@ -578,6 +670,22 @@ export default function CreatePlanPage() {
     resetAck();
     setIsDirty(true);
     setMeals((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  if (!draftResolved && hasIncompatibleDraft) {
+    return (
+      <div style={{ padding: "var(--space-6) 0", maxWidth: 680 }}>
+        <div className="card cardPad">
+          <div style={{ fontSize: "var(--text-base)", fontWeight: 700, color: COLORS.text, marginBottom: "var(--space-2)" }}>
+            Encontramos um rascunho de uma versão antiga
+          </div>
+          <p className="muted" style={{ fontSize: "var(--text-sm)", lineHeight: 1.5, margin: "0 0 var(--space-4)" }}>
+            O builder mudou desde então e não é possível continuar esse rascunho com segurança. Descarte para começar do zero.
+          </p>
+          <button type="button" className="btn btn-ghost btn-sm" onClick={discardDraft}>Descartar</button>
+        </div>
+      </div>
+    );
   }
 
   if (!draftResolved) {
@@ -700,6 +808,23 @@ export default function CreatePlanPage() {
             </button>
           )}
         </div>
+
+        {/* SPEC 038 (P3A) §31 — total diário, derivado dos itens de todas as refeições */}
+        {meals.some((m) => m.items.length > 0) && (() => {
+          const dayTotal = previewMealTotal(meals.flatMap((m) => m.items));
+          return (
+            <div className="card cardPad" style={{ background: "var(--color-primary-soft)" }}>
+              <div className="muted" style={{ fontSize: "var(--text-xs)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "var(--space-2)" }}>
+                Total diário
+              </div>
+              <div style={{ fontSize: "var(--text-xl)", fontWeight: 800, color: COLORS.text }}>{dayTotal.energyKcal} kcal</div>
+              <div className="muted" style={{ fontSize: "var(--text-sm)" }}>
+                Proteína {dayTotal.proteinG}g · Carboidrato {dayTotal.carbohydrateG}g · Gordura {dayTotal.fatG}g
+                {dayTotal.fiberG != null && ` · Fibra ${dayTotal.fiberG}g${dayTotal.fiberPartial ? " (parcial)" : ""}`}
+              </div>
+            </div>
+          );
+        })()}
 
         {alerts.length > 0 && (
           <div className="stack" style={{ gap: "var(--space-2)" }} role="alert">

@@ -1,4 +1,4 @@
-import type { MetabolicGoal, WorkoutRelation, DietAlert } from "../../../services/nutriApi";
+import type { MetabolicGoal, WorkoutRelation, DietAlert, MealItemPayload } from "../../../services/nutriApi";
 
 /**
  * SPEC 035 / §7: consentimento revogado não pode ser renderizado como "sem
@@ -59,6 +59,16 @@ export type EditDraftMeal = {
   hydration_note: string | null;
   supplement_note: string | null;
   alternatives: Array<{ id?: number; description: string; order_index: number }>;
+  /**
+   * SPEC 038 (P3A): mesma regra acima, agora para itens estruturados — a
+   * tela de edição do Plano ainda não expõe adicionar/remover alimento
+   * (isso vive no builder), mas precisa ECOAR os itens existentes de volta
+   * no PATCH. Sem isso, `reconcileMealItems` trata `items` ausente como
+   * "lista vazia enviada" e soft-deleta TODO item estruturado só porque o
+   * nutri editou o título do plano — a mesmíssima classe do BLOCKER NUTRI-01,
+   * desta vez em cima da fundação da P3A.
+   */
+  items: MealItemPayload[];
 };
 
 export type EditDraft = {

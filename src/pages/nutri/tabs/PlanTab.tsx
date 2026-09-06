@@ -59,6 +59,19 @@ export function PlanTab({ patientId }: { patientId: number }) {
         hydration_note: m.hydration_note,
         supplement_note: m.supplement_note,
         alternatives: m.alternatives?.map((a) => ({ id: a.id, description: a.description, order_index: a.order_index })) ?? [],
+        // SPEC 038: ecoa os itens estruturados existentes — esta tela ainda
+        // não permite adicionar/remover alimento (isso é o builder), mas
+        // precisa preservar o que já existe a cada PATCH.
+        items: (m.items ?? []).map((it) => ({
+          id: it.id,
+          foodId: it.foodId ?? undefined,
+          customFoodId: it.customFoodId ?? undefined,
+          quantity: it.quantity,
+          unitType: it.unitType,
+          measureId: it.measureId ?? undefined,
+          customMeasureId: it.customMeasureId ?? undefined,
+          orderIndex: it.orderIndex,
+        })),
       })) ?? [],
     });
     setEditing(true);
@@ -81,6 +94,7 @@ export function PlanTab({ patientId }: { patientId: number }) {
         name: "", orientation: "", meal_time: "", order_index: prev.meals.length,
         tolerance_minutes: null, reminder_minutes: null, metabolic_goal: null,
         workout_relation: null, hydration_note: null, supplement_note: null, alternatives: [],
+        items: [],
       };
       return { ...prev, meals: [...prev.meals, novaRefeicao] };
     });
@@ -292,8 +306,35 @@ export function PlanTab({ patientId }: { patientId: number }) {
               <div key={m.id} style={{ borderTop: "1px solid var(--color-border)", paddingTop: "var(--space-3)", marginTop: "var(--space-3)" }}>
                 <div style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: COLORS.text, marginBottom: "var(--space-1)" }}>{m.name}</div>
                 <div className="muted" style={{ fontSize: "var(--text-sm)", lineHeight: 1.55 }}>{m.orientation}</div>
+                {/* SPEC 038 (P3A) — itens estruturados, quando existirem */}
+                {m.items && m.items.length > 0 && (
+                  <div className="stack" style={{ gap: 4, marginTop: "var(--space-2)" }}>
+                    {m.items.map((item) => (
+                      <div key={item.id} style={{ fontSize: "var(--text-xs)", color: COLORS.muted, display: "flex", justifyContent: "space-between", gap: "var(--space-2)" }}>
+                        <span>{item.foodName} — {item.grams}g</span>
+                        <span>{item.energyKcal} kcal</span>
+                      </div>
+                    ))}
+                    <div style={{ fontSize: "var(--text-xs)", fontWeight: 600, color: COLORS.text, textAlign: "right" }}>
+                      Subtotal: {m.totals.energyKcal} kcal · P {m.totals.proteinG}g · C {m.totals.carbohydrateG}g · G {m.totals.fatG}g
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
+
+            {active.dayTotals && active.meals?.some((m) => m.items?.length > 0) && (
+              <div className="card cardPad" style={{ marginTop: "var(--space-4)", background: "var(--color-primary-soft)" }}>
+                <div className="muted" style={{ fontSize: "var(--text-xs)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "var(--space-2)" }}>
+                  Total diário
+                </div>
+                <div style={{ fontSize: "var(--text-xl)", fontWeight: 800, color: COLORS.text }}>{active.dayTotals.energyKcal} kcal</div>
+                <div className="muted" style={{ fontSize: "var(--text-sm)" }}>
+                  Proteína {active.dayTotals.proteinG}g · Carboidrato {active.dayTotals.carbohydrateG}g · Gordura {active.dayTotals.fatG}g
+                  {active.dayTotals.fiberG != null && ` · Fibra ${active.dayTotals.fiberG}g${active.dayTotals.fiberPartial ? " (parcial)" : ""}`}
+                </div>
+              </div>
+            )}
 
             <div style={{ display: "flex", gap: "var(--space-2)", marginTop: "var(--space-5)", flexWrap: "wrap" }}>
               <button type="button" className="btn btn-ghost btn-sm" onClick={() => openEdit(active)}>Editar plano</button>
