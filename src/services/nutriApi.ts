@@ -678,3 +678,47 @@ export async function recordNutritionCheckin(adherence: Adherence, note?: string
   const json = await readNutriJson(res);
   return json.data;
 }
+
+// ---------------------------------------------------------------------------
+// Nutri — direct invites (SPEC 037 / P2.3)
+// ---------------------------------------------------------------------------
+// Backend já existia ponta a ponta (routes/nutri.ts `/direct-invites`) e a
+// tela de aceite do aluno também (`DirectInviteAcceptPage`, rota
+// `/convite-nutri/:token`) — só faltava este cliente HTTP e a UI do nutri.
+
+export interface NutriDirectInvite {
+  id: number;
+  token: string;
+  invited_email: string | null;
+  invited_name: string | null;
+  status: 'pending' | 'accepted' | 'expired' | 'revoked';
+  expires_at: string;
+  created_at: string;
+  accepted_at: string | null;
+  accepted_user_name: string | null;
+  inviteUrl: string;
+}
+
+export async function createNutriDirectInvite(opts: {
+  invitedEmail?: string;
+  invitedName?: string;
+}): Promise<NutriDirectInvite> {
+  const res = await authFetch(`${API_URL}/nutri/direct-invites`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ invitedEmail: opts.invitedEmail || null, invitedName: opts.invitedName || null }),
+  });
+  const json = await readNutriJson(res);
+  return json.data;
+}
+
+export async function listNutriDirectInvites(): Promise<NutriDirectInvite[]> {
+  const res = await authFetch(`${API_URL}/nutri/direct-invites`);
+  const json = await readNutriJson(res);
+  return json.data ?? [];
+}
+
+export async function revokeNutriDirectInvite(id: number): Promise<void> {
+  const res = await authFetch(`${API_URL}/nutri/direct-invites/${id}`, { method: 'DELETE' });
+  await readNutriJson(res);
+}

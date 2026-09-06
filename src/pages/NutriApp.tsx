@@ -1,22 +1,14 @@
-import { NavLink, Navigate, Route, Routes } from "react-router-dom";
+import { NavLink, Route, Routes } from "react-router-dom";
 import { Menu } from "lucide-react";
 import { useAuth } from "../auth/AuthContext";
 import AppShell from "../layout/AppShell";
 import S2CoreLogo from "../components/S2CoreLogo";
-import { IncomingRequestsPanel, NetworkVisibilityBanner } from "../features/team";
+import NutriTodayPage from "./nutri/NutriTodayPage";
 import NutritionPatientsPage from "./nutri/NutritionPatientsPage";
 import PatientDetailNutriPage from "./nutri/PatientDetailNutriPage";
 import CreatePlanPage from "./nutri/CreatePlanPage";
+import ConvitesPage from "./nutri/ConvitesPage";
 import NetworkProfilePage from "./professional/NetworkProfilePage";
-
-function ConvitesPage() {
-  return (
-    <div style={{ padding: "24px 0" }}>
-      <NetworkVisibilityBanner role="nutri" />
-      <IncomingRequestsPanel role="nutri" />
-    </div>
-  );
-}
 
 export default function NutriApp() {
   const auth = useAuth();
@@ -40,6 +32,9 @@ export default function NutriApp() {
               <Menu size={20} aria-hidden="true" />
             </summary>
             <div className="navDisclosure__panel">
+              <NavLink to="/app/nutri" end className={navLinkStyle}>
+                Hoje
+              </NavLink>
               <NavLink to="/app/nutri/pacientes" className={navLinkStyle}>
                 Pacientes
               </NavLink>
@@ -64,6 +59,9 @@ export default function NutriApp() {
           </div>
 
           <div className="navStack">
+            <NavLink to="/app/nutri" end className={navLinkStyle}>
+              Hoje
+            </NavLink>
             <NavLink to="/app/nutri/pacientes" className={navLinkStyle}>
               Pacientes
             </NavLink>
@@ -86,7 +84,7 @@ export default function NutriApp() {
       }
     >
       <Routes>
-        <Route index element={<Navigate to="pacientes" replace />} />
+        <Route index element={<NutriTodayPage />} />
         <Route path="pacientes" element={<NutritionPatientsPage />} />
         <Route path="pacientes/:patientId" element={<PatientDetailNutriPage />} />
         <Route path="pacientes/:patientId/plano/novo" element={<CreatePlanPage />} />

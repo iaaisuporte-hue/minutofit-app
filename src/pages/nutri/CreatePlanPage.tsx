@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { ChevronLeft, ChevronUp, ChevronDown, Plus, X } from "lucide-react";
 import { COLORS } from "../../styles/colors";
 import { useIsMobile } from "../../hooks/useIsMobile";
+import { ConfirmDialog } from "../../components/ConfirmDialog";
 import {
   createNutritionPlan,
   checkDietAgainstProfile,
@@ -77,6 +78,45 @@ function emptyMeal(): MealDraft {
     supplement_note: "",
     alternatives: [],
   };
+}
+
+// SPEC 037 / P2.8: convenção de chave emprestada de
+// `pages/user/workoutSession/sessionDraft.ts` (`s2core:{módulo}:draft:
+// {escopo}`) — não existe rascunho de AUTORIA em nenhum builder do produto
+// hoje (o do Personal fecha sem confirmar; o da sessão do aluno é rascunho
+// de execução, não de criação), então este desenho é novo.
+function draftKey(patientId: number): string {
+  return `s2core:nutri:plan-draft:${patientId}`;
+}
+
+interface PlanDraftBundle {
+  title: string;
+  objective: NutriObjective | "";
+  generalNotes: string;
+  meals: MealDraft[];
+  savedAt: string;
+}
+
+function readDraft(patientId: number): PlanDraftBundle | null {
+  try {
+    const raw = localStorage.getItem(draftKey(patientId));
+    if (!raw) return null;
+    return JSON.parse(raw) as PlanDraftBundle;
+  } catch {
+    return null;
+  }
+}
+
+function writeDraft(patientId: number, bundle: PlanDraftBundle): void {
+  try {
+    localStorage.setItem(draftKey(patientId), JSON.stringify(bundle));
+  } catch { /* localStorage indisponível (modo privado etc.) — sem rascunho, sem crash */ }
+}
+
+function clearDraft(patientId: number): void {
+  try {
+    localStorage.removeItem(draftKey(patientId));
+  } catch { /* ver readDraft */ }
 }
 
 function MealRow({
@@ -323,6 +363,14 @@ export default function CreatePlanPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const duplicate = (location.state as { duplicateFrom?: NutritionPlan } | null)?.duplicateFrom;
+  const id = Number(patientId);
+
+  // SPEC 037 / P2.8: rascunho de uma sessão anterior NUNCA é restaurado em
+  // silêncio — só depois de o nutri escolher "Continuar rascunho". Vindo de
+  // "Duplicar" (ação explícita sobre um plano específico), o rascunho antigo
+  // é ignorado: a intenção explícita do clique vence um estado esquecido.
+  const [pendingDraft] = useState<PlanDraftBundle | null>(() => (duplicate ? null : readDraft(id)));
+  const [draftResolved, setDraftResolved] = useState(!pendingDraft);
 
   const [title, setTitle] = useState(duplicate ? `Cópia — ${duplicate.title}` : "");
   const [objective, setObjective] = useState<NutriObjective | "">(duplicate?.objective ?? "");
@@ -336,7 +384,72 @@ export default function CreatePlanPage() {
   const [acknowledged, setAcknowledged] = useState(false);
   const [suggestions, setSuggestions] = useState<Record<number, SubstitutionSuggestion>>({});
 
-  const id = Number(patientId);
+  const [isDirty, setIsDirty] = useState(false);
+  const [exitConfirmOpen, setExitConfirmOpen] = useState(false);
+  const pendingExitRef = useRef<(() => void) | null>(null);
+
+  function continueDraft() {
+    if (!pendingDraft) return;
+    setTitle(pendingDraft.title);
+    setObjective(pendingDraft.objective);
+    setGeneralNotes(pendingDraft.generalNotes);
+    setMeals(pendingDraft.meals);
+    setIsDirty(true);
+    setDraftResolved(true);
+  }
+
+  function discardDraft() {
+    clearDraft(id);
+    setDraftResolved(true);
+  }
+
+  // Autosave do rascunho (debounced) — só enquanto sujo e só depois de
+  // resolvido o prompt de restauração (não sobrescreve o rascunho salvo
+  // enquanto o nutri ainda não decidiu o que fazer com ele).
+  useEffect(() => {
+    if (!isDirty || !draftResolved) return;
+    const t = setTimeout(() => {
+      writeDraft(id, { title, objective, generalNotes, meals, savedAt: new Date().toISOString() });
+    }, 400);
+    return () => clearTimeout(t);
+  }, [id, isDirty, draftResolved, title, objective, generalNotes, meals]);
+
+  // Grava o rascunho JÁ, fora do debounce — usado nos dois pontos de saída
+  // (confirmExit/beforeunload). Sem isso, sair rápido demais depois de digitar
+  // corria com o `clearTimeout` do cleanup do efeito de autosave: o
+  // componente desmontava antes dos 400ms, e o rascunho nunca era escrito.
+  function flushDraft() {
+    if (isDirty) writeDraft(id, { title, objective, generalNotes, meals, savedAt: new Date().toISOString() });
+  }
+
+  // Fechar/atualizar a aba com alterações não salvas — aviso nativo do browser.
+  useEffect(() => {
+    if (!isDirty) return;
+    function handler(e: BeforeUnloadEvent) {
+      writeDraft(id, { title, objective, generalNotes, meals, savedAt: new Date().toISOString() });
+      e.preventDefault();
+      e.returnValue = "";
+    }
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [id, isDirty, title, objective, generalNotes, meals]);
+
+  function requestExit(after: () => void) {
+    if (!isDirty) {
+      after();
+      return;
+    }
+    pendingExitRef.current = after;
+    setExitConfirmOpen(true);
+  }
+
+  function confirmExit() {
+    flushDraft();
+    setExitConfirmOpen(false);
+    const after = pendingExitRef.current;
+    pendingExitRef.current = null;
+    after?.();
+  }
 
   const filledMeals = meals.filter((m) => m.name.trim() && m.orientation.trim());
   const canSubmit =
@@ -410,6 +523,8 @@ export default function CreatePlanPage() {
         general_notes: generalNotes.trim() || undefined,
         meals: mealPayloads,
       });
+      clearDraft(id);
+      setIsDirty(false);
       navigate(`/app/nutri/pacientes/${id}`);
     } catch (err: unknown) {
       setError((err as Error).message || "Não foi possível salvar o plano.");
@@ -418,9 +533,25 @@ export default function CreatePlanPage() {
     }
   }
 
+  function handleTitleChange(value: string) {
+    setIsDirty(true);
+    setTitle(value);
+  }
+
+  function handleObjectiveChange(value: NutriObjective) {
+    setIsDirty(true);
+    setObjective(value);
+  }
+
+  function handleNotesChange(value: string) {
+    setIsDirty(true);
+    setGeneralNotes(value);
+  }
+
   function updateMeal(index: number, field: keyof MealDraft, value: string | string[]) {
     // Editar a dieta invalida a confirmação anterior — re-checa no próximo salvar.
     resetAck();
+    setIsDirty(true);
     setMeals((prev) =>
       prev.map((m, i) => (i === index ? { ...m, [field]: value } : m))
     );
@@ -437,6 +568,7 @@ export default function CreatePlanPage() {
   function addMeal() {
     if (meals.length < MAX_MEALS) {
       resetAck();
+      setIsDirty(true);
       setMeals((prev) => [...prev, emptyMeal()]);
     }
   }
@@ -444,16 +576,46 @@ export default function CreatePlanPage() {
   function removeMeal(index: number) {
     if (meals.length <= 1) return;
     resetAck();
+    setIsDirty(true);
     setMeals((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  if (!draftResolved) {
+    return (
+      <div style={{ padding: "var(--space-6) 0", maxWidth: 680 }}>
+        <div className="card cardPad">
+          <div style={{ fontSize: "var(--text-base)", fontWeight: 700, color: COLORS.text, marginBottom: "var(--space-2)" }}>
+            Encontramos um rascunho não salvo
+          </div>
+          <p className="muted" style={{ fontSize: "var(--text-sm)", lineHeight: 1.5, margin: "0 0 var(--space-4)" }}>
+            Você começou a editar um plano para este paciente e saiu sem salvar. Quer continuar de onde parou?
+          </p>
+          <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap" }}>
+            <button type="button" className="btn btn-primary btn-sm" onClick={continueDraft}>Continuar rascunho</button>
+            <button type="button" className="btn btn-ghost btn-sm" onClick={discardDraft}>Descartar</button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
     <div style={{ padding: "var(--space-6) 0" }}>
+      <ConfirmDialog
+        open={exitConfirmOpen}
+        title="Sair sem salvar?"
+        message="Você tem alterações não salvas. Sair agora descartará o que foi alterado nesta sessão — mas seu rascunho continua guardado para a próxima vez que abrir este plano."
+        confirmLabel="Sair sem salvar"
+        danger
+        onConfirm={confirmExit}
+        onCancel={() => setExitConfirmOpen(false)}
+      />
+
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", marginBottom: "var(--space-6)" }}>
         <button
           type="button"
-          onClick={() => navigate(`/app/nutri/pacientes/${id}`)}
+          onClick={() => requestExit(() => navigate(`/app/nutri/pacientes/${id}`))}
           className="btn btn-ghost"
           style={{ padding: "var(--space-2)", minWidth: 44, minHeight: 44 }}
           aria-label="Voltar sem salvar"
@@ -477,7 +639,7 @@ export default function CreatePlanPage() {
             maxLength={200}
             required
             value={title}
-            onChange={(e) => setTitle(e.target.value)}
+            onChange={(e) => handleTitleChange(e.target.value)}
           />
         </div>
 
@@ -491,7 +653,7 @@ export default function CreatePlanPage() {
             className="input"
             required
             value={objective}
-            onChange={(e) => setObjective(e.target.value as NutriObjective)}
+            onChange={(e) => handleObjectiveChange(e.target.value as NutriObjective)}
           >
             <option value="">Selecionar objetivo...</option>
             {OBJECTIVES.map(([val, label]) => (
@@ -509,7 +671,7 @@ export default function CreatePlanPage() {
             placeholder="Orientações livres para o paciente..."
             rows={3}
             value={generalNotes}
-            onChange={(e) => setGeneralNotes(e.target.value)}
+            onChange={(e) => handleNotesChange(e.target.value)}
             style={{ resize: "vertical" }}
           />
         </div>
@@ -583,7 +745,7 @@ export default function CreatePlanPage() {
         {error && <div className="alert alert-danger" role="alert">{error}</div>}
 
         <div style={{ display: "flex", gap: "var(--space-2)", justifyContent: "flex-end", flexWrap: "wrap" }}>
-          <button type="button" onClick={() => navigate(`/app/nutri/pacientes/${id}`)} className="btn btn-ghost">
+          <button type="button" onClick={() => requestExit(() => navigate(`/app/nutri/pacientes/${id}`))} className="btn btn-ghost">
             Cancelar
           </button>
           <button type="submit" disabled={!canSubmit} className="btn btn-primary">

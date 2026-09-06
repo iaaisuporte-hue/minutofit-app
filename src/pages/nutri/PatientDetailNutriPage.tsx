@@ -1,26 +1,44 @@
-import { useState } from "react";
-import { useNavigate, useParams, useLocation } from "react-router-dom";
+import { useCallback } from "react";
+import { useNavigate, useParams, useLocation, useSearchParams } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
 import { Tabs, tabPanelProps } from "../../components/Tabs";
-import ClinicalProfileTab from "./ClinicalProfileTab";
+import { ResumoTab } from "./tabs/ResumoTab";
 import { PlanTab } from "./tabs/PlanTab";
-import { AdherenceTab } from "./tabs/AdherenceTab";
-import { ContextTab } from "./tabs/ContextTab";
-import { EvolucaoTab } from "./tabs/EvolucaoTab";
-import { ObservationsTab } from "./tabs/ObservationsTab";
-import { InsightsTab } from "./tabs/InsightsTab";
-import { VozTab } from "./tabs/VozTab";
+import { AcompanhamentoTab } from "./tabs/AcompanhamentoTab";
+import { HistoricoTab } from "./tabs/HistoricoTab";
 
-type TabName = "Plano" | "Perfil" | "Adesão" | "Contexto" | "Evolução" | "Observações" | "Insights" | "Voz";
-const TABS: TabName[] = ["Plano", "Perfil", "Adesão", "Contexto", "Evolução", "Observações", "Insights", "Voz"];
-const TAB_ITEMS = TABS.map((t) => ({ id: t, label: t }));
+type TabId = "resumo" | "plano" | "acompanhamento" | "historico";
+const TAB_IDS: TabId[] = ["resumo", "plano", "acompanhamento", "historico"];
+const TAB_ITEMS = [
+  { id: "resumo", label: "Resumo" },
+  { id: "plano", label: "Plano" },
+  { id: "acompanhamento", label: "Acompanhamento" },
+  { id: "historico", label: "Histórico" },
+];
 const TAB_ID_PREFIX = "nutri-patient";
 
 export default function PatientDetailNutriPage() {
   const { patientId } = useParams<{ patientId: string }>();
   const navigate = useNavigate();
   const location = useLocation();
-  const [tab, setTab] = useState<TabName>("Plano");
+
+  // SPEC 037 / P2.5+P2.4: aba vive na URL (`?tab=`), não em estado local —
+  // F5, voltar do builder e link direto precisam abrir a MESMA aba. Nutri
+  // não tem outro nível de navegação já usando `?tab=` (diferente do caso
+  // do Personal, que precisou de `ctab` para não colidir), então o nome
+  // direto é seguro aqui.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const rawTab = searchParams.get("tab");
+  const tab: TabId = (TAB_IDS as string[]).includes(rawTab ?? "") ? (rawTab as TabId) : "resumo";
+
+  const setTab = useCallback(
+    (next: string) => {
+      const params = new URLSearchParams(searchParams);
+      params.set("tab", next);
+      setSearchParams(params, { replace: true });
+    },
+    [searchParams, setSearchParams],
+  );
 
   const id = Number(patientId);
   if (!Number.isFinite(id)) return null;
@@ -46,18 +64,14 @@ export default function PatientDetailNutriPage() {
       </div>
 
       <div style={{ marginBottom: "var(--space-5)" }}>
-        <Tabs tabs={TAB_ITEMS} active={tab} onSelect={(t) => setTab(t as TabName)} idPrefix={TAB_ID_PREFIX} />
+        <Tabs tabs={TAB_ITEMS} active={tab} onSelect={setTab} idPrefix={TAB_ID_PREFIX} />
       </div>
 
       <div {...tabPanelProps(TAB_ID_PREFIX, tab)}>
-        {tab === "Plano" && <PlanTab patientId={id} />}
-        {tab === "Perfil" && <ClinicalProfileTab patientId={id} />}
-        {tab === "Adesão" && <AdherenceTab patientId={id} />}
-        {tab === "Contexto" && <ContextTab patientId={id} />}
-        {tab === "Evolução" && <EvolucaoTab patientId={id} />}
-        {tab === "Observações" && <ObservationsTab patientId={id} />}
-        {tab === "Insights" && <InsightsTab patientId={id} />}
-        {tab === "Voz" && <VozTab patientId={id} />}
+        {tab === "resumo" && <ResumoTab patientId={id} onNavigateTab={setTab} />}
+        {tab === "plano" && <PlanTab patientId={id} />}
+        {tab === "acompanhamento" && <AcompanhamentoTab patientId={id} />}
+        {tab === "historico" && <HistoricoTab patientId={id} />}
       </div>
     </div>
   );
