@@ -758,6 +758,50 @@ html[data-color-mode="daltonic"] .navLinkActive {
   display: none;
 }
 
+/* SPEC 036 (P1B): disclosure nativo p/ navegação secundária de um
+   `mobileHeader` sem bottom nav (ex. Nutri) — `<details>` dá open/close e
+   dismiss por clique fora de graça, sem estado React. */
+.navDisclosure {
+  position: relative;
+}
+
+.navDisclosure__trigger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  list-style: none;
+}
+
+.navDisclosure__trigger::-webkit-details-marker { display: none; }
+
+.navDisclosure[open] > .navDisclosure__trigger {
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+}
+
+.navDisclosure__panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 95;
+  display: grid;
+  gap: 2px;
+  min-width: 180px;
+  padding: var(--space-2);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-lg);
+}
+
 @media (max-width: 720px) {
   .mobileTopBar {
     display: flex;
@@ -876,6 +920,20 @@ html[data-color-mode="daltonic"] .navLinkActive {
 
   .appShell--withBottomNav .sidebar {
     display: none;
+  }
+
+  /* SPEC 036 (P1B): módulo com `mobileHeader` mas SEM bottom nav (perfil
+     profissional desktop-first, ex. Nutri) — a sidebar completa (logo +
+     links + rodapé de logout) empilhava ~180px acima do conteúdo em
+     qualquer viewport <980px. Generaliza a mesma troca de visibilidade da
+     regra acima para esse caso, sem herdar o padding-bottom reservado pra
+     nav fixa (que não existe aqui). */
+  .appShell--withMobileHeader:not(.appShell--withBottomNav) .sidebar {
+    display: none;
+  }
+
+  .appShell--withMobileHeader:not(.appShell--withBottomNav) .main {
+    padding-top: 0;
   }
 
   .appShell--withBottomNav .main {

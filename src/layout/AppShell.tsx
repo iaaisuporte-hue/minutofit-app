@@ -10,7 +10,11 @@ export default function AppShell({
   mobileHeader?: React.ReactNode;
 }) {
   return (
-    <div className={`appShell${bottomNav ? " appShell--withBottomNav" : ""}`}>
+    <div
+      className={`appShell${bottomNav ? " appShell--withBottomNav" : ""}${
+        mobileHeader ? " appShell--withMobileHeader" : ""
+      }`}
+    >
       <aside className="sidebar">{sidebar}</aside>
       <main className="main">
         {mobileHeader && <div className="mobileTopBar">{mobileHeader}</div>}
