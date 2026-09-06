@@ -22,7 +22,7 @@ android {
         // upload é rejeitado (ex.: compileSdk/targetSdk baixo demais) ou fica
         // parado no meio do assistente sem publicar — os códigos 1 e 3 já
         // foram consumidos assim, nunca chegaram a ser lançados de fato.
-        versionCode 5
+        versionCode 6
         versionName "1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
