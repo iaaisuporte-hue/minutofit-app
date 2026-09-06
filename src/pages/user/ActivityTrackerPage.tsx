@@ -41,6 +41,7 @@ import {
 import { estimateCalories, classifyIntensity, INTENSITY_LABELS, getTodayStatus, getReadinessAdvice, getPerformanceSignal } from "../../features/tracker/metrics";
 import { analyzeActivityValidity } from "../../features/tracker/validation";
 import { formatTime, formatPace, calculatePace, parseStoredActivities } from "../../features/tracker/utils";
+import { garantirPermissaoNotificacao } from "./workoutSession/notificationPermission";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Leaflet icon fix
@@ -687,6 +688,17 @@ export default function ActivityTrackerPage() {
     elapsedTimeRef.current = duracaoAtivaS(d);
     setIsPaused(false);
     setIsTracking(true);
+
+    // POST_NOTIFICATIONS (Android 13+) — achado em teste real de dispositivo:
+    // sem essa permissão concedida, `startForeground()` do serviço nativo
+    // (P1B) SOBE normalmente (não lança, diferente da permissão de
+    // localização), mas a notificação nunca aparece — silenciosamente, sem
+    // erro nenhum para o usuário ver. O Tracker nunca pedia essa permissão;
+    // só o módulo de treino pedia (`garantirPermissaoNotificacao`, com cache
+    // por processo — reusar em vez de duplicar evita um segundo diálogo do
+    // sistema se a pessoa já respondeu num treino antes). Fire-and-forget: a
+    // atividade começa de qualquer jeito, negar só custa a notificação.
+    void garantirPermissaoNotificacao();
 
     postActivityEvent(rascunhoExistente ? "activity.recovered" : "activity.started", {
       activityType: d.tipo,
