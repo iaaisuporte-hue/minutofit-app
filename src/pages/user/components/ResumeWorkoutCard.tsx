@@ -8,6 +8,7 @@ import {
   type InProgressSession,
 } from "../workoutSession/inProgressSession";
 import { cancelarLembretesTreino } from "../workoutSession/pendingWorkoutReminder";
+import { createWorkoutLiveSurface } from "../workoutSession/liveSurface/createWorkoutLiveSurface";
 
 /**
  * Aviso de treino em andamento.
@@ -104,6 +105,14 @@ export function ResumeWorkoutCard() {
           // Encerrar aqui é fechar o treino: os lembretes pendentes daquela
           // sessão perdem o objeto e não podem tocar depois.
           void cancelarLembretesTreino();
+          // Defensivo (P1E): este card descarta o treino SEM nunca montar
+          // `WorkoutSessionPage` — é a porta de entrada exatamente para quem
+          // reabriu o app sem voltar à tela da sessão. Se o serviço nativo
+          // sobreviveu a uma morte de processo (`START_STICKY`, P1D), não há
+          // NENHUM efeito React vivo para desligá-lo; sem esta chamada a
+          // notificação do treino ficaria órfã. Mesmo raciocínio do descarte
+          // de rascunho do Tracker outdoor (P1B).
+          createWorkoutLiveSurface().parar();
           setConfirmEnd(false);
           refresh();
         }}
