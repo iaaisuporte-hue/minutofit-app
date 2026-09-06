@@ -2916,3 +2916,65 @@ html[data-academy-branding="applied"] .admin-pill-positive {
   color: var(--color-text-muted);
   font-variant-numeric: tabular-nums;
 }
+
+/* ================================================================
+   Tabs — primitivo GLOBAL (SPEC 036)
+
+   Promovido do padrão ad-hoc `.pp-tabs`/`.pp-tab` do Personal: navegação
+   por abas é um padrão de QUALQUER superfície profissional do S2CORE
+   (Personal, Nutri, e os próximos papéis do ecossistema), não algo
+   específico do treino. Em vez de o Nutri copiar `.pp-tabs` para um
+   `nutriPremium.css` paralelo — o que só trocaria dois sistemas visuais
+   por três — a classe nasce aqui, em `components.css`, e o componente
+   `<Tabs>` (`src/components/Tabs.tsx`) é quem garante a semântica ARIA e
+   a navegação por teclado por cima dela.
+
+   Diferença deliberada do `.pp-tabs`: rolagem horizontal em vez de quebra
+   de linha — 8 abas (o caso do Nutri) quebravam em 3 linhas no mobile.
+   ================================================================ */
+.tabs {
+  display: flex;
+  gap: 2px;
+  border-bottom: 1.5px solid var(--color-border);
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.tabs::-webkit-scrollbar { display: none; }
+
+.tab {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 12px 14px;
+  margin-bottom: -1.5px;
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color var(--transition-fast), border-color var(--transition-fast);
+  min-height: 44px;
+}
+
+.tab:hover {
+  color: var(--color-text);
+}
+
+.tab[aria-selected="true"] {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+  font-weight: var(--font-semibold);
+}
+
+.tab:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+  border-radius: var(--radius-sm);
+}

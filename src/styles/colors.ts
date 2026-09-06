@@ -39,6 +39,9 @@ export const COLORS = {
 
   /* ── Danger / Red ─────────────────────────── */
   danger:           "var(--color-danger)",
+  /** SPEC 036: cor de TEXTO — a única que o tema escuro remapeia. `danger` é
+   * fundo/borda; usar `dangerText` sempre que a cor pintar uma letra. */
+  dangerText:       "var(--color-danger-text)",
   dangerSoft:       "var(--color-danger-soft)",
   dangerBg:         "var(--color-danger-soft)",
   dangerBorder:     "var(--color-danger-border)",
@@ -46,6 +49,7 @@ export const COLORS = {
   redBorder:        "var(--color-danger-border)",
 
   /* ── Warning / Yellow / Orange ────────────── */
+  warnText:         "var(--color-warn-text)",
   warnSoft:         "var(--color-warn-soft)",
   warnBg:           "var(--color-warn-soft)",
   warnBorder:       "var(--color-warn-border)",
@@ -55,6 +59,7 @@ export const COLORS = {
   orangeBorder:     "var(--color-warn-border)",
 
   /* ── Success / Green tones ────────────────── */
+  successText:      "var(--color-success-text)",
   successBg:        "var(--color-success-soft)",
   successBorder:    "var(--color-success-border)",
   greenSoft:        "var(--color-success-soft)",
@@ -62,6 +67,7 @@ export const COLORS = {
   greenSoftStrong:  "var(--color-primary-soft-strong)",
 
   /* ── Info / Blue ──────────────────────────── */
+  infoText:         "var(--color-info-text)",
   blueBg:           "var(--color-info-soft)",
   blueBorder:       "var(--color-info-border)",
 } as const;

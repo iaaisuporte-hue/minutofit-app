@@ -193,7 +193,7 @@ export default function TodayPage() {
   const { data: metabolismHistory, loading: historyLoading } = useMetabolismHistory(historyDays);
   const { data: workoutHistoryData } = useWorkoutHistory(30);
   const todayState = useTodayUserState();
-  const { note: nutriVoiceNote } = useNutriVoiceNote();
+  const { notes: nutriVoiceNotes } = useNutriVoiceNote();
   const showPersonalWorkout = todayState.hasActivePersonal && todayState.hasActiveWorkoutPlan;
   const adaptive = useAdaptiveTraining(showPersonalWorkout);
   const showPersonalEmpty = todayState.hasActivePersonal && !todayState.hasActiveWorkoutPlan;
@@ -813,12 +813,15 @@ export default function TodayPage() {
         <NutritionCheckinCard />
       </motion.div>
 
-      {/* 6.1. Voz da nutricionista — nota publicada nas últimas 72h */}
-      {nutriVoiceNote && (
-        <motion.div variants={sectionRevealVariants}>
-          <NutriVoiceCard note={nutriVoiceNote} />
+      {/* 6.1. Voz da nutricionista — notas publicadas nas últimas 72h.
+          SPEC 036 / NUTRI-23: a fila inteira, não só a mais recente — o GET
+          já marca todas como lidas, então mostrar uma e descartar o resto
+          apagava a nota sem o aluno nunca tê-la visto. */}
+      {nutriVoiceNotes.map((n) => (
+        <motion.div key={n.id} variants={sectionRevealVariants}>
+          <NutriVoiceCard note={n} />
         </motion.div>
-      )}
+      ))}
 
       {/* 5d. Academy-led — aluno de academia sem personal: treino sugerido com viés gym */}
       {showAcademyWorkout && (

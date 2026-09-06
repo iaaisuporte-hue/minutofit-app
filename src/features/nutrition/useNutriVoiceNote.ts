@@ -7,15 +7,23 @@ export interface NutriVoiceNote {
   nutriId: number;
   patientId: number;
   body: string;
-  anchorMealId: string | null;
+  /** SPEC 035: id de nutrition_plan_meals (integer) — era uuid. */
+  anchorMealId: number | null;
   publishedAt: string;
   readAt: string | null;
   nutriName?: string;
   nutriPhoto?: string | null;
 }
 
+/**
+ * SPEC 036 / NUTRI-23: o GET marca TODAS as notas pendentes como lidas em
+ * bloco (correto — é o servidor decidindo o que "pendente" significa), mas
+ * este hook só guardava `payload.data[0]` — a segunda nota publicada antes
+ * de o aluno abrir o app de novo era descartada sem nunca ter sido vista.
+ * Agora expõe a fila inteira; quem renderiza decide como mostrar.
+ */
 export function useNutriVoiceNote() {
-  const [note, setNote] = useState<NutriVoiceNote | null>(null);
+  const [notes, setNotes] = useState<NutriVoiceNote[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetch = useCallback(async (signal?: AbortSignal) => {
@@ -25,12 +33,12 @@ export function useNutriVoiceNote() {
       if (signal?.aborted) return;
       const payload = await parseJson(res);
       if (!res.ok || !payload?.data?.length) {
-        setNote(null);
+        setNotes([]);
         return;
       }
-      setNote(payload.data[0] as NutriVoiceNote);
+      setNotes(payload.data as NutriVoiceNote[]);
     } catch {
-      setNote(null);
+      setNotes([]);
     } finally {
       if (!signal?.aborted) setLoading(false);
     }
@@ -42,5 +50,5 @@ export function useNutriVoiceNote() {
     return () => ctrl.abort();
   }, [fetch]);
 
-  return { note, loading };
+  return { notes, loading };
 }

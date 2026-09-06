@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
+import { Plus, X } from "lucide-react";
 import { COLORS } from "../../styles/colors";
 import { Banner } from "../../components/Banner";
+import { ConfirmDialog } from "../../components/ConfirmDialog";
 import {
   fetchClinicalProfile,
   fetchDietaryCatalog,
@@ -28,10 +30,12 @@ const KIND_ORDER: DietaryKind[] = [
 
 const SEVERITY_OPTIONS: Severity[] = ["mild", "moderate", "severe"];
 
-function severityColor(sev: Severity | null): string {
-  if (sev === "severe") return "var(--color-danger)";
-  if (sev === "moderate") return "var(--color-warn-text)";
-  return COLORS.muted;
+// SPEC 036 / §41-42: um único mapa de status — a mesma severidade não pode
+// pintar cores diferentes em telas diferentes do módulo.
+function severityBadgeClass(sev: Severity | null): string {
+  if (sev === "severe") return "badge badge-danger";
+  if (sev === "moderate") return "badge badge-warn";
+  return "badge";
 }
 
 interface DraftState {
@@ -60,6 +64,7 @@ export default function ClinicalProfileTab({ patientId }: { patientId: number })
   const [addingKind, setAddingKind] = useState<DietaryKind | null>(null);
   const [draft, setDraft] = useState<DraftState>(EMPTY_DRAFT);
   const [saving, setSaving] = useState(false);
+  const [pendingRemoval, setPendingRemoval] = useState<ProfileItem | null>(null);
 
   async function load() {
     setLoading(true);
@@ -144,7 +149,24 @@ export default function ClinicalProfileTab({ patientId }: { patientId: number })
     }
   }
 
-  async function handleRemove(item: ProfileItem) {
+  // SPEC 036 / NUTRI-30: remoção passava direto, sem confirmação — inclusive
+  // para o item que dispara o banner "Alergia grave registrada". Item
+  // clínico ou alergia/intolerância grave pede confirmação; o resto (uma
+  // preferência, por exemplo) continua removendo direto, sem fricção onde
+  // o risco de engano é baixo.
+  function isHighStakes(item: ProfileItem): boolean {
+    return item.kind === "clinical_condition" || item.kind === "medication" || item.severity === "severe";
+  }
+
+  function requestRemove(item: ProfileItem) {
+    if (isHighStakes(item)) {
+      setPendingRemoval(item);
+    } else {
+      void doRemove(item);
+    }
+  }
+
+  async function doRemove(item: ProfileItem) {
     try {
       await deleteClinicalProfileItem(patientId, item.id);
       setItems((prev) => prev.filter((i) => i.id !== item.id));
@@ -155,15 +177,31 @@ export default function ClinicalProfileTab({ patientId }: { patientId: number })
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Falha ao remover");
+    } finally {
+      setPendingRemoval(null);
     }
   }
 
   if (loading) {
-    return <div style={{ color: COLORS.muted, fontSize: 14, padding: "8px 0" }}>Carregando perfil…</div>;
+    return <p className="muted" style={{ fontSize: "var(--text-base)", padding: "var(--space-2) 0" }}>Carregando perfil…</p>;
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div className="stack">
+      <ConfirmDialog
+        open={pendingRemoval !== null}
+        title="Remover item clínico?"
+        message={
+          pendingRemoval
+            ? `Remover "${pendingRemoval.label}" do perfil de ${DIETARY_KIND_LABELS[pendingRemoval.kind].toLowerCase()}? A checagem de segurança alimentar deixa de considerar este item.`
+            : undefined
+        }
+        confirmLabel="Remover"
+        danger
+        onConfirm={() => pendingRemoval && void doRemove(pendingRemoval)}
+        onCancel={() => setPendingRemoval(null)}
+      />
+
       {hasSevereAllergy && (
         <Banner
           variant="error"
@@ -174,7 +212,7 @@ export default function ClinicalProfileTab({ patientId }: { patientId: number })
 
       {error && <Banner variant="warn" description={error} onClose={() => setError(null)} />}
 
-      <p style={{ fontSize: 13, color: COLORS.muted, margin: 0, lineHeight: 1.5 }}>
+      <p className="muted" style={{ fontSize: "var(--text-sm)", margin: 0, lineHeight: 1.5 }}>
         Informações usadas para segurança alimentar e personalização. Alergia e intolerância geram alerta ao montar a
         dieta; preferências apenas sugerem substituição.
       </p>
@@ -184,95 +222,50 @@ export default function ClinicalProfileTab({ patientId }: { patientId: number })
         const options = catalogByKind.get(kind) ?? [];
         const isAdding = addingKind === kind;
         return (
-          <section
-            key={kind}
-            style={{
-              border: "1px solid var(--color-border)",
-              borderRadius: "var(--radius-lg)",
-              padding: "14px 16px",
-              background: "var(--color-surface)",
-            }}
-          >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: list.length || isAdding ? 12 : 0 }}>
-              <h3 style={{ fontSize: 14, fontWeight: 700, color: COLORS.text, margin: 0 }}>
+          <section key={kind} className="card cardPad">
+            <div className="row" style={{ marginBottom: list.length || isAdding ? "var(--space-3)" : 0 }}>
+              <h3 style={{ fontSize: "var(--text-base)", fontWeight: 700, color: COLORS.text, margin: 0 }}>
                 {DIETARY_KIND_LABELS[kind]}
-                {list.length > 0 && (
-                  <span style={{ color: COLORS.muted, fontWeight: 500 }}> · {list.length}</span>
-                )}
+                {list.length > 0 && <span className="muted" style={{ fontWeight: 500 }}> · {list.length}</span>}
               </h3>
               {!isAdding && (
-                <button
-                  type="button"
-                  onClick={() => openAdd(kind)}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    color: COLORS.primary,
-                    fontWeight: 600,
-                    fontSize: 13,
-                    cursor: "pointer",
-                    padding: 0,
-                  }}
-                >
-                  + Adicionar
+                <button type="button" onClick={() => openAdd(kind)} className="btn btn-ghost btn-sm">
+                  <Plus size={14} aria-hidden="true" /> Adicionar
                 </button>
               )}
             </div>
 
             {/* Chips dos itens */}
             {list.length > 0 && (
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2)" }}>
                 {list.map((item) => (
-                  <span
-                    key={item.id}
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 6,
-                      fontSize: 13,
-                      fontWeight: 500,
-                      color: COLORS.text,
-                      background: "var(--color-surface-muted, var(--color-surface-subtle))",
-                      border: "1px solid var(--color-border)",
-                      borderRadius: 999,
-                      padding: "4px 10px",
-                    }}
-                    title={item.notes ?? undefined}
-                  >
+                  <span key={item.id} className="badge" title={item.notes ?? undefined} style={{ gap: "var(--space-2)" }}>
                     {item.label}
                     {item.severity && (
-                      <span
-                        style={{
-                          fontSize: 10,
-                          fontWeight: 700,
-                          textTransform: "uppercase",
-                          letterSpacing: "0.03em",
-                          color: severityColor(item.severity),
-                        }}
-                      >
+                      <span className={severityBadgeClass(item.severity)} style={{ padding: "0 4px" }}>
                         {SEVERITY_LABELS[item.severity]}
                       </span>
                     )}
                     {item.preferenceKind && (
-                      <span style={{ fontSize: 10, fontWeight: 700, color: COLORS.muted }}>
+                      <span className="muted" style={{ fontSize: "var(--text-xs)", fontWeight: 700 }}>
                         {PREFERENCE_LABELS[item.preferenceKind]}
                       </span>
                     )}
+                    {/* SPEC 036: sem `hit-target-44` aqui de propósito — em
+                        chips densos (8px de gap) a área invisível de 44px se
+                        sobreporia ao chip vizinho. Padding real em vez de
+                        alvo fantasma. */}
                     <button
                       type="button"
-                      onClick={() => handleRemove(item)}
+                      onClick={() => requestRemove(item)}
                       aria-label={`Remover ${item.label}`}
                       style={{
-                        background: "none",
-                        border: "none",
-                        color: COLORS.muted,
-                        cursor: "pointer",
-                        fontSize: 14,
-                        lineHeight: 1,
-                        padding: 0,
+                        background: "none", border: "none", color: "inherit", cursor: "pointer",
+                        display: "inline-flex", alignItems: "center", justifyContent: "center",
+                        padding: "var(--space-1)", margin: "calc(var(--space-1) * -1)", borderRadius: "50%",
                       }}
                     >
-                      ×
+                      <X size={12} aria-hidden="true" />
                     </button>
                   </span>
                 ))}
@@ -280,7 +273,7 @@ export default function ClinicalProfileTab({ patientId }: { patientId: number })
             )}
 
             {list.length === 0 && !isAdding && (
-              <span style={{ fontSize: 13, color: COLORS.muted }}>Nada registrado.</span>
+              <span className="muted" style={{ fontSize: "var(--text-sm)" }}>Nada registrado.</span>
             )}
 
             {/* Formulário de adição */}
@@ -319,37 +312,20 @@ function AddForm({
   onCancel: () => void;
   onSave: () => void;
 }) {
-  const chipBase: React.CSSProperties = {
-    fontSize: 13,
-    fontWeight: 500,
-    borderRadius: 999,
-    padding: "5px 11px",
-    cursor: "pointer",
-    border: "1px solid var(--color-border)",
-    background: "var(--color-surface)",
-    color: COLORS.text,
-  };
-
   return (
-    <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 12 }}>
+    <div className="stack" style={{ marginTop: "var(--space-2)" }}>
       {/* Catálogo como chips selecionáveis (um por vez) */}
       {options.length > 0 && (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2)" }}>
           {options.map((opt) => {
             const selected = draft.catalogId === opt.id;
             return (
               <button
                 key={opt.id}
                 type="button"
-                onClick={() =>
-                  setDraft({ ...draft, catalogId: selected ? null : opt.id, customLabel: "" })
-                }
-                style={{
-                  ...chipBase,
-                  borderColor: selected ? COLORS.primary : "var(--color-border)",
-                  color: selected ? COLORS.primary : COLORS.text,
-                  fontWeight: selected ? 700 : 500,
-                }}
+                onClick={() => setDraft({ ...draft, catalogId: selected ? null : opt.id, customLabel: "" })}
+                className={selected ? "badge badge-accent" : "badge"}
+                style={{ cursor: "pointer", border: selected ? undefined : "1px solid var(--color-border)" }}
               >
                 {opt.name}
               </button>
@@ -359,27 +335,23 @@ function AddForm({
       )}
 
       {/* "Outro" custom */}
-      <input
-        type="text"
-        value={draft.customLabel}
-        placeholder="Outro (digite e padronize depois)"
-        onChange={(e) => setDraft({ ...draft, customLabel: e.target.value, catalogId: null })}
-        maxLength={120}
-        style={{
-          width: "100%",
-          fontSize: 14,
-          padding: "8px 10px",
-          borderRadius: "var(--radius-md)",
-          border: "1px solid var(--color-border)",
-          background: "var(--color-surface)",
-          color: COLORS.text,
-        }}
-      />
+      <div className="field">
+        <label className="label" htmlFor={`custom-label-${kind}`}>Outro (digite e padronize depois)</label>
+        <input
+          id={`custom-label-${kind}`}
+          type="text"
+          className="input"
+          value={draft.customLabel}
+          placeholder="Ex: aversão a coentro"
+          onChange={(e) => setDraft({ ...draft, customLabel: e.target.value, catalogId: null })}
+          maxLength={120}
+        />
+      </div>
 
       {/* Severidade (alergia obrigatória / intolerância opcional) */}
       {(kind === "allergy" || kind === "intolerance") && (
-        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-          <span style={{ fontSize: 12, color: COLORS.muted }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", flexWrap: "wrap" }}>
+          <span className="muted" style={{ fontSize: "var(--text-xs)" }}>
             Gravidade{kind === "allergy" ? " *" : " (opcional)"}:
           </span>
           {SEVERITY_OPTIONS.map((sev) => {
@@ -389,12 +361,8 @@ function AddForm({
                 key={sev}
                 type="button"
                 onClick={() => setDraft({ ...draft, severity: selected ? null : sev })}
-                style={{
-                  ...chipBase,
-                  borderColor: selected ? severityColor(sev) : "var(--color-border)",
-                  color: selected ? severityColor(sev) : COLORS.text,
-                  fontWeight: selected ? 700 : 500,
-                }}
+                className={selected ? severityBadgeClass(sev) : "badge"}
+                style={{ cursor: "pointer" }}
               >
                 {SEVERITY_LABELS[sev]}
               </button>
@@ -405,8 +373,8 @@ function AddForm({
 
       {/* Preferência: gosta / evita */}
       {kind === "preference" && (
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ fontSize: 12, color: COLORS.muted }}>Tipo *:</span>
+        <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
+          <span className="muted" style={{ fontSize: "var(--text-xs)" }}>Tipo *:</span>
           {(["like", "avoid"] as PreferenceKind[]).map((pk) => {
             const selected = draft.preferenceKind === pk;
             return (
@@ -414,12 +382,8 @@ function AddForm({
                 key={pk}
                 type="button"
                 onClick={() => setDraft({ ...draft, preferenceKind: selected ? null : pk })}
-                style={{
-                  ...chipBase,
-                  borderColor: selected ? COLORS.primary : "var(--color-border)",
-                  color: selected ? COLORS.primary : COLORS.text,
-                  fontWeight: selected ? 700 : 500,
-                }}
+                className={selected ? "badge badge-accent" : "badge"}
+                style={{ cursor: "pointer" }}
               >
                 {PREFERENCE_LABELS[pk]}
               </button>
@@ -429,30 +393,21 @@ function AddForm({
       )}
 
       {/* Observação opcional */}
-      <input
-        type="text"
-        value={draft.notes}
-        placeholder="Observação (opcional)"
-        onChange={(e) => setDraft({ ...draft, notes: e.target.value })}
-        maxLength={280}
-        style={{
-          width: "100%",
-          fontSize: 13,
-          padding: "8px 10px",
-          borderRadius: "var(--radius-md)",
-          border: "1px solid var(--color-border)",
-          background: "var(--color-surface)",
-          color: COLORS.text,
-        }}
-      />
+      <div className="field">
+        <label className="label" htmlFor={`notes-${kind}`}>Observação (opcional)</label>
+        <input
+          id={`notes-${kind}`}
+          type="text"
+          className="input"
+          value={draft.notes}
+          placeholder="Ex: relatado pelo próprio paciente em 03/09"
+          onChange={(e) => setDraft({ ...draft, notes: e.target.value })}
+          maxLength={280}
+        />
+      </div>
 
-      <div style={{ display: "flex", gap: 8 }}>
-        <button
-          type="button"
-          onClick={onSave}
-          disabled={saving}
-          className="btn btn-primary btn-sm"
-        >
+      <div style={{ display: "flex", gap: "var(--space-2)" }}>
+        <button type="button" onClick={onSave} disabled={saving} className="btn btn-primary btn-sm">
           {saving ? "Salvando…" : "Salvar"}
         </button>
         <button type="button" onClick={onCancel} disabled={saving} className="btn btn-ghost btn-sm">
