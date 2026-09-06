@@ -49,18 +49,63 @@ describe("garantirPermissaoNotificacao", () => {
     expect(requestPermissions).toHaveBeenCalledTimes(1);
   });
 
-  it("cacheia por processo — uma segunda chamada NÃO reabre o diálogo", async () => {
+  it("já negada antes: NÃO reabre diálogo (o sistema não mostraria mesmo)", async () => {
     checkPermissions.mockResolvedValue({ display: "prompt" });
-    requestPermissions.mockResolvedValue({ display: "granted" });
-    await garantirPermissaoNotificacao();
-    await garantirPermissaoNotificacao();
+    requestPermissions.mockResolvedValue({ display: "denied" });
+    expect(await garantirPermissaoNotificacao()).toBe(false);
+    checkPermissions.mockResolvedValue({ display: "denied" });
+    requestPermissions.mockClear();
+    expect(await garantirPermissaoNotificacao()).toBe(false);
+    expect(requestPermissions).not.toHaveBeenCalled();
+  });
+
+  it("chamadas CONCORRENTES compartilham um único diálogo, não dois", async () => {
+    checkPermissions.mockResolvedValue({ display: "prompt" });
+    let resolvePedido: (v: { display: string }) => void = () => {};
+    requestPermissions.mockReturnValue(new Promise((r) => { resolvePedido = r; }));
+
+    const chamada1 = garantirPermissaoNotificacao();
+    const chamada2 = garantirPermissaoNotificacao();
+    resolvePedido({ display: "granted" });
+
+    expect(await chamada1).toBe(true);
+    expect(await chamada2).toBe(true);
     expect(requestPermissions).toHaveBeenCalledTimes(1);
-    expect(checkPermissions).toHaveBeenCalledTimes(1);
+  });
+
+  it(
+    "NÃO cacheia o resultado entre chamadas sequenciais — bug corrigido: " +
+      "negar uma vez não trava 'false' para sempre na sessão",
+    async () => {
+      checkPermissions.mockResolvedValue({ display: "denied" });
+      expect(await garantirPermissaoNotificacao()).toBe(false);
+
+      // A pessoa foi em Configurações e reativou — sem reabrir o app.
+      checkPermissions.mockResolvedValue({ display: "granted" });
+      expect(await garantirPermissaoNotificacao()).toBe(true);
+      expect(checkPermissions).toHaveBeenCalledTimes(2);
+    },
+  );
+
+  it("também reflete uma REVOGAÇÃO no meio da sessão, não só a concessão", async () => {
+    checkPermissions.mockResolvedValue({ display: "granted" });
+    expect(await garantirPermissaoNotificacao()).toBe(true);
+
+    checkPermissions.mockResolvedValue({ display: "denied" });
+    expect(await garantirPermissaoNotificacao()).toBe(false);
   });
 
   it("bridge indisponível (web/erro): degrada para false, nunca lança", async () => {
     checkPermissions.mockRejectedValue(new Error("plugin indisponível"));
     await expect(garantirPermissaoNotificacao()).resolves.toBe(false);
+  });
+
+  it("erro numa chamada não deixa a trava de concorrência presa para a próxima", async () => {
+    checkPermissions.mockRejectedValueOnce(new Error("falha transitória"));
+    expect(await garantirPermissaoNotificacao()).toBe(false);
+
+    checkPermissions.mockResolvedValueOnce({ display: "granted" });
+    expect(await garantirPermissaoNotificacao()).toBe(true);
   });
 });
 
