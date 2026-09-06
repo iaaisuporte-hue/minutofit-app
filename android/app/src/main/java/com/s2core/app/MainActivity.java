@@ -4,6 +4,7 @@ import android.os.Bundle;
 
 import com.getcapacitor.BridgeActivity;
 import com.s2core.app.tracker.BackgroundLocationPlugin;
+import com.s2core.app.workout.WorkoutLivePlugin;
 
 public class MainActivity extends BridgeActivity {
     /**
@@ -19,6 +20,7 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(BackgroundLocationPlugin.class);
+        registerPlugin(WorkoutLivePlugin.class);
         super.onCreate(savedInstanceState);
     }
 }

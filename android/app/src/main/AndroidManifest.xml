@@ -65,6 +65,20 @@
             android:stopWithTask="false"
             android:foregroundServiceType="location" />
 
+        <!--
+            Lock Screen do treino de musculação (P1D). Serviço PRÓPRIO,
+            separado do de localização acima — musculação não usa GPS, e
+            exigir permissão de localização de quem só treina na academia
+            seria pedir algo sem motivo (a Play Store audita se o tipo
+            declarado bate com o uso real do app).
+        -->
+        <service
+            android:name=".workout.WorkoutForegroundService"
+            android:enabled="true"
+            android:exported="false"
+            android:stopWithTask="false"
+            android:foregroundServiceType="dataSync" />
+
     </application>
 
     <!-- Permissions -->
@@ -103,6 +117,14 @@
     -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+
+    <!--
+        Serviço de primeiro plano do treino de musculação (P1D). `dataSync` é
+        o tipo genérico — nenhum dos tipos "certos" descreve "mostrar
+        progresso de treino" — e normal/auto-concedida como as demais
+        FOREGROUND_SERVICE_*, sem prompt de runtime.
+    -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
 
     <!--
         "Salvar imagem" do card de treino grava em Documents (@capacitor/filesystem).

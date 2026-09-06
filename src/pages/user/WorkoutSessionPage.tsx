@@ -53,6 +53,8 @@ import { freeWorkoutTitle } from "../../features/training/freeWorkout/muscleGrou
 import { findFilledUnchecked, markFilledDone } from "./workoutSession/filledSets";
 import { SetActionBar } from "./workoutSession/SetActionBar";
 import { serieAtual } from "./workoutSession/setSteppers";
+import { createWorkoutLiveSurface } from "./workoutSession/liveSurface/createWorkoutLiveSurface";
+import type { EstadoTreinoVisivel } from "./workoutSession/liveSurface/WorkoutLiveSurface";
 import { useDismissable } from "../../lib/overlayStack";
 import { ExerciseHistorySheet } from "./workoutSession/ExerciseHistorySheet";
 import { postWorkoutEvent } from "./workoutSession/workoutEvents";
@@ -650,6 +652,89 @@ export default function WorkoutSessionPage() {
   }
 
   const current = exercises[currentIndex];
+
+  // ── Lock Screen do treino (P1D) ─────────────────────────────────────────
+  //
+  // Mesma ideia da P1C (outdoor tracker): uma superfície nativa que reflete o
+  // estado que JÁ existe, sem virar uma segunda fonte de verdade. Diferente de
+  // lá, aqui não há "pausar o treino" — o motor de execução não tem esse
+  // conceito (só existe pausar/retomar o DESCANSO, que já é o `useRestTimer`
+  // existente); `descansando` é a única peça que só o web sabe, porque o
+  // nativo não tem visibilidade nenhuma do descanso.
+  const liveSurfaceRef = useRef(createWorkoutLiveSurface());
+
+  const pushEstadoTreino = useCallback(() => {
+    const ex = exercises[currentIndex];
+    if (!ex) return;
+    const set = serieAtual(ex.sets);
+    // Três estados, não dois: o motor não tem "pausar o treino inteiro" — só
+    // existe pausar/retomar o DESCANSO (ver JSDoc do tipo). `active` é true
+    // tanto rodando quanto pausado; `running` distingue os dois.
+    const status: EstadoTreinoVisivel["status"] = !rest.active
+      ? "ativo"
+      : rest.running
+        ? "descansando"
+        : "descanso_pausado";
+
+    // Só mostra carga/reps quando há valor REAL digitado — nunca o
+    // placeholder/sugestão que a tela mostra (§6/§7: não inventar dado numa
+    // superfície onde ninguém pode corrigir).
+    let cargaRepsLabel: string | null = null;
+    if (set) {
+      const partes: string[] = [];
+      if (set.loadKg.trim()) partes.push(`${set.loadKg} kg`);
+      if (set.reps.trim()) partes.push(`${set.reps} reps`);
+      if (partes.length > 0) cargaRepsLabel = partes.join(" · ");
+    }
+
+    liveSurfaceRef.current.atualizar({
+      status,
+      // `fmtClock` é o MESMO formatador que a tela usa no cabeçalho
+      // (`ws-elapsed`) — m:ss, sem hora — não inventar um segundo formato
+      // ("00:42:18") só porque o exemplo da spec usava esse.
+      tempoLabel: fmtClock(Math.max(0, Math.floor((Date.now() - startedAt) / 1000))),
+      exercicioNome: ex.name,
+      serieLabel: set ? `Série ${set.setIndex} de ${ex.sets.length}` : `${ex.sets.length} de ${ex.sets.length}`,
+      cargaRepsLabel,
+      descansoRestanteLabel: rest.active ? fmtClock(rest.secondsLeft) : null,
+    });
+  }, [exercises, currentIndex, startedAt, rest.active, rest.running, rest.secondsLeft]);
+
+  const emExecucao = phase === "running";
+
+  // Sobe/derruba a notificação — mesmo par iniciar()/parar() do outdoor
+  // tracker, incluindo a garantia de que sair da tela (navegação, não só
+  // finalizar) encerra a superfície: o cleanup do efeito roda de qualquer
+  // jeito no unmount, independente do motivo.
+  useEffect(() => {
+    if (!emExecucao) return;
+    liveSurfaceRef.current.iniciar();
+    return () => liveSurfaceRef.current.parar();
+  }, [emExecucao]);
+
+  // Tique periódico (1 Hz) — pega tempo total e contagem de descanso andando,
+  // sem precisar de um relógio nativo próprio (mesma decisão documentada na
+  // P1C: o ganho de bateria seria marginal perto do risco de um segundo
+  // modelo temporal que não posso validar sem aparelho).
+  useEffect(() => {
+    if (!emExecucao) return;
+    pushEstadoTreino();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [emExecucao, agora]);
+
+  // Transições discretas — exercício, série concluída, início/fim de
+  // descanso — empurradas na hora, sem esperar o próximo tique (§10). Nº de
+  // séries feitas é dependência de propósito, não o array inteiro: o array
+  // muda a CADA tecla digitada em carga/reps, e isso violaria "não atualizar
+  // a cada render" (§11) sem trazer nada de novo para a Lock Screen — quem
+  // decide mostrar carga/reps é o tique de 1s acima.
+  const seriesFeitas = current?.sets.filter((s) => s.done).length ?? 0;
+  useEffect(() => {
+    if (!emExecucao) return;
+    pushEstadoTreino();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [emExecucao, currentIndex, seriesFeitas, rest.active, rest.running]);
+
   const currentItem = (resolvedItems ?? [])[currentIndex];
   /**
    * O item da ficha na MESMA posição, quando ainda é o mesmo exercício.

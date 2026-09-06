@@ -298,9 +298,13 @@ public class LocationForegroundService extends Service {
      * estiver concedida NO INSTANTE da chamada — o plugin já checa antes de
      * enviar a ação, mas a janela entre a checagem e a entrega do Intent é uma
      * corrida real (embora estreita: exigiria a pessoa revogar a permissão nos
-     * milissegundos entre o toque e o Android processar). Sem este try/catch,
-     * essa corrida rara derrubaria o app inteiro em vez de só falhar o início
-     * da atividade.
+     * milissegundos entre o toque e o Android processar). Pode TAMBÉM lançar
+     * `ForegroundServiceStartNotAllowedException` (API 31+, `IllegalStateException`,
+     * não `SecurityException`) se o sistema decidir que o app não pode subir
+     * nenhum serviço de primeiro plano agora — achado revisando o serviço
+     * irmão da P1D, que precisava do mesmo cuidado. `catch (Exception e)`
+     * cobre os dois: sem isto, qualquer uma das duas derrubaria o app inteiro
+     * em vez de só falhar o início da atividade.
      */
     private boolean subirParaPrimeiroPlano() {
         Notification n = construirNotificacao();
@@ -311,7 +315,7 @@ public class LocationForegroundService extends Service {
                 startForeground(NOTIFICACAO_ID, n);
             }
             return true;
-        } catch (SecurityException e) {
+        } catch (Exception e) {
             Log.w(TAG, "startForeground negado: " + e.getMessage());
             ativo = false;
             stopSelf();
