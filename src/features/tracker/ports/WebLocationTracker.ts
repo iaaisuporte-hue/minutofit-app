@@ -1,5 +1,5 @@
 import type { PontoBruto } from "../gpsFilter";
-import type { ErroLocalizacao, LocationTracker, PermissaoLocalizacao } from "./LocationTracker";
+import type { ErroLocalizacao, EstadoTrackerVisivel, LocationTracker, PermissaoLocalizacao } from "./LocationTracker";
 
 /**
  * `LocationTracker` sobre `navigator.geolocation` (web, PWA e WebView).
@@ -102,6 +102,11 @@ export class WebLocationTracker implements LocationTracker {
   /** Nada acumula na web: quem coleta é o próprio JavaScript, que dorme junto. */
   async drenar(): Promise<PontoBruto[]> {
     return [];
+  }
+
+  /** Sem Lock Screen no PWA/web (P1C) — a tela em si já mostra o estado ao vivo. */
+  atualizarEstadoVisivel(_estado: EstadoTrackerVisivel): void {
+    /* no-op */
   }
 
   private pararRecepcao(): void {

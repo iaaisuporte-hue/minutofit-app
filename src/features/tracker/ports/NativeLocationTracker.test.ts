@@ -11,6 +11,7 @@ const pause = vi.fn();
 const resume = vi.fn();
 const stop = vi.fn();
 const drain = vi.fn();
+const updateState = vi.fn();
 const checkPermissions = vi.fn();
 const requestPermissions = vi.fn();
 const addListener = vi.fn();
@@ -22,6 +23,7 @@ vi.mock("@capacitor/core", () => ({
     resume: (...a: unknown[]) => resume(...a),
     stop: (...a: unknown[]) => stop(...a),
     drain: (...a: unknown[]) => drain(...a),
+    updateState: (...a: unknown[]) => updateState(...a),
     checkPermissions: (...a: unknown[]) => checkPermissions(...a),
     requestPermissions: (...a: unknown[]) => requestPermissions(...a),
     addListener: (...a: unknown[]) => addListener(...a),
@@ -36,6 +38,7 @@ beforeEach(() => {
   resume.mockReset().mockResolvedValue(undefined);
   stop.mockReset().mockResolvedValue(undefined);
   drain.mockReset().mockResolvedValue({ points: [], running: true });
+  updateState.mockReset().mockResolvedValue(undefined);
   checkPermissions.mockReset().mockResolvedValue({ location: "granted" });
   requestPermissions.mockReset().mockResolvedValue({ location: "granted" });
   addListener.mockReset().mockResolvedValue({ remove: vi.fn().mockResolvedValue(undefined) });
@@ -157,6 +160,39 @@ describe("NativeLocationTracker — sessão", () => {
     await Promise.resolve();
     await Promise.resolve();
     expect(onErro).toHaveBeenCalledWith({ tipo: "indisponivel" });
+  });
+});
+
+describe("NativeLocationTracker — estado visível na notificação (P1C)", () => {
+  it("atualizarEstadoVisivel chama updateState com os campos já formatados", () => {
+    const t = new NativeLocationTracker();
+    t.atualizarEstadoVisivel({
+      tempoLabel: "00:12:03",
+      distanciaLabel: "2.14 km",
+      metricaValor: "5:38",
+      metricaUnidade: "/km",
+    });
+    expect(updateState).toHaveBeenCalledWith({
+      elapsed: "00:12:03",
+      distance: "2.14 km",
+      metricValue: "5:38",
+      metricUnit: "/km",
+    });
+  });
+
+  it("não envia campo de pausa — o nativo já sabe pelo pausar()/retomar() anteriores", () => {
+    const t = new NativeLocationTracker();
+    t.atualizarEstadoVisivel({ tempoLabel: "00:00:01", distanciaLabel: "0.00 km", metricaValor: "--", metricaUnidade: "/km" });
+    const enviado = updateState.mock.calls[0][0];
+    expect(Object.keys(enviado).sort()).toEqual(["distance", "elapsed", "metricUnit", "metricValue"]);
+  });
+
+  it("é fire-and-forget: rejeição do bridge não escapa como exceção síncrona", () => {
+    const t = new NativeLocationTracker();
+    updateState.mockRejectedValueOnce(new Error("bridge indisponível"));
+    expect(() =>
+      t.atualizarEstadoVisivel({ tempoLabel: "00:00:01", distanciaLabel: "0.00 km", metricaValor: "--", metricaUnidade: "/km" }),
+    ).not.toThrow();
   });
 });
 

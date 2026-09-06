@@ -1,6 +1,6 @@
 import { registerPlugin, type PluginListenerHandle } from "@capacitor/core";
 import type { PontoBruto } from "../gpsFilter";
-import type { ErroLocalizacao, LocationTracker, PermissaoLocalizacao } from "./LocationTracker";
+import type { ErroLocalizacao, EstadoTrackerVisivel, LocationTracker, PermissaoLocalizacao } from "./LocationTracker";
 
 /** Ponto como a ponte Java entrega — mesmos nomes de campo do lado nativo. */
 interface PontoNativo {
@@ -42,6 +42,12 @@ interface BackgroundLocationPluginApi {
   resume(): Promise<void>;
   stop(): Promise<void>;
   drain(): Promise<ResultadoDreno>;
+  updateState(opts: {
+    elapsed: string;
+    distance: string;
+    metricValue: string;
+    metricUnit: string;
+  }): Promise<void>;
   checkPermissions(): Promise<PermissaoPlugin>;
   requestPermissions(): Promise<PermissaoPlugin>;
   addListener(eventName: "location", listener: (p: PontoNativo) => void): Promise<PluginListenerHandle>;
@@ -155,5 +161,19 @@ export class NativeLocationTracker implements LocationTracker {
     } catch {
       return [];
     }
+  }
+
+  /**
+   * Fire-and-forget, como pausar()/retomar(): perder uma atualização de
+   * notificação não é motivo para propagar erro para a tela do treino — a
+   * próxima chamada (1s depois) corrige sozinha.
+   */
+  atualizarEstadoVisivel(estado: EstadoTrackerVisivel): void {
+    void BackgroundLocation.updateState({
+      elapsed: estado.tempoLabel,
+      distance: estado.distanciaLabel,
+      metricValue: estado.metricaValor,
+      metricUnit: estado.metricaUnidade,
+    }).catch(() => {});
   }
 }

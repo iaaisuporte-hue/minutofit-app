@@ -155,6 +155,36 @@ public class BackgroundLocationPlugin extends Plugin {
         call.resolve(r);
     }
 
+    /**
+     * Empurra tempo/distância/métrica para a notificação (P1C), ~1x/s.
+     *
+     * Guardado por `estaAtivo()`: um `updateState` atrasado chegando DEPOIS de
+     * `stop()` já ter processado não deve reviver o serviço — só `start()`
+     * faz isso. `startService`/`startForegroundService` cria o serviço do
+     * zero se ele não existir, e sem esta guarda um Intent de atualização
+     * fora de ordem (a corrida rara descrita em `ActivityTrackerPage`) faria
+     * exatamente isso.
+     */
+    @PluginMethod
+    public void updateState(PluginCall call) {
+        if (!LocationForegroundService.estaAtivo()) {
+            call.resolve();
+            return;
+        }
+        Intent i = new Intent(getContext(), LocationForegroundService.class);
+        i.setAction(LocationForegroundService.ACTION_UPDATE);
+        i.putExtra(LocationForegroundService.EXTRA_ELAPSED, call.getString("elapsed"));
+        i.putExtra(LocationForegroundService.EXTRA_DISTANCE, call.getString("distance"));
+        i.putExtra(LocationForegroundService.EXTRA_METRIC_VALUE, call.getString("metricValue"));
+        i.putExtra(LocationForegroundService.EXTRA_METRIC_UNIT, call.getString("metricUnit"));
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            ContextCompat.startForegroundService(getContext(), i);
+        } else {
+            getContext().startService(i);
+        }
+        call.resolve();
+    }
+
     // ── Internos ────────────────────────────────────────────────────────────
 
     private boolean temPermissao() {

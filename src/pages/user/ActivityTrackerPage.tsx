@@ -473,6 +473,38 @@ export default function ActivityTrackerPage() {
     );
   }, []);
 
+  /**
+   * Empurra tempo/distância/métrica para a Lock Screen (P1C).
+   *
+   * Reaproveita o MESMO rascunho e as MESMAS funções de formatação da tela
+   * (`formatTime`, `metricaPrincipal`/`formatarPace`) — a notificação nunca
+   * decide unidade, arredondamento ou pace×velocidade por conta própria; só
+   * renderiza texto que o web já calculou. No web, `atualizarEstadoVisivel` é
+   * no-op (não existe Lock Screen de PWA neste escopo), então chamar isto fora
+   * do Android é seguro e barato.
+   *
+   * Frequência: uma vez por tique do relógio (1 Hz) — não a cada ponto de GPS
+   * nem a cada render. Ver decisão documentada no relatório da P1C sobre por
+   * que o tempo não é computado nativamente para evitar esta chamada: exigiria
+   * um segundo modelo temporal do lado Java, redundante com o rascunho e
+   * impossível de validar neste ambiente sem dispositivo. Um Intent por
+   * segundo é o mesmo padrão que pausar()/retomar()/parar() já usam, e o custo
+   * é desprezível perto do próprio GPS acordando a CPU no mesmo intervalo.
+   */
+  const notificarEstadoNativo = useCallback(() => {
+    const d = draftRef.current;
+    if (!d) return;
+    const segundos = duracaoAtivaS(d);
+    const r = filtrarTrajetoria(d.pontos, d.tipo);
+    const m = metricaPrincipal(d.tipo, segundos, r.distanciaKm);
+    trackerRef.current.atualizarEstadoVisivel({
+      tempoLabel: formatTime(segundos),
+      distanciaLabel: `${r.distanciaKm.toFixed(2)} km`,
+      metricaValor: m.valor,
+      metricaUnidade: m.unidade,
+    });
+  }, []);
+
   // ── Timer ────────────────────────────────────────────────────────────────
   //
   // DERIVADO, não incrementado. O contador `p + 1` que morava aqui congelava
@@ -487,9 +519,12 @@ export default function ActivityTrackerPage() {
       if (timerRef.current) clearInterval(timerRef.current);
       return;
     }
-    timerRef.current = setInterval(reconciliarComRascunho, 1000);
+    timerRef.current = setInterval(() => {
+      reconciliarComRascunho();
+      notificarEstadoNativo();
+    }, 1000);
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, [isPaused, isTracking, reconciliarComRascunho]);
+  }, [isPaused, isTracking, reconciliarComRascunho, notificarEstadoNativo]);
 
   // ── Volta do segundo plano ───────────────────────────────────────────────
   //
@@ -514,9 +549,10 @@ export default function ActivityTrackerPage() {
           }
         }
         reconciliarComRascunho();
+        notificarEstadoNativo();
       })();
     });
-  }, [isTracking, reconciliarComRascunho]);
+  }, [isTracking, reconciliarComRascunho, notificarEstadoNativo]);
 
   // ── GPS: porta de localização → rascunho → filtro ───────────────────────
   //
@@ -554,8 +590,13 @@ export default function ActivityTrackerPage() {
       },
     });
 
+    // Empurra o primeiro estado imediatamente (P1C): sem isto a notificação
+    // ficava com o texto genérico do `start()` pelo primeiro segundo inteiro,
+    // até o timer bater o primeiro tique.
+    notificarEstadoNativo();
+
     return () => trackerRef.current.parar();
-  }, [isTracking, reconciliarComRascunho]);
+  }, [isTracking, reconciliarComRascunho, notificarEstadoNativo]);
 
   // ── Pausa/retomada da coleta, sem derrubar a sessão (P1B) ───────────────
   //
@@ -566,9 +607,19 @@ export default function ActivityTrackerPage() {
   // `LocationForegroundService.iniciarEscuta`).
   useEffect(() => {
     if (!isTracking) return;
+    // Ordem importa: pausar()/retomar() chegam ao serviço nativo ANTES do
+    // empurrão de estado que segue (mesmo processo, Intents entregues em
+    // ordem) — é por isso que a notificação não precisa receber "pausado"
+    // como campo próprio (ver `EstadoTrackerVisivel`): quando o Android
+    // processa a atualização, `pausado` já está correto do lado de lá.
     if (isPaused) trackerRef.current.pausar();
     else trackerRef.current.retomar();
-  }, [isTracking, isPaused]);
+    // Empurra o número na TRANSIÇÃO, sem esperar o próximo tique (P1C): o
+    // timer do relógio para de rodar exatamente quando pausa, então sem este
+    // empurrão explícito a notificação ficaria com o penúltimo número por até
+    // 1s antes de finalmente mostrar o congelamento.
+    notificarEstadoNativo();
+  }, [isTracking, isPaused, notificarEstadoNativo]);
 
   // ── Derived stats ────────────────────────────────────────────────────────
   const stats = useMemo(() => {

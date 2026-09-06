@@ -67,9 +67,15 @@ public class LocationForegroundService extends Service {
     public static final String ACTION_PAUSE = "com.s2core.app.tracker.PAUSE";
     public static final String ACTION_RESUME = "com.s2core.app.tracker.RESUME";
     public static final String ACTION_STOP = "com.s2core.app.tracker.STOP";
+    /** P1C: tempo/distância/métrica empurrados do web, ~1x por segundo. */
+    public static final String ACTION_UPDATE = "com.s2core.app.tracker.UPDATE";
 
     public static final String EXTRA_TITLE = "titulo";
     public static final String EXTRA_TEXT = "texto";
+    public static final String EXTRA_ELAPSED = "tempo";
+    public static final String EXTRA_DISTANCE = "distancia";
+    public static final String EXTRA_METRIC_VALUE = "metricaValor";
+    public static final String EXTRA_METRIC_UNIT = "metricaUnidade";
 
     private static final String TAG = "S2CoreTracker";
     private static final String CANAL_ID = "s2core_tracker";
@@ -98,6 +104,18 @@ public class LocationForegroundService extends Service {
     /** Último texto pedido pelo web, para pausa e retomada reusarem o título. */
     private String tituloAtual;
     private String textoAtual;
+
+    /**
+     * Última métrica recebida do web (P1C). Ficam `null` até o primeiro
+     * `ACTION_UPDATE` chegar — `metricasRecebidas` é quem decide se já dá para
+     * lê-las (ver `construirCorpo`); nenhum código lê estes campos sem checar
+     * essa flag primeiro, então o `null` inicial nunca vaza para a tela.
+     */
+    private volatile String ultimoTempoLabel;
+    private volatile String ultimaDistanciaLabel;
+    private volatile String ultimaMetricaValor;
+    private volatile String ultimaMetricaUnidade;
+    private volatile boolean metricasRecebidas = false;
 
     public static boolean estaAtivo() {
         return ativo;
@@ -133,16 +151,36 @@ public class LocationForegroundService extends Service {
             case ACTION_PAUSE:
                 pausado = true;
                 pararEscuta();
-                atualizarNotificacao(tituloAtual, "Atividade pausada");
+                atualizarNotificacao();
                 break;
             case ACTION_RESUME:
                 pausado = false;
                 iniciarEscuta();
-                atualizarNotificacao(tituloAtual, textoAtual);
+                atualizarNotificacao();
                 break;
             case ACTION_STOP:
                 encerrar();
                 return START_NOT_STICKY;
+            case ACTION_UPDATE: {
+                // P1C: tempo/distância/métrica vindos do web, ~1x/s. Só troca
+                // o que veio preenchido — um Intent parcial nunca apaga o que
+                // já se sabia (mesma cautela do título/texto no START).
+                String tempo = intent != null ? intent.getStringExtra(EXTRA_ELAPSED) : null;
+                String distancia = intent != null ? intent.getStringExtra(EXTRA_DISTANCE) : null;
+                String metricaValor = intent != null ? intent.getStringExtra(EXTRA_METRIC_VALUE) : null;
+                String metricaUnidade = intent != null ? intent.getStringExtra(EXTRA_METRIC_UNIT) : null;
+                if (tempo != null) ultimoTempoLabel = tempo;
+                if (distancia != null) ultimaDistanciaLabel = distancia;
+                if (metricaValor != null) ultimaMetricaValor = metricaValor;
+                if (metricaUnidade != null) ultimaMetricaUnidade = metricaUnidade;
+                if (tempo != null || distancia != null) metricasRecebidas = true;
+                // `ativo` pode já ter virado false entre o disparo do web e a
+                // entrega deste Intent (ex.: STOP processado um instante antes)
+                // — o plugin já filtra a maioria dos casos, isto é o cinto de
+                // segurança do lado do serviço.
+                if (ativo) atualizarNotificacao();
+                break;
+            }
             case ACTION_START:
             default: {
                 String titulo = intent != null ? intent.getStringExtra(EXTRA_TITLE) : null;
@@ -152,9 +190,16 @@ public class LocationForegroundService extends Service {
                 // o genérico no meio da corrida.
                 if (titulo != null) tituloAtual = titulo;
                 if (texto != null) textoAtual = texto;
+                // Intent não-nulo = toque real em "iniciar" (não um reinício
+                // do sistema): zera métricas de uma sessão anterior, caso o
+                // processo tenha sobrevivido entre duas atividades sem passar
+                // por onDestroy (não deveria acontecer no fluxo normal, mas
+                // metricasRecebidas=true vazando para a próxima corrida
+                // mostraria número da atividade ERRADA, não só desatualizado).
+                if (intent != null) metricasRecebidas = false;
                 ativo = true;
                 pausado = false;
-                if (subirParaPrimeiroPlano(tituloAtual, textoAtual)) {
+                if (subirParaPrimeiroPlano()) {
                     iniciarEscuta();
                 }
                 // Se subirParaPrimeiroPlano falhou, ele já chamou stopSelf() —
@@ -193,7 +238,37 @@ public class LocationForegroundService extends Service {
         nm.createNotificationChannel(canal);
     }
 
-    private Notification construirNotificacao(String titulo, String texto) {
+    /**
+     * Título com status (P1C): "S2Core · Atividade em andamento" ou
+     * "S2Core · Pausado". O prefixo vem do `start()` (branding); o sufixo é
+     * decidido aqui, sempre em sincronia com `pausado` — nunca dois lugares
+     * afirmando o status por conta própria.
+     */
+    private String construirTitulo() {
+        String base = tituloAtual != null ? tituloAtual : "S2Core";
+        return base + (pausado ? " · Pausado" : " · Atividade em andamento");
+    }
+
+    /**
+     * Corpo da notificação: tempo · distância · pace/velocidade, tudo já
+     * formatado do lado web (`ActivityTrackerPage.notificarEstadoNativo`) —
+     * este método só concatena texto pronto, nunca decide unidade ou
+     * arredondamento.
+     *
+     * Antes da primeira atualização (`metricasRecebidas == false`) mostra o
+     * texto genérico do `start()`: é só o intervalo entre o toque em "iniciar"
+     * e o primeiro tique do relógio do lado web, não vale a pena inventar
+     * "00:00:00 · 0.00 km" aqui quando o web está prestes a mandar o valor
+     * real de qualquer jeito.
+     */
+    private String construirCorpo() {
+        if (!metricasRecebidas) {
+            return textoAtual != null ? textoAtual : "Registrando seu percurso.";
+        }
+        return ultimoTempoLabel + " · " + ultimaDistanciaLabel + " · " + ultimaMetricaValor + " " + ultimaMetricaUnidade;
+    }
+
+    private Notification construirNotificacao() {
         criarCanal();
 
         Intent abrir = getPackageManager().getLaunchIntentForPackage(getPackageName());
@@ -206,8 +281,8 @@ public class LocationForegroundService extends Service {
         }
 
         return new NotificationCompat.Builder(this, CANAL_ID)
-                .setContentTitle(titulo != null ? titulo : "Atividade em andamento")
-                .setContentText(texto != null ? texto : "Registrando seu percurso.")
+                .setContentTitle(construirTitulo())
+                .setContentText(construirCorpo())
                 .setSmallIcon(android.R.drawable.ic_menu_mylocation)
                 .setPriority(NotificationCompat.PRIORITY_LOW)
                 .setOngoing(true)
@@ -227,8 +302,8 @@ public class LocationForegroundService extends Service {
      * essa corrida rara derrubaria o app inteiro em vez de só falhar o início
      * da atividade.
      */
-    private boolean subirParaPrimeiroPlano(String titulo, String texto) {
-        Notification n = construirNotificacao(titulo, texto);
+    private boolean subirParaPrimeiroPlano() {
+        Notification n = construirNotificacao();
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 startForeground(NOTIFICACAO_ID, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION);
@@ -244,9 +319,9 @@ public class LocationForegroundService extends Service {
         }
     }
 
-    private void atualizarNotificacao(String titulo, String texto) {
+    private void atualizarNotificacao() {
         NotificationManager nm = getSystemService(NotificationManager.class);
-        if (nm != null) nm.notify(NOTIFICACAO_ID, construirNotificacao(titulo, texto));
+        if (nm != null) nm.notify(NOTIFICACAO_ID, construirNotificacao());
     }
 
     // ── Escuta de posição ───────────────────────────────────────────────────

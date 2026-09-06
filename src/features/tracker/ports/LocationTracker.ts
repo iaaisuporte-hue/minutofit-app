@@ -95,6 +95,42 @@ export interface LocationTracker {
    * é o próprio JavaScript que coleta.
    */
   drenar(): Promise<PontoBruto[]>;
+
+  /**
+   * Empurra o estado visível — tempo, distância, métrica principal (pace ou
+   * velocidade, já formatados) — para a superfície nativa (P1C).
+   *
+   * `pausado` decide o rótulo de status; os demais campos chegam já
+   * FORMATADOS (mesmas funções que a tela usa: `formatTime`,
+   * `metricaPrincipal`/`formatarPace`) — a plataforma nativa não reimplementa
+   * a regra de negócio, só renderiza texto pronto. É por isso que o contrato
+   * é só strings: nenhuma unidade, arredondamento ou escolha pace×velocidade
+   * é decidida do lado de lá.
+   *
+   * No web é no-op: não existe superfície de Lock Screen para o PWA neste
+   * escopo (mesmo limite que `suportaSegundoPlano` já sinaliza).
+   */
+  atualizarEstadoVisivel(estado: EstadoTrackerVisivel): void;
+}
+
+/**
+ * Estado empurrado para a notificação/Lock Screen — ver `atualizarEstadoVisivel`.
+ *
+ * Sem campo de pausa de propósito: quem decide "PAUSADO" no lado nativo é o
+ * PRÓPRIO serviço, a partir das ações `pausar()`/`retomar()` que já chegam
+ * antes de qualquer atualização de estado (mesma sessão de Intents, ordem
+ * garantida). Reenviar o mesmo fato por aqui seria uma segunda fonte de
+ * verdade para algo que o nativo já sabe com certeza.
+ */
+export interface EstadoTrackerVisivel {
+  /** "00:37:42" — `formatTime`. */
+  tempoLabel: string;
+  /** "6.31 km" — mesma casa decimal usada na tela. */
+  distanciaLabel: string;
+  /** "5:59" ou "--" (sem pace ainda), ou velocidade quando a modalidade é bike. */
+  metricaValor: string;
+  /** "/km" ou "km/h". */
+  metricaUnidade: string;
 }
 
 export type PermissaoLocalizacao = "concedida" | "negada" | "nao_solicitada" | "indisponivel";

@@ -98,4 +98,11 @@ describe("WebLocationTracker — pausar/retomar sem perder a sessão", () => {
     const t = new WebLocationTracker();
     await expect(t.drenar()).resolves.toEqual([]);
   });
+
+  it("atualizarEstadoVisivel é no-op — sem Lock Screen de PWA neste escopo (P1C)", () => {
+    const t = new WebLocationTracker();
+    expect(() =>
+      t.atualizarEstadoVisivel({ tempoLabel: "00:00:05", distanciaLabel: "0.01 km", metricaValor: "--", metricaUnidade: "/km" }),
+    ).not.toThrow();
+  });
 });
