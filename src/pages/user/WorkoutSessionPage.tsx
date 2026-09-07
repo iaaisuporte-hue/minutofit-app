@@ -77,19 +77,26 @@ import "./workoutSession/workoutSession.css";
 import { Mic } from "lucide-react";
 import { useWorkoutController } from "./workoutSession/commands/useWorkoutController";
 import { buildWorkoutSnapshot } from "./workoutSession/commands/WorkoutSnapshot";
-import type { WorkoutCommand, WorkoutCommandResult } from "./workoutSession/commands/workoutControllerRegistry";
+import {
+  getActiveWorkoutController,
+  type WorkoutCommand,
+  type WorkoutCommandResult,
+} from "./workoutSession/commands/workoutControllerRegistry";
 import {
   applySetValues as wcApplySetValues,
   attachSetObservation as wcAttachObservation,
   completeSet as wcCompleteSet,
+  uncompleteSet as wcUncompleteSet,
 } from "./workoutSession/commands/workoutCommands";
 import { createVoiceEngine } from "../../features/voiceWorkout/ports/createVoiceEngine";
 import { VoiceEngineError, type VoiceEngine } from "../../features/voiceWorkout/ports/VoiceEngine";
-import { parseVoiceCommand } from "../../features/voiceWorkout/voiceIntent";
+import { parseVoiceCommand, type VoiceIntent } from "../../features/voiceWorkout/voiceIntent";
+import { hasAttentionSignal, ATTENTION_SIGNAL_MESSAGE } from "../../features/voiceWorkout/voiceSafety";
 import { VoiceWorkoutDisclosure } from "../../features/voiceWorkout/VoiceWorkoutDisclosure";
 import { hasVoiceWorkoutAck, setVoiceWorkoutAck } from "../../features/voiceWorkout/voiceWorkoutAck";
 import { VoiceWorkoutHud, type VoiceWorkoutHudState } from "../../features/voiceWorkout/VoiceWorkoutHud";
 import { postVoiceEvent } from "../../features/voiceWorkout/voiceEvents";
+import { fetchReplacementSuggestions } from "../../services/exerciseReplacementSuggestionsApi";
 import "../../features/voiceWorkout/voiceWorkout.css";
 
 // ── helpers de parsing (espelham o backend p/ contagem de séries / rest) ──
@@ -183,6 +190,34 @@ const RPE_OPTIONS = [
   { label: "Intenso", rpe: 8 },
   { label: "Máximo", rpe: 10 },
 ];
+
+// ── Voice Workout — máquina de confirmação e desfazer (P5B) ────────────────
+//
+// Uma pergunta em aberto por vez ("sim"/"não" só valem dentro da janela) e
+// uma última ação por voz desfazível (janela mais longa, invalidada por
+// interação manual — ver `updateSet`). Nada disto é estado do TREINO: é
+// estado da CONVERSA, por isso vive fora do draft/persist.
+const CONFIRMATION_WINDOW_MS = 8_000;
+const UNDO_WINDOW_MS = 30_000;
+
+type PendingConfirmation =
+  | { kind: "complete_set"; setIndex: number; reps: string | null; loadKg: string | null; observation: string | null; speak: string; expiresAt: number }
+  | { kind: "set_load"; setIndex: number; loadKg: string; speak: string; expiresAt: number }
+  | { kind: "set_reps"; setIndex: number; reps: string; speak: string; expiresAt: number }
+  | { kind: "finish_initial"; speak: string; expiresAt: number }
+  | { kind: "finish_despite_pending"; speak: string; expiresAt: number }
+  | { kind: "substitution_replace"; picked: PickedExercise; reason: string | null; speak: string; expiresAt: number }
+  | { kind: "substitution_keep_add"; picked: PickedExercise; speak: string; expiresAt: number };
+
+/** `Omit` sobre union não distribui (perde os campos exclusivos de cada
+ *  variante) — é o que faz `abrirConfirmacao` precisar desta versão. */
+type DistributiveOmit<T, K extends keyof T> = T extends unknown ? Omit<T, K> : never;
+
+type LastVoiceAction =
+  | { type: "complete_set"; setIndex: number; before: { reps: string; loadKg: string } | null; expiresAt: number }
+  | { type: "set_load"; setIndex: number; before: string; expiresAt: number }
+  | { type: "set_reps"; setIndex: number; before: string; expiresAt: number }
+  | { type: "navigate"; before: number; expiresAt: number };
 
 export default function WorkoutSessionPage() {
   const navigate = useNavigate();
@@ -496,6 +531,11 @@ export default function WorkoutSessionPage() {
   const [voiceHudState, setVoiceHudState] = useState<VoiceWorkoutHudState>("off");
   const [voiceError, setVoiceError] = useState<string | null>(null);
   const [showVoiceDisclosure, setShowVoiceDisclosure] = useState(false);
+  // P5B — confirmação pendente (no máximo uma) e última ação desfazível.
+  const [pendingConfirmation, setPendingConfirmation] = useState<PendingConfirmation | null>(null);
+  const lastVoiceActionRef = useRef<LastVoiceAction | null>(null);
+  /** Última frase falada pelo Voice Workout — alvo do comando "repete". */
+  const ultimaFalaRef = useRef<string | null>(null);
 
   // ── carga: busca plano + dia ──────────────────────────
   useEffect(() => {
@@ -789,6 +829,10 @@ export default function WorkoutSessionPage() {
     current?.technique !== undefined ? current?.technique ?? null : itemDaFicha?.technique ?? null;
 
   function updateSet(setIdx: number, patch: Partial<DraftExercise["sets"][number]>) {
+    // Interação MANUAL invalida o "desfaz" da voz (P5B — regra de conflito):
+    // só esta função e `toggleDone` (que chama esta) representam edição
+    // manual; os comandos de voz mudam `exercises` direto, sem passar aqui.
+    lastVoiceActionRef.current = null;
     setExercises((prev) => {
       const next = prev.map((ex, i) =>
         i === currentIndex
@@ -900,6 +944,15 @@ export default function WorkoutSessionPage() {
         marcarAtividade();
         return { ok: true, changed: true };
       }
+      case "uncomplete_set": {
+        // Só usado pelo "desfaz" da voz — a UI manual continua desmarcando
+        // pelo `toggleDone` (alterna), não por este comando.
+        const result = wcUncompleteSet(exercises, currentIndex, command.setIndex);
+        if (!result.changed) return { ok: true, changed: false, reason: result.reason };
+        setExercises(result.exercises);
+        persist(result.exercises, currentIndex, startedAt);
+        return { ok: true, changed: true };
+      }
       case "attach_observation": {
         const result = wcAttachObservation(exercises, currentIndex, command.setIndex, command.observation);
         if (!result.changed) return { ok: true, changed: false, reason: result.reason };
@@ -915,6 +968,13 @@ export default function WorkoutSessionPage() {
       case "previous_exercise": {
         if (currentIndex <= 0) return { ok: true, changed: false, reason: "already_first" };
         goTo(currentIndex - 1);
+        return { ok: true, changed: true };
+      }
+      case "go_to_exercise": {
+        if (command.exerciseIndex < 0 || command.exerciseIndex >= exercises.length || command.exerciseIndex === currentIndex) {
+          return { ok: true, changed: false, reason: "invalid_index" };
+        }
+        goTo(command.exerciseIndex);
         return { ok: true, changed: true };
       }
       case "pause_rest": {
@@ -1002,11 +1062,606 @@ export default function WorkoutSessionPage() {
     postVoiceEvent("voice.deactivated", { mode: isFree ? "free" : "plan" });
   }
 
-  /**
-   * Push-to-talk: captura UM comando e tenta executá-lo. Gramática mínima da
-   * P5A — só "fiz N com M" (e variações próximas). A gramática completa
-   * (navegação, descanso, consultas, substituição) é P5B.
-   */
+  // ── Voice Workout — gramática completa (P5B) ──────────────────────────
+  //
+  // `dispatch` passa pelo REGISTRY (não chama `applyWorkoutCommand` direto):
+  // entre o toque em "Falar" e o STT resolver existe um `await`, e nesse
+  // intervalo o usuário pode ter mexido manualmente na tela — o wrapper do
+  // registry sempre lê a versão mais recente de `applyWorkoutCommand` (via
+  // `useWorkoutController`), nunca a fechada no início da captura (P5B.26).
+  function dispatch(command: WorkoutCommand): WorkoutCommandResult {
+    return getActiveWorkoutController()?.dispatch(command) ?? applyWorkoutCommand(command);
+  }
+
+  function falar(texto: string, engine: VoiceEngine) {
+    ultimaFalaRef.current = texto;
+    void engine.speak(texto);
+  }
+
+  function serieEExercicioAlvo(): { exercicio: DraftExercise; serie: DraftExercise["sets"][number] } | null {
+    const ex = exercises[currentIndex];
+    if (!ex) return null;
+    const serie = serieAtual(ex.sets);
+    if (!serie) return null;
+    return { exercicio: ex, serie };
+  }
+
+  /** Carga de referência: série anterior NESTA sessão, senão histórico — mesma prioridade do chip "última: X kg". */
+  function referenciaCargaAtual(): number | null {
+    const alvo = serieEExercicioAlvo();
+    if (!alvo) return null;
+    const posicao = alvo.exercicio.sets.findIndex((s) => s.setIndex === alvo.serie.setIndex);
+    const anterior = posicao > 0 ? alvo.exercicio.sets[posicao - 1] : null;
+    const daSessao = anterior?.loadKg?.trim() ? parseNum(anterior.loadKg) : null;
+    if (daSessao != null) return daSessao;
+    return alvo.exercicio.exerciseId ? (prevLoad.get(alvo.exercicio.exerciseId) ?? null) : null;
+  }
+
+  /** true = valor implausível, precisa de confirmação antes de executar (plano P5 §7). */
+  function cargaImplausivel(loadKg: number, referencia: number | null): boolean {
+    if (loadKg > 300) return true;
+    if (referencia != null && referencia > 0) {
+      const razao = loadKg / referencia;
+      if (razao > 1.5 || razao < 0.5) return true;
+    }
+    return false;
+  }
+  function repsImplausiveis(reps: number, alvo: number | null): boolean {
+    if (reps > 50) return true;
+    if (alvo != null && alvo > 0 && reps > alvo * 2) return true;
+    return false;
+  }
+
+  function abrirConfirmacao(pending: DistributiveOmit<PendingConfirmation, "expiresAt">, engine: VoiceEngine) {
+    setPendingConfirmation({ ...pending, expiresAt: Date.now() + CONFIRMATION_WINDOW_MS } as PendingConfirmation);
+    postVoiceEvent("voice.confirmation_requested", { mode: isFree ? "free" : "plan" });
+    falar(pending.speak, engine);
+  }
+
+  function anexarObservacaoSessao(texto: string) {
+    setNotes((prev) => {
+      const alvoExercicio = exercises[currentIndex];
+      const linha = alvoExercicio ? `${alvoExercicio.name}: ${texto}` : texto;
+      const combinado = prev ? `${prev} · ${linha}` : linha;
+      return combinado.slice(0, 280);
+    });
+  }
+
+  function executarCompleteSet(
+    setIndex: number,
+    reps: number | null,
+    loadKg: number | null,
+    observation: string | null,
+    engine: VoiceEngine,
+  ) {
+    const serieAntes = exercises[currentIndex]?.sets.find((s) => s.setIndex === setIndex);
+    const antes = serieAntes ? { reps: serieAntes.reps, loadKg: serieAntes.loadKg } : null;
+
+    const resultado = dispatch({
+      type: "complete_set",
+      setIndex,
+      reps: reps != null ? String(reps) : undefined,
+      loadKg: loadKg != null ? String(loadKg) : undefined,
+    });
+    if (!resultado.changed) {
+      postVoiceEvent("voice.command_failure", { mode: isFree ? "free" : "plan", errorKind: resultado.reason ?? "no_change" });
+      falar("Essa série já estava concluída.", engine);
+      return;
+    }
+    if (observation) dispatch({ type: "attach_observation", setIndex, observation });
+
+    lastVoiceActionRef.current = { type: "complete_set", setIndex, before: antes, expiresAt: Date.now() + UNDO_WINDOW_MS };
+    postVoiceEvent("voice.command_success", { mode: isFree ? "free" : "plan" });
+    const frase =
+      reps != null && loadKg != null
+        ? `Registrado. ${reps} com ${loadKg}.`
+        : reps != null
+          ? `Registrado. ${reps} repetições.`
+          : "Registrado.";
+    falar(observation ? `${frase} Também anotei sua observação.` : frase, engine);
+  }
+
+  function anexarObservacaoComEscopo(texto: string, engine: VoiceEngine) {
+    if (hasAttentionSignal(texto)) {
+      anexarObservacaoSessao(texto);
+      postVoiceEvent("voice.command_failure", { mode: isFree ? "free" : "plan", errorKind: "safety_flagged" });
+      falar(ATTENTION_SIGNAL_MESSAGE, engine);
+      return;
+    }
+    const alvo = serieEExercicioAlvo();
+    if (alvo) {
+      dispatch({ type: "attach_observation", setIndex: alvo.serie.setIndex, observation: texto });
+      postVoiceEvent("voice.command_success", { mode: isFree ? "free" : "plan" });
+      falar("Anotado.", engine);
+      return;
+    }
+    // Sem série pendente: tenta a última concluída nos últimos 60s antes de
+    // cair para a nota da sessão — "anota que ficou pesado" dito logo após
+    // fechar a série é sobre ELA, não sobre o treino inteiro.
+    const ex = exercises[currentIndex];
+    const feitas = ex?.sets.filter((s) => s.done && s.completedAt != null) ?? [];
+    const ultima = feitas.length
+      ? feitas.reduce((a, b) => ((a.completedAt ?? 0) > (b.completedAt ?? 0) ? a : b))
+      : null;
+    if (ultima && Date.now() - (ultima.completedAt ?? 0) < 60_000) {
+      dispatch({ type: "attach_observation", setIndex: ultima.setIndex, observation: texto });
+      postVoiceEvent("voice.command_success", { mode: isFree ? "free" : "plan" });
+      falar("Anotado.", engine);
+      return;
+    }
+    anexarObservacaoSessao(texto);
+    postVoiceEvent("voice.command_success", { mode: isFree ? "free" : "plan" });
+    falar("Anotado no resumo do treino.", engine);
+  }
+
+  function falarExercicio(idx: number, engine: VoiceEngine) {
+    const ex = exercises[idx];
+    if (!ex) return;
+    const serie = serieAtual(ex.sets);
+    let frase = `${ex.name}. Série ${serie ? serie.setIndex : ex.sets.length} de ${ex.sets.length}.`;
+    const ultimaCarga = ex.exerciseId ? prevLoad.get(ex.exerciseId) : null;
+    if (ultimaCarga != null) frase += ` Última carga: ${ultimaCarga} quilos.`;
+    falar(frase, engine);
+  }
+
+  function responderConsulta(tipo: VoiceIntent["type"], engine: VoiceEngine) {
+    const ex = exercises[currentIndex];
+    switch (tipo) {
+      case "query_current_exercise":
+        falar(ex ? ex.name : "Não sei dizer agora.", engine);
+        return;
+      case "query_current_set": {
+        const serie = ex ? serieAtual(ex.sets) : null;
+        falar(
+          serie
+            ? `Série ${serie.setIndex} de ${ex!.sets.length}.`
+            : `Todas as ${ex?.sets.length ?? 0} séries desse exercício já estão concluídas.`,
+          engine,
+        );
+        return;
+      }
+      case "query_next_exercise": {
+        const proximo = exercises[currentIndex + 1];
+        falar(proximo ? proximo.name : "Esse é o último exercício.", engine);
+        return;
+      }
+      case "query_workout_elapsed": {
+        const minutos = Math.max(0, Math.round((Date.now() - startedAt) / 60000));
+        falar(minutos === 1 ? "1 minuto." : `${minutos} minutos.`, engine);
+        return;
+      }
+      case "query_rest_remaining": {
+        if (!rest.active) {
+          falar("Você não está em descanso agora.", engine);
+          return;
+        }
+        falar(rest.running ? `${rest.secondsLeft} segundos.` : `Descanso pausado. Faltam ${rest.secondsLeft} segundos.`, engine);
+        return;
+      }
+      case "query_previous_load": {
+        const carga = referenciaCargaAtual();
+        falar(carga != null ? `${carga} quilos.` : "Não tenho essa informação.", engine);
+        return;
+      }
+      case "query_previous_reps": {
+        const alvo = serieEExercicioAlvo();
+        if (!alvo) {
+          falar("Não tenho as repetições anteriores disponíveis.", engine);
+          return;
+        }
+        const posicao = alvo.exercicio.sets.findIndex((s) => s.setIndex === alvo.serie.setIndex);
+        const anterior = posicao > 0 ? alvo.exercicio.sets[posicao - 1] : null;
+        falar(anterior?.reps?.trim() ? `${anterior.reps} repetições.` : "Não tenho as repetições anteriores disponíveis.", engine);
+        return;
+      }
+      default:
+        return;
+    }
+  }
+
+  async function tratarSubstituicaoPorVoz(reason: "equipment_unavailable" | "pain_discomfort" | "other", engine: VoiceEngine) {
+    const alvoExercicio = exercises[currentIndex];
+    if (!alvoExercicio) return;
+    if (!alvoExercicio.exerciseId) {
+      postVoiceEvent("voice.command_failure", { mode: isFree ? "free" : "plan", errorKind: "legacy_exercise" });
+      falar("Não consigo sugerir uma substituição para esse exercício. Use a tela para escolher.", engine);
+      return;
+    }
+    postVoiceEvent("voice.substitution_requested", { mode: isFree ? "free" : "plan" });
+    const resultado = await fetchReplacementSuggestions(alvoExercicio.exerciseId, reason);
+    const idsNaSessao = new Set(exercises.map((e) => e.exerciseId).filter((id): id is string => !!id));
+    const candidato = resultado?.suggestions.find((s) => !idsNaSessao.has(s.exercise.id));
+    if (!candidato) {
+      postVoiceEvent("voice.command_failure", { mode: isFree ? "free" : "plan", errorKind: "no_suggestion" });
+      falar("Não consigo buscar uma substituição agora. Use a tela para escolher.", engine);
+      return;
+    }
+    const picked: PickedExercise = { id: candidato.exercise.id, name: candidato.exercise.name, bodyPart: candidato.exercise.bodyPart };
+    const motivoTexto = reason === "equipment_unavailable" ? "Equipamento ocupado" : reason === "pain_discomfort" ? "Desconforto" : null;
+    if (hasRecordedWork(alvoExercicio)) {
+      abrirConfirmacao(
+        {
+          kind: "substitution_keep_add",
+          picked,
+          speak: `Você já registrou séries nesse exercício. Quer manter o que foi feito e adicionar ${picked.name} como extra?`,
+        },
+        engine,
+      );
+    } else {
+      abrirConfirmacao(
+        { kind: "substitution_replace", picked, reason: motivoTexto, speak: `Posso substituir por ${picked.name}. Quer trocar?` },
+        engine,
+      );
+    }
+  }
+
+  function desfazerUltimaAcaoDeVoz(engine: VoiceEngine) {
+    const acao = lastVoiceActionRef.current;
+    if (!acao || Date.now() > acao.expiresAt) {
+      falar("Não há nada para desfazer.", engine);
+      return;
+    }
+    lastVoiceActionRef.current = null;
+    switch (acao.type) {
+      case "complete_set":
+        dispatch({ type: "uncomplete_set", setIndex: acao.setIndex });
+        if (acao.before) {
+          dispatch({ type: "set_load", setIndex: acao.setIndex, loadKg: acao.before.loadKg });
+          dispatch({ type: "set_reps", setIndex: acao.setIndex, reps: acao.before.reps });
+        }
+        break;
+      case "set_load":
+        dispatch({ type: "set_load", setIndex: acao.setIndex, loadKg: acao.before });
+        break;
+      case "set_reps":
+        dispatch({ type: "set_reps", setIndex: acao.setIndex, reps: acao.before });
+        break;
+      case "navigate":
+        dispatch({ type: "go_to_exercise", exerciseIndex: acao.before });
+        break;
+    }
+    postVoiceEvent("voice.undo_used", { mode: isFree ? "free" : "plan" });
+    falar("Desfeito.", engine);
+  }
+
+  /** Executa a ação de uma confirmação já aceita ("sim" dentro da janela). */
+  function executarConfirmacao(pending: PendingConfirmation, engine: VoiceEngine) {
+    postVoiceEvent("voice.confirmation_accepted", { mode: isFree ? "free" : "plan" });
+    switch (pending.kind) {
+      case "complete_set":
+        executarCompleteSet(
+          pending.setIndex,
+          pending.reps != null ? Number(pending.reps) : null,
+          pending.loadKg != null ? Number(pending.loadKg) : null,
+          pending.observation,
+          engine,
+        );
+        return;
+      case "set_load": {
+        const antes = exercises[currentIndex]?.sets.find((s) => s.setIndex === pending.setIndex)?.loadKg ?? "";
+        const resultado = dispatch({ type: "set_load", setIndex: pending.setIndex, loadKg: pending.loadKg });
+        if (resultado.changed) {
+          lastVoiceActionRef.current = { type: "set_load", setIndex: pending.setIndex, before: antes, expiresAt: Date.now() + UNDO_WINDOW_MS };
+          falar(`Carga ajustada para ${pending.loadKg}.`, engine);
+        }
+        return;
+      }
+      case "set_reps": {
+        const antes = exercises[currentIndex]?.sets.find((s) => s.setIndex === pending.setIndex)?.reps ?? "";
+        const resultado = dispatch({ type: "set_reps", setIndex: pending.setIndex, reps: pending.reps });
+        if (resultado.changed) {
+          lastVoiceActionRef.current = { type: "set_reps", setIndex: pending.setIndex, before: antes, expiresAt: Date.now() + UNDO_WINDOW_MS };
+          falar(`Repetições ajustadas para ${pending.reps}.`, engine);
+        }
+        return;
+      }
+      case "finish_initial": {
+        if (filledUnchecked.length > 0) {
+          markFilledAsDone();
+          falar("Marquei as séries preenchidas. Treino encerrado. Confira o resumo na tela para salvar.", engine);
+          return;
+        }
+        if (exerciciosPendentes.length > 0 && doneSets > 0) {
+          abrirConfirmacao(
+            { kind: "finish_despite_pending", speak: `${exerciciosPendentes.length} exercícios sem série. Finalizar mesmo assim?` },
+            engine,
+          );
+          return;
+        }
+        setPhase("summary");
+        falar("Treino encerrado. Confira o resumo na tela para salvar.", engine);
+        return;
+      }
+      case "finish_despite_pending":
+        setPhase("summary");
+        falar("Treino encerrado. Confira o resumo na tela para salvar.", engine);
+        return;
+      case "substitution_replace": {
+        const resultado = replaceLiveExercise(liveState(), currentIndex, pending.picked, pending.reason);
+        applyLiveResult(resultado);
+        if (resultado.changed) {
+          postWorkoutEvent("workout.exercise_substituted", { mode: modo, hadReason: pending.reason != null });
+          falar(`Trocado. ${pending.picked.name}.`, engine);
+        } else {
+          falar("Não consegui trocar agora.", engine);
+        }
+        return;
+      }
+      case "substitution_keep_add": {
+        const resultado = addLiveExercise(liveState(), pending.picked, { origin: "user_added", atIndex: currentIndex + 1 });
+        applyLiveResult(resultado);
+        if (resultado.changed) {
+          postWorkoutEvent("workout.exercise_added", { mode: modo });
+          falar(`Adicionado. ${pending.picked.name} como extra.`, engine);
+        } else {
+          falar("Não consegui adicionar agora.", engine);
+        }
+        return;
+      }
+    }
+  }
+
+  /** Roteador central de intents (P5B) — recebe o resultado já parseado e decide o que fazer. */
+  function processarIntentDeVoz(intent: VoiceIntent, engine: VoiceEngine) {
+    const mode = isFree ? "free" : "plan";
+    const pendente = pendingConfirmation;
+    const pendenteValida = !!pendente && Date.now() <= pendente.expiresAt;
+
+    if (intent.type === "confirm") {
+      if (pendenteValida) {
+        setPendingConfirmation(null);
+        executarConfirmacao(pendente!, engine);
+      } else {
+        if (pendente) setPendingConfirmation(null);
+        falar("Não há nada para confirmar.", engine);
+      }
+      return;
+    }
+    if (intent.type === "deny") {
+      if (pendente) setPendingConfirmation(null);
+      if (pendenteValida) postVoiceEvent("voice.confirmation_rejected", { mode });
+      falar("Ok.", engine);
+      return;
+    }
+    // Qualquer outro comando enquanto uma confirmação está pendente descarta
+    // a pendência — ela deixou de fazer sentido (P5B.26/27).
+    if (pendente) setPendingConfirmation(null);
+
+    switch (intent.type) {
+      case "repeat":
+        falar(ultimaFalaRef.current ?? "Não tenho nada para repetir.", engine);
+        return;
+      case "help":
+        falar('Você pode dizer: "fiz 12 com 28", "próximo exercício", "quanto falta" ou "anota uma observação".', engine);
+        return;
+      case "undo":
+        desfazerUltimaAcaoDeVoz(engine);
+        return;
+      case "voice_off":
+        desligarVoiceWorkout();
+        return;
+      case "finish_workout":
+        abrirConfirmacao(
+          { kind: "finish_initial", speak: `Quer finalizar o treino agora? ${doneSets} de ${totalSets} séries concluídas.` },
+          engine,
+        );
+        return;
+      case "request_exercise_substitution":
+        void tratarSubstituicaoPorVoz(intent.reason, engine);
+        return;
+      case "add_observation":
+        anexarObservacaoComEscopo(intent.observation, engine);
+        return;
+      case "query_current_exercise":
+      case "query_current_set":
+      case "query_next_exercise":
+      case "query_workout_elapsed":
+      case "query_rest_remaining":
+      case "query_previous_load":
+      case "query_previous_reps":
+        responderConsulta(intent.type, engine);
+        return;
+      case "next_exercise": {
+        if (currentIndex >= exercises.length - 1) {
+          postVoiceEvent("voice.command_failure", { mode, errorKind: "already_last" });
+          falar("Esse é o último exercício. Quer finalizar o treino?", engine);
+          return;
+        }
+        const antes = currentIndex;
+        const resultado = dispatch({ type: "next_exercise" });
+        if (resultado.changed) {
+          lastVoiceActionRef.current = { type: "navigate", before: antes, expiresAt: Date.now() + UNDO_WINDOW_MS };
+          postVoiceEvent("voice.command_success", { mode });
+          falarExercicio(currentIndex + 1, engine);
+        } else {
+          falar("Não consegui avançar.", engine);
+        }
+        return;
+      }
+      case "previous_exercise": {
+        if (currentIndex <= 0) {
+          postVoiceEvent("voice.command_failure", { mode, errorKind: "already_first" });
+          falar("Esse já é o primeiro exercício.", engine);
+          return;
+        }
+        const antes = currentIndex;
+        const resultado = dispatch({ type: "previous_exercise" });
+        if (resultado.changed) {
+          lastVoiceActionRef.current = { type: "navigate", before: antes, expiresAt: Date.now() + UNDO_WINDOW_MS };
+          postVoiceEvent("voice.command_success", { mode });
+          falarExercicio(currentIndex - 1, engine);
+        } else {
+          falar("Não consegui voltar.", engine);
+        }
+        return;
+      }
+      case "go_to_exercise": {
+        if (intent.matches.length === 0) {
+          postVoiceEvent("voice.command_failure", { mode, errorKind: "exercise_not_found" });
+          falar("Não encontrei esse exercício na sessão.", engine);
+          return;
+        }
+        if (intent.matches.length > 1) {
+          postVoiceEvent("voice.command_failure", { mode, errorKind: "ambiguous_exercise" });
+          falar(`Você tem ${intent.matches.slice(0, 3).join(", ")}. Qual deles?`, engine);
+          return;
+        }
+        const alvoIndex = exercises.findIndex((e) => e.name === intent.matches[0]);
+        if (alvoIndex < 0) {
+          falar("Não encontrei esse exercício.", engine);
+          return;
+        }
+        const antes = currentIndex;
+        const resultado = dispatch({ type: "go_to_exercise", exerciseIndex: alvoIndex });
+        if (resultado.changed) {
+          lastVoiceActionRef.current = { type: "navigate", before: antes, expiresAt: Date.now() + UNDO_WINDOW_MS };
+          postVoiceEvent("voice.command_success", { mode });
+          falarExercicio(alvoIndex, engine);
+        } else {
+          falar("Você já está nesse exercício.", engine);
+        }
+        return;
+      }
+      case "pause_rest": {
+        const resultado = dispatch({ type: "pause_rest" });
+        if (resultado.changed) {
+          postVoiceEvent("voice.command_success", { mode });
+          falar("Descanso pausado.", engine);
+        } else {
+          falar("Você não está em descanso agora.", engine);
+        }
+        return;
+      }
+      case "resume_rest": {
+        const resultado = dispatch({ type: "resume_rest" });
+        if (resultado.changed) {
+          postVoiceEvent("voice.command_success", { mode });
+          falar("Descanso retomado.", engine);
+        } else {
+          falar("O descanso não está pausado.", engine);
+        }
+        return;
+      }
+      case "skip_rest": {
+        const resultado = dispatch({ type: "skip_rest" });
+        if (resultado.changed) {
+          postVoiceEvent("voice.command_success", { mode });
+          falar("Descanso concluído.", engine);
+        } else {
+          falar("Você não está em descanso agora.", engine);
+        }
+        return;
+      }
+      case "extend_rest": {
+        if (!rest.active) {
+          postVoiceEvent("voice.command_failure", { mode, errorKind: "no_active_rest" });
+          falar("Você não está em descanso agora.", engine);
+          return;
+        }
+        rest.add(intent.seconds);
+        postVoiceEvent("voice.command_success", { mode });
+        falar(`Mais ${intent.seconds} segundos.`, engine);
+        return;
+      }
+      case "set_load": {
+        const alvo = serieEExercicioAlvo();
+        if (!alvo) {
+          falar("Não há série ativa agora.", engine);
+          return;
+        }
+        if (cargaImplausivel(intent.loadKg, referenciaCargaAtual())) {
+          abrirConfirmacao(
+            { kind: "set_load", setIndex: alvo.serie.setIndex, loadKg: String(intent.loadKg), speak: `Entendi ${intent.loadKg} quilos. Confirma?` },
+            engine,
+          );
+          return;
+        }
+        const antes = alvo.serie.loadKg;
+        const resultado = dispatch({ type: "set_load", setIndex: alvo.serie.setIndex, loadKg: String(intent.loadKg) });
+        if (resultado.changed) {
+          lastVoiceActionRef.current = { type: "set_load", setIndex: alvo.serie.setIndex, before: antes, expiresAt: Date.now() + UNDO_WINDOW_MS };
+          postVoiceEvent("voice.command_success", { mode });
+          falar(`Carga ajustada para ${intent.loadKg}.`, engine);
+        }
+        return;
+      }
+      case "set_reps": {
+        const alvo = serieEExercicioAlvo();
+        if (!alvo) {
+          falar("Não há série ativa agora.", engine);
+          return;
+        }
+        const metaReps = leadingInt(alvo.serie.plannedReps);
+        if (repsImplausiveis(intent.reps, metaReps)) {
+          abrirConfirmacao(
+            { kind: "set_reps", setIndex: alvo.serie.setIndex, reps: String(intent.reps), speak: `Entendi ${intent.reps} repetições. Confirma?` },
+            engine,
+          );
+          return;
+        }
+        const antes = alvo.serie.reps;
+        const resultado = dispatch({ type: "set_reps", setIndex: alvo.serie.setIndex, reps: String(intent.reps) });
+        if (resultado.changed) {
+          lastVoiceActionRef.current = { type: "set_reps", setIndex: alvo.serie.setIndex, before: antes, expiresAt: Date.now() + UNDO_WINDOW_MS };
+          postVoiceEvent("voice.command_success", { mode });
+          falar(`Repetições ajustadas para ${intent.reps}.`, engine);
+        }
+        return;
+      }
+      case "complete_set": {
+        const alvo = serieEExercicioAlvo();
+        if (!alvo) {
+          postVoiceEvent("voice.command_failure", { mode, errorKind: "no_current_set" });
+          falar("Não há série pendente agora.", engine);
+          return;
+        }
+        if (intent.observation && hasAttentionSignal(intent.observation)) {
+          anexarObservacaoSessao(intent.observation);
+          postVoiceEvent("voice.command_failure", { mode, errorKind: "safety_flagged" });
+          abrirConfirmacao(
+            {
+              kind: "complete_set",
+              setIndex: alvo.serie.setIndex,
+              reps: intent.reps != null ? String(intent.reps) : null,
+              loadKg: intent.loadKg != null ? String(intent.loadKg) : null,
+              observation: null,
+              speak: `${ATTENTION_SIGNAL_MESSAGE} Quer que eu registre a série mesmo assim?`,
+            },
+            engine,
+          );
+          return;
+        }
+        const referencia = referenciaCargaAtual();
+        const metaReps = leadingInt(alvo.serie.plannedReps);
+        const precisaConfirmar =
+          (intent.loadKg != null && cargaImplausivel(intent.loadKg, referencia)) ||
+          (intent.reps != null && repsImplausiveis(intent.reps, metaReps));
+        if (precisaConfirmar) {
+          const partes: string[] = [];
+          if (intent.reps != null) partes.push(`${intent.reps} repetições`);
+          if (intent.loadKg != null) partes.push(`${intent.loadKg} quilos`);
+          abrirConfirmacao(
+            {
+              kind: "complete_set",
+              setIndex: alvo.serie.setIndex,
+              reps: intent.reps != null ? String(intent.reps) : null,
+              loadKg: intent.loadKg != null ? String(intent.loadKg) : null,
+              observation: intent.observation,
+              speak: `Entendi ${partes.join(" com ")}. Confirma?`,
+            },
+            engine,
+          );
+          return;
+        }
+        executarCompleteSet(alvo.serie.setIndex, intent.reps, intent.loadKg, intent.observation, engine);
+        return;
+      }
+      default:
+        return;
+    }
+  }
+
+  /** Push-to-talk: captura UM comando, interpreta e executa via `processarIntentDeVoz`. */
   async function executarComandoDeVoz() {
     if (voiceHudState === "listening" || voiceHudState === "processing") return;
     const engine = voiceEngineRef.current;
@@ -1035,42 +1690,22 @@ export default function WorkoutSessionPage() {
 
     // Transcript nunca sai daqui além do parser — nenhum evento carrega o
     // texto (pacto de dados, ver `voiceEvents.ts`).
-    const { intent } = parseVoiceCommand(transcript);
-    const exercicioAlvo = exercises[currentIndex];
-    const serieAlvo = exercicioAlvo ? serieAtual(exercicioAlvo.sets) : null;
-
-    if (!intent || intent.reps == null || !serieAlvo) {
-      postVoiceEvent("voice.command_failure", { mode: isFree ? "free" : "plan", errorKind: "not_understood" });
-      setVoiceHudState("error");
-      setVoiceError('Não entendi. Diga, por exemplo: "fiz 12 com 28".');
-      void engine.speak("Não entendi. Diga, por exemplo: fiz 12 com 28.");
-      return;
-    }
-
-    const resultado = applyWorkoutCommand({
-      type: "complete_set",
-      setIndex: serieAlvo.setIndex,
-      reps: String(intent.reps),
-      loadKg: intent.loadKg != null ? String(intent.loadKg) : undefined,
+    const exercicioAtual = exercises[currentIndex];
+    const { intent } = parseVoiceCommand(transcript, {
+      sessionExerciseNames: exercises.map((e) => e.name),
+      plannedReps: exercicioAtual ? (serieAtual(exercicioAtual.sets)?.plannedReps ?? null) : null,
     });
 
-    if (!resultado.changed) {
-      postVoiceEvent("voice.command_failure", {
-        mode: isFree ? "free" : "plan",
-        errorKind: resultado.reason ?? "no_change",
-      });
-      setVoiceHudState("active");
-      void engine.speak("Essa série já estava concluída.");
+    if (!intent) {
+      postVoiceEvent("voice.command_failure", { mode: isFree ? "free" : "plan", errorKind: "not_understood" });
+      setVoiceHudState("error");
+      setVoiceError('Não entendi. Diga "ajuda" para ver exemplos.');
+      void engine.speak("Não entendi. Diga ajuda para ver exemplos.");
       return;
     }
 
-    postVoiceEvent("voice.command_success", { mode: isFree ? "free" : "plan", latencyMs: Date.now() - iniciadoEm });
     setVoiceHudState("active");
-    const confirmacao =
-      intent.loadKg != null
-        ? `Registrado. ${intent.reps} com ${intent.loadKg}.`
-        : `Registrado. ${intent.reps} repetições.`;
-    void engine.speak(confirmacao);
+    processarIntentDeVoz(intent, engine);
   }
 
   // ── edição da lista durante o treino livre ────────────

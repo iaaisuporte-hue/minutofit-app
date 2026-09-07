@@ -17,7 +17,13 @@ export type VoiceEventType =
   | "voice.stt_success"
   | "voice.stt_failure"
   | "voice.command_success"
-  | "voice.command_failure";
+  | "voice.command_failure"
+  // P5B — máquina de confirmação, desfazer e substituição por voz.
+  | "voice.confirmation_requested"
+  | "voice.confirmation_accepted"
+  | "voice.confirmation_rejected"
+  | "voice.undo_used"
+  | "voice.substitution_requested";
 
 /** Campos permitidos. Tipado para que transcript/carga/reps não entrem por descuido. */
 export interface VoiceEventPayload {

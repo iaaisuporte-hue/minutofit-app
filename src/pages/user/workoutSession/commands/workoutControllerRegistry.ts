@@ -16,11 +16,13 @@ import type { WorkoutSnapshot } from "./WorkoutSnapshot";
 
 export type WorkoutCommand =
   | { type: "complete_set"; setIndex: number; reps?: string; loadKg?: string }
+  | { type: "uncomplete_set"; setIndex: number }
   | { type: "set_load"; setIndex: number; loadKg: string }
   | { type: "set_reps"; setIndex: number; reps: string }
   | { type: "attach_observation"; setIndex: number; observation: string | null }
   | { type: "next_exercise" }
   | { type: "previous_exercise" }
+  | { type: "go_to_exercise"; exerciseIndex: number }
   | { type: "pause_rest" }
   | { type: "resume_rest" }
   | { type: "skip_rest" };

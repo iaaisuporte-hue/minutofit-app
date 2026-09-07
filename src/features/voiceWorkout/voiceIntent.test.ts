@@ -1,45 +1,50 @@
 import { describe, expect, it } from "vitest";
 import { parseVoiceCommand } from "./voiceIntent";
 
-describe("parseVoiceCommand", () => {
+/**
+ * Smoke tests do parser — casos básicos de `complete_set` e normalização.
+ * A gramática completa (navegação, consultas, descanso, substituição,
+ * diálogo, observação) é coberta pelo corpus em `voiceIntent.corpus.test.ts`.
+ */
+describe("parseVoiceCommand — complete_set", () => {
   it("reconhece 'fiz 12 com 28 quilos'", () => {
     const { intent } = parseVoiceCommand("fiz 12 com 28 quilos");
-    expect(intent).toEqual({ type: "complete_set", reps: 12, loadKg: 28 });
+    expect(intent).toMatchObject({ type: "complete_set", reps: 12, loadKg: 28 });
   });
 
   it("reconhece '12 com 28' sem verbo nem unidade", () => {
     const { intent } = parseVoiceCommand("12 com 28");
-    expect(intent).toEqual({ type: "complete_set", reps: 12, loadKg: 28 });
+    expect(intent).toMatchObject({ type: "complete_set", reps: 12, loadKg: 28 });
   });
 
   it("reconhece 'fiz 10 com 30 quilos'", () => {
     const { intent } = parseVoiceCommand("fiz 10 com 30 quilos");
-    expect(intent).toEqual({ type: "complete_set", reps: 10, loadKg: 30 });
+    expect(intent).toMatchObject({ type: "complete_set", reps: 10, loadKg: 30 });
   });
 
   it("reconhece número por extenso: 'fiz doze com vinte e oito'", () => {
     const { intent } = parseVoiceCommand("fiz doze com vinte e oito");
-    expect(intent).toEqual({ type: "complete_set", reps: 12, loadKg: 28 });
+    expect(intent).toMatchObject({ type: "complete_set", reps: 12, loadKg: 28 });
   });
 
   it("reconhece 'só 12' sem carga", () => {
     const { intent } = parseVoiceCommand("só 12");
-    expect(intent).toEqual({ type: "complete_set", reps: 12, loadKg: null });
+    expect(intent).toMatchObject({ type: "complete_set", reps: 12, loadKg: null });
   });
 
   it("aceita vírgula decimal na carga", () => {
     const { intent } = parseVoiceCommand("fiz 8 com 27,5");
-    expect(intent).toEqual({ type: "complete_set", reps: 8, loadKg: 27.5 });
+    expect(intent).toMatchObject({ type: "complete_set", reps: 8, loadKg: 27.5 });
   });
 
-  it("aceita 'de' no lugar de 'com'", () => {
+  it("aceita 'de' no lugar de 'com' quando não bate com a prescrição", () => {
     const { intent } = parseVoiceCommand("fiz 12 de 28 quilos");
-    expect(intent).toEqual({ type: "complete_set", reps: 12, loadKg: 28 });
+    expect(intent).toMatchObject({ type: "complete_set", reps: 12, loadKg: 28 });
   });
 
-  it("devolve null para frase fora da gramática mínima", () => {
+  it("'próximo exercício' agora é navegação, não fica mais fora da gramática (P5B)", () => {
     const { intent } = parseVoiceCommand("próximo exercício");
-    expect(intent).toBeNull();
+    expect(intent).toEqual({ type: "next_exercise" });
   });
 
   it("devolve null para frase vazia", () => {
