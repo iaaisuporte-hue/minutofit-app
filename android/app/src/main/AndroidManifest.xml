@@ -66,18 +66,27 @@
             android:foregroundServiceType="location" />
 
         <!--
-            Lock Screen do treino de musculação (P1D). Serviço PRÓPRIO,
-            separado do de localização acima — musculação não usa GPS, e
-            exigir permissão de localização de quem só treina na academia
-            seria pedir algo sem motivo (a Play Store audita se o tipo
-            declarado bate com o uso real do app).
+            Lock Screen do treino de musculação (P1D) + Voice Workout (P5A).
+            Serviço PRÓPRIO, separado do de localização acima — musculação
+            não usa GPS, e exigir permissão de localização de quem só treina
+            na academia seria pedir algo sem motivo (a Play Store audita se
+            o tipo declarado bate com o uso real do app).
+
+            `dataSync|microphone`: o tipo `microphone` só é EFETIVAMENTE
+            somado (`startForeground` com o bitmask combinado) quando o
+            Voice Workout está ativo — ver `WorkoutForegroundService.
+            ativarTipoMicrofone()`. Declarar os dois tipos aqui é o que a
+            Play exige para um serviço que PODE assumir qualquer um deles;
+            não declarar `microphone` faria `startForeground` lançar
+            `MissingForegroundServiceTypeException` no momento em que o
+            aluno liga a voz.
         -->
         <service
             android:name=".workout.WorkoutForegroundService"
             android:enabled="true"
             android:exported="false"
             android:stopWithTask="false"
-            android:foregroundServiceType="dataSync" />
+            android:foregroundServiceType="dataSync|microphone" />
 
     </application>
 
@@ -100,6 +109,16 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!--
+        Voice Workout (P5A) — registrar série por comando de voz durante o
+        treino. Contextual: só pedida quando o aluno ativa o modo dentro de
+        UMA sessão, nunca no boot. `MODIFY_AUDIO_SETTINGS` é normal (sem
+        prompt) e cobre o pedido de audio focus transitório que abaixa a
+        música durante a confirmação falada.
+    -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
 
     <!--
         Serviço de primeiro plano para o Tracker.
@@ -125,6 +144,16 @@
         FOREGROUND_SERVICE_*, sem prompt de runtime.
     -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+
+    <!--
+        Voice Workout (P5A) — exigida a partir do Android 14 (API 34) para um
+        serviço declarar `foregroundServiceType="microphone"`. Sem ela,
+        `startForeground` com o tipo microfone lança SecurityException no
+        instante em que o aluno ativa o modo, mesmo com RECORD_AUDIO
+        concedida. Normal/auto-concedida, sem prompt de runtime — igual às
+        demais FOREGROUND_SERVICE_*.
+    -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
 
     <!--
         "Salvar imagem" do card de treino grava em Documents (@capacitor/filesystem).

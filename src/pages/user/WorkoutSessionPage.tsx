@@ -71,6 +71,26 @@ import { splitShareTitle } from "./lib/sessionShareData";
 import { PrCelebration, type PrEventSummary } from "../../features/performance/PrCelebration";
 import "../../features/performance/performance.css";
 import "./workoutSession/workoutSession.css";
+// ── Voice Workout (P5A) ─────────────────────────────────────────────────
+// Superfície de entrada nova sobre a MESMA engine — ver bloco de comandos
+// mais abaixo. Nada aqui é executado com a flag `voice_workout` desligada.
+import { Mic } from "lucide-react";
+import { useWorkoutController } from "./workoutSession/commands/useWorkoutController";
+import { buildWorkoutSnapshot } from "./workoutSession/commands/WorkoutSnapshot";
+import type { WorkoutCommand, WorkoutCommandResult } from "./workoutSession/commands/workoutControllerRegistry";
+import {
+  applySetValues as wcApplySetValues,
+  attachSetObservation as wcAttachObservation,
+  completeSet as wcCompleteSet,
+} from "./workoutSession/commands/workoutCommands";
+import { createVoiceEngine } from "../../features/voiceWorkout/ports/createVoiceEngine";
+import { VoiceEngineError, type VoiceEngine } from "../../features/voiceWorkout/ports/VoiceEngine";
+import { parseVoiceCommand } from "../../features/voiceWorkout/voiceIntent";
+import { VoiceWorkoutDisclosure } from "../../features/voiceWorkout/VoiceWorkoutDisclosure";
+import { hasVoiceWorkoutAck, setVoiceWorkoutAck } from "../../features/voiceWorkout/voiceWorkoutAck";
+import { VoiceWorkoutHud, type VoiceWorkoutHudState } from "../../features/voiceWorkout/VoiceWorkoutHud";
+import { postVoiceEvent } from "../../features/voiceWorkout/voiceEvents";
+import "../../features/voiceWorkout/voiceWorkout.css";
 
 // ── helpers de parsing (espelham o backend p/ contagem de séries / rest) ──
 function parseSetCount(s?: string): number {
@@ -468,6 +488,15 @@ export default function WorkoutSessionPage() {
 
   const rest = useRestTimer({ onComplete: () => finalizeRest(restCtx.current?.planned ?? 0) });
 
+  // ── Voice Workout — estado do modo (P5A) ──────────────
+  // `voiceEngineRef` nasce uma vez por sessão; em plataforma "web" é a
+  // implementação só de QA em Chromium — nunca a do app empacotado.
+  const voiceWorkoutFlag = hasFeature("voice_workout");
+  const voiceEngineRef = useRef<VoiceEngine>(createVoiceEngine());
+  const [voiceHudState, setVoiceHudState] = useState<VoiceWorkoutHudState>("off");
+  const [voiceError, setVoiceError] = useState<string | null>(null);
+  const [showVoiceDisclosure, setShowVoiceDisclosure] = useState(false);
+
   // ── carga: busca plano + dia ──────────────────────────
   useEffect(() => {
     if (isFree) return; // sem ficha para buscar
@@ -797,16 +826,23 @@ export default function WorkoutSessionPage() {
       // Bi-Set roda em par, sem descanso entre os dois exercícios — não dispara timer.
       const planned = set.plannedRestS ?? 0;
       const isBiSet = !!ex.biSetGroupId;
-      if (planned > 0 && !isBiSet) {
-        const endsAt = Date.now() + planned * 1000;
-        restCtx.current = { exIdx: currentIndex, setIdx, planned, endsAt };
-        rest.start(planned);
-        // Entregue ao SISTEMA agora, com a hora absoluta: se o aparelho for
-        // bloqueado no meio do descanso, o JS congela e nenhum timer nosso
-        // dispararia (§40).
-        void agendarAvisoDescanso(endsAt);
-      }
+      if (planned > 0 && !isBiSet) iniciarDescansoParaSerie(setIdx, planned);
     }
+  }
+
+  /**
+   * Início de descanso após concluir uma série — extraído de `toggleDone`
+   * (P5A) para ser reusado pelo comando de voz `complete_set`, que precisa do
+   * MESMO efeito colateral sem duplicar a lógica.
+   */
+  function iniciarDescansoParaSerie(setIdx: number, planned: number) {
+    const endsAt = Date.now() + planned * 1000;
+    restCtx.current = { exIdx: currentIndex, setIdx, planned, endsAt };
+    rest.start(planned);
+    // Entregue ao SISTEMA agora, com a hora absoluta: se o aparelho for
+    // bloqueado no meio do descanso, o JS congela e nenhum timer nosso
+    // dispararia (§40).
+    void agendarAvisoDescanso(endsAt);
   }
 
   function goTo(idx: number) {
@@ -816,6 +852,225 @@ export default function WorkoutSessionPage() {
     // Avanço dentro da execução conta como atividade — trocar de exercício é
     // treinar. Trocar de ABA do app não passa por aqui.
     marcarAtividade();
+  }
+
+  // ── Voice Workout — camada de comandos (P5A) ──────────────────────────
+  //
+  // `applyWorkoutCommand` é a ÚNICA porta de entrada de comandos externos
+  // (hoje só a voz). Cada caso chama a função PURA equivalente em
+  // `workoutCommands.ts`/`liveSessionOps.ts` e aplica os MESMOS efeitos
+  // colaterais que o toque manual já usa (persist, evento, háptico, início
+  // de descanso) — nenhuma regra nova, nenhuma segunda engine.
+  function applyWorkoutCommand(command: WorkoutCommand): WorkoutCommandResult {
+    switch (command.type) {
+      case "complete_set": {
+        const result = wcCompleteSet(
+          exercises,
+          currentIndex,
+          command.setIndex,
+          { reps: command.reps, loadKg: command.loadKg },
+          Date.now(),
+        );
+        if (!result.changed) return { ok: true, changed: false, reason: result.reason };
+        setExercises(result.exercises);
+        persist(result.exercises, currentIndex, startedAt);
+        marcarAtividade();
+        try {
+          navigator.vibrate?.(35);
+        } catch {
+          /* sem vibração é ok */
+        }
+        postWorkoutEvent("workout.set_completed", { mode: isFree ? "free" : "plan" });
+        if (result.restStart) iniciarDescansoParaSerie(command.setIndex, result.restStart.plannedRestS);
+        return { ok: true, changed: true };
+      }
+      case "set_load": {
+        const result = wcApplySetValues(exercises, currentIndex, command.setIndex, { loadKg: command.loadKg });
+        if (!result.changed) return { ok: true, changed: false, reason: result.reason };
+        setExercises(result.exercises);
+        persist(result.exercises, currentIndex, startedAt);
+        marcarAtividade();
+        return { ok: true, changed: true };
+      }
+      case "set_reps": {
+        const result = wcApplySetValues(exercises, currentIndex, command.setIndex, { reps: command.reps });
+        if (!result.changed) return { ok: true, changed: false, reason: result.reason };
+        setExercises(result.exercises);
+        persist(result.exercises, currentIndex, startedAt);
+        marcarAtividade();
+        return { ok: true, changed: true };
+      }
+      case "attach_observation": {
+        const result = wcAttachObservation(exercises, currentIndex, command.setIndex, command.observation);
+        if (!result.changed) return { ok: true, changed: false, reason: result.reason };
+        setExercises(result.exercises);
+        persist(result.exercises, currentIndex, startedAt);
+        return { ok: true, changed: true };
+      }
+      case "next_exercise": {
+        if (currentIndex >= exercises.length - 1) return { ok: true, changed: false, reason: "already_last" };
+        goTo(currentIndex + 1);
+        return { ok: true, changed: true };
+      }
+      case "previous_exercise": {
+        if (currentIndex <= 0) return { ok: true, changed: false, reason: "already_first" };
+        goTo(currentIndex - 1);
+        return { ok: true, changed: true };
+      }
+      case "pause_rest": {
+        if (!rest.active || !rest.running) return { ok: true, changed: false, reason: "no_active_rest" };
+        rest.pause();
+        return { ok: true, changed: true };
+      }
+      case "resume_rest": {
+        if (!rest.active || rest.running) return { ok: true, changed: false, reason: "not_paused" };
+        rest.resume();
+        return { ok: true, changed: true };
+      }
+      case "skip_rest": {
+        if (!rest.active) return { ok: true, changed: false, reason: "no_active_rest" };
+        finalizeRest(rest.skip());
+        return { ok: true, changed: true };
+      }
+      default:
+        return { ok: false, changed: false, reason: "unknown_command" };
+    }
+  }
+
+  useWorkoutController({
+    dispatch: applyWorkoutCommand,
+    snapshot: () =>
+      buildWorkoutSnapshot({
+        mode: modo,
+        exercises,
+        currentIndex,
+        startedAt,
+        now: Date.now(),
+        lastKnownLoadKg: current?.exerciseId ? (prevLoad.get(current.exerciseId) ?? null) : null,
+        rest: { active: rest.active, running: rest.running, secondsLeft: rest.secondsLeft },
+        restEndsAt: restCtx.current?.endsAt ?? null,
+      }),
+  });
+
+  // Voice Workout nunca sobrevive fora de uma sessão em execução — sair da
+  // tela ou avançar de fase desliga o modo, mesmo sem toque explícito.
+  useEffect(() => {
+    if (phase !== "running" && voiceHudState !== "off") {
+      void voiceEngineRef.current.disable();
+      setVoiceHudState("off");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase]);
+
+  useEffect(() => {
+    return () => {
+      void voiceEngineRef.current.disable();
+    };
+  }, []);
+
+  async function habilitarVoiceWorkout() {
+    const permissao = await voiceEngineRef.current.requestPermissions();
+    if (permissao !== "granted") {
+      setVoiceHudState("error");
+      setVoiceError("Permita o microfone em Ajustes para usar o Voice Workout.");
+      return;
+    }
+    await voiceEngineRef.current.enable();
+    setVoiceError(null);
+    setVoiceHudState("active");
+    postVoiceEvent("voice.activated", { mode: isFree ? "free" : "plan" });
+  }
+
+  function pedirAtivacaoVoz() {
+    if (hasVoiceWorkoutAck()) {
+      void habilitarVoiceWorkout();
+      return;
+    }
+    setShowVoiceDisclosure(true);
+  }
+
+  function confirmarDisclosureVoz() {
+    setVoiceWorkoutAck();
+    setShowVoiceDisclosure(false);
+    void habilitarVoiceWorkout();
+  }
+
+  function desligarVoiceWorkout() {
+    void voiceEngineRef.current.disable();
+    setVoiceHudState("off");
+    setVoiceError(null);
+    postVoiceEvent("voice.deactivated", { mode: isFree ? "free" : "plan" });
+  }
+
+  /**
+   * Push-to-talk: captura UM comando e tenta executá-lo. Gramática mínima da
+   * P5A — só "fiz N com M" (e variações próximas). A gramática completa
+   * (navegação, descanso, consultas, substituição) é P5B.
+   */
+  async function executarComandoDeVoz() {
+    if (voiceHudState === "listening" || voiceHudState === "processing") return;
+    const engine = voiceEngineRef.current;
+    setVoiceError(null);
+    setVoiceHudState("listening");
+    postVoiceEvent("voice.listen_started", { mode: isFree ? "free" : "plan" });
+    const iniciadoEm = Date.now();
+
+    let transcript: string;
+    try {
+      const resultado = await engine.listenOnce();
+      transcript = resultado.transcript;
+    } catch (err) {
+      const kind = err instanceof VoiceEngineError ? err.kind : "unavailable";
+      postVoiceEvent("voice.stt_failure", {
+        mode: isFree ? "free" : "plan",
+        errorKind: kind,
+        latencyMs: Date.now() - iniciadoEm,
+      });
+      setVoiceHudState("error");
+      setVoiceError("Não consegui ouvir. Toque em Falar para tentar de novo.");
+      return;
+    }
+    postVoiceEvent("voice.stt_success", { mode: isFree ? "free" : "plan", latencyMs: Date.now() - iniciadoEm });
+    setVoiceHudState("processing");
+
+    // Transcript nunca sai daqui além do parser — nenhum evento carrega o
+    // texto (pacto de dados, ver `voiceEvents.ts`).
+    const { intent } = parseVoiceCommand(transcript);
+    const exercicioAlvo = exercises[currentIndex];
+    const serieAlvo = exercicioAlvo ? serieAtual(exercicioAlvo.sets) : null;
+
+    if (!intent || intent.reps == null || !serieAlvo) {
+      postVoiceEvent("voice.command_failure", { mode: isFree ? "free" : "plan", errorKind: "not_understood" });
+      setVoiceHudState("error");
+      setVoiceError('Não entendi. Diga, por exemplo: "fiz 12 com 28".');
+      void engine.speak("Não entendi. Diga, por exemplo: fiz 12 com 28.");
+      return;
+    }
+
+    const resultado = applyWorkoutCommand({
+      type: "complete_set",
+      setIndex: serieAlvo.setIndex,
+      reps: String(intent.reps),
+      loadKg: intent.loadKg != null ? String(intent.loadKg) : undefined,
+    });
+
+    if (!resultado.changed) {
+      postVoiceEvent("voice.command_failure", {
+        mode: isFree ? "free" : "plan",
+        errorKind: resultado.reason ?? "no_change",
+      });
+      setVoiceHudState("active");
+      void engine.speak("Essa série já estava concluída.");
+      return;
+    }
+
+    postVoiceEvent("voice.command_success", { mode: isFree ? "free" : "plan", latencyMs: Date.now() - iniciadoEm });
+    setVoiceHudState("active");
+    const confirmacao =
+      intent.loadKg != null
+        ? `Registrado. ${intent.reps} com ${intent.loadKg}.`
+        : `Registrado. ${intent.reps} repetições.`;
+    void engine.speak(confirmacao);
   }
 
   // ── edição da lista durante o treino livre ────────────
@@ -1173,6 +1428,7 @@ export default function WorkoutSessionPage() {
   useDismissable(() => setShowPendentes(false), showPendentes);
   useDismissable(() => setShowManage(false), showManage);
   useDismissable(() => setSwapKeepAsk(null), swapKeepAsk !== null);
+  useDismissable(() => setShowVoiceDisclosure(false), showVoiceDisclosure);
 
   function closeExitDialog() {
     setShowExit(false);
@@ -1474,6 +1730,27 @@ export default function WorkoutSessionPage() {
               {" · "}
               Exercício {currentIndex + 1}/{exercises.length} · {doneSets}/{totalSets} séries
             </div>
+            {voiceWorkoutFlag && voiceHudState !== "off" ? (
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <VoiceWorkoutHud state={voiceHudState} message={voiceError} />
+                <button
+                  type="button"
+                  onClick={desligarVoiceWorkout}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    padding: 0,
+                    font: "inherit",
+                    fontSize: "var(--text-xs, 12px)",
+                    color: "var(--color-text-muted)",
+                    textDecoration: "underline",
+                    cursor: "pointer",
+                  }}
+                >
+                  Desligar voz
+                </button>
+              </div>
+            ) : null}
             {offline ? (
               <div className="ws-sync ws-sync-off" role="status">Offline — salvando no aparelho</div>
             ) : reconectou ? (
@@ -1495,6 +1772,17 @@ export default function WorkoutSessionPage() {
             <button type="button" className="ws-manage-btn" onClick={() => setShowManage(true)}>
               Exercícios
             </button>
+            {voiceWorkoutFlag ? (
+              <button
+                type="button"
+                className="ws-icon-btn vw-toggle-btn"
+                data-active={voiceHudState !== "off"}
+                aria-label={voiceHudState === "off" ? "Ativar Voice Workout" : "Falar"}
+                onClick={voiceHudState === "off" ? pedirAtivacaoVoz : () => void executarComandoDeVoz()}
+              >
+                <Mic size={18} aria-hidden />
+              </button>
+            ) : null}
             <button className="ws-icon-btn" aria-label="Sair" onClick={() => setShowExit(true)}>
               ×
             </button>
@@ -1919,6 +2207,13 @@ export default function WorkoutSessionPage() {
             </button>
           </div>
         </div>
+      ) : null}
+
+      {showVoiceDisclosure ? (
+        <VoiceWorkoutDisclosure
+          onAllow={confirmarDisclosureVoz}
+          onDecline={() => setShowVoiceDisclosure(false)}
+        />
       ) : null}
 
       {showExit ? (

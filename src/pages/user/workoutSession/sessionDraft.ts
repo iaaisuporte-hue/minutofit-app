@@ -22,6 +22,14 @@ export interface DraftSetEntry {
   done: boolean;
   restDoneS: number | null;
   completedAt: number | null;
+  /**
+   * Relato original anexado à série (P5A — fundação do Voice Workout), como
+   * foi dito ("senti uma fisgada"), sem classificação nem reescrita. Opcional:
+   * rascunho gravado antes deste campo não tem nada aqui, e o campo ausente
+   * nunca deve ser tratado como diferente de `null`. Vira o `discomfort` da
+   * série no payload final — mesma coluna que o resumo manual já usa.
+   */
+  observation?: string | null;
 }
 
 export interface DraftExercise {

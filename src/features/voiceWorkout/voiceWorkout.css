@@ -1,0 +1,44 @@
+/* Voice Workout — indicador mínimo (P5A). Sem redesign: reaproveita tokens
+   já existentes, sem cor nova nem componente pesado. */
+
+.vw-hud {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--text-xs, 12px);
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.vw-hud-active,
+.vw-hud-listening,
+.vw-hud-processing {
+  color: var(--color-info-text, var(--color-accent));
+}
+
+.vw-hud-error {
+  color: var(--color-danger-text);
+}
+
+.vw-hud-spin {
+  animation: vw-spin 1s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vw-hud-spin {
+    animation: none;
+  }
+}
+
+@keyframes vw-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.ws-icon-btn.vw-toggle-btn[data-active="true"] {
+  color: var(--color-info-text, var(--color-accent));
+}
