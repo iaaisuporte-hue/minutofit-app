@@ -79,7 +79,8 @@ class PorcupineWakeWordController implements WakeWordEngine {
         return BuildConfig.PICOVOICE_ACCESS_KEY != null && !BuildConfig.PICOVOICE_ACCESS_KEY.isEmpty();
     }
 
-    synchronized void iniciar() {
+    @Override
+    public synchronized void iniciar() {
         if (manager != null) return; // já iniciado — chamada repetida é no-op, não erro
         if (!accessKeyConfigurado()) {
             callback.onError("access_key_missing");
@@ -115,7 +116,8 @@ class PorcupineWakeWordController implements WakeWordEngine {
         }
     }
 
-    synchronized void suspender() {
+    @Override
+    public synchronized void suspender() {
         if (manager == null || suspenso) return;
         try {
             manager.stop();
@@ -125,7 +127,8 @@ class PorcupineWakeWordController implements WakeWordEngine {
         }
     }
 
-    synchronized void retomar() {
+    @Override
+    public synchronized void retomar() {
         if (manager == null || !suspenso) return;
         try {
             manager.start();
@@ -136,7 +139,8 @@ class PorcupineWakeWordController implements WakeWordEngine {
         }
     }
 
-    synchronized void parar() {
+    @Override
+    public synchronized void parar() {
         if (manager == null) return;
         try {
             manager.stop();
