@@ -59,6 +59,16 @@ import androidx.core.content.ContextCompat;
  * teto, mas um rascunho esquecido aberto (ver `LIMITE_SESSAO_ATIVA_MS` no
  * web) poderia. `microphone` não tem este teto — só o cobre quando a voz
  * está desligada.
+ *
+ * ## Wake word (P5C — spike técnico, sem fornecedor definitivo)
+ *
+ * `PorcupineWakeWordController` é o único ponto do serviço que sabe que a
+ * Picovoice existe — ver a decisão em
+ * `docs/produto/voice_workout_wake_word_decision.md`. `ACTION_WAKE_START`
+ * garante o tipo `microphone` do FGS (a mesma exigência do PTT) e delega ao
+ * controller; suspender/retomar é o que arbitra o microfone entre a wake
+ * word e a captura de comando do `VoiceWorkoutPlugin` — as duas nunca podem
+ * disputar o mesmo `AudioRecord` ao mesmo tempo (P5C.9).
  */
 public class WorkoutForegroundService extends Service {
 
@@ -68,6 +78,10 @@ public class WorkoutForegroundService extends Service {
     public static final String ACTION_ENABLE_VOICE = "com.s2core.app.workout.ENABLE_VOICE";
     public static final String ACTION_DISABLE_VOICE = "com.s2core.app.workout.DISABLE_VOICE";
     public static final String ACTION_LISTEN = "com.s2core.app.workout.LISTEN";
+    public static final String ACTION_WAKE_START = "com.s2core.app.workout.WAKE_START";
+    public static final String ACTION_WAKE_STOP = "com.s2core.app.workout.WAKE_STOP";
+    public static final String ACTION_WAKE_SUSPEND = "com.s2core.app.workout.WAKE_SUSPEND";
+    public static final String ACTION_WAKE_RESUME = "com.s2core.app.workout.WAKE_RESUME";
 
     public static final String EXTRA_TITLE = "titulo";
     public static final String EXTRA_TEXT = "texto";
@@ -78,16 +92,26 @@ public class WorkoutForegroundService extends Service {
     private static final int REQUEST_CODE_TOQUE = 0;
     private static final int REQUEST_CODE_FALAR = 1;
 
+    /** Ponte para o `WakeWordPlugin` (P5C) — mesmo padrão de `ouvirCallback`. */
+    public interface WakeWordCallback {
+        void onDetected(int keywordIndex);
+        void onError(String reason);
+    }
+
     private static volatile boolean ativo = false;
     /** Voice Workout ligado — decide o tipo do FGS e a ação "Falar" da notificação. */
     private static volatile boolean vozAtiva = false;
     /** Callback do `VoiceWorkoutPlugin`, registrado em `load()`/removido em `handleOnDestroy`. */
     private static volatile Runnable ouvirCallback;
+    /** Callback do `WakeWordPlugin` (P5C), mesmo ciclo de vida do `ouvirCallback`. */
+    private static volatile WakeWordCallback wakeWordCallback;
 
     // Último título/corpo enviados pelo web — reaproveitados ao religar/desligar
     // a voz, que não traz texto novo (só muda o TIPO do serviço).
     private String tituloAtual;
     private String textoAtual;
+    /** Só existe enquanto a wake word (P5C) está ligada nesta instância do serviço. */
+    private PorcupineWakeWordController wakeWordController;
 
     public static boolean estaAtivo() {
         return ativo;
@@ -102,12 +126,38 @@ public class WorkoutForegroundService extends Service {
         ouvirCallback = callback;
     }
 
+    /** Chamado pelo `WakeWordPlugin` (P5C) em `load()`/`handleOnDestroy()`. */
+    public static void setWakeWordCallback(WakeWordCallback callback) {
+        wakeWordCallback = callback;
+    }
+
+    /** Checagem estática — não confirma que os `.ppn` existem, só que o AccessKey foi compilado. */
+    public static boolean wakeWordDisponivel() {
+        return PorcupineWakeWordController.accessKeyConfigurado();
+    }
+
     public static void ativarTipoMicrofone(Context context) {
         enviarAcaoEstatica(context, ACTION_ENABLE_VOICE);
     }
 
     public static void desativarTipoMicrofone(Context context) {
         enviarAcaoEstatica(context, ACTION_DISABLE_VOICE);
+    }
+
+    public static void iniciarWakeWord(Context context) {
+        enviarAcaoEstatica(context, ACTION_WAKE_START);
+    }
+
+    public static void pararWakeWord(Context context) {
+        enviarAcaoEstatica(context, ACTION_WAKE_STOP);
+    }
+
+    public static void suspenderWakeWord(Context context) {
+        enviarAcaoEstatica(context, ACTION_WAKE_SUSPEND);
+    }
+
+    public static void retomarWakeWord(Context context) {
+        enviarAcaoEstatica(context, ACTION_WAKE_RESUME);
     }
 
     private static void enviarAcaoEstatica(Context context, String acao) {
@@ -148,6 +198,12 @@ public class WorkoutForegroundService extends Service {
             }
             case ACTION_DISABLE_VOICE: {
                 vozAtiva = false;
+                // Desligar a voz mestre desliga a wake word junto — não faz
+                // sentido a keyword continuar ouvindo com o modo "desligado".
+                if (wakeWordController != null) {
+                    wakeWordController.parar();
+                    wakeWordController = null;
+                }
                 if (ativo) subirParaPrimeiroPlano(tituloAtual, textoAtual);
                 break;
             }
@@ -157,6 +213,37 @@ public class WorkoutForegroundService extends Service {
                 // delega ao plugin, que decide se há permissão/captura em curso.
                 Runnable callback = ouvirCallback;
                 if (callback != null) callback.run();
+                break;
+            }
+            case ACTION_WAKE_START: {
+                // Wake word também exige o tipo `microphone` do FGS — igual ao
+                // PTT. Na prática o web já chama `enable()` (P5A) antes de
+                // ligar a wake word, então isto quase nunca executa; existe
+                // como defesa contra o wake ligar sem passar por ali.
+                if (!vozAtiva) {
+                    vozAtiva = true;
+                    if (ativo) subirParaPrimeiroPlano(tituloAtual, textoAtual);
+                }
+                garantirWakeWordController();
+                wakeWordController.iniciar();
+                break;
+            }
+            case ACTION_WAKE_STOP: {
+                if (wakeWordController != null) {
+                    wakeWordController.parar();
+                    wakeWordController = null;
+                }
+                break;
+            }
+            case ACTION_WAKE_SUSPEND: {
+                // Chamado ANTES de abrir o SpeechRecognizer (captura de
+                // comando) ou o TTS falar — as duas coisas não podem disputar
+                // o microfone com a wake word ao mesmo tempo (P5C.9).
+                if (wakeWordController != null) wakeWordController.suspender();
+                break;
+            }
+            case ACTION_WAKE_RESUME: {
+                if (wakeWordController != null) wakeWordController.retomar();
                 break;
             }
             case ACTION_STOP:
@@ -182,7 +269,29 @@ public class WorkoutForegroundService extends Service {
     public void onDestroy() {
         ativo = false;
         vozAtiva = false;
+        if (wakeWordController != null) {
+            wakeWordController.parar();
+            wakeWordController = null;
+        }
         super.onDestroy();
+    }
+
+    /** Cria o controller sob demanda — só existe enquanto a wake word estiver ligada. */
+    private void garantirWakeWordController() {
+        if (wakeWordController != null) return;
+        wakeWordController = new PorcupineWakeWordController(this, new PorcupineWakeWordController.Callback() {
+            @Override
+            public void onWakeWordDetected(int keywordIndex) {
+                WakeWordCallback cb = wakeWordCallback;
+                if (cb != null) cb.onDetected(keywordIndex);
+            }
+
+            @Override
+            public void onError(String reason) {
+                WakeWordCallback cb = wakeWordCallback;
+                if (cb != null) cb.onError(reason);
+            }
+        });
     }
 
     /**

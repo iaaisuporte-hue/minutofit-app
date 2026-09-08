@@ -58,6 +58,13 @@ captures/
 *.keystore
 keystore.properties
 
+# AccessKey do Picovoice (P5C, spike técnico) — segredo local, nunca commitado.
+picovoice.properties
+
+# Keywords .ppn treinadas no Picovoice Console — específicas da conta de
+# trial de quem gerou; não fazem sentido versionadas para outra pessoa.
+app/src/main/assets/porcupine/*.ppn
+
 # External native build folder generated in Android Studio 2.2 and later
 .externalNativeBuild
 .cxx/

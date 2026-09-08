@@ -97,6 +97,14 @@ import { hasVoiceWorkoutAck, setVoiceWorkoutAck } from "../../features/voiceWork
 import { VoiceWorkoutHud, type VoiceWorkoutHudState } from "../../features/voiceWorkout/VoiceWorkoutHud";
 import { postVoiceEvent } from "../../features/voiceWorkout/voiceEvents";
 import { fetchReplacementSuggestions } from "../../services/exerciseReplacementSuggestionsApi";
+import { createWakeWordDetector } from "../../features/voiceWorkout/ports/createWakeWordDetector";
+import type { WakeWordDetector } from "../../features/voiceWorkout/ports/WakeWordDetector";
+import {
+  initialWakeWordState,
+  transition as transicionarWake,
+  WAKE_COOLDOWN_MS,
+  type WakeWordMachineState,
+} from "../../features/voiceWorkout/wakeWordStateMachine";
 import "../../features/voiceWorkout/voiceWorkout.css";
 
 // ── helpers de parsing (espelham o backend p/ contagem de séries / rest) ──
@@ -531,8 +539,19 @@ export default function WorkoutSessionPage() {
   const [voiceHudState, setVoiceHudState] = useState<VoiceWorkoutHudState>("off");
   const [voiceError, setVoiceError] = useState<string | null>(null);
   const [showVoiceDisclosure, setShowVoiceDisclosure] = useState(false);
+  // P5C — spike técnico de wake word (Picovoice/Porcupine, SEM fornecedor
+  // definitivo; ver docs/produto/voice_workout_wake_word_decision.md no
+  // repo pai). `wakeMachineRef` é a máquina de estados pura (
+  // wakeWordStateMachine.ts) — nada aqui decide sozinho, só aplica eventos.
+  const wakeWordDetectorRef = useRef<WakeWordDetector>(createWakeWordDetector());
+  const wakeMachineRef = useRef<WakeWordMachineState>(initialWakeWordState());
+  const [wakeAtiva, setWakeAtiva] = useState(false);
   // P5B — confirmação pendente (no máximo uma) e última ação desfazível.
-  const [pendingConfirmation, setPendingConfirmation] = useState<PendingConfirmation | null>(null);
+  // Ref, não state: nada renderiza a partir disto (confirmação é só falada),
+  // e o ciclo de voz por wake word (P5C) precisa checar sincronamente se uma
+  // confirmação acabou de abrir para decidir se continua ouvindo sem nova
+  // wake word — `useState` não garante o valor atualizado a tempo (P5B.26).
+  const pendingConfirmationRef = useRef<PendingConfirmation | null>(null);
   const lastVoiceActionRef = useRef<LastVoiceAction | null>(null);
   /** Última frase falada pelo Voice Workout — alvo do comando "repete". */
   const ultimaFalaRef = useRef<string | null>(null);
@@ -1014,10 +1033,13 @@ export default function WorkoutSessionPage() {
 
   // Voice Workout nunca sobrevive fora de uma sessão em execução — sair da
   // tela ou avançar de fase desliga o modo, mesmo sem toque explícito.
+  // Wake word (P5C) desliga junto: nunca faz sentido ouvir a keyword fora
+  // de um treino em curso.
   useEffect(() => {
     if (phase !== "running" && voiceHudState !== "off") {
       void voiceEngineRef.current.disable();
       setVoiceHudState("off");
+      if (wakeAtiva) desligarWakeWord();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase]);
@@ -1025,7 +1047,30 @@ export default function WorkoutSessionPage() {
   useEffect(() => {
     return () => {
       void voiceEngineRef.current.disable();
+      void wakeWordDetectorRef.current.stop();
     };
+  }, []);
+
+  // Assinatura do detector de wake word (P5C) — uma vez só, no mount. O
+  // callback lê `tratarWakeDetectado`/`postVoiceEvent` sempre pela versão
+  // MAIS RECENTE via ref (mesmo padrão de `useWorkoutController`): o efeito
+  // roda uma única vez, mas as funções que ele chama mudam a cada render.
+  const tratarWakeDetectadoRef = useRef<(keywordIndex: number) => void>(() => {});
+  useEffect(() => {
+    tratarWakeDetectadoRef.current = (keywordIndex: number) => void tratarWakeDetectado(keywordIndex);
+  });
+  useEffect(() => {
+    const detector = wakeWordDetectorRef.current;
+    const removerDetected = detector.onDetected((keywordIndex) => tratarWakeDetectadoRef.current(keywordIndex));
+    const removerError = detector.onError((reason) => {
+      wakeMachineRef.current = transicionarWake(wakeMachineRef.current, { type: "ERROR", reason });
+      postVoiceEvent("voice.wake_error", { mode: isFree ? "free" : "plan", errorKind: reason });
+    });
+    return () => {
+      removerDetected();
+      removerError();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function habilitarVoiceWorkout() {
@@ -1039,6 +1084,36 @@ export default function WorkoutSessionPage() {
     setVoiceError(null);
     setVoiceHudState("active");
     postVoiceEvent("voice.activated", { mode: isFree ? "free" : "plan" });
+    void tentarLigarWakeWord();
+  }
+
+  /**
+   * P5C — só liga se o detector reportar disponível (AccessKey + os dois
+   * `.ppn` presentes). Sem isso, fica em silêncio total: nenhum aviso ao
+   * usuário, nenhuma tentativa — o produto continua em push-to-talk, que é
+   * exatamente o comportamento de hoje sem o spike configurado.
+   */
+  async function tentarLigarWakeWord() {
+    const detector = wakeWordDetectorRef.current;
+    const caps = await detector.getCapabilities().catch(() => null);
+    if (!caps?.available) return;
+    try {
+      await detector.start();
+      wakeMachineRef.current = transicionarWake(wakeMachineRef.current, { type: "ENABLE" });
+      wakeMachineRef.current = transicionarWake(wakeMachineRef.current, { type: "READY" });
+      setWakeAtiva(true);
+      postVoiceEvent("voice.wake_started", { mode: isFree ? "free" : "plan" });
+    } catch {
+      wakeMachineRef.current = transicionarWake(wakeMachineRef.current, { type: "START_FAILED", reason: "start_failed" });
+      postVoiceEvent("voice.wake_error", { mode: isFree ? "free" : "plan", errorKind: "start_failed" });
+    }
+  }
+
+  function desligarWakeWord() {
+    void wakeWordDetectorRef.current.stop();
+    wakeMachineRef.current = transicionarWake(wakeMachineRef.current, { type: "DISABLE" });
+    wakeMachineRef.current = transicionarWake(wakeMachineRef.current, { type: "STOPPED" });
+    setWakeAtiva(false);
   }
 
   function pedirAtivacaoVoz() {
@@ -1057,6 +1132,7 @@ export default function WorkoutSessionPage() {
 
   function desligarVoiceWorkout() {
     void voiceEngineRef.current.disable();
+    if (wakeAtiva) desligarWakeWord();
     setVoiceHudState("off");
     setVoiceError(null);
     postVoiceEvent("voice.deactivated", { mode: isFree ? "free" : "plan" });
@@ -1073,9 +1149,15 @@ export default function WorkoutSessionPage() {
     return getActiveWorkoutController()?.dispatch(command) ?? applyWorkoutCommand(command);
   }
 
-  function falar(texto: string, engine: VoiceEngine) {
+  /**
+   * Devolve a promise do TTS (P5C): o ciclo por wake word precisa saber
+   * quando a fala REALMENTE terminou antes de retomar a escuta da keyword
+   * (self-trigger — P5C.2). Chamadas do PTT continuam ignorando o retorno,
+   * como antes.
+   */
+  function falar(texto: string, engine: VoiceEngine): Promise<void> {
     ultimaFalaRef.current = texto;
-    void engine.speak(texto);
+    return engine.speak(texto);
   }
 
   function serieEExercicioAlvo(): { exercicio: DraftExercise; serie: DraftExercise["sets"][number] } | null {
@@ -1112,10 +1194,14 @@ export default function WorkoutSessionPage() {
     return false;
   }
 
-  function abrirConfirmacao(pending: DistributiveOmit<PendingConfirmation, "expiresAt">, engine: VoiceEngine) {
-    setPendingConfirmation({ ...pending, expiresAt: Date.now() + CONFIRMATION_WINDOW_MS } as PendingConfirmation);
+  async function abrirConfirmacao(pending: DistributiveOmit<PendingConfirmation, "expiresAt">, engine: VoiceEngine) {
+    // O ref é ajustado ANTES do `await`: o ciclo por wake word (P5C) confere
+    // `pendingConfirmationRef.current` logo depois de chamar esta função, e
+    // precisa ver a pendência já aberta mesmo que a fala ainda esteja em
+    // andamento — só o RETORNO da função (o `await` abaixo) espera pela voz.
+    pendingConfirmationRef.current = { ...pending, expiresAt: Date.now() + CONFIRMATION_WINDOW_MS } as PendingConfirmation;
     postVoiceEvent("voice.confirmation_requested", { mode: isFree ? "free" : "plan" });
-    falar(pending.speak, engine);
+    await falar(pending.speak, engine);
   }
 
   function anexarObservacaoSessao(texto: string) {
@@ -1127,7 +1213,7 @@ export default function WorkoutSessionPage() {
     });
   }
 
-  function executarCompleteSet(
+  async function executarCompleteSet(
     setIndex: number,
     reps: number | null,
     loadKg: number | null,
@@ -1145,7 +1231,7 @@ export default function WorkoutSessionPage() {
     });
     if (!resultado.changed) {
       postVoiceEvent("voice.command_failure", { mode: isFree ? "free" : "plan", errorKind: resultado.reason ?? "no_change" });
-      falar("Essa série já estava concluída.", engine);
+      await falar("Essa série já estava concluída.", engine);
       return;
     }
     if (observation) dispatch({ type: "attach_observation", setIndex, observation });
@@ -1158,21 +1244,21 @@ export default function WorkoutSessionPage() {
         : reps != null
           ? `Registrado. ${reps} repetições.`
           : "Registrado.";
-    falar(observation ? `${frase} Também anotei sua observação.` : frase, engine);
+    await falar(observation ? `${frase} Também anotei sua observação.` : frase, engine);
   }
 
-  function anexarObservacaoComEscopo(texto: string, engine: VoiceEngine) {
+  async function anexarObservacaoComEscopo(texto: string, engine: VoiceEngine) {
     if (hasAttentionSignal(texto)) {
       anexarObservacaoSessao(texto);
       postVoiceEvent("voice.command_failure", { mode: isFree ? "free" : "plan", errorKind: "safety_flagged" });
-      falar(ATTENTION_SIGNAL_MESSAGE, engine);
+      await falar(ATTENTION_SIGNAL_MESSAGE, engine);
       return;
     }
     const alvo = serieEExercicioAlvo();
     if (alvo) {
       dispatch({ type: "attach_observation", setIndex: alvo.serie.setIndex, observation: texto });
       postVoiceEvent("voice.command_success", { mode: isFree ? "free" : "plan" });
-      falar("Anotado.", engine);
+      await falar("Anotado.", engine);
       return;
     }
     // Sem série pendente: tenta a última concluída nos últimos 60s antes de
@@ -1186,33 +1272,33 @@ export default function WorkoutSessionPage() {
     if (ultima && Date.now() - (ultima.completedAt ?? 0) < 60_000) {
       dispatch({ type: "attach_observation", setIndex: ultima.setIndex, observation: texto });
       postVoiceEvent("voice.command_success", { mode: isFree ? "free" : "plan" });
-      falar("Anotado.", engine);
+      await falar("Anotado.", engine);
       return;
     }
     anexarObservacaoSessao(texto);
     postVoiceEvent("voice.command_success", { mode: isFree ? "free" : "plan" });
-    falar("Anotado no resumo do treino.", engine);
+    await falar("Anotado no resumo do treino.", engine);
   }
 
-  function falarExercicio(idx: number, engine: VoiceEngine) {
+  async function falarExercicio(idx: number, engine: VoiceEngine) {
     const ex = exercises[idx];
     if (!ex) return;
     const serie = serieAtual(ex.sets);
     let frase = `${ex.name}. Série ${serie ? serie.setIndex : ex.sets.length} de ${ex.sets.length}.`;
     const ultimaCarga = ex.exerciseId ? prevLoad.get(ex.exerciseId) : null;
     if (ultimaCarga != null) frase += ` Última carga: ${ultimaCarga} quilos.`;
-    falar(frase, engine);
+    await falar(frase, engine);
   }
 
-  function responderConsulta(tipo: VoiceIntent["type"], engine: VoiceEngine) {
+  async function responderConsulta(tipo: VoiceIntent["type"], engine: VoiceEngine) {
     const ex = exercises[currentIndex];
     switch (tipo) {
       case "query_current_exercise":
-        falar(ex ? ex.name : "Não sei dizer agora.", engine);
+        await falar(ex ? ex.name : "Não sei dizer agora.", engine);
         return;
       case "query_current_set": {
         const serie = ex ? serieAtual(ex.sets) : null;
-        falar(
+        await falar(
           serie
             ? `Série ${serie.setIndex} de ${ex!.sets.length}.`
             : `Todas as ${ex?.sets.length ?? 0} séries desse exercício já estão concluídas.`,
@@ -1222,36 +1308,36 @@ export default function WorkoutSessionPage() {
       }
       case "query_next_exercise": {
         const proximo = exercises[currentIndex + 1];
-        falar(proximo ? proximo.name : "Esse é o último exercício.", engine);
+        await falar(proximo ? proximo.name : "Esse é o último exercício.", engine);
         return;
       }
       case "query_workout_elapsed": {
         const minutos = Math.max(0, Math.round((Date.now() - startedAt) / 60000));
-        falar(minutos === 1 ? "1 minuto." : `${minutos} minutos.`, engine);
+        await falar(minutos === 1 ? "1 minuto." : `${minutos} minutos.`, engine);
         return;
       }
       case "query_rest_remaining": {
         if (!rest.active) {
-          falar("Você não está em descanso agora.", engine);
+          await falar("Você não está em descanso agora.", engine);
           return;
         }
-        falar(rest.running ? `${rest.secondsLeft} segundos.` : `Descanso pausado. Faltam ${rest.secondsLeft} segundos.`, engine);
+        await falar(rest.running ? `${rest.secondsLeft} segundos.` : `Descanso pausado. Faltam ${rest.secondsLeft} segundos.`, engine);
         return;
       }
       case "query_previous_load": {
         const carga = referenciaCargaAtual();
-        falar(carga != null ? `${carga} quilos.` : "Não tenho essa informação.", engine);
+        await falar(carga != null ? `${carga} quilos.` : "Não tenho essa informação.", engine);
         return;
       }
       case "query_previous_reps": {
         const alvo = serieEExercicioAlvo();
         if (!alvo) {
-          falar("Não tenho as repetições anteriores disponíveis.", engine);
+          await falar("Não tenho as repetições anteriores disponíveis.", engine);
           return;
         }
         const posicao = alvo.exercicio.sets.findIndex((s) => s.setIndex === alvo.serie.setIndex);
         const anterior = posicao > 0 ? alvo.exercicio.sets[posicao - 1] : null;
-        falar(anterior?.reps?.trim() ? `${anterior.reps} repetições.` : "Não tenho as repetições anteriores disponíveis.", engine);
+        await falar(anterior?.reps?.trim() ? `${anterior.reps} repetições.` : "Não tenho as repetições anteriores disponíveis.", engine);
         return;
       }
       default:
@@ -1264,7 +1350,7 @@ export default function WorkoutSessionPage() {
     if (!alvoExercicio) return;
     if (!alvoExercicio.exerciseId) {
       postVoiceEvent("voice.command_failure", { mode: isFree ? "free" : "plan", errorKind: "legacy_exercise" });
-      falar("Não consigo sugerir uma substituição para esse exercício. Use a tela para escolher.", engine);
+      await falar("Não consigo sugerir uma substituição para esse exercício. Use a tela para escolher.", engine);
       return;
     }
     postVoiceEvent("voice.substitution_requested", { mode: isFree ? "free" : "plan" });
@@ -1273,13 +1359,13 @@ export default function WorkoutSessionPage() {
     const candidato = resultado?.suggestions.find((s) => !idsNaSessao.has(s.exercise.id));
     if (!candidato) {
       postVoiceEvent("voice.command_failure", { mode: isFree ? "free" : "plan", errorKind: "no_suggestion" });
-      falar("Não consigo buscar uma substituição agora. Use a tela para escolher.", engine);
+      await falar("Não consigo buscar uma substituição agora. Use a tela para escolher.", engine);
       return;
     }
     const picked: PickedExercise = { id: candidato.exercise.id, name: candidato.exercise.name, bodyPart: candidato.exercise.bodyPart };
     const motivoTexto = reason === "equipment_unavailable" ? "Equipamento ocupado" : reason === "pain_discomfort" ? "Desconforto" : null;
     if (hasRecordedWork(alvoExercicio)) {
-      abrirConfirmacao(
+      await abrirConfirmacao(
         {
           kind: "substitution_keep_add",
           picked,
@@ -1288,17 +1374,17 @@ export default function WorkoutSessionPage() {
         engine,
       );
     } else {
-      abrirConfirmacao(
+      await abrirConfirmacao(
         { kind: "substitution_replace", picked, reason: motivoTexto, speak: `Posso substituir por ${picked.name}. Quer trocar?` },
         engine,
       );
     }
   }
 
-  function desfazerUltimaAcaoDeVoz(engine: VoiceEngine) {
+  async function desfazerUltimaAcaoDeVoz(engine: VoiceEngine) {
     const acao = lastVoiceActionRef.current;
     if (!acao || Date.now() > acao.expiresAt) {
-      falar("Não há nada para desfazer.", engine);
+      await falar("Não há nada para desfazer.", engine);
       return;
     }
     lastVoiceActionRef.current = null;
@@ -1321,15 +1407,15 @@ export default function WorkoutSessionPage() {
         break;
     }
     postVoiceEvent("voice.undo_used", { mode: isFree ? "free" : "plan" });
-    falar("Desfeito.", engine);
+    await falar("Desfeito.", engine);
   }
 
   /** Executa a ação de uma confirmação já aceita ("sim" dentro da janela). */
-  function executarConfirmacao(pending: PendingConfirmation, engine: VoiceEngine) {
+  async function executarConfirmacao(pending: PendingConfirmation, engine: VoiceEngine) {
     postVoiceEvent("voice.confirmation_accepted", { mode: isFree ? "free" : "plan" });
     switch (pending.kind) {
       case "complete_set":
-        executarCompleteSet(
+        await executarCompleteSet(
           pending.setIndex,
           pending.reps != null ? Number(pending.reps) : null,
           pending.loadKg != null ? Number(pending.loadKg) : null,
@@ -1342,7 +1428,7 @@ export default function WorkoutSessionPage() {
         const resultado = dispatch({ type: "set_load", setIndex: pending.setIndex, loadKg: pending.loadKg });
         if (resultado.changed) {
           lastVoiceActionRef.current = { type: "set_load", setIndex: pending.setIndex, before: antes, expiresAt: Date.now() + UNDO_WINDOW_MS };
-          falar(`Carga ajustada para ${pending.loadKg}.`, engine);
+          await falar(`Carga ajustada para ${pending.loadKg}.`, engine);
         }
         return;
       }
@@ -1351,39 +1437,39 @@ export default function WorkoutSessionPage() {
         const resultado = dispatch({ type: "set_reps", setIndex: pending.setIndex, reps: pending.reps });
         if (resultado.changed) {
           lastVoiceActionRef.current = { type: "set_reps", setIndex: pending.setIndex, before: antes, expiresAt: Date.now() + UNDO_WINDOW_MS };
-          falar(`Repetições ajustadas para ${pending.reps}.`, engine);
+          await falar(`Repetições ajustadas para ${pending.reps}.`, engine);
         }
         return;
       }
       case "finish_initial": {
         if (filledUnchecked.length > 0) {
           markFilledAsDone();
-          falar("Marquei as séries preenchidas. Treino encerrado. Confira o resumo na tela para salvar.", engine);
+          await falar("Marquei as séries preenchidas. Treino encerrado. Confira o resumo na tela para salvar.", engine);
           return;
         }
         if (exerciciosPendentes.length > 0 && doneSets > 0) {
-          abrirConfirmacao(
+          await abrirConfirmacao(
             { kind: "finish_despite_pending", speak: `${exerciciosPendentes.length} exercícios sem série. Finalizar mesmo assim?` },
             engine,
           );
           return;
         }
         setPhase("summary");
-        falar("Treino encerrado. Confira o resumo na tela para salvar.", engine);
+        await falar("Treino encerrado. Confira o resumo na tela para salvar.", engine);
         return;
       }
       case "finish_despite_pending":
         setPhase("summary");
-        falar("Treino encerrado. Confira o resumo na tela para salvar.", engine);
+        await falar("Treino encerrado. Confira o resumo na tela para salvar.", engine);
         return;
       case "substitution_replace": {
         const resultado = replaceLiveExercise(liveState(), currentIndex, pending.picked, pending.reason);
         applyLiveResult(resultado);
         if (resultado.changed) {
           postWorkoutEvent("workout.exercise_substituted", { mode: modo, hadReason: pending.reason != null });
-          falar(`Trocado. ${pending.picked.name}.`, engine);
+          await falar(`Trocado. ${pending.picked.name}.`, engine);
         } else {
-          falar("Não consegui trocar agora.", engine);
+          await falar("Não consegui trocar agora.", engine);
         }
         return;
       }
@@ -1392,65 +1478,71 @@ export default function WorkoutSessionPage() {
         applyLiveResult(resultado);
         if (resultado.changed) {
           postWorkoutEvent("workout.exercise_added", { mode: modo });
-          falar(`Adicionado. ${pending.picked.name} como extra.`, engine);
+          await falar(`Adicionado. ${pending.picked.name} como extra.`, engine);
         } else {
-          falar("Não consegui adicionar agora.", engine);
+          await falar("Não consegui adicionar agora.", engine);
         }
         return;
       }
     }
   }
 
-  /** Roteador central de intents (P5B) — recebe o resultado já parseado e decide o que fazer. */
-  function processarIntentDeVoz(intent: VoiceIntent, engine: VoiceEngine) {
+  /**
+   * Roteador central de intents (P5B) — recebe o resultado já parseado e
+   * decide o que fazer. `async`/`await` em toda fala (P5C): o ciclo por
+   * wake word precisa saber quando a ÚLTIMA fala de verdade terminou antes
+   * de retomar a escuta da keyword (self-trigger — P5C.2). O PTT continua
+   * chamando isto exatamente igual, só ignora quando o retorno resolve.
+   */
+  async function processarIntentDeVoz(intent: VoiceIntent, engine: VoiceEngine) {
     const mode = isFree ? "free" : "plan";
-    const pendente = pendingConfirmation;
+    const pendente = pendingConfirmationRef.current;
     const pendenteValida = !!pendente && Date.now() <= pendente.expiresAt;
 
     if (intent.type === "confirm") {
       if (pendenteValida) {
-        setPendingConfirmation(null);
-        executarConfirmacao(pendente!, engine);
+        pendingConfirmationRef.current = null;
+        await executarConfirmacao(pendente!, engine);
       } else {
-        if (pendente) setPendingConfirmation(null);
-        falar("Não há nada para confirmar.", engine);
+        pendingConfirmationRef.current = null;
+        await falar("Não há nada para confirmar.", engine);
       }
       return;
     }
     if (intent.type === "deny") {
-      if (pendente) setPendingConfirmation(null);
+      pendingConfirmationRef.current = null;
       if (pendenteValida) postVoiceEvent("voice.confirmation_rejected", { mode });
-      falar("Ok.", engine);
+      await falar("Ok.", engine);
       return;
     }
     // Qualquer outro comando enquanto uma confirmação está pendente descarta
     // a pendência — ela deixou de fazer sentido (P5B.26/27).
-    if (pendente) setPendingConfirmation(null);
+    pendingConfirmationRef.current = null;
 
     switch (intent.type) {
       case "repeat":
-        falar(ultimaFalaRef.current ?? "Não tenho nada para repetir.", engine);
+        await falar(ultimaFalaRef.current ?? "Não tenho nada para repetir.", engine);
         return;
       case "help":
-        falar('Você pode dizer: "fiz 12 com 28", "próximo exercício", "quanto falta" ou "anota uma observação".', engine);
+        await falar('Você pode dizer: "fiz 12 com 28", "próximo exercício", "quanto falta" ou "anota uma observação".', engine);
         return;
       case "undo":
-        desfazerUltimaAcaoDeVoz(engine);
+        await desfazerUltimaAcaoDeVoz(engine);
         return;
       case "voice_off":
         desligarVoiceWorkout();
         return;
       case "finish_workout":
-        abrirConfirmacao(
+        await abrirConfirmacao(
           { kind: "finish_initial", speak: `Quer finalizar o treino agora? ${doneSets} de ${totalSets} séries concluídas.` },
           engine,
         );
         return;
       case "request_exercise_substitution":
-        void tratarSubstituicaoPorVoz(intent.reason, engine);
+        await tratarSubstituicaoPorVoz(intent.reason, engine);
         return;
       case "add_observation":
-        anexarObservacaoComEscopo(intent.observation, engine);
+        await anexarObservacaoComEscopo(intent.observation, engine);
         return;
       case "query_current_exercise":
       case "query_current_set":
@@ -1459,12 +1551,12 @@ export default function WorkoutSessionPage() {
       case "query_rest_remaining":
       case "query_previous_load":
       case "query_previous_reps":
-        responderConsulta(intent.type, engine);
+        await responderConsulta(intent.type, engine);
         return;
       case "next_exercise": {
         if (currentIndex >= exercises.length - 1) {
           postVoiceEvent("voice.command_failure", { mode, errorKind: "already_last" });
-          falar("Esse é o último exercício. Quer finalizar o treino?", engine);
+          await falar("Esse é o último exercício. Quer finalizar o treino?", engine);
           return;
         }
         const antes = currentIndex;
@@ -1472,16 +1564,16 @@ export default function WorkoutSessionPage() {
         if (resultado.changed) {
           lastVoiceActionRef.current = { type: "navigate", before: antes, expiresAt: Date.now() + UNDO_WINDOW_MS };
           postVoiceEvent("voice.command_success", { mode });
-          falarExercicio(currentIndex + 1, engine);
+          await falarExercicio(currentIndex + 1, engine);
         } else {
-          falar("Não consegui avançar.", engine);
+          await falar("Não consegui avançar.", engine);
         }
         return;
       }
       case "previous_exercise": {
         if (currentIndex <= 0) {
           postVoiceEvent("voice.command_failure", { mode, errorKind: "already_first" });
-          falar("Esse já é o primeiro exercício.", engine);
+          await falar("Esse já é o primeiro exercício.", engine);
           return;
         }
         const antes = currentIndex;
@@ -1489,26 +1581,26 @@ export default function WorkoutSessionPage() {
         if (resultado.changed) {
           lastVoiceActionRef.current = { type: "navigate", before: antes, expiresAt: Date.now() + UNDO_WINDOW_MS };
           postVoiceEvent("voice.command_success", { mode });
-          falarExercicio(currentIndex - 1, engine);
+          await falarExercicio(currentIndex - 1, engine);
         } else {
-          falar("Não consegui voltar.", engine);
+          await falar("Não consegui voltar.", engine);
         }
         return;
       }
       case "go_to_exercise": {
         if (intent.matches.length === 0) {
           postVoiceEvent("voice.command_failure", { mode, errorKind: "exercise_not_found" });
-          falar("Não encontrei esse exercício na sessão.", engine);
+          await falar("Não encontrei esse exercício na sessão.", engine);
           return;
         }
         if (intent.matches.length > 1) {
           postVoiceEvent("voice.command_failure", { mode, errorKind: "ambiguous_exercise" });
-          falar(`Você tem ${intent.matches.slice(0, 3).join(", ")}. Qual deles?`, engine);
+          await falar(`Você tem ${intent.matches.slice(0, 3).join(", ")}. Qual deles?`, engine);
           return;
         }
         const alvoIndex = exercises.findIndex((e) => e.name === intent.matches[0]);
         if (alvoIndex < 0) {
-          falar("Não encontrei esse exercício.", engine);
+          await falar("Não encontrei esse exercício.", engine);
           return;
         }
         const antes = currentIndex;
@@ -1516,9 +1608,9 @@ export default function WorkoutSessionPage() {
         if (resultado.changed) {
           lastVoiceActionRef.current = { type: "navigate", before: antes, expiresAt: Date.now() + UNDO_WINDOW_MS };
           postVoiceEvent("voice.command_success", { mode });
-          falarExercicio(alvoIndex, engine);
+          await falarExercicio(alvoIndex, engine);
         } else {
-          falar("Você já está nesse exercício.", engine);
+          await falar("Você já está nesse exercício.", engine);
         }
         return;
       }
@@ -1526,9 +1618,9 @@ export default function WorkoutSessionPage() {
         const resultado = dispatch({ type: "pause_rest" });
         if (resultado.changed) {
           postVoiceEvent("voice.command_success", { mode });
-          falar("Descanso pausado.", engine);
+          await falar("Descanso pausado.", engine);
         } else {
-          falar("Você não está em descanso agora.", engine);
+          await falar("Você não está em descanso agora.", engine);
         }
         return;
       }
@@ -1536,9 +1628,9 @@ export default function WorkoutSessionPage() {
         const resultado = dispatch({ type: "resume_rest" });
         if (resultado.changed) {
           postVoiceEvent("voice.command_success", { mode });
-          falar("Descanso retomado.", engine);
+          await falar("Descanso retomado.", engine);
         } else {
-          falar("O descanso não está pausado.", engine);
+          await falar("O descanso não está pausado.", engine);
         }
         return;
       }
@@ -1546,31 +1638,31 @@ export default function WorkoutSessionPage() {
         const resultado = dispatch({ type: "skip_rest" });
         if (resultado.changed) {
           postVoiceEvent("voice.command_success", { mode });
-          falar("Descanso concluído.", engine);
+          await falar("Descanso concluído.", engine);
         } else {
-          falar("Você não está em descanso agora.", engine);
+          await falar("Você não está em descanso agora.", engine);
         }
         return;
       }
       case "extend_rest": {
         if (!rest.active) {
           postVoiceEvent("voice.command_failure", { mode, errorKind: "no_active_rest" });
-          falar("Você não está em descanso agora.", engine);
+          await falar("Você não está em descanso agora.", engine);
           return;
         }
         rest.add(intent.seconds);
         postVoiceEvent("voice.command_success", { mode });
-        falar(`Mais ${intent.seconds} segundos.`, engine);
+        await falar(`Mais ${intent.seconds} segundos.`, engine);
         return;
       }
       case "set_load": {
         const alvo = serieEExercicioAlvo();
         if (!alvo) {
-          falar("Não há série ativa agora.", engine);
+          await falar("Não há série ativa agora.", engine);
           return;
         }
         if (cargaImplausivel(intent.loadKg, referenciaCargaAtual())) {
-          abrirConfirmacao(
+          await abrirConfirmacao(
             { kind: "set_load", setIndex: alvo.serie.setIndex, loadKg: String(intent.loadKg), speak: `Entendi ${intent.loadKg} quilos. Confirma?` },
             engine,
           );
@@ -1581,19 +1673,19 @@ export default function WorkoutSessionPage() {
         if (resultado.changed) {
           lastVoiceActionRef.current = { type: "set_load", setIndex: alvo.serie.setIndex, before: antes, expiresAt: Date.now() + UNDO_WINDOW_MS };
           postVoiceEvent("voice.command_success", { mode });
-          falar(`Carga ajustada para ${intent.loadKg}.`, engine);
+          await falar(`Carga ajustada para ${intent.loadKg}.`, engine);
         }
         return;
       }
       case "set_reps": {
         const alvo = serieEExercicioAlvo();
         if (!alvo) {
-          falar("Não há série ativa agora.", engine);
+          await falar("Não há série ativa agora.", engine);
           return;
         }
         const metaReps = leadingInt(alvo.serie.plannedReps);
         if (repsImplausiveis(intent.reps, metaReps)) {
-          abrirConfirmacao(
+          await abrirConfirmacao(
             { kind: "set_reps", setIndex: alvo.serie.setIndex, reps: String(intent.reps), speak: `Entendi ${intent.reps} repetições. Confirma?` },
             engine,
           );
@@ -1604,7 +1696,7 @@ export default function WorkoutSessionPage() {
         if (resultado.changed) {
           lastVoiceActionRef.current = { type: "set_reps", setIndex: alvo.serie.setIndex, before: antes, expiresAt: Date.now() + UNDO_WINDOW_MS };
           postVoiceEvent("voice.command_success", { mode });
-          falar(`Repetições ajustadas para ${intent.reps}.`, engine);
+          await falar(`Repetições ajustadas para ${intent.reps}.`, engine);
         }
         return;
       }
@@ -1612,13 +1704,13 @@ export default function WorkoutSessionPage() {
         const alvo = serieEExercicioAlvo();
         if (!alvo) {
           postVoiceEvent("voice.command_failure", { mode, errorKind: "no_current_set" });
-          falar("Não há série pendente agora.", engine);
+          await falar("Não há série pendente agora.", engine);
           return;
         }
         if (intent.observation && hasAttentionSignal(intent.observation)) {
           anexarObservacaoSessao(intent.observation);
           postVoiceEvent("voice.command_failure", { mode, errorKind: "safety_flagged" });
-          abrirConfirmacao(
+          await abrirConfirmacao(
             {
               kind: "complete_set",
               setIndex: alvo.serie.setIndex,
@@ -1640,7 +1732,7 @@ export default function WorkoutSessionPage() {
           const partes: string[] = [];
           if (intent.reps != null) partes.push(`${intent.reps} repetições`);
           if (intent.loadKg != null) partes.push(`${intent.loadKg} quilos`);
-          abrirConfirmacao(
+          await abrirConfirmacao(
             {
               kind: "complete_set",
               setIndex: alvo.serie.setIndex,
@@ -1653,12 +1745,43 @@ export default function WorkoutSessionPage() {
           );
           return;
         }
-        executarCompleteSet(alvo.serie.setIndex, intent.reps, intent.loadKg, intent.observation, engine);
+        await executarCompleteSet(alvo.serie.setIndex, intent.reps, intent.loadKg, intent.observation, engine);
         return;
       }
       default:
         return;
     }
+  }
+
+  /**
+   * Captura um transcript via STT, com a telemetria de sucesso/falha —
+   * compartilhado entre o push-to-talk e o ciclo por wake word (P5C).
+   * `null` = falhou (já emitiu `voice.stt_failure` e atualizou o HUD).
+   */
+  async function capturarTranscript(engine: VoiceEngine): Promise<string | null> {
+    postVoiceEvent("voice.listen_started", { mode: isFree ? "free" : "plan" });
+    const iniciadoEm = Date.now();
+    try {
+      const resultado = await engine.listenOnce();
+      postVoiceEvent("voice.stt_success", { mode: isFree ? "free" : "plan", latencyMs: Date.now() - iniciadoEm });
+      return resultado.transcript;
+    } catch (err) {
+      const kind = err instanceof VoiceEngineError ? err.kind : "unavailable";
+      postVoiceEvent("voice.stt_failure", {
+        mode: isFree ? "free" : "plan",
+        errorKind: kind,
+        latencyMs: Date.now() - iniciadoEm,
+      });
+      return null;
+    }
+  }
+
+  function interpretarTranscript(transcript: string) {
+    const exercicioAtual = exercises[currentIndex];
+    return parseVoiceCommand(transcript, {
+      sessionExerciseNames: exercises.map((e) => e.name),
+      plannedReps: exercicioAtual ? (serieAtual(exercicioAtual.sets)?.plannedReps ?? null) : null,
+    });
   }
 
   /** Push-to-talk: captura UM comando, interpreta e executa via `processarIntentDeVoz`. */
@@ -1667,34 +1790,18 @@ export default function WorkoutSessionPage() {
     const engine = voiceEngineRef.current;
     setVoiceError(null);
     setVoiceHudState("listening");
-    postVoiceEvent("voice.listen_started", { mode: isFree ? "free" : "plan" });
-    const iniciadoEm = Date.now();
 
-    let transcript: string;
-    try {
-      const resultado = await engine.listenOnce();
-      transcript = resultado.transcript;
-    } catch (err) {
-      const kind = err instanceof VoiceEngineError ? err.kind : "unavailable";
-      postVoiceEvent("voice.stt_failure", {
-        mode: isFree ? "free" : "plan",
-        errorKind: kind,
-        latencyMs: Date.now() - iniciadoEm,
-      });
+    const transcript = await capturarTranscript(engine);
+    if (transcript == null) {
       setVoiceHudState("error");
       setVoiceError("Não consegui ouvir. Toque em Falar para tentar de novo.");
       return;
     }
-    postVoiceEvent("voice.stt_success", { mode: isFree ? "free" : "plan", latencyMs: Date.now() - iniciadoEm });
     setVoiceHudState("processing");
 
     // Transcript nunca sai daqui além do parser — nenhum evento carrega o
     // texto (pacto de dados, ver `voiceEvents.ts`).
-    const exercicioAtual = exercises[currentIndex];
-    const { intent } = parseVoiceCommand(transcript, {
-      sessionExerciseNames: exercises.map((e) => e.name),
-      plannedReps: exercicioAtual ? (serieAtual(exercicioAtual.sets)?.plannedReps ?? null) : null,
-    });
+    const { intent } = interpretarTranscript(transcript);
 
     if (!intent) {
       postVoiceEvent("voice.command_failure", { mode: isFree ? "free" : "plan", errorKind: "not_understood" });
@@ -1705,7 +1812,80 @@ export default function WorkoutSessionPage() {
     }
 
     setVoiceHudState("active");
-    processarIntentDeVoz(intent, engine);
+    await processarIntentDeVoz(intent, engine);
+  }
+
+  // ── Wake word (P5C) — ciclo completo sem precisar de novo toque ────────
+  //
+  // A detecção chega por evento nativo a qualquer momento; `tratarWakeDetectado`
+  // decide se é para valer (sessão rodando, voz ligada, detector realmente
+  // esperando) antes de fazer qualquer coisa — um evento tardio ou duplicado
+  // vira no-op, nunca um segundo ciclo por cima do primeiro.
+  async function tratarWakeDetectado(keywordIndex: number) {
+    if (phase !== "running" || voiceHudState === "off") return;
+    if (wakeMachineRef.current.state !== "waiting_for_wake") return;
+
+    wakeMachineRef.current = transicionarWake(wakeMachineRef.current, { type: "WAKE_DETECTED" });
+    postVoiceEvent("voice.wake_detected", {
+      mode: isFree ? "free" : "plan",
+      wakeVariant: keywordIndex === 0 ? "s2core" : "ei_s2core",
+    });
+    await executarCicloDeVozPorWake();
+  }
+
+  /**
+   * Suspende a wake word (P5C.9 — nunca disputa o microfone com o STT/TTS),
+   * captura e processa comandos em loop ATÉ que uma resposta não abra uma
+   * nova confirmação — é isso que permite "S2CORE, finalizar treino" →
+   * "quer finalizar?" → "sim" SEM dizer a keyword de novo (P5C.18). Só
+   * retoma a escuta depois que a ÚLTIMA fala realmente terminou (P5C.2).
+   */
+  async function executarCicloDeVozPorWake() {
+    const detector = wakeWordDetectorRef.current;
+    const engine = voiceEngineRef.current;
+    await detector.suspend();
+    wakeMachineRef.current = transicionarWake(wakeMachineRef.current, { type: "CAPTURE_STARTED" });
+    setVoiceHudState("listening");
+
+    for (;;) {
+      const transcript = await capturarTranscript(engine);
+      if (transcript == null) {
+        wakeMachineRef.current = transicionarWake(wakeMachineRef.current, { type: "COMMAND_EMPTY" });
+        break;
+      }
+
+      wakeMachineRef.current = transicionarWake(wakeMachineRef.current, { type: "COMMAND_RECEIVED" });
+      setVoiceHudState("processing");
+
+      const { intent } = interpretarTranscript(transcript);
+      if (!intent) {
+        postVoiceEvent("voice.command_failure", { mode: isFree ? "free" : "plan", errorKind: "not_understood" });
+        await falar("Não entendi. Diga ajuda para ver exemplos.", engine);
+      } else {
+        await processarIntentDeVoz(intent, engine);
+      }
+
+      if (pendingConfirmationRef.current) {
+        // Pergunta feita (ou já falada dentro de `processarIntentDeVoz`) —
+        // volta ao topo do loop para capturar a resposta, sem nova wake word.
+        wakeMachineRef.current = transicionarWake(wakeMachineRef.current, { type: "NEEDS_CONFIRMATION" });
+        continue;
+      }
+      wakeMachineRef.current = transicionarWake(wakeMachineRef.current, { type: "PROCESSED" });
+      break;
+    }
+
+    // Por aqui, a ÚLTIMA fala já terminou de verdade: `processarIntentDeVoz`
+    // e tudo que ele chama (`executarConfirmacao`, `executarCompleteSet`,
+    // `responderConsulta`…) usam `await falar(...)`, que só resolve quando o
+    // TTS nativo confirma `onDone` (P5A). O cooldown abaixo é margem extra
+    // sobre esse término real, não uma aposta sobre quando a fala aconteceu.
+    setVoiceHudState("active");
+    wakeMachineRef.current = transicionarWake(wakeMachineRef.current, { type: "SPEAK_DONE" });
+    window.setTimeout(() => {
+      wakeMachineRef.current = transicionarWake(wakeMachineRef.current, { type: "COOLDOWN_DONE" });
+      void detector.resume();
+    }, WAKE_COOLDOWN_MS);
   }
 
   // ── edição da lista durante o treino livre ────────────

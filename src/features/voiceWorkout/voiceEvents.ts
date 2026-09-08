@@ -23,7 +23,12 @@ export type VoiceEventType =
   | "voice.confirmation_accepted"
   | "voice.confirmation_rejected"
   | "voice.undo_used"
-  | "voice.substitution_requested";
+  | "voice.substitution_requested"
+  // P5C — spike técnico de wake word (Picovoice/Porcupine, sem fornecedor
+  // definitivo). Só o CICLO, nunca a keyword em si nem o áudio.
+  | "voice.wake_started"
+  | "voice.wake_detected"
+  | "voice.wake_error";
 
 /** Campos permitidos. Tipado para que transcript/carga/reps não entrem por descuido. */
 export interface VoiceEventPayload {
@@ -33,6 +38,12 @@ export interface VoiceEventPayload {
   latencyMs?: number;
   /** Motivo de falha, em categoria fechada — nunca a mensagem crua do erro. */
   errorKind?: string;
+  /**
+   * P5C — QUAL variante detectou ("S2CORE" vs "Ei S2CORE"), para o
+   * protocolo de teste comparar as duas sob a mesma sessão. Nunca o áudio
+   * nem o transcript.
+   */
+  wakeVariant?: "s2core" | "ei_s2core";
 }
 
 export function postVoiceEvent(eventType: VoiceEventType, payload: VoiceEventPayload = {}): void {

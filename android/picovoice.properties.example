@@ -1,0 +1,9 @@
+# Copie este arquivo para "picovoice.properties" (mesma pasta) e preencha com
+# o AccessKey da SUA conta de trial em https://console.picovoice.ai/.
+#
+# "picovoice.properties" está no .gitignore — nunca commitar a chave real.
+# Sem este arquivo, o build compila normalmente e o Voice Workout continua
+# funcionando em push-to-talk (a wake word só fica disponível com os três
+# itens completos — ver android/app/src/main/assets/porcupine/README.md).
+
+PICOVOICE_ACCESS_KEY=

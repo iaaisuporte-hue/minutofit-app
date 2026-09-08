@@ -5,6 +5,7 @@ import android.os.Bundle;
 import com.getcapacitor.BridgeActivity;
 import com.s2core.app.tracker.BackgroundLocationPlugin;
 import com.s2core.app.workout.VoiceWorkoutPlugin;
+import com.s2core.app.workout.WakeWordPlugin;
 import com.s2core.app.workout.WorkoutLivePlugin;
 
 public class MainActivity extends BridgeActivity {
@@ -23,6 +24,7 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(BackgroundLocationPlugin.class);
         registerPlugin(WorkoutLivePlugin.class);
         registerPlugin(VoiceWorkoutPlugin.class);
+        registerPlugin(WakeWordPlugin.class);
         super.onCreate(savedInstanceState);
     }
 }

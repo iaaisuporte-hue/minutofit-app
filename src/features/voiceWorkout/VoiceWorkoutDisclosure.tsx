@@ -66,6 +66,15 @@ export function VoiceWorkoutDisclosure({
         >
           <li>Nenhum áudio é gravado ou armazenado — só o comando é reconhecido.</li>
           <li>O microfone só liga quando você ativa o modo, dentro de um treino.</li>
+          {/* P5C — spike técnico de wake word (ver docs/produto/
+              voice_workout_wake_word_decision.md): frase condicional de
+              propósito. Nem todo aparelho/versão do app tem a palavra de
+              ativação configurada — quando tem, é processada no próprio
+              aparelho; quando não, o microfone só ouve ao toque em "Falar". */}
+          <li>
+            Se a palavra de ativação estiver disponível no seu aparelho, o S2Core pode ouvir
+            "S2CORE" processado no próprio aparelho — sem enviar áudio contínuo a lugar nenhum.
+          </li>
           <li>Pode desligar a qualquer momento e continuar registrando pela tela.</li>
         </ul>
 
