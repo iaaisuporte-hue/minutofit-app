@@ -1,5 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!--
+      onnxruntime-android:1.22.0 (P5C — spike aberto de wake word ONNX, ver
+      docs/produto/voice_workout_wake_word_spike_onnx.md no repo pai) declara
+      minSdkVersion 24; o app é minSdk 23 (variables.gradle) e isso não muda
+      por causa de um spike opcional — reduziria o alcance de TODO o app,
+      não só desta avaliação. `OnnxWakeWordController.iniciar()` tem uma
+      guarda `Build.VERSION.SDK_INT >= 24` que nunca deixa a biblioteca ser
+      tocada em aparelho abaixo da API 24 (degrada para
+      `onError("api_level_unsupported")`, mesmo tratamento gracioso de
+      qualquer outra pré-condição ausente) — o override abaixo só destrava o
+      build, a garantia real de segurança é essa guarda em código.
+    -->
+    <uses-sdk tools:overrideLibrary="ai.onnxruntime" />
 
     <application
         android:allowBackup="true"

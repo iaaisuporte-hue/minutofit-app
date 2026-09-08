@@ -108,6 +108,16 @@ class OnnxWakeWordController implements WakeWordEngine {
     public synchronized void iniciar() {
         if (running.get()) return; // já iniciado — chamada repetida é no-op, mesmo contrato do Porcupine
 
+        // onnxruntime-android:1.22.0 exige API 24+ (o app é minSdk 23 —
+        // AndroidManifest.xml tem `tools:overrideLibrary` só para destravar
+        // o build; esta guarda é a garantia real: abaixo da API 24 a
+        // biblioteca nunca é tocada, nem OrtEnvironment é instanciado).
+        if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.N) {
+            Log.w(TAG, "API " + android.os.Build.VERSION.SDK_INT + " < 24 — motor ONNX indisponível neste aparelho");
+            callback.onError("api_level_unsupported");
+            return;
+        }
+
         try {
             ortEnv = OrtEnvironment.getEnvironment();
             melSession = abrirSessao(ASSET_MEL);
