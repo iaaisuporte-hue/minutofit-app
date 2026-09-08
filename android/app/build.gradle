@@ -51,7 +51,7 @@ android {
         // O workflow de CI (android-internal-release.yml) sobrescreve este valor
         // via `-PversionCode=N` só naquele build — nunca commitar o número aqui
         // a partir do CI. Build local/Android Studio cai no fallback fixo.
-        versionCode project.hasProperty('versionCode') ? (project.property('versionCode') as Integer) : 7
+        versionCode project.hasProperty('versionCode') ? (project.property('versionCode') as Integer) : 8
         versionName "1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         // P5C — compilado no app, nunca no bundle web/JS: o AccessKey só existe
