@@ -111,7 +111,7 @@ public class WorkoutForegroundService extends Service {
     private String tituloAtual;
     private String textoAtual;
     /** Só existe enquanto a wake word (P5C) está ligada nesta instância do serviço. */
-    private PorcupineWakeWordController wakeWordController;
+    private WakeWordEngine wakeWordController;
 
     public static boolean estaAtivo() {
         return ativo;
@@ -131,8 +131,17 @@ public class WorkoutForegroundService extends Service {
         wakeWordCallback = callback;
     }
 
-    /** Checagem estática — não confirma que os `.ppn` existem, só que o AccessKey foi compilado. */
+    /**
+     * Checagem estática do motor SELECIONADO em build time
+     * (`BuildConfig.WAKE_WORD_ENGINE`) — não confirma que os arquivos de
+     * modelo/keyword existem nos assets, só a pré-condição de configuração
+     * de cada motor (AccessKey compilado para o Porcupine; nada a checar
+     * para o ONNX, que só falha ao tentar carregar os assets em `iniciar()`).
+     */
     public static boolean wakeWordDisponivel() {
+        if ("onnx_spike".equals(com.s2core.app.BuildConfig.WAKE_WORD_ENGINE)) {
+            return true;
+        }
         return PorcupineWakeWordController.accessKeyConfigurado();
     }
 
@@ -276,10 +285,18 @@ public class WorkoutForegroundService extends Service {
         super.onDestroy();
     }
 
-    /** Cria o controller sob demanda — só existe enquanto a wake word estiver ligada. */
+    /**
+     * Cria o controller sob demanda — só existe enquanto a wake word estiver
+     * ligada. O motor concreto é decidido em build time
+     * (`BuildConfig.WAKE_WORD_ENGINE`, `wakeword.properties`): `"porcupine"`
+     * (default — comportamento de produção inalterado) ou `"onnx_spike"`
+     * (motor ONNX estilo openWakeWord em avaliação, ver
+     * `docs/produto/voice_workout_wake_word_spike_onnx.md` no repo pai).
+     * Este é o ÚNICO ponto do serviço que sabe que os dois motores existem.
+     */
     private void garantirWakeWordController() {
         if (wakeWordController != null) return;
-        wakeWordController = new PorcupineWakeWordController(this, new PorcupineWakeWordController.Callback() {
+        WakeWordEngine.Callback callback = new WakeWordEngine.Callback() {
             @Override
             public void onWakeWordDetected(int keywordIndex) {
                 WakeWordCallback cb = wakeWordCallback;
@@ -291,7 +308,12 @@ public class WorkoutForegroundService extends Service {
                 WakeWordCallback cb = wakeWordCallback;
                 if (cb != null) cb.onError(reason);
             }
-        });
+        };
+        if ("onnx_spike".equals(com.s2core.app.BuildConfig.WAKE_WORD_ENGINE)) {
+            wakeWordController = new OnnxWakeWordController(this, callback);
+        } else {
+            wakeWordController = new PorcupineWakeWordController(this, callback);
+        }
     }
 
     /**

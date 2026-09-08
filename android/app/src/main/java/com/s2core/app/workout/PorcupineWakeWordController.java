@@ -29,14 +29,13 @@ import ai.picovoice.porcupine.PorcupineManagerCallback;
  * `PorcupineManager` possui o próprio `AudioRecord` internamente — esta
  * classe nunca grava PCM em disco, nunca envia áudio a lugar nenhum; o
  * único dado que sai é o índice da keyword detectada.
+ *
+ * Implementa `WakeWordEngine` (extraído no spike ONNX, ver
+ * `docs/produto/voice_workout_wake_word_spike_onnx.md` no repo pai) para
+ * que `WorkoutForegroundService` possa escolher entre este motor e
+ * `OnnxWakeWordController` em build time, sem conhecer nenhum dos dois.
  */
-class PorcupineWakeWordController {
-
-    interface Callback {
-        /** `keywordIndex`: 0 = "S2CORE", 1 = "Ei S2CORE" (ver `KEYWORD_ASSET_PATHS`). */
-        void onWakeWordDetected(int keywordIndex);
-        void onError(String reason);
-    }
+class PorcupineWakeWordController implements WakeWordEngine {
 
     private static final String TAG = "S2CoreWakeWord";
 
@@ -61,11 +60,11 @@ class PorcupineWakeWordController {
     private static final float SENSITIVITY = 0.6f;
 
     private final Context context;
-    private final Callback callback;
+    private final WakeWordEngine.Callback callback;
     private PorcupineManager manager;
     private volatile boolean suspenso = false;
 
-    PorcupineWakeWordController(Context context, Callback callback) {
+    PorcupineWakeWordController(Context context, WakeWordEngine.Callback callback) {
         this.context = context.getApplicationContext();
         this.callback = callback;
     }

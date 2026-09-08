@@ -24,8 +24,9 @@ export type VoiceEventType =
   | "voice.confirmation_rejected"
   | "voice.undo_used"
   | "voice.substitution_requested"
-  // P5C — spike técnico de wake word (Picovoice/Porcupine, sem fornecedor
-  // definitivo). Só o CICLO, nunca a keyword em si nem o áudio.
+  // P5C — spike aberto de wake word (Picovoice Porcupine × motor ONNX
+  // estilo openWakeWord, sem fornecedor definitivo). Só o CICLO, nunca a
+  // keyword em si nem o áudio.
   | "voice.wake_started"
   | "voice.wake_detected"
   | "voice.wake_error";

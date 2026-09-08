@@ -1,12 +1,15 @@
 /**
  * Porta de detecção de wake word.
  *
- * P5C entrega uma implementação real, `PorcupineWakeWordDetector`, mas
- * como **spike técnico de 7 dias, sem fornecedor definitivo** — ver
- * `docs/produto/voice_workout_wake_word_decision.md` (repo pai). Nenhum
- * outro lado do produto sabe que existe um fornecedor: a máquina de
- * estados (`wakeWordStateMachine.ts`) e o resto do Voice Workout falam só
- * com esta interface. Se o spike não validar (ou o fornecedor mudar), só a
+ * P5C entrega uma implementação real, `PorcupineWakeWordDetector` — nome
+ * histórico, hoje genérica: fala com o plugin nativo "WakeWord", que por
+ * baixo escolhe em build time entre o motor Picovoice Porcupine e um motor
+ * ONNX estilo openWakeWord em avaliação (`WAKE_WORD_ENGINE`, ver
+ * `docs/produto/voice_workout_wake_word_spike_onnx.md`, repo pai) —
+ * **spike aberto, nenhum fornecedor definitivo**. Nenhum outro lado do
+ * produto sabe que existe um fornecedor: a máquina de estados
+ * (`wakeWordStateMachine.ts`) e o resto do Voice Workout falam só com esta
+ * interface. Se nenhum spike validar (ou o fornecedor mudar), só a
  * implementação concreta é trocada — mesmo padrão de `VoiceEngine`/
  * `WorkoutLiveSurface`.
  */

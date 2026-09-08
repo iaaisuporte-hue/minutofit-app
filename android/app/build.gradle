@@ -23,6 +23,20 @@ if (picovoicePropertiesFile.exists()) {
 }
 def picovoiceAccessKey = picovoiceProperties.getProperty('PICOVOICE_ACCESS_KEY', '')
 
+// Seletor do motor de wake word (P5C — spike aberto: Porcupine × ONNX estilo
+// openWakeWord, nenhum definitivo; ver
+// docs/produto/voice_workout_wake_word_spike_onnx.md no repo pai). Mesmo
+// padrão dos dois arquivos acima: local, nunca commitado. Sem o arquivo (ou
+// com valor vazio/desconhecido) o app compila com o motor padrão
+// "porcupine" — comportamento de produção inalterado. Definir
+// WAKE_WORD_ENGINE=onnx_spike só em build local para testar o spike.
+def wakewordPropertiesFile = rootProject.file('wakeword.properties')
+def wakewordProperties = new Properties()
+if (wakewordPropertiesFile.exists()) {
+    wakewordProperties.load(new FileInputStream(wakewordPropertiesFile))
+}
+def wakeWordEngine = wakewordProperties.getProperty('WAKE_WORD_ENGINE', 'porcupine')
+
 android {
     namespace "com.s2core.app"
     compileSdk rootProject.ext.compileSdkVersion
@@ -43,6 +57,7 @@ android {
         // P5C — compilado no app, nunca no bundle web/JS: o AccessKey só existe
         // do lado nativo, o mesmo isolamento que já vale para o keystore.
         buildConfigField "String", "PICOVOICE_ACCESS_KEY", "\"${picovoiceAccessKey}\""
+        buildConfigField "String", "WAKE_WORD_ENGINE", "\"${wakeWordEngine}\""
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
              // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
@@ -92,6 +107,10 @@ dependencies {
     // repo pai). Versão travada na mais recente publicada no Maven Central
     // (verificado em set/2026 — nenhuma release desde nov/2023).
     implementation "ai.picovoice:porcupine-android:3.0.1"
+    // P5C — spike aberto do motor ONNX estilo openWakeWord (mesma ressalva
+    // acima: sem fornecedor definitivo). Versão travada na mais recente
+    // publicada no Maven Central (verificado em set/2026).
+    implementation "com.microsoft.onnxruntime:onnxruntime-android:1.22.0"
     testImplementation "junit:junit:$junitVersion"
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"

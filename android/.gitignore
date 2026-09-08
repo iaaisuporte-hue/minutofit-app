@@ -65,6 +65,16 @@ picovoice.properties
 # trial de quem gerou; não fazem sentido versionadas para outra pessoa.
 app/src/main/assets/porcupine/*.ppn
 
+# Seletor do motor de wake word (P5C — spike aberto) — local, nunca commitado.
+wakeword.properties
+
+# Classificadores ONNX treinados (tools/wakeword/ no repo pai) — pesam
+# dezenas/centenas de KB cada e são artefato de treino, não código; ficam
+# fora do git até a decisão do spike (ver assets/wakeword/README.md).
+# melspectrogram.onnx e embedding_model.onnx NÃO entram aqui — são
+# artefatos genéricos do openWakeWord upstream, committed de propósito.
+app/src/main/assets/wakeword/classifier_*.onnx
+
 # External native build folder generated in Android Studio 2.2 and later
 .externalNativeBuild
 .cxx/

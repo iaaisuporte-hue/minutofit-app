@@ -1,0 +1,19 @@
+# Copie este arquivo para "wakeword.properties" (mesma pasta) para escolher
+# o motor de wake word em build local (P5C — spike aberto, SEM fornecedor
+# definitivo; ver docs/produto/voice_workout_wake_word_spike_onnx.md no
+# repo pai).
+#
+# "wakeword.properties" está no .gitignore — nunca commitar aqui. Sem este
+# arquivo (ou com WAKE_WORD_ENGINE vazio/desconhecido), o build usa
+# "porcupine" — o comportamento de produção já validado, inalterado.
+#
+# Valores aceitos:
+#   porcupine   — motor Picovoice Porcupine (default; requer
+#                 picovoice.properties + os dois .ppn — ver
+#                 android/app/src/main/assets/porcupine/README.md)
+#   onnx_spike  — motor ONNX estilo openWakeWord em avaliação (requer os
+#                 dois classificadores treinados — ver
+#                 android/app/src/main/assets/wakeword/README.md e
+#                 tools/wakeword/ no repo pai)
+
+WAKE_WORD_ENGINE=porcupine

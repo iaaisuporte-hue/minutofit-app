@@ -66,7 +66,9 @@ public class WakeWordPlugin extends Plugin {
         JSObject r = new JSObject();
         r.put("available", WorkoutForegroundService.wakeWordDisponivel());
         r.put("onDevice", true);
-        r.put("provider", "porcupine");
+        // Motor decidido em build time (P5C — spike aberto, SEM fornecedor
+        // definitivo; ver WAKE_WORD_ENGINE em app/build.gradle).
+        r.put("provider", com.s2core.app.BuildConfig.WAKE_WORD_ENGINE);
         call.resolve(r);
     }
 

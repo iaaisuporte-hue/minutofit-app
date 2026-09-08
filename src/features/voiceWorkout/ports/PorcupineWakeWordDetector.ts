@@ -23,9 +23,15 @@ const CAPABILITIES_INDISPONIVEIS: WakeWordCapabilities = {
 };
 
 /**
- * `WakeWordDetector` sobre o plugin nativo "WakeWord" (P5C — spike técnico
- * de 7 dias, Picovoice/Porcupine, SEM fornecedor definitivo — ver
- * `docs/produto/voice_workout_wake_word_decision.md`).
+ * `WakeWordDetector` sobre o plugin nativo "WakeWord" (P5C — spike aberto,
+ * SEM fornecedor definitivo — ver
+ * `docs/produto/voice_workout_wake_word_spike_onnx.md`).
+ *
+ * Nome histórico (herdado de quando só existia o motor Picovoice
+ * Porcupine) — hoje a classe é agnóstica de fornecedor: o lado nativo
+ * escolhe entre Porcupine e o motor ONNX estilo openWakeWord em avaliação
+ * via `WAKE_WORD_ENGINE` (build time), e reporta qual está ativo em
+ * `getCapabilities().provider`.
  *
  * Só existe implementação Android nesta fase. No iOS o plugin não existe
  * ainda — cada chamada rejeita, e esta classe converte isso em
