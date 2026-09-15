@@ -2423,6 +2423,41 @@ html[data-academy-branding="applied"] .admin-pill-positive {
   letter-spacing: 0.04em;
 }
 
+/* ── Stepper: valor numérico ajustado por toque, sem teclado ──────
+   Origem: pages/user/workoutSession (carga/reps). Promovido a classe
+   global no PLAN_NUTRITION_QUICK_MACROS por ter 2º uso (peso na
+   calculadora de meta, gramas no registro de refeição). */
+.stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.stepper-btn {
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 18px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.stepper-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.stepper-value {
+  min-width: 56px;
+  text-align: center;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
 /* ── Skeleton genérico (shimmer reaproveita dash-shimmer) ──────── */
 .skeleton {
   display: block;

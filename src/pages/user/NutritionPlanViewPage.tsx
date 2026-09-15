@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { COLORS } from "../../styles/colors";
 import { usePushSubscription } from "../../features/nutrition/usePushSubscription";
 import DietaryProfileCard from "../../features/nutrition/DietaryProfileCard";
+import NutritionTargetCard from "../../features/nutrition/NutritionTargetCard";
+import { useFeatureFlags } from "../../auth/FeatureFlagsContext";
 import {
   fetchMealTimeline,
   recordMealCheckin,
@@ -698,6 +700,7 @@ function MealCard({
 
 export default function NutritionPlanViewPage() {
   usePushSubscription();
+  const { hasFeature } = useFeatureFlags();
 
   const [timeline, setTimeline] = useState<MealTimeline | null | undefined>(
     undefined
@@ -757,21 +760,25 @@ export default function NutritionPlanViewPage() {
           maxWidth: 560,
           margin: "40px auto",
           padding: "0 16px",
-          textAlign: "center",
+          textAlign: "left",
         }}
       >
-        <div
-          style={{
-            fontSize: 16,
-            fontWeight: 600,
-            color: COLORS.text,
-            marginBottom: 8,
-          }}
-        >
-          Nenhum plano alimentar ativo
-        </div>
-        <div style={{ fontSize: 13, color: COLORS.muted }}>
-          Quando sua nutricionista prescrever um plano, ele aparecerá aqui.
+        {/* Sem plano do nutri: a meta diária ainda vale como estimativa própria (B2C). */}
+        {hasFeature("nutrition_intake") && <NutritionTargetCard />}
+        <div style={{ textAlign: "center" }}>
+          <div
+            style={{
+              fontSize: 16,
+              fontWeight: 600,
+              color: COLORS.text,
+              marginBottom: 8,
+            }}
+          >
+            Nenhum plano alimentar ativo
+          </div>
+          <div style={{ fontSize: 13, color: COLORS.muted }}>
+            Quando sua nutricionista prescrever um plano, ele aparecerá aqui.
+          </div>
         </div>
       </div>
     );
@@ -878,6 +885,9 @@ export default function NutritionPlanViewPage() {
           </div>
         )}
       </div>
+
+      {/* Meta diária de macros (PLAN_NUTRITION_QUICK_MACROS, P1A) — rollout gradual */}
+      {hasFeature("nutrition_intake") && <NutritionTargetCard />}
 
       {/* Perfil Alimentar (compacto, read-only) */}
       <DietaryProfileCard />
