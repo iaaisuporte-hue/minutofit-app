@@ -258,6 +258,21 @@
   border-color: var(--color-primary);
   color: var(--color-cta-text, #fff);
 }
+/* Envolve o check para caber o badge de RPE sem mexer nas colunas do grid
+   (Fast Workout Input) — mesma célula de 52px, só ganha uma segunda linha
+   quando há RPE respondido. */
+.ws-set-check-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.ws-set-rpe {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--color-primary-deep, var(--action-primary));
+  white-space: nowrap;
+}
 
 /* ── Ações de navegação ─────────────────────────────── */
 .ws-actions {
@@ -306,13 +321,18 @@
   border-top: 1px solid var(--color-border);
   box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.12);
   display: flex;
-  align-items: center;
-  gap: 12px;
+  flex-direction: column;
+  gap: 10px;
   max-width: 720px;
   margin: 0 auto;
 }
 .ws-rest.ws-rest-soon {
   background: var(--color-warn-soft);
+}
+.ws-rest-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 .ws-rest-time {
   font-variant-numeric: tabular-nums;
@@ -348,6 +368,49 @@
   background: var(--action-primary);
   border-color: var(--color-primary);
   color: var(--color-cta-text, #fff);
+}
+
+/* RPE por série (Fast Workout Input) — cabe na mesma faixa de descanso, sem
+   modal novo. Compacta de propósito: é uma pergunta opcional, não pode pesar
+   mais na tela que o próprio cronômetro. */
+.ws-rest-rpe {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.ws-rest-rpe-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  flex: 1 1 auto;
+  min-width: 140px;
+}
+.ws-rest-rpe-options {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.ws-rest-rpe-btn {
+  min-width: 40px;
+  min-height: 40px;
+  padding: 0;
+}
+.ws-rest-rpe-btn-on {
+  background: var(--color-primary-soft, rgba(123, 153, 25, 0.18));
+  border-color: var(--color-primary);
+  color: var(--color-primary-deep, var(--action-primary));
+}
+.ws-rest-rpe-skip {
+  border: none;
+  background: none;
+  padding: 0 4px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-text-subtle);
+  text-decoration: underline;
+  cursor: pointer;
+  white-space: nowrap;
 }
 
 /* ── Resumo final ───────────────────────────────────── */
@@ -566,6 +629,24 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* "Repetir última série" (Fast Workout Input): mesmo slot visual de
+   `.ws-ab-prev`, mas tocável — vira botão em vez de texto quando há
+   referência para repetir. Alvo de toque generoso apesar do texto pequeno:
+   é um atalho de UMA série, não pode competir visualmente com "CONCLUIR". */
+.ws-ab-repeat {
+  border: none;
+  background: var(--color-primary-soft, rgba(123, 153, 25, 0.14));
+  color: var(--color-primary-deep, var(--action-primary));
+  border-radius: 8px;
+  padding: 6px 10px;
+  min-height: 32px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.ws-ab-repeat:active {
+  background: var(--color-primary-soft, rgba(123, 153, 25, 0.22));
 }
 
 .ws-ab-steppers {

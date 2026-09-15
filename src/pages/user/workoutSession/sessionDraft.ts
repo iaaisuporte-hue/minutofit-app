@@ -30,6 +30,14 @@ export interface DraftSetEntry {
    * série no payload final — mesma coluna que o resumo manual já usa.
    */
   observation?: string | null;
+  /**
+   * Esforço percebido da série (Fast Workout Input, set/2026), 6–10, opcional.
+   * Preenchido logo após concluir, tipicamente durante o descanso. Ausente ou
+   * `null` = não respondeu — nunca vira 0 nem bloqueia o treino. Vira
+   * `workout_set_logs.rpe` no payload final (coluna e contrato já existiam;
+   * só não tinham consumidor por série no cliente).
+   */
+  rpe?: number | null;
 }
 
 export interface DraftExercise {

@@ -37,7 +37,12 @@ export type WorkoutEventType =
   | "workout.reminder_opened"
   | "workout.free_started"
   | "workout.repeat_started"
-  | "workout.share_opened";
+  | "workout.share_opened"
+  // Fast Workout Input (set/2026, P5C-STANDBY): mede o USO do atalho, nunca o
+  // valor em si — carga/reps/RPE nunca entram no payload (mesma regra acima).
+  | "workout.repeat_set"
+  | "workout.rpe_selected"
+  | "workout.rpe_skipped";
 
 /** Campos permitidos. Tipado para que um dado sensível não entre por descuido. */
 export interface WorkoutEventPayload {

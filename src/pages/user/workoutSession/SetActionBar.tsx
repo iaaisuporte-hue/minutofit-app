@@ -33,6 +33,13 @@ interface Props {
   onProximo: () => void;
   /** "Pular por agora" (§15) — avança sem concluir nada. Ausente no último. */
   onPular?: () => void;
+  /**
+   * "Repetir última série" (Fast Workout Input) — 1 toque, mesma carga/reps
+   * da referência já exibida. Ausente quando não há nenhuma referência (nem
+   * série anterior desta sessão, nem carga conhecida) — não faz sentido
+   * repetir o que não existe.
+   */
+  onRepetir?: () => void;
 }
 
 const PASSOS: PassoCarga[] = [2.5, 5];
@@ -63,6 +70,7 @@ export function SetActionBar({
   onConcluir,
   onProximo,
   onPular,
+  onRepetir,
 }: Props) {
   const ajustarCarga = useCallback(
     (delta: number) => {
@@ -111,10 +119,13 @@ export function SetActionBar({
     );
   }
 
-  const referencia =
-    ultimaCarga != null
-      ? `Último: ${ultimaCarga} kg${ultimasReps ? ` × ${ultimasReps}` : ""}`
-      : null;
+  // Mesma prioridade de `cargaInicial`/`repsIniciais`: série anterior DESTA
+  // sessão vence a última carga conhecida de treinos passados — sem isso o
+  // texto (e o atalho "Repetir") mostrava o valor errado sempre que já havia
+  // uma série concluída nesta sessão.
+  const cargaRef = cargaSerieAnterior ?? (ultimaCarga != null ? String(ultimaCarga) : null);
+  const repsRef = repsSerieAnterior ?? ultimasReps;
+  const referencia = cargaRef != null ? `Último: ${cargaRef} kg${repsRef ? ` × ${repsRef}` : ""}` : null;
 
   return (
     <div className="ws-action-bar" data-testid="ws-action-bar">
@@ -122,7 +133,19 @@ export function SetActionBar({
         <span className="ws-ab-serie">
           Série {posicao} de {totalNoExercicio}
         </span>
-        {referencia ? <span className="ws-ab-prev">{referencia}</span> : null}
+        {/*
+          "Repetir última série" (Fast Workout Input): a referência que já
+          era exibida vira o próprio atalho quando há o que repetir — meta de
+          1 toque quando a série é igual à anterior (SPEC desta fase),
+          nenhuma segunda peça de UI só para o botão.
+        */}
+        {referencia && onRepetir ? (
+          <button type="button" className="ws-ab-prev ws-ab-repeat" onClick={onRepetir}>
+            Repetir: {referencia.replace("Último: ", "")}
+          </button>
+        ) : referencia ? (
+          <span className="ws-ab-prev">{referencia}</span>
+        ) : null}
         {/*
           "Pular por agora" (§15). O exercício NÃO é dado como concluído: ele
           continua na lista, sem séries marcadas, e o aviso de pendentes na

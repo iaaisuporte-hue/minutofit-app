@@ -199,6 +199,15 @@ const RPE_OPTIONS = [
   { label: "Máximo", rpe: 10 },
 ];
 
+/**
+ * RPE por série (Fast Workout Input, set/2026) — escala 6–10, não a de 4
+ * rótulos do resumo (`RPE_OPTIONS`, esforço da SESSÃO inteira). Faixa mais
+ * estreita de propósito: é a pergunta feita logo após UMA série específica,
+ * ainda com o esforço fresco — 1 a 5 nunca é o que se sente ao concluir uma
+ * série de treino de verdade, então oferecê-los só adicionaria ruído.
+ */
+const SET_RPE_VALUES = [6, 7, 8, 9, 10] as const;
+
 // ── Voice Workout — máquina de confirmação e desfazer (P5B) ────────────────
 //
 // Uma pergunta em aberto por vez ("sim"/"não" só valem dentro da janela) e
@@ -256,6 +265,13 @@ export default function WorkoutSessionPage() {
   const [showExit, setShowExit] = useState(false);
   const [showUnchecked, setShowUnchecked] = useState(false);
   const [sessionRpe, setSessionRpe] = useState<number | null>(null);
+  /**
+   * Chave (`${exIdx}:${setIdx}`) da série cujo prompt de RPE por série foi
+   * fechado sem responder ("Ignorar"). Comparado contra a série que está
+   * descansando agora — muda sozinho quando um NOVO descanso começa, sem
+   * precisar resetar em cada ponto que inicia um descanso.
+   */
+  const [rpeDismissedFor, setRpeDismissedFor] = useState<string | null>(null);
   const [notes, setNotes] = useState("");
   // P1-3: desconforto/dor por exercício (índice na lista) — sinal de recuperação
   // capturado no resumo, sem poluir as linhas de série. Alimenta workout_set_logs.discomfort.
@@ -2001,6 +2017,7 @@ export default function WorkoutSessionPage() {
           loadDoneKg: s.done ? parseNum(s.loadKg) : null,
           plannedRestS: s.plannedRestS,
           restDoneS: s.restDoneS,
+          rpe: s.rpe ?? null,
           discomfort: discomfortEx.has(orderIndex) ? "desconforto relatado" : null,
           status: s.done ? "done" : "skipped",
           // Procedência da série. `undefined` quando o exercício não tem origem
@@ -2529,6 +2546,46 @@ export default function WorkoutSessionPage() {
   const repsSerieAnterior = anterior?.reps?.trim() ? anterior.reps : null;
   const isLast = currentIndex >= exercises.length - 1;
 
+  /**
+   * "Repetir última série" (Fast Workout Input) — 1 toque para concluir com a
+   * MESMA carga/reps de referência que a barra já mostra. Passa pelo MESMO
+   * comando idempotente da voz (`complete_set` → `wcCompleteSet`), não uma
+   * regra nova: duplo toque não duplica (a série já concluída vira no-op).
+   * Prioridade igual à de `cargaInicial`/`repsIniciais` — série anterior
+   * DESTA sessão antes da última carga conhecida.
+   */
+  function repetirUltimaSerie() {
+    if (!alvo) return;
+    const loadKg = cargaSerieAnterior ?? (prev != null ? String(prev) : undefined);
+    const reps = repsSerieAnterior ?? undefined;
+    if (loadKg === undefined && reps === undefined) return;
+    const result = applyWorkoutCommand({
+      type: "complete_set",
+      setIndex: alvo.setIndex,
+      loadKg,
+      reps,
+    });
+    if (result.changed) postWorkoutEvent("workout.repeat_set", { mode: isFree ? "free" : "plan" });
+  }
+
+  /**
+   * RPE por série (Fast Workout Input) — opcional, nunca bloqueia. Escreve
+   * direto no exercício pelo índice (não usa `updateSet`, que assume sempre
+   * `currentIndex`): o prompt fica visível durante o descanso, e a série que
+   * descansou pode não ser mais a do exercício atual se, por algum caminho, o
+   * aluno tiver navegado nesse intervalo.
+   */
+  function definirRpeSerie(exIdx: number, setIdx: number, rpe: number) {
+    setExercises((prevEx) => {
+      const next = prevEx.map((ex, i) =>
+        i === exIdx ? { ...ex, sets: ex.sets.map((s) => (s.setIndex === setIdx ? { ...s, rpe } : s)) } : ex,
+      );
+      persist(next, currentIndex, startedAt);
+      return next;
+    });
+    postWorkoutEvent("workout.rpe_selected", { mode: isFree ? "free" : "plan" });
+  }
+
   return (
     // `data-workout-live`: contrato lido pelo back do Android (NativeAppBridge).
     // Sem ele o botão voltar saía da sessão em silêncio (SPEC §32).
@@ -2723,16 +2780,21 @@ export default function WorkoutSessionPage() {
                       aria-label={`Repetições série ${s.setIndex}`}
                     />
                   </div>
-                  <button
-                    className={`ws-set-check${s.done ? " ws-checked" : ""}`}
-                    onClick={() => toggleDone(s.setIndex)}
-                    aria-label={s.done ? `Desmarcar série ${s.setIndex}` : `Concluir série ${s.setIndex}`}
-                    aria-pressed={s.done}
-                  >
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <polyline points="20 6 9 17 4 12" />
-                    </svg>
-                  </button>
+                  <div className="ws-set-check-col">
+                    <button
+                      className={`ws-set-check${s.done ? " ws-checked" : ""}`}
+                      onClick={() => toggleDone(s.setIndex)}
+                      aria-label={s.done ? `Desmarcar série ${s.setIndex}` : `Concluir série ${s.setIndex}`}
+                      aria-pressed={s.done}
+                    >
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                    </button>
+                    {/* RPE por série (Fast Workout Input) — mostrado quando existe (§20),
+                        nada de placeholder quando não respondido. */}
+                    {s.rpe != null ? <span className="ws-set-rpe">RPE {s.rpe}</span> : null}
+                  </div>
                 </div>
               ))}
             </div>
@@ -2785,6 +2847,7 @@ export default function WorkoutSessionPage() {
           temProximo={!isLast}
           onChange={updateSet}
           onConcluir={toggleDone}
+          onRepetir={cargaSerieAnterior != null || prev != null ? repetirUltimaSerie : undefined}
           onProximo={() => goTo(currentIndex + 1)}
           onPular={
             isLast
@@ -2799,20 +2862,66 @@ export default function WorkoutSessionPage() {
 
       {rest.active ? (
         <div className={`ws-rest${restSoon ? " ws-rest-soon" : ""}`}>
-          <div>
-            <div className="ws-rest-time">{fmtClock(rest.secondsLeft)}</div>
-            <div className="ws-rest-label">{rest.running ? "Descanso" : "Pausado"}</div>
+          <div className="ws-rest-row">
+            <div>
+              <div className="ws-rest-time">{fmtClock(rest.secondsLeft)}</div>
+              <div className="ws-rest-label">{rest.running ? "Descanso" : "Pausado"}</div>
+            </div>
+            <div className="ws-rest-actions">
+              <button className="ws-rest-btn" onClick={() => rest.add(15)}>+15s</button>
+              <button className="ws-rest-btn" onClick={() => rest.add(30)}>+30s</button>
+              <button className="ws-rest-btn" onClick={() => (rest.running ? rest.pause() : rest.resume())}>
+                {rest.running ? "Pausar" : "Retomar"}
+              </button>
+              <button className="ws-rest-btn ws-rest-btn-skip" onClick={() => finalizeRest(rest.skip())}>
+                Pular
+              </button>
+            </div>
           </div>
-          <div className="ws-rest-actions">
-            <button className="ws-rest-btn" onClick={() => rest.add(15)}>+15s</button>
-            <button className="ws-rest-btn" onClick={() => rest.add(30)}>+30s</button>
-            <button className="ws-rest-btn" onClick={() => (rest.running ? rest.pause() : rest.resume())}>
-              {rest.running ? "Pausar" : "Retomar"}
-            </button>
-            <button className="ws-rest-btn ws-rest-btn-skip" onClick={() => finalizeRest(rest.skip())}>
-              Pular
-            </button>
-          </div>
+
+          {/*
+            RPE por série (Fast Workout Input) — aproveita a tela que o aluno
+            já está vendo (descanso) em vez de um modal novo (SPEC desta
+            fase: "preferir bottom sheet leve/card inline, não modal
+            central"). Nunca bloqueia: "Ignorar" fecha sem gravar nada, e o
+            treino segue igual com `rpe: null`.
+          */}
+          {(() => {
+            const ctx = restCtx.current;
+            if (!ctx) return null;
+            const key = `${ctx.exIdx}:${ctx.setIdx}`;
+            if (rpeDismissedFor === key) return null;
+            const serieDescansando = exercises[ctx.exIdx]?.sets.find((s) => s.setIndex === ctx.setIdx);
+            if (!serieDescansando) return null;
+            return (
+              <div className="ws-rest-rpe">
+                <span className="ws-rest-rpe-label">Como foi essa série? (opcional)</span>
+                <div className="ws-rest-rpe-options">
+                  {SET_RPE_VALUES.map((v) => (
+                    <button
+                      key={v}
+                      type="button"
+                      className={`ws-rest-btn ws-rest-rpe-btn${serieDescansando.rpe === v ? " ws-rest-rpe-btn-on" : ""}`}
+                      onClick={() => definirRpeSerie(ctx.exIdx, ctx.setIdx, v)}
+                      aria-pressed={serieDescansando.rpe === v}
+                    >
+                      {v}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    className="ws-rest-rpe-skip"
+                    onClick={() => {
+                      setRpeDismissedFor(key);
+                      postWorkoutEvent("workout.rpe_skipped", { mode: isFree ? "free" : "plan" });
+                    }}
+                  >
+                    Ignorar
+                  </button>
+                </div>
+              </div>
+            );
+          })()}
         </div>
       ) : null}
 
