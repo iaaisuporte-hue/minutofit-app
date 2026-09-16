@@ -49,7 +49,10 @@ export function NutritionDaySummary({ refreshToken = 0 }: { refreshToken?: numbe
   }
   if (!data) return null;
 
-  const { totals, target, logs, plannedMeals, coverage } = data;
+  const { totals, target, logs, coverage } = data;
+  // `?? []`: backend mais antigo (deploy atrasado) pode não incluir este
+  // campo ainda — nunca deixar a tela quebrar por descompasso de deploy.
+  const plannedMeals = data.plannedMeals ?? [];
   const hasLogs = logs.length > 0;
   const isPlanTarget = target?.source === "plan_items";
 
