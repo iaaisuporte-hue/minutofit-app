@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { TrendingDown, Clock, Utensils, BellOff } from "lucide-react";
+import { TrendingDown, Clock, Utensils, BellOff, TrendingUp, Beef } from "lucide-react";
 import { COLORS } from "../../../styles/colors";
 import { SkeletonPanelCard } from "../../../components/feedback/Skeleton";
 import { EmptyState } from "../../../components/EmptyState";
@@ -7,11 +7,17 @@ import { fetchPatientInsights, type NutriInsight, NutriApiError } from "../../..
 import { ConsentRevokedNotice } from "./shared";
 
 // SPEC 036 / mapa de ícones: glifo tipográfico → ícone lucide monocromático.
+// PLAN_NUTRITION_QUICK_MACROS (P1C) — 4 tipos novos de ingestão, mesmo
+// contrato: sem isto o TypeScript recusa compilar (Record exaustivo).
 const INSIGHT_ICON: Record<NutriInsight["type"], typeof TrendingDown> = {
   adherence_drop: TrendingDown,
   late_hunger: Clock,
   ghost_meal: Utensils,
   silent_absence: BellOff,
+  intake_kcal_drop: TrendingDown,
+  intake_protein_low: Beef,
+  intake_silent: BellOff,
+  intake_over: TrendingUp,
 };
 
 const INSIGHT_COLOR: Record<NutriInsight["type"], string> = {
@@ -19,6 +25,10 @@ const INSIGHT_COLOR: Record<NutriInsight["type"], string> = {
   late_hunger: COLORS.warnText,
   ghost_meal: COLORS.warnText,
   silent_absence: COLORS.dangerText,
+  intake_kcal_drop: COLORS.dangerText,
+  intake_protein_low: COLORS.warnText,
+  intake_silent: COLORS.warnText,
+  intake_over: COLORS.warnText,
 };
 
 export function InsightsTab({ patientId }: { patientId: number }) {

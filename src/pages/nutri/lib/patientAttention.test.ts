@@ -21,6 +21,7 @@ function makePatient(overrides: Partial<PatientSummary>): PatientSummary {
     streakDays: 3,
     trend: "stable",
     consentRevoked: false,
+    intake: null,
     ...overrides,
   };
 }
@@ -66,6 +67,45 @@ describe("derivePatientAttention", () => {
   it("sinaliza tendência de queda (adherenceDropFlag) quando não há risco de ausência", () => {
     const r = derivePatientAttention(makePatient({ adherenceDropFlag: true, trend: "down" }));
     expect(r.level).toBe("drop");
+  });
+
+  it("PLAN_NUTRITION_QUICK_MACROS: sinaliza exceção de ingestão como 'attention', reusando o level existente (sem AttentionLevel novo)", () => {
+    const r = derivePatientAttention(
+      makePatient({
+        intake: {
+          state: "ready", daysLogged7d: 5, highCoverageDays7d: 4,
+          avgKcal7d: 1800, avgProteinG7d: 90, avgCarbG7d: 200, avgFatG7d: 60,
+          target: { kcal: 2100, p: 150, c: 210, f: 70, source: "plan_items" },
+          kcalTrend: "stable",
+          exception: { type: "intake_protein_low", detail: "Proteína média 90 g vs meta 150 g" },
+        },
+      }),
+    );
+    expect(r.level).toBe("attention");
+    expect(r.label).toBe("Ingestão");
+    expect(r.detail).toBe("Proteína média 90 g vs meta 150 g");
+  });
+
+  it("exceção de ingestão NUNCA sobrepõe risco de ausência (risco vence)", () => {
+    const oldDate = new Date(Date.now() - 6 * 86400000).toISOString().slice(0, 10);
+    const r = derivePatientAttention(
+      makePatient({
+        riskFlag: true, lastCheckinDate: oldDate,
+        intake: {
+          state: "ready", daysLogged7d: 5, highCoverageDays7d: 4,
+          avgKcal7d: 1800, avgProteinG7d: 90, avgCarbG7d: 200, avgFatG7d: 60,
+          target: { kcal: 2100, p: 150, c: 210, f: 70, source: "plan_items" },
+          kcalTrend: "stable",
+          exception: { type: "intake_protein_low", detail: "x" },
+        },
+      }),
+    );
+    expect(r.label).toBe("Sem atividade");
+  });
+
+  it("sem exceção de ingestão (ou intake null) não afeta o resultado estável", () => {
+    const r = derivePatientAttention(makePatient({ intake: null }));
+    expect(r.level).toBe("stable");
   });
 
   it("paciente estável não tem needsAttention", () => {

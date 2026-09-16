@@ -267,6 +267,25 @@ export interface PatientSummary {
   trend: AdherenceTrend | null;
   /** true quando o paciente revogou consentimento — campos acima vêm nulos/zerados por redação, não por ausência de dado. */
   consentRevoked: boolean;
+  /** PLAN_NUTRITION_QUICK_MACROS (P1C) — sinal de ingestão. `null` só quando sem consent de `nutrition`. */
+  intake: PatientIntakeSummary | null;
+}
+
+export type IntakeState = 'none' | 'insufficient' | 'ready';
+export type IntakeTrend = 'up' | 'down' | 'stable' | null;
+export type IntakeExceptionType = 'intake_kcal_drop' | 'intake_protein_low' | 'intake_silent' | 'intake_over';
+
+export interface PatientIntakeSummary {
+  state: IntakeState;
+  daysLogged7d: number;
+  highCoverageDays7d: number;
+  avgKcal7d: number | null;
+  avgProteinG7d: number | null;
+  avgCarbG7d: number | null;
+  avgFatG7d: number | null;
+  target: { kcal: number; p: number; c: number; f: number; source: 'plan_items' | 'self_estimate' } | null;
+  kcalTrend: IntakeTrend;
+  exception: { type: IntakeExceptionType; detail: string } | null;
 }
 
 export interface NutritionObservation {
@@ -550,7 +569,7 @@ export interface VoiceNote {
 }
 
 export interface NutriInsight {
-  type: 'adherence_drop' | 'late_hunger' | 'ghost_meal' | 'silent_absence';
+  type: 'adherence_drop' | 'late_hunger' | 'ghost_meal' | 'silent_absence' | IntakeExceptionType;
   label: string;
   detail: string;
 }
@@ -579,6 +598,55 @@ export async function fetchPatientInsights(patientId: number): Promise<NutriInsi
   const res = await authFetch(`${API_URL}/nutri/patients/${patientId}/insights`);
   const json = await readNutriJson(res);
   return (json.data ?? []) as NutriInsight[];
+}
+
+// ---------------------------------------------------------------------------
+// Ingestão registrada — PLAN_NUTRITION_QUICK_MACROS (P1C)
+// ---------------------------------------------------------------------------
+
+export interface IntakeDailyRow {
+  dateKey: string;
+  loggedMeals: number;
+  totalKcal: number;
+  proteinG: number;
+  carbohydrateG: number;
+  fatG: number;
+  coverageRatio: number;
+  confidence: number;
+  level: "high" | "partial" | "low";
+}
+
+export async function fetchPatientIntakeSummary(patientId: number): Promise<{ summary: PatientIntakeSummary; days: IntakeDailyRow[] }> {
+  const res = await authFetch(`${API_URL}/nutri/patients/${patientId}/intake-summary`);
+  const json = await readNutriJson(res);
+  return json.data;
+}
+
+export interface NutriIntakeLogItem {
+  name: string;
+  grams: number | null;
+  energyKcal: number;
+  proteinG: number;
+  carbohydrateG: number;
+  fatG: number;
+  resolver: "catalog" | "measure" | "manual" | "plan";
+}
+export interface NutriIntakeLog {
+  id: number;
+  loggedAt: string;
+  label: string;
+  energyKcal: number;
+  proteinG: number;
+  carbohydrateG: number;
+  fatG: number;
+  items: NutriIntakeLogItem[];
+  source: string;
+}
+
+export async function fetchPatientIntakeLogs(patientId: number, date: string): Promise<NutriIntakeLog[]> {
+  const res = await authFetch(`${API_URL}/nutri/patients/${patientId}/intake-logs?date=${date}`);
+  const json = await readNutriJson(res);
+  return json.data?.logs ?? [];
 }
 
 // Evolução metabólica do paciente (Spec 014) — read-only, consent-gated no backend.

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { TrendingUp, TrendingDown, Minus, AlertTriangle, NotebookPen } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, AlertTriangle, NotebookPen, ClipboardList, Calculator } from "lucide-react";
 import { COLORS } from "../../../styles/colors";
 import { SkeletonPanelCard } from "../../../components/feedback/Skeleton";
 import {
@@ -7,6 +7,7 @@ import {
   fetchMealHeatmap,
   fetchPatientPlans,
   fetchPatientInsights,
+  fetchPatientIntakeSummary,
   createObservation,
   OBJECTIVE_LABELS,
   DIETARY_KIND_LABELS,
@@ -14,6 +15,7 @@ import {
   type NutritionPlan,
   type CanonicalAdherence,
   type NutriInsight,
+  type PatientIntakeSummary,
   NutriApiError,
 } from "../../../services/nutriApi";
 import { ConsentRevokedNotice, formatDate } from "./shared";
@@ -23,6 +25,7 @@ type ResumoData = {
   adherence: CanonicalAdherence | null;
   criticalItems: ProfileItem[];
   topInsight: NutriInsight | null;
+  intake: PatientIntakeSummary | null;
 };
 
 const TREND_ICON = { up: TrendingUp, down: TrendingDown, stable: Minus } as const;
@@ -61,8 +64,9 @@ export function ResumoTab({ patientId, onNavigateTab }: { patientId: number; onN
       fetchMealHeatmap(patientId, 14).then((r) => r.adherence).catch(() => null),
       fetchClinicalProfile(patientId).then((r) => r.items.filter((i) => i.status === "active" && CRITICAL_KINDS.has(i.kind))).catch(() => []),
       fetchPatientInsights(patientId).then((r) => r[0] ?? null).catch(() => null),
-    ]).then(([plan, adherence, criticalItems, topInsight]) => {
-      setData({ plan, adherence, criticalItems, topInsight });
+      fetchPatientIntakeSummary(patientId).then((r) => r.summary).catch(() => null),
+    ]).then(([plan, adherence, criticalItems, topInsight, intake]) => {
+      setData({ plan, adherence, criticalItems, topInsight, intake });
     }).finally(() => setLoading(false));
   }, [patientId]);
 
@@ -70,7 +74,9 @@ export function ResumoTab({ patientId, onNavigateTab }: { patientId: number; onN
   if (consentRevoked) return <ConsentRevokedNotice />;
   if (!data) return null;
 
-  const { plan, adherence, criticalItems, topInsight } = data;
+  const { plan, adherence, criticalItems, topInsight, intake } = data;
+  const showIntake = intake && intake.state !== "none";
+  const isPlanTarget = intake?.target?.source === "plan_items";
   const TrendIcon = adherence?.trend ? TREND_ICON[adherence.trend] : null;
 
   async function handleSaveObservation() {
@@ -145,6 +151,27 @@ export function ResumoTab({ patientId, onNavigateTab }: { patientId: number; onN
           </div>
         ) : (
           <div className="muted" style={{ fontSize: "var(--text-sm)" }}>Sem plano ativo — nenhum dado de adesão.</div>
+        )}
+        {showIntake && (
+          <div style={{ marginTop: "var(--space-4)", paddingTop: "var(--space-3)", borderTop: "1px solid var(--color-border)" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "var(--space-2)", marginBottom: 4 }}>
+              <span className="muted" style={{ fontSize: "var(--text-xs)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                Ingestão (7d)
+              </span>
+              {intake?.target && (
+                <span className={`badge ${isPlanTarget ? "badge-brand" : "badge-neutral"}`} style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10 }}>
+                  {isPlanTarget ? <ClipboardList size={10} /> : <Calculator size={10} />}
+                  {isPlanTarget ? "Meta do plano" : "Estimativa do paciente"}
+                </span>
+              )}
+            </div>
+            <div className="muted" style={{ fontSize: "var(--text-sm)" }}>
+              {intake?.daysLogged7d} dias registrados · {intake?.highCoverageDays7d} com alta cobertura
+              {intake?.state === "ready" && intake.avgKcal7d != null && (
+                <> · {Math.round(intake.avgKcal7d)}{intake.target ? `/${Math.round(intake.target.kcal)}` : ""} kcal/dia</>
+              )}
+            </div>
+          </div>
         )}
         <button type="button" className="btn btn-ghost btn-sm" style={{ marginTop: "var(--space-3)" }} onClick={() => onNavigateTab("acompanhamento")}>
           Ver acompanhamento completo

@@ -3,6 +3,7 @@ import ClinicalProfileTab from "../ClinicalProfileTab";
 import { AdherenceTab } from "./AdherenceTab";
 import { ContextTab } from "./ContextTab";
 import { InsightsTab } from "./InsightsTab";
+import { IntakeSection } from "./IntakeSection";
 
 function SectionHeading({ children }: { children: React.ReactNode }) {
   return (
@@ -30,6 +31,11 @@ export function AcompanhamentoTab({ patientId }: { patientId: number }) {
       <section>
         <SectionHeading>Insights</SectionHeading>
         <InsightsTab patientId={patientId} />
+      </section>
+
+      <section>
+        <SectionHeading>Nutrição registrada (7 dias)</SectionHeading>
+        <IntakeSection patientId={patientId} />
       </section>
 
       <section>

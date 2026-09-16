@@ -108,6 +108,21 @@ export function derivePatientAttention(p: PatientSummary): PatientAttention {
     };
   }
 
+  // PLAN_NUTRITION_QUICK_MACROS (P1C) — sem AttentionLevel novo (seria
+  // priorização paralela): reusa "attention", entre `drop` e `calibrating`
+  // porque check-in de refeição (aderência à ficha) ainda pesa mais que
+  // auto-relato de ingestão. `intake` vem de `deriveIntakeSignal` —
+  // `exception` já respeita `state==='ready'` (ou o caso especial de
+  // silêncio), então esta função não reimplementa nenhum limiar.
+  if (p.intake?.exception) {
+    return {
+      level: "attention",
+      label: "Ingestão",
+      detail: p.intake.exception.detail,
+      needsAttention: true,
+    };
+  }
+
   if (calibrating) {
     return {
       level: "calibrating",
