@@ -3,7 +3,9 @@ import { COLORS } from "../../styles/colors";
 import { usePushSubscription } from "../../features/nutrition/usePushSubscription";
 import DietaryProfileCard from "../../features/nutrition/DietaryProfileCard";
 import NutritionTargetCard from "../../features/nutrition/NutritionTargetCard";
+import { IntakeLogSheet } from "../../features/nutrition/IntakeLogSheet";
 import { useFeatureFlags } from "../../auth/FeatureFlagsContext";
+import { Utensils } from "lucide-react";
 import {
   fetchMealTimeline,
   recordMealCheckin,
@@ -87,10 +89,12 @@ function MealDrawer({
   meal,
   onClose,
   onCheckin,
+  onOpenIntake,
 }: {
   meal: MealTimelineEntry;
   onClose: () => void;
   onCheckin: (mealId: number, status: MealCheckinStatus) => void;
+  onOpenIntake: (mealId: number) => void;
 }) {
   const [selected, setSelected] = useState<MealCheckinStatus | null>(
     meal.checkin?.status ?? null
@@ -100,6 +104,7 @@ function MealDrawer({
   const [error, setError] = useState<string | null>(null);
   const [selectedAltId, setSelectedAltId] = useState<number | null>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
+  const { hasFeature } = useFeatureFlags();
 
   // For 'substituted' with alternatives: first click selects status and shows picker;
   // second action (via confirm button) submits with chosen alternative.
@@ -324,6 +329,22 @@ function MealDrawer({
               </div>
             )}
           </div>
+        )}
+
+        {/* PLAN_NUTRITION_QUICK_MACROS (P1B) — registrar o que realmente comeu
+            nesta refeição. Antes só existia via card no Hoje; sem isto,
+            quem abre a refeição pelo Plano Alimentar não encontrava o
+            caminho (achado de uso real). */}
+        {hasFeature("nutrition_intake") && (
+          <button
+            type="button"
+            className="btn btn-primary hit-target-44"
+            style={{ width: "100%", marginBottom: 16 }}
+            onClick={() => onOpenIntake(meal.id)}
+          >
+            <Utensils size={15} style={{ marginRight: 6 }} />
+            Registrar o que comi
+          </button>
         )}
 
         {/* Check-in */}
@@ -697,6 +718,17 @@ export default function NutritionPlanViewPage() {
   );
   const [error, setError] = useState(false);
   const [openMeal, setOpenMeal] = useState<MealTimelineEntry | null>(null);
+  const [intakeSheetOpen, setIntakeSheetOpen] = useState(false);
+  const [intakeMealId, setIntakeMealId] = useState<number | null>(null);
+
+  // Fecha o drawer de check-in antes de abrir o sheet de registro — os dois
+  // são overlays "position:fixed" independentes; abrir um dentro do outro
+  // empilhava por z-index e o sheet nascia atrás do drawer, invisível.
+  function handleOpenIntakeFromMeal(mealId: number) {
+    setOpenMeal(null);
+    setIntakeMealId(mealId);
+    setIntakeSheetOpen(true);
+  }
 
   useEffect(() => {
     fetchMealTimeline()
@@ -959,8 +991,16 @@ export default function NutritionPlanViewPage() {
             handleCheckin(mealId, status);
             setOpenMeal(null);
           }}
+          onOpenIntake={handleOpenIntakeFromMeal}
         />
       )}
+
+      <IntakeLogSheet
+        open={intakeSheetOpen}
+        onClose={() => setIntakeSheetOpen(false)}
+        defaultMealId={intakeMealId}
+        onSaved={() => setIntakeSheetOpen(false)}
+      />
     </div>
   );
 }
