@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { Utensils } from "lucide-react";
 import { COLORS } from "../../styles/colors";
 import {
   fetchMealTimeline,
@@ -9,6 +10,10 @@ import {
   type MealCheckinStatus,
   type MealStatus,
 } from "../../services/nutriApi";
+import { useFeatureFlags } from "../../auth/FeatureFlagsContext";
+import { getDayIntake, type DayIntakeResponse } from "../../services/nutritionIntakeApi";
+import { IntakeLogSheet } from "./IntakeLogSheet";
+import { IntakeDayStrip } from "./IntakeDayStrip";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -70,11 +75,20 @@ const CHECKIN_OPTIONS: Array<{ status: MealCheckinStatus; label: string }> = [
 ];
 
 export function NutritionCheckinCard() {
+  const { hasFeature } = useFeatureFlags();
+  const intakeEnabled = hasFeature("nutrition_intake");
   const [cardState, setCardState] = useState<CardState>("loading");
   const [timeline, setTimeline] = useState<MealTimeline | null>(null);
   const [nextMeal, setNextMeal] = useState<MealTimelineEntry | null>(null);
   const [submitting, setSubmitting] = useState<MealCheckinStatus | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [intakeSheetOpen, setIntakeSheetOpen] = useState(false);
+  const [dayIntake, setDayIntake] = useState<DayIntakeResponse | null>(null);
+
+  useEffect(() => {
+    if (!intakeEnabled) return;
+    getDayIntake().then(setDayIntake).catch(() => setDayIntake(null));
+  }, [intakeEnabled]);
 
   useEffect(() => {
     fetchMealTimeline()
@@ -187,6 +201,28 @@ export function NutritionCheckinCard() {
             Ver plano →
           </Link>
         </div>
+
+        {intakeEnabled && (
+          <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--color-success-border, rgba(123,153,25,.2))" }}>
+            {dayIntake && dayIntake.logs.length > 0 && (
+              <div style={{ marginBottom: 8 }}>
+                <IntakeDayStrip totals={dayIntake.totals} target={dayIntake.target} />
+              </div>
+            )}
+            <button type="button" className="btn btn-sm hit-target-44" onClick={() => setIntakeSheetOpen(true)}>
+              <Utensils size={13} style={{ marginRight: 6 }} />
+              Registrar refeição
+            </button>
+            <IntakeLogSheet
+              open={intakeSheetOpen}
+              onClose={() => setIntakeSheetOpen(false)}
+              defaultMealId={null}
+              onSaved={() => {
+                getDayIntake().then(setDayIntake).catch(() => {});
+              }}
+            />
+          </div>
+        )}
       </div>
     );
   }
@@ -372,6 +408,32 @@ export function NutritionCheckinCard() {
         Sua alimentação alimenta sua leitura de hoje. Este plano apoia seu
         acompanhamento — não substitui avaliação nutricional presencial.
       </div>
+
+      {intakeEnabled && (
+        <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--color-border)" }}>
+          {dayIntake && dayIntake.logs.length > 0 && (
+            <div style={{ marginBottom: 8 }}>
+              <IntakeDayStrip totals={dayIntake.totals} target={dayIntake.target} />
+            </div>
+          )}
+          <button
+            type="button"
+            className="btn btn-sm hit-target-44"
+            onClick={() => setIntakeSheetOpen(true)}
+          >
+            <Utensils size={13} style={{ marginRight: 6 }} />
+            Registrar refeição
+          </button>
+          <IntakeLogSheet
+            open={intakeSheetOpen}
+            onClose={() => setIntakeSheetOpen(false)}
+            defaultMealId={nextMeal?.id ?? null}
+            onSaved={() => {
+              getDayIntake().then(setDayIntake).catch(() => {});
+            }}
+          />
+        </div>
+      )}
     </div>
   );
 }

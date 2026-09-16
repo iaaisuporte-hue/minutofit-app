@@ -1,5 +1,6 @@
 import { useEffect, useRef, type ReactNode } from "react";
 import "../../pages/personal/personalPremium.css";
+import { useDismissable } from "../../lib/overlayStack";
 
 type DrawerShellProps = {
   open: boolean;
@@ -18,7 +19,11 @@ type DrawerShellProps = {
  * Shell reutilizável para drawers (slide-from-right em desktop, bottom-sheet
  * em mobile <540px via CSS). Encapsula 4 garantias:
  *
- * 1. Escape fecha (ARIA dialog padrão).
+ * 1. Escape fecha (ARIA dialog padrão) e o botão Voltar do Android fecha —
+ *    registra em `overlayStack.useDismissable` (PLAN_NUTRITION_QUICK_MACROS
+ *    P1B: lacuna preexistente, o drawer nunca se registrava e o gesto de
+ *    voltar era engolido em silêncio; corrige TODO drawer da casa, não só o
+ *    novo sheet de refeição).
  * 2. Backdrop click-outside fecha — usa guarda target===currentTarget em
  *    onClick (não onMouseDown), para que arrasto/scroll-by-drag não dispare
  *    close por acidente. Esse foi exatamente o bug que motivou o hotfix do
@@ -40,15 +45,8 @@ export function DrawerShell({
 }: DrawerShellProps) {
   const asideRef = useRef<HTMLElement | null>(null);
 
-  // Escape para fechar.
-  useEffect(() => {
-    if (!open || !closeOnEscape) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open, closeOnEscape, onClose]);
+  // Botão Voltar do Android fecha o drawer; Escape idem (useDismissable cobre os dois).
+  useDismissable(onClose, open && closeOnEscape);
 
   // Scroll lock no body enquanto aberto.
   useEffect(() => {
