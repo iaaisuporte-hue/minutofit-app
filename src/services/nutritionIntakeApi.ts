@@ -129,6 +129,10 @@ export interface NutrientTotals {
   proteinG: number;
   carbohydrateG: number;
   fatG: number;
+  /** null quando nenhum item somado tinha fibra conhecida — nunca 0 fabricado (PLAN §11). */
+  fiberG?: number | null;
+  /** true quando ALGUM item somado não tinha fibra conhecida — `fiberG` é soma parcial. */
+  fiberPartial?: boolean;
 }
 
 export interface ParsedPreview {
@@ -170,6 +174,7 @@ export interface PersistedIntakeItem {
   proteinG: number;
   carbohydrateG: number;
   fatG: number;
+  fiberG: number | null;
   resolver: IntakeItemResolver;
   confidence: IntakeConfidence;
   confirmed: boolean;
@@ -186,6 +191,8 @@ export interface IntakeLogRecord {
   proteinG: number;
   carbohydrateG: number;
   fatG: number;
+  fiberG: number | null;
+  fiberPartial: boolean;
   items: PersistedIntakeItem[];
   confidenceScore: number;
   source: string;
@@ -218,12 +225,21 @@ export interface DayCoverage {
   level: 'high' | 'partial' | 'low';
 }
 
+export interface PlannedMeal {
+  mealId: number;
+  name: string;
+  orderIndex: number;
+  energyKcal: number;
+}
+
 export interface DayIntakeResponse {
   date: string;
   logs: IntakeLogRecord[];
   totals: NutrientTotals;
   coverage: DayCoverage;
   target: ResolvedNutritionTarget | null;
+  /** Só existe com plano ESTRUTURADO (itens de refeição) — nunca reconstruído da estimativa própria. */
+  plannedMeals: PlannedMeal[];
 }
 
 export async function getDayIntake(date?: string): Promise<DayIntakeResponse> {

@@ -3,6 +3,7 @@ import { COLORS } from "../../styles/colors";
 import { usePushSubscription } from "../../features/nutrition/usePushSubscription";
 import DietaryProfileCard from "../../features/nutrition/DietaryProfileCard";
 import NutritionTargetCard from "../../features/nutrition/NutritionTargetCard";
+import { NutritionDaySummary } from "../../features/nutrition/NutritionDaySummary";
 import { IntakeLogSheet } from "../../features/nutrition/IntakeLogSheet";
 import { useFeatureFlags } from "../../auth/FeatureFlagsContext";
 import { Utensils } from "lucide-react";
@@ -720,6 +721,7 @@ export default function NutritionPlanViewPage() {
   const [openMeal, setOpenMeal] = useState<MealTimelineEntry | null>(null);
   const [intakeSheetOpen, setIntakeSheetOpen] = useState(false);
   const [intakeMealId, setIntakeMealId] = useState<number | null>(null);
+  const [dayRefreshToken, setDayRefreshToken] = useState(0);
 
   // Fecha o drawer de check-in antes de abrir o sheet de registro — os dois
   // são overlays "position:fixed" independentes; abrir um dentro do outro
@@ -932,6 +934,11 @@ export default function NutritionPlanViewPage() {
         </div>
       )}
 
+      {/* PLAN_NUTRITION_QUICK_MACROS (P1B, adendo) — "Seu dia nutricional":
+          planejado × registrado, macros e evolução do dia. Visão do aluno
+          apenas; nada aqui alimenta o lado do nutri (isso é P1C). */}
+      {hasFeature("nutrition_intake") && <NutritionDaySummary refreshToken={dayRefreshToken} />}
+
       {/* General notes */}
       {timeline.general_notes && (
         <div
@@ -999,7 +1006,10 @@ export default function NutritionPlanViewPage() {
         open={intakeSheetOpen}
         onClose={() => setIntakeSheetOpen(false)}
         defaultMealId={intakeMealId}
-        onSaved={() => setIntakeSheetOpen(false)}
+        onSaved={() => {
+          setIntakeSheetOpen(false);
+          setDayRefreshToken((t) => t + 1);
+        }}
       />
     </div>
   );
