@@ -143,14 +143,15 @@ function MealDrawer({
         background: "rgba(0,0,0,0.5)",
         zIndex: 1000,
         display: "flex",
-        alignItems: "flex-end",
+        alignItems: "center",
         justifyContent: "center",
+        padding: 16,
       }}
     >
       <div
         style={{
           background: "var(--color-surface)",
-          borderRadius: "20px 20px 0 0",
+          borderRadius: 20,
           padding: "24px 20px 32px",
           width: "100%",
           maxWidth: 560,
@@ -158,17 +159,6 @@ function MealDrawer({
           overflowY: "auto",
         }}
       >
-        {/* Drag handle */}
-        <div
-          style={{
-            width: 36,
-            height: 4,
-            borderRadius: 99,
-            background: "var(--color-border)",
-            margin: "0 auto 20px",
-          }}
-        />
-
         {/* Header */}
         <div style={{ marginBottom: 16 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
