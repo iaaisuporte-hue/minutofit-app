@@ -120,10 +120,13 @@ export default function NutritionTargetCard() {
           setActivity(data.selfEstimateInputs.activity);
           setWeightKg(data.selfEstimateInputs.weightKg);
         }
-        if (!data.target || data.target.source === "self_estimate") {
+        // Sem estimativa salva ainda → calculadora começa expandida (primeira
+        // configuração). Estimativa própria já salva → começa COMPACTA (só
+        // "Editar" expande) — UX_UI_NUTRITION_PREMIUM_REDESIGN.md §4.
+        if (!data.target) {
           setCalculatorOpen(true);
-          if (data.target?.mealsPerDay) setMealsPerDay(data.target.mealsPerDay);
         }
+        if (data.target?.mealsPerDay) setMealsPerDay(data.target.mealsPerDay);
       })
       .catch(() => {})
       .finally(() => alive && setLoaded(true));
@@ -162,6 +165,7 @@ export default function NutritionTargetCard() {
       const result = await saveMyNutritionTarget({ weightKg, objective, activity, mealsPerDay });
       setResolved(result.target);
       setSaved(true);
+      setCalculatorOpen(false);
       setTimeout(() => setSaved(false), 3000);
     } catch {
       setError("Não foi possível salvar. Tente novamente.");
@@ -173,6 +177,9 @@ export default function NutritionTargetCard() {
   if (!loaded) return null;
 
   const isPlanTarget = resolved?.source === "plan_items";
+  const hasSavedSelfEstimate = resolved?.source === "self_estimate";
+  const objectiveLabel = OBJECTIVE_CHIPS.find((c) => c.value === objective)?.label ?? objective;
+  const activityLabel = ACTIVITY_CHIPS.find((c) => c.value === activity)?.label ?? activity;
 
   return (
     <div
@@ -199,10 +206,38 @@ export default function NutritionTargetCard() {
             type="button"
             className="btn btn-ghost btn-sm"
             style={{ marginTop: 12 }}
+            aria-expanded={calculatorOpen}
+            aria-controls="nutrition-target-editor"
             onClick={() => setCalculatorOpen((o) => !o)}
           >
             {calculatorOpen ? "Ocultar estimativa própria" : "Ver estimativa própria"}
           </button>
+        </>
+      ) : hasSavedSelfEstimate && !calculatorOpen ? (
+        <>
+          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
+            <span className="badge badge-neutral" style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+              <Calculator size={13} /> Estimativa diária
+            </span>
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              aria-expanded={calculatorOpen}
+              aria-controls="nutrition-target-editor"
+              onClick={() => setCalculatorOpen(true)}
+            >
+              Editar
+            </button>
+          </div>
+          <div style={{ marginTop: 10, fontSize: "var(--text-xl)", fontWeight: 700, color: COLORS.text }}>
+            ≈ {resolved!.energyKcal} kcal
+          </div>
+          <div className="muted" style={{ marginTop: 4, fontSize: "var(--text-sm)" }}>
+            {resolved!.proteinG}g P · {resolved!.carbohydrateG}g C · {resolved!.fatG}g G
+          </div>
+          <div className="muted" style={{ marginTop: 4, fontSize: "var(--text-xs)" }}>
+            {objectiveLabel} · Atividade {activityLabel.toLowerCase()} · {resolved!.mealsPerDay} refeições
+          </div>
         </>
       ) : (
         <>
@@ -217,7 +252,13 @@ export default function NutritionTargetCard() {
         </>
       )}
 
-      {calculatorOpen && (
+      <div
+        id="nutrition-target-editor"
+        className="collapsePanel"
+        data-open={calculatorOpen}
+        aria-hidden={!calculatorOpen}
+        inert={!calculatorOpen}
+      >
         <div style={{ marginTop: isPlanTarget ? 14 : 0, display: "flex", flexDirection: "column", gap: 12 }}>
           <div>
             <div style={{ fontSize: 11, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 6 }}>
@@ -285,7 +326,7 @@ export default function NutritionTargetCard() {
             {saving ? "Salvando..." : saved ? "Salvo" : "Salvar minha estimativa"}
           </button>
         </div>
-      )}
+      </div>
     </div>
   );
 }

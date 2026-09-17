@@ -58,28 +58,32 @@ export function NutritionDaySummary({ refreshToken = 0 }: { refreshToken?: numbe
 
   return (
     <div className="card cardPad" style={{ marginBottom: 20 }}>
-      <div style={{ fontSize: 15, fontWeight: 700, color: COLORS.text, marginBottom: 4 }}>
+      <div style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 8 }}>
         Seu dia nutricional
       </div>
 
-      <EnergyProgress totals={totals} target={target} isPlanTarget={isPlanTarget} />
+      <div className="nutritionHeroGrid">
+        <div>
+          <EnergyProgress totals={totals} target={target} isPlanTarget={isPlanTarget} />
+        </div>
 
-      {target && (
-        <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 10 }}>
-          <MacroBar label="Proteína" value={totals.proteinG} target={target.proteinG ?? null} unit="g" />
-          <MacroBar label="Carboidratos" value={totals.carbohydrateG} target={target.carbohydrateG ?? null} unit="g" />
-          <MacroBar label="Gorduras" value={totals.fatG} target={target.fatG ?? null} unit="g" />
-          <FiberRow fiberG={totals.fiberG ?? null} fiberPartial={Boolean(totals.fiberPartial)} />
-        </div>
-      )}
-      {!target && (
-        <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 6 }}>
-          <AbsoluteRow label="Proteína" value={totals.proteinG} unit="g" />
-          <AbsoluteRow label="Carboidratos" value={totals.carbohydrateG} unit="g" />
-          <AbsoluteRow label="Gorduras" value={totals.fatG} unit="g" />
-          <FiberRow fiberG={totals.fiberG ?? null} fiberPartial={Boolean(totals.fiberPartial)} />
-        </div>
-      )}
+        {target && (
+          <div className="nutritionHeroGrid__macros" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <MacroBar label="Proteína" value={totals.proteinG} target={target.proteinG ?? null} unit="g" />
+            <MacroBar label="Carboidratos" value={totals.carbohydrateG} target={target.carbohydrateG ?? null} unit="g" />
+            <MacroBar label="Gorduras" value={totals.fatG} target={target.fatG ?? null} unit="g" />
+            <FiberRow fiberG={totals.fiberG ?? null} fiberPartial={Boolean(totals.fiberPartial)} />
+          </div>
+        )}
+        {!target && (
+          <div className="nutritionHeroGrid__macros" style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <AbsoluteRow label="Proteína" value={totals.proteinG} unit="g" />
+            <AbsoluteRow label="Carboidratos" value={totals.carbohydrateG} unit="g" />
+            <AbsoluteRow label="Gorduras" value={totals.fatG} unit="g" />
+            <FiberRow fiberG={totals.fiberG ?? null} fiberPartial={Boolean(totals.fiberPartial)} />
+          </div>
+        )}
+      </div>
 
       {target && (
         <div style={{ marginTop: 16 }}>
@@ -126,10 +130,7 @@ function EnergyProgress({
 
   return (
     <div style={{ marginTop: 6 }}>
-      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", flexWrap: "wrap", gap: 6 }}>
-        <div style={{ fontSize: 22, fontWeight: 800, color: COLORS.text }}>
-          {prefix}{Math.round(totals.energyKcal)} / {Math.round(target.energyKcal)} kcal
-        </div>
+      <div style={{ marginBottom: 6 }}>
         <span
           className={`badge ${isPlanTarget ? "badge-brand" : "badge-neutral"}`}
           style={{ display: "inline-flex", alignItems: "center", gap: 4 }}
@@ -138,10 +139,17 @@ function EnergyProgress({
           {isPlanTarget ? "Meta do seu plano" : "Estimativa diária"}
         </span>
       </div>
-      <div style={{ marginTop: 8, height: 8, borderRadius: 99, background: "var(--color-border)", overflow: "hidden" }}>
-        <div style={{ height: "100%", width: `${barPct}%`, background: "var(--color-primary)", borderRadius: 99, transition: "width .3s" }} />
+      <div style={{ fontSize: "var(--text-4xl)", fontWeight: 800, color: COLORS.text, lineHeight: 1.1 }}>
+        {prefix}{Math.round(totals.energyKcal)} / {Math.round(target.energyKcal)} kcal
       </div>
-      <div className="muted" style={{ fontSize: 12, marginTop: 4 }}>{pct}%</div>
+      <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 10 }}>
+        <div className="progressTrack" style={{ flex: 1 }}>
+          <div className="progressFill" style={{ width: `${barPct}%` }} />
+        </div>
+        <span className="muted" style={{ fontSize: 13, fontWeight: 600, fontVariantNumeric: "tabular-nums", minWidth: 32, textAlign: "right" }}>
+          {pct}%
+        </span>
+      </div>
     </div>
   );
 }
@@ -156,14 +164,16 @@ function MacroBar({ label, value, target, unit }: { label: string; value: number
   const barPct = Math.min(100, Math.max(0, pct));
   return (
     <div>
-      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 3 }}>
-        <span className="muted">{label}</span>
-        <span style={{ fontWeight: 600, color: COLORS.text, fontVariantNumeric: "tabular-nums" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4 }}>
+        <span className="muted" style={{ fontSize: "var(--text-xs)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+          {label}
+        </span>
+        <span style={{ fontSize: "var(--text-lg)", fontWeight: 700, color: COLORS.text, fontVariantNumeric: "tabular-nums" }}>
           {Math.round(value)} / {Math.round(target)} {unit}
         </span>
       </div>
-      <div style={{ height: 6, borderRadius: 99, background: "var(--color-border)", overflow: "hidden" }}>
-        <div style={{ height: "100%", width: `${barPct}%`, background: "var(--color-border-strong)", borderRadius: 99 }} />
+      <div className="progressTrack">
+        <div className="progressFill" style={{ width: `${barPct}%`, background: "var(--color-border-strong)" }} />
       </div>
     </div>
   );
@@ -171,9 +181,11 @@ function MacroBar({ label, value, target, unit }: { label: string; value: number
 
 function AbsoluteRow({ label, value, unit }: { label: string; value: number; unit: string }) {
   return (
-    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
-      <span className="muted">{label}</span>
-      <span style={{ fontWeight: 600, color: COLORS.text }}>{Math.round(value)} {unit}</span>
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+      <span className="muted" style={{ fontSize: "var(--text-xs)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+        {label}
+      </span>
+      <span style={{ fontSize: "var(--text-lg)", fontWeight: 700, color: COLORS.text }}>{Math.round(value)} {unit}</span>
     </div>
   );
 }

@@ -75,6 +75,20 @@ const STATUS_LABELS: Record<MealStatus, string> = {
   no_time:       "",
 };
 
+// Status como badge do DS em vez de texto colorido solto — timeline compacta
+// (UX_UI_NUTRITION_PREMIUM_REDESIGN.md §5) continua nunca depender só de cor.
+const STATUS_BADGE_CLASS: Record<MealStatus, string> = {
+  upcoming:      "badge-neutral",
+  due_now:       "badge-neutral",
+  done:          "badge-success",
+  partial:       "badge-warn",
+  skipped:       "badge-neutral",
+  substituted:   "badge-success",
+  delayed:       "badge-warn",
+  missed_window: "badge-neutral",
+  no_time:       "badge-neutral",
+};
+
 const CHECKIN_OPTIONS: Array<{ status: MealCheckinStatus; label: string }> = [
   { status: "done",       label: "Segui" },
   { status: "partial",    label: "Parcial" },
@@ -575,7 +589,7 @@ function MealCard({
       <div
         style={{
           flex: 1,
-          paddingBottom: 20,
+          paddingBottom: isDueNow ? 20 : 12,
           minWidth: 0,
         }}
       >
@@ -593,16 +607,8 @@ function MealCard({
               {timeLabel}
             </span>
           )}
-          {meal.status !== "no_time" && meal.status !== "upcoming" && (
-            <span
-              style={{
-                fontSize: 11,
-                fontWeight: 700,
-                color: statusColor,
-                textTransform: "uppercase",
-                letterSpacing: "0.04em",
-              }}
-            >
+          {meal.status !== "no_time" && meal.status !== "upcoming" && meal.status !== "due_now" && (
+            <span className={`badge ${STATUS_BADGE_CLASS[meal.status]}`} style={{ fontSize: 11 }}>
               {STATUS_LABELS[meal.status]}
             </span>
           )}
@@ -620,7 +626,7 @@ function MealCard({
               ? "var(--color-primary-soft)"
               : "var(--color-surface-raised)",
             borderRadius: 12,
-            padding: "12px 14px",
+            padding: isDueNow ? "12px 14px" : "10px 12px",
             border: isDueNow ? `1.5px solid ${COLORS.primary}` : "1px solid var(--color-border)",
           }}
         >
@@ -651,7 +657,7 @@ function MealCard({
                   overflow: "hidden",
                   textOverflow: "ellipsis",
                   display: "-webkit-box",
-                  WebkitLineClamp: 2,
+                  WebkitLineClamp: isDueNow ? 2 : 1,
                   WebkitBoxOrient: "vertical",
                   whiteSpace: "pre-wrap",
                 }}
@@ -814,7 +820,7 @@ export default function NutritionPlanViewPage() {
   const totalMeals = timeline.meals.length;
 
   return (
-    <div style={{ maxWidth: 560, margin: "0 auto", padding: "0 16px 40px" }}>
+    <div className="pageBottomSafe">
       {/* Header */}
       <div style={{ marginBottom: 20 }}>
         <div
@@ -910,83 +916,93 @@ export default function NutritionPlanViewPage() {
         )}
       </div>
 
-      {/* Meta diária de macros (PLAN_NUTRITION_QUICK_MACROS, P1A) — rollout gradual */}
-      {hasFeature("nutrition_intake") && <NutritionTargetCard />}
-
-      {/* Perfil Alimentar (compacto, read-only) */}
-      <DietaryProfileCard />
-
-      {/* Timeline */}
-      {timeline.meals.length > 0 ? (
-        <div>
-          {timeline.meals.map((meal) => (
-            <MealCard
-              key={meal.id}
-              meal={meal}
-              workoutToday={timeline.workoutToday}
-              onOpen={() => setOpenMeal(meal)}
-            />
-          ))}
-        </div>
-      ) : (
-        <div style={{ color: COLORS.muted, fontSize: 14, textAlign: "center", padding: "24px 0" }}>
-          Nenhuma refeição cadastrada no plano.
-        </div>
-      )}
-
-      {/* PLAN_NUTRITION_QUICK_MACROS (P1B, adendo) — "Seu dia nutricional":
-          planejado × registrado, macros e evolução do dia. Visão do aluno
-          apenas; nada aqui alimenta o lado do nutri (isso é P1C). */}
+      {/* PLAN_NUTRITION_QUICK_MACROS (P1B, adendo) — "Seu dia nutricional" primeiro:
+          estado atual e progresso vêm antes de configuração e planejamento
+          (UX_UI_NUTRITION_PREMIUM_REDESIGN.md §2/§6). Visão do aluno apenas;
+          nada aqui alimenta o lado do nutri (isso é P1C). */}
       {hasFeature("nutrition_intake") && <NutritionDaySummary refreshToken={dayRefreshToken} />}
 
-      {/* General notes */}
-      {timeline.general_notes && (
-        <div
-          className="card cardPad"
-          style={{ marginTop: 16 }}
-        >
+      <div className="nutritionPageGrid">
+        {/* Coluna principal: refeições de hoje (próxima refeição já é
+            destacada dentro do próprio MealCard via status "due_now"). */}
+        <div>
+          {timeline.meals.length > 0 ? (
+            <div>
+              {timeline.meals.map((meal) => (
+                <MealCard
+                  key={meal.id}
+                  meal={meal}
+                  workoutToday={timeline.workoutToday}
+                  onOpen={() => setOpenMeal(meal)}
+                />
+              ))}
+            </div>
+          ) : (
+            <div style={{ color: COLORS.muted, fontSize: 14, textAlign: "center", padding: "24px 0" }}>
+              Nenhuma refeição cadastrada no plano.
+            </div>
+          )}
+        </div>
+
+        {/* Coluna secundária: configuração e referência — estimativa,
+            perfil alimentar, orientações e disclaimer. */}
+        <div className="nutritionPageGrid__side">
+          {/* Meta diária de macros (PLAN_NUTRITION_QUICK_MACROS, P1A) — rollout gradual */}
+          {hasFeature("nutrition_intake") && <NutritionTargetCard />}
+
+          {/* Perfil Alimentar (compacto, read-only) */}
+          <DietaryProfileCard />
+
+          {/* General notes */}
+          {timeline.general_notes && (
+            <div
+              className="card cardPad"
+              style={{ marginTop: 16 }}
+            >
+              <div
+                style={{
+                  fontSize: 11,
+                  fontWeight: 600,
+                  color: COLORS.muted,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.04em",
+                  marginBottom: 8,
+                }}
+              >
+                Orientações gerais
+              </div>
+              <div
+                style={{
+                  fontSize: 14,
+                  color: COLORS.text,
+                  lineHeight: 1.65,
+                  whiteSpace: "pre-wrap",
+                }}
+              >
+                {timeline.general_notes}
+              </div>
+            </div>
+          )}
+
+          {/* Disclaimer (regulatório) */}
           <div
             style={{
-              fontSize: 11,
-              fontWeight: 600,
+              marginTop: 16,
+              padding: "10px 12px",
+              borderRadius: 10,
+              background: "var(--color-bg-main, var(--color-surface-raised))",
+              border: "1px solid var(--color-border)",
+              fontSize: 11.5,
               color: COLORS.muted,
-              textTransform: "uppercase",
-              letterSpacing: "0.04em",
-              marginBottom: 8,
+              lineHeight: 1.5,
             }}
           >
-            Orientações gerais
-          </div>
-          <div
-            style={{
-              fontSize: 14,
-              color: COLORS.text,
-              lineHeight: 1.65,
-              whiteSpace: "pre-wrap",
-            }}
-          >
-            {timeline.general_notes}
+            Seu plano alimentar apoia seu acompanhamento metabólico e é elaborado pelo
+            seu nutricionista. Ele <strong>não substitui</strong> avaliação ou
+            acompanhamento nutricional presencial — para condições clínicas, consulte
+            sempre um profissional.
           </div>
         </div>
-      )}
-
-      {/* Disclaimer (regulatório) */}
-      <div
-        style={{
-          marginTop: 16,
-          padding: "10px 12px",
-          borderRadius: 10,
-          background: "var(--color-bg-main, var(--color-surface-raised))",
-          border: "1px solid var(--color-border)",
-          fontSize: 11.5,
-          color: COLORS.muted,
-          lineHeight: 1.5,
-        }}
-      >
-        Seu plano alimentar apoia seu acompanhamento metabólico e é elaborado pelo
-        seu nutricionista. Ele <strong>não substitui</strong> avaliação ou
-        acompanhamento nutricional presencial — para condições clínicas, consulte
-        sempre um profissional.
       </div>
 
       {/* Drawer */}

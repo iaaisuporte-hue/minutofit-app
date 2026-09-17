@@ -484,6 +484,76 @@ html[data-color-mode="daltonic"] .navLinkActive {
   background: var(--gradient-primary);
 }
 
+/* ── Hero "Seu dia nutricional" (UX_UI_NUTRITION_PREMIUM_REDESIGN.md §3) ──
+   Energia + macros em coluna única por padrão; a partir de 980px passam a
+   compor lado a lado dentro do mesmo card, sem criar um card novo. ────── */
+.nutritionHeroGrid {
+  display: block;
+}
+.nutritionHeroGrid__macros {
+  margin-top: 14px;
+}
+@media (min-width: 980px) {
+  .nutritionHeroGrid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr);
+    gap: var(--space-6);
+    align-items: center;
+  }
+  .nutritionHeroGrid__macros {
+    margin-top: 0;
+  }
+}
+
+/* ── Collapse panel — progressive disclosure genérica (UX_UI_NUTRITION_PREMIUM_REDESIGN.md §4) ── */
+.collapsePanel {
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  transition: max-height 0.25s ease, opacity 0.2s ease;
+}
+.collapsePanel[data-open="true"] {
+  max-height: 1200px;
+  opacity: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .collapsePanel {
+    transition: none;
+  }
+}
+
+/* ── Alimentação (UX_UI_NUTRITION_PREMIUM_REDESIGN.md §6/§11) ────────────
+   Página deixa de travar em 560px (herda a largura do .container do
+   AppShell) e ganha 2 colunas em desktop; padding inferior reserva o
+   bottom nav + safe-area no mobile, igual ao padrão já usado em outras
+   telas do aluno. ────────────────────────────────────────────────────── */
+.pageBottomSafe {
+  padding: 0 16px 40px;
+}
+@media (max-width: 719px) {
+  .pageBottomSafe {
+    padding-bottom: calc(var(--bottom-nav-h, 64px) + 24px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+.nutritionPageGrid {
+  display: block;
+}
+.nutritionPageGrid__side {
+  margin-top: 20px;
+}
+@media (min-width: 980px) {
+  .nutritionPageGrid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+    gap: var(--space-6);
+    align-items: start;
+  }
+  .nutritionPageGrid__side {
+    margin-top: 0;
+  }
+}
+
 /* ── Section title ────────────────────────────────────────────── */
 .section-title {
   font-size: var(--text-base);

@@ -103,4 +103,36 @@ describe("NutritionTargetCard", () => {
     render(<NutritionTargetCard />);
     expect(await screen.findByText("Estimativa própria")).toBeInTheDocument();
   });
+
+  it("estimativa própria JÁ SALVA: renderiza compacta por padrão, sem a calculadora aberta", async () => {
+    getMyNutritionTarget.mockResolvedValue({
+      target: { energyKcal: 2851, proteinG: 143, carbohydrateG: 390, fatG: 80, mealsPerDay: 4, source: "self_estimate" },
+      selfEstimateInputs: { weightKg: 82, objective: "maintenance", activity: "moderate" },
+      nutriName: null,
+    });
+
+    render(<NutritionTargetCard />);
+
+    expect(await screen.findByText("Estimativa diária")).toBeInTheDocument();
+    expect(screen.getByText("≈ 2851 kcal")).toBeInTheDocument();
+    expect(screen.getByText(/143g P · 390g C · 80g G/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Editar" })).toBeInTheDocument();
+    // Calculadora não fica montada como conteúdo visível — não deve haver toolbar acessível.
+    expect(screen.queryByRole("toolbar", { name: "Objetivo" })).not.toBeInTheDocument();
+  });
+
+  it("estimativa própria já salva: 'Editar' expande a calculadora com os valores salvos", async () => {
+    getMyNutritionTarget.mockResolvedValue({
+      target: { energyKcal: 2851, proteinG: 143, carbohydrateG: 390, fatG: 80, mealsPerDay: 4, source: "self_estimate" },
+      selfEstimateInputs: { weightKg: 82, objective: "maintenance", activity: "moderate" },
+      nutriName: null,
+    });
+
+    render(<NutritionTargetCard />);
+    await screen.findByText("Estimativa diária");
+
+    await userEvent.click(screen.getByRole("button", { name: "Editar" }));
+
+    expect(await screen.findByRole("toolbar", { name: "Objetivo" })).toBeInTheDocument();
+  });
 });

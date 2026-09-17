@@ -130,6 +130,8 @@
   --text-xl:       18px;
   --text-2xl:      22px;
   --text-3xl:      26px;
+  /* Hero numérico (kcal do dia) — UX_UI_NUTRITION_PREMIUM_REDESIGN.md §7 */
+  --text-4xl:      34px;
 
   --font-normal:   400;
   --font-medium:   500;
