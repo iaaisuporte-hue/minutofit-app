@@ -173,6 +173,83 @@ describe("IntakeLogSheet", () => {
     expect(screen.getByPlaceholderText("Buscar alimento…")).toBeInTheDocument();
   });
 
+  // PLAN P1B corrective "Agrupamento por Refeição" §7-§10/§22 — registro
+  // extra de baixa fricção: texto → Estimar → momento sugerido → Confirmar.
+  describe("refeição extra (fora do plano)", () => {
+    it('depois de "Estimar" (sem chip), mostra o seletor "Refeição" com sugestão pelo horário e usa como rótulo ao confirmar', async () => {
+      parseIntakeText.mockResolvedValue({
+        items: [
+          {
+            resolved: true, rawText: "30g de whey", foodQuery: "whey", foodId: 99, name: "Whey protein (30g)",
+            grams: 30, per100g: { kcal: 400, p: 80, c: 10, f: 3 }, energyKcal: 120, proteinG: 24, carbohydrateG: 3, fatG: 1,
+            resolver: "manual", confidence: "high", confirmed: true,
+          },
+        ],
+        totals: { energyKcal: 120, proteinG: 24, carbohydrateG: 3, fatG: 1 },
+        needsConfirmation: false,
+      });
+      const onSaved = vi.fn();
+      render(<IntakeLogSheet open onClose={() => {}} onSaved={onSaved} />);
+
+      const input = screen.getByPlaceholderText(/Ex\.: 200g de frango/);
+      await userEvent.type(input, "30g de whey");
+      await userEvent.click(screen.getByRole("button", { name: "Estimar" }));
+
+      await screen.findByText(/Whey protein/);
+      expect(screen.getByLabelText("Refeição")).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole("button", { name: "Confirmar" }));
+
+      await waitFor(() => expect(submitIntakeLog).toHaveBeenCalled());
+      const [call] = submitIntakeLog.mock.calls[0];
+      expect(call.mealId).toBeNull(); // nunca associada ao plano — é extra (§7)
+      expect(typeof call.label).toBe("string");
+      expect(call.label.length).toBeGreaterThan(0);
+      expect(onSaved).toHaveBeenCalled();
+    });
+
+    it('selecionar "Outro" revela campo de texto curto e usa o texto digitado como rótulo', async () => {
+      parseIntakeText.mockResolvedValue({
+        items: [
+          {
+            resolved: true, rawText: "30g de whey", foodQuery: "whey", foodId: 99, name: "Whey protein (30g)",
+            grams: 30, per100g: { kcal: 400, p: 80, c: 10, f: 3 }, energyKcal: 120, proteinG: 24, carbohydrateG: 3, fatG: 1,
+            resolver: "manual", confidence: "high", confirmed: true,
+          },
+        ],
+        totals: { energyKcal: 120, proteinG: 24, carbohydrateG: 3, fatG: 1 },
+        needsConfirmation: false,
+      });
+      render(<IntakeLogSheet open onClose={() => {}} onSaved={() => {}} />);
+
+      const input = screen.getByPlaceholderText(/Ex\.: 200g de frango/);
+      await userEvent.type(input, "30g de whey");
+      await userEvent.click(screen.getByRole("button", { name: "Estimar" }));
+      await screen.findByText(/Whey protein/);
+
+      await userEvent.selectOptions(screen.getByLabelText("Refeição"), "Outro");
+      const customInput = screen.getByPlaceholderText("Ex.: Pré-treino");
+      await userEvent.type(customInput, "Pré-treino");
+
+      await userEvent.click(screen.getByRole("button", { name: "Confirmar" }));
+      await waitFor(() => expect(submitIntakeLog).toHaveBeenCalledWith(expect.objectContaining({ label: "Pré-treino" })));
+    });
+
+    it("um chip de atalho já define o rótulo — o seletor de momento não aparece nem sobrescreve", async () => {
+      getIntakeShortcuts.mockResolvedValue({
+        ...EMPTY_SHORTCUTS,
+        planMeals: [{ mealId: 10, name: "Almoço", items: [{ id: 500, foodName: "Arroz", energyKcal: 128, proteinG: 2.5, carbohydrateG: 28, fatG: 0.2, grams: 100 }] }],
+      });
+      render(<IntakeLogSheet open onClose={() => {}} onSaved={() => {}} />);
+
+      await userEvent.click(await screen.findByRole("button", { name: /Como no plano: Almoço/ }));
+      expect(screen.queryByLabelText("Refeição")).not.toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole("button", { name: "Confirmar" }));
+      await waitFor(() => expect(submitIntakeLog).toHaveBeenCalledWith(expect.objectContaining({ label: "Como no plano: Almoço" })));
+    });
+  });
+
   it("Cancelar fecha sem chamar submitIntakeLog", async () => {
     const onClose = vi.fn();
     render(<IntakeLogSheet open onClose={onClose} onSaved={() => {}} />);

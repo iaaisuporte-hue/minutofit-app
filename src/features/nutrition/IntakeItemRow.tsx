@@ -3,6 +3,12 @@ import { Minus, Plus, Search, X } from "lucide-react";
 import { COLORS } from "../../styles/colors";
 import { searchNutritionFoods, type CatalogFoodSummary, type IntakePreviewItem } from "../../services/nutritionIntakeApi";
 
+/** Aceita "12", "12.5" ou "12,5"; string vazia/inválida vira 0. */
+function parseMacroInput(v: string): number {
+  const n = Number(v.replace(",", "."));
+  return Number.isFinite(n) && n >= 0 ? n : 0;
+}
+
 const GRAMS_STEP = 10;
 
 function round1(n: number): number {
@@ -39,9 +45,35 @@ export function IntakeItemRow({
   onRemove: () => void;
 }) {
   const [searchOpen, setSearchOpen] = useState(false);
+  const [manualOpen, setManualOpen] = useState(false);
   const [query, setQuery] = useState(item.foodQuery);
   const [results, setResults] = useState<CatalogFoodSummary[]>([]);
   const [searching, setSearching] = useState(false);
+  const [manualForm, setManualForm] = useState({ name: item.rawText, kcal: "", p: "", c: "", f: "" });
+
+  /**
+   * Fallback quando o catálogo TACO não tem correspondência confiável (PLAN
+   * P1B corrective §21 — ex.: suplementos como whey, que o TACO nunca
+   * cataloga). NUNCA inventa macro — o usuário informa; vira um item
+   * `manual`, mesmo caminho já usado/testado no backend para itens
+   * digitados manualmente.
+   */
+  function saveManual() {
+    onChange({
+      ...item,
+      resolved: true,
+      name: manualForm.name.trim() || item.rawText,
+      grams: item.grams,
+      energyKcal: parseMacroInput(manualForm.kcal),
+      proteinG: parseMacroInput(manualForm.p),
+      carbohydrateG: parseMacroInput(manualForm.c),
+      fatG: parseMacroInput(manualForm.f),
+      resolver: "manual",
+      confidence: "high",
+      confirmed: true,
+    });
+    setManualOpen(false);
+  }
 
   async function runSearch(q: string) {
     setQuery(q);
@@ -81,6 +113,35 @@ export function IntakeItemRow({
   }
 
   if (!item.resolved || searchOpen) {
+    if (manualOpen) {
+      return (
+        <div className="card cardPad" style={{ marginBottom: 8, padding: 12 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+            <span className="muted" style={{ fontSize: 12, flex: 1 }}>Adicionar manualmente</span>
+            <button type="button" className="stepper-btn" aria-label="Remover item" onClick={onRemove}>
+              <X size={14} />
+            </button>
+          </div>
+          <input
+            type="text"
+            className="input"
+            placeholder="Nome do alimento"
+            value={manualForm.name}
+            onChange={(e) => setManualForm((f) => ({ ...f, name: e.target.value.slice(0, 80) }))}
+            autoFocus
+          />
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginTop: 6 }}>
+            <input type="text" inputMode="decimal" className="input" placeholder="kcal" value={manualForm.kcal} onChange={(e) => setManualForm((f) => ({ ...f, kcal: e.target.value }))} />
+            <input type="text" inputMode="decimal" className="input" placeholder="Proteína (g)" value={manualForm.p} onChange={(e) => setManualForm((f) => ({ ...f, p: e.target.value }))} />
+            <input type="text" inputMode="decimal" className="input" placeholder="Carboidrato (g)" value={manualForm.c} onChange={(e) => setManualForm((f) => ({ ...f, c: e.target.value }))} />
+            <input type="text" inputMode="decimal" className="input" placeholder="Gordura (g)" value={manualForm.f} onChange={(e) => setManualForm((f) => ({ ...f, f: e.target.value }))} />
+          </div>
+          <button type="button" className="btn btn-primary btn-sm hit-target-44" style={{ marginTop: 8, width: "100%" }} disabled={!manualForm.name.trim()} onClick={saveManual}>
+            Usar estes valores
+          </button>
+        </div>
+      );
+    }
     return (
       <div className="card cardPad" style={{ marginBottom: 8, padding: 12 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
@@ -118,9 +179,19 @@ export function IntakeItemRow({
             ))}
           </div>
         )}
+        {!searching && query.trim() && results.length === 0 && (
+          // Catálogo TACO não tem tudo (suplementos como whey nunca estarão
+          // lá, §21) — nunca deixar o usuário travado sem saída.
+          <div className="muted" style={{ fontSize: 12, marginTop: 6 }}>Nenhum resultado no catálogo.</div>
+        )}
         {!item.resolved && !searchOpen && (
           <button type="button" className="btn btn-sm" style={{ marginTop: 8 }} onClick={() => setSearchOpen(true)}>
             <Search size={13} style={{ marginRight: 4 }} /> Buscar no catálogo
+          </button>
+        )}
+        {!item.resolved && (
+          <button type="button" className="btn btn-ghost btn-sm" style={{ marginTop: 8 }} onClick={() => setManualOpen(true)}>
+            Adicionar manualmente
           </button>
         )}
       </div>

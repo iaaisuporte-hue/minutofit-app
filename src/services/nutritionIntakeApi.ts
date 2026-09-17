@@ -252,9 +252,34 @@ export interface PlannedMeal {
   energyKcal: number;
 }
 
+/**
+ * PLAN P1B corrective ("Agrupamento por Refeição") — unidade visual do
+ * aluno. Agrupa por associação PERSISTIDA (`mealId` do plano), nunca por
+ * horário/rótulo parecido. `sourceLogIds` são as linhas físicas de
+ * `user_nutrition_intake_logs` por trás do card — normalmente 1.
+ */
+export interface NutritionIntakeMeal {
+  groupKey: string;
+  mealId: number | null;
+  label: string;
+  loggedAt: string;
+  /** `true` = refeição extra, fora do plano do Nutri (§7/§11) — realidade alimentar, não "erro". */
+  isExtra: boolean;
+  items: PersistedIntakeItem[];
+  energyKcal: number;
+  proteinG: number;
+  carbohydrateG: number;
+  fatG: number;
+  fiberG: number | null;
+  fiberPartial: boolean;
+  confidenceScore: number;
+  sourceLogIds: number[];
+}
+
 export interface DayIntakeResponse {
   date: string;
   logs: IntakeLogRecord[];
+  meals: NutritionIntakeMeal[];
   totals: NutrientTotals;
   coverage: DayCoverage;
   target: ResolvedNutritionTarget | null;

@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { ClipboardList, Calculator, ChevronRight } from "lucide-react";
+import { ClipboardList, Calculator, ChevronRight, Plus } from "lucide-react";
 import { COLORS } from "../../styles/colors";
 import { SkeletonPanelCard } from "../../components/feedback/Skeleton";
 import { EmptyState } from "../../components/EmptyState";
 import { IntakeLogSheet } from "./IntakeLogSheet";
 import { IntakeLogDetailSheet } from "./IntakeLogDetailSheet";
-import { getDayIntake, type DayIntakeResponse, type IntakeLogRecord } from "../../services/nutritionIntakeApi";
+import { YesterdayMealsSheet } from "./YesterdayMealsSheet";
+import { getDayIntake, type DayIntakeResponse, type NutritionIntakeMeal } from "../../services/nutritionIntakeApi";
 
 /**
  * "Seu dia nutricional" — PLAN_NUTRITION_QUICK_MACROS (P1B, adendo).
@@ -22,12 +23,15 @@ export function NutritionDaySummary({ refreshToken = 0 }: { refreshToken?: numbe
   const [data, setData] = useState<DayIntakeResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
-  // PLAN P1B corrective ("Consulta + Edição") — detalhe/edição vivem aqui
-  // porque este componente já é quem busca e recarrega `getDayIntake()`;
-  // evita duplicar a chamada ou subir estado para a página só para isto.
-  const [detailLog, setDetailLog] = useState<IntakeLogRecord | null>(null);
-  const [editingLog, setEditingLog] = useState<IntakeLogRecord | null>(null);
-  const [editOpen, setEditOpen] = useState(false);
+  // PLAN P1B corrective ("Consulta + Edição" / "Agrupamento por Refeição")
+  // — detalhe/edição/criação de extra vivem aqui porque este componente já
+  // busca e recarrega `getDayIntake()`; evita duplicar a chamada ou subir
+  // estado para a página só para isto. `editingMeal` presente = o sheet
+  // abre em modo edição; ausente = modo criação (refeição extra, §7-§10).
+  const [detailMeal, setDetailMeal] = useState<NutritionIntakeMeal | null>(null);
+  const [editingMeal, setEditingMeal] = useState<NutritionIntakeMeal | null>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [yesterdayOpen, setYesterdayOpen] = useState(false);
 
   function load() {
     setLoading(true);
@@ -57,11 +61,12 @@ export function NutritionDaySummary({ refreshToken = 0 }: { refreshToken?: numbe
   }
   if (!data) return null;
 
-  const { totals, target, logs, coverage } = data;
-  // `?? []`: backend mais antigo (deploy atrasado) pode não incluir este
-  // campo ainda — nunca deixar a tela quebrar por descompasso de deploy.
+  const { totals, target, coverage } = data;
+  // `?? []`: backend mais antigo (deploy atrasado) pode não incluir estes
+  // campos ainda — nunca deixar a tela quebrar por descompasso de deploy.
   const plannedMeals = data.plannedMeals ?? [];
-  const hasLogs = logs.length > 0;
+  const meals = data.meals ?? [];
+  const hasMeals = meals.length > 0;
   const isPlanTarget = target?.source === "plan_items";
 
   return (
@@ -93,81 +98,98 @@ export function NutritionDaySummary({ refreshToken = 0 }: { refreshToken?: numbe
         )}
       </div>
 
-      {hasLogs && (
-        <RegisteredMealsList logs={logs} onOpenDetail={setDetailLog} />
-      )}
+      <MealsOfDayList meals={meals} onOpenDetail={setDetailMeal} />
+
+      <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+        <button
+          type="button"
+          className="btn btn-ghost btn-sm hit-target-44"
+          style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 4 }}
+          onClick={() => {
+            setEditingMeal(null);
+            setSheetOpen(true);
+          }}
+        >
+          <Plus size={14} /> Registrar refeição
+        </button>
+        <button type="button" className="btn btn-ghost btn-sm" onClick={() => setYesterdayOpen(true)}>
+          Corrigir refeição de ontem
+        </button>
+      </div>
 
       {target && (
         <div style={{ marginTop: 16 }}>
-          {hasLogs ? (
-            <DayEvolutionChart logs={logs} target={target} plannedMeals={plannedMeals} />
+          {hasMeals ? (
+            <DayEvolutionChart meals={meals} target={target} plannedMeals={plannedMeals} />
           ) : (
             <EmptyState title="Nenhuma refeição registrada ainda." />
           )}
         </div>
       )}
 
-      <MicroInsight logs={logs} target={target} plannedMeals={plannedMeals} coverageLevel={coverage.level} />
+      <MicroInsight meals={meals} target={target} plannedMeals={plannedMeals} coverageLevel={coverage.level} />
 
       <IntakeLogDetailSheet
-        log={detailLog}
-        open={detailLog != null}
-        onClose={() => setDetailLog(null)}
+        meal={detailMeal}
+        open={detailMeal != null}
+        onClose={() => setDetailMeal(null)}
         onEdit={() => {
-          setEditingLog(detailLog);
-          setDetailLog(null);
-          setEditOpen(true);
+          setEditingMeal(detailMeal);
+          setDetailMeal(null);
+          setSheetOpen(true);
         }}
         onDeleted={() => {
-          setDetailLog(null);
+          setDetailMeal(null);
           load();
         }}
       />
       <IntakeLogSheet
-        open={editOpen}
-        editingLog={editingLog}
+        open={sheetOpen}
+        editingMeal={editingMeal}
         onClose={() => {
-          setEditOpen(false);
-          setEditingLog(null);
+          setSheetOpen(false);
+          setEditingMeal(null);
         }}
         onSaved={() => {
-          setEditOpen(false);
-          setEditingLog(null);
+          setSheetOpen(false);
+          setEditingMeal(null);
           load();
         }}
       />
+      <YesterdayMealsSheet open={yesterdayOpen} onClose={() => setYesterdayOpen(false)} />
     </div>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Refeições registradas hoje — consulta compacta (PLAN P1B corrective §1/§2)
+// Refeições de hoje — a unidade visual é a REFEIÇÃO, não o log
+// (PLAN P1B corrective "Agrupamento por Refeição" §1-§4/§15)
 // ---------------------------------------------------------------------------
 
-function summarizeItems(items: DayIntakeResponse["logs"][number]["items"]): string {
-  const names = items.map((i) => i.name).join(", ");
+function summarizeItems(items: NutritionIntakeMeal["items"]): string {
+  const names = items.map((i) => i.name).join(" · ");
   return names.length > 42 ? `${names.slice(0, 41)}…` : names;
 }
 
-function RegisteredMealsList({
-  logs,
+function MealsOfDayList({
+  meals,
   onOpenDetail,
 }: {
-  logs: DayIntakeResponse["logs"];
-  onOpenDetail: (log: IntakeLogRecord) => void;
+  meals: NutritionIntakeMeal[];
+  onOpenDetail: (meal: NutritionIntakeMeal) => void;
 }) {
-  const sorted = [...logs].sort((a, b) => new Date(a.loggedAt).getTime() - new Date(b.loggedAt).getTime());
+  if (meals.length === 0) return null;
   return (
     <div style={{ marginTop: 14 }}>
       <div className="muted" style={{ fontSize: "var(--text-xs)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 6 }}>
-        Refeições registradas
+        Refeições de hoje
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-        {sorted.map((log) => (
+        {meals.map((meal) => (
           <button
-            key={log.id}
+            key={meal.groupKey}
             type="button"
-            onClick={() => onOpenDetail(log)}
+            onClick={() => onOpenDetail(meal)}
             className="hit-target-44"
             style={{
               display: "flex",
@@ -183,17 +205,21 @@ function RegisteredMealsList({
             }}
           >
             <span className="muted" style={{ fontSize: 12, flexShrink: 0 }}>
-              {new Date(log.loggedAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+              {new Date(meal.loggedAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
             </span>
             <span style={{ minWidth: 0, flex: 1 }}>
-              <span style={{ fontSize: 13, fontWeight: 600, color: COLORS.text }}>{log.label}</span>
-              {log.items.length > 0 && (
+              <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <span style={{ fontSize: 13, fontWeight: 600, color: COLORS.text }}>{meal.label}</span>
+                {/* "Extra" é neutro — a interface registra o que aconteceu, não julga (§12). */}
+                {meal.isExtra && <span className="badge badge-neutral" style={{ fontSize: 10 }}>Extra</span>}
+              </span>
+              {meal.items.length > 0 && (
                 <span className="muted" style={{ fontSize: 12, display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {summarizeItems(log.items)}
+                  {summarizeItems(meal.items)}
                 </span>
               )}
             </span>
-            <span style={{ fontSize: 12, fontWeight: 700, color: COLORS.text, flexShrink: 0 }}>{Math.round(log.energyKcal)} kcal</span>
+            <span style={{ fontSize: 12, fontWeight: 700, color: COLORS.text, flexShrink: 0 }}>{Math.round(meal.energyKcal)} kcal</span>
             <ChevronRight size={16} className="muted" style={{ flexShrink: 0 }} />
           </button>
         ))}
@@ -315,7 +341,7 @@ function FiberRow({ fiberG, fiberPartial }: { fiberG: number | null; fiberPartia
 // ---------------------------------------------------------------------------
 
 function buildEvolutionSeries(
-  logs: DayIntakeResponse["logs"],
+  meals: NutritionIntakeMeal[],
   target: NonNullable<DayIntakeResponse["target"]>,
   plannedMeals: DayIntakeResponse["plannedMeals"]
 ) {
@@ -332,12 +358,14 @@ function buildEvolutionSeries(
     rows.push({ slot: slotLabel(i), planejado: Math.round(plannedAcc), registrado: null });
   }
 
-  // Registrado: acumulado dos logs realmente confirmados hoje, ordenados por
-  // horário — NUNCA presumido a partir de uma refeição prevista (PLAN §7).
-  const orderedLogs = [...logs].sort((a, b) => new Date(a.loggedAt).getTime() - new Date(b.loggedAt).getTime());
+  // Registrado: acumulado das REFEIÇÕES (não dos logs físicos) do dia,
+  // ordenadas por horário — cada refeição extra também gera um ponto na
+  // curva (PLAN P1B corrective §14), nunca presumido a partir de uma
+  // refeição prevista (PLAN §7).
+  const orderedMeals = [...meals].sort((a, b) => new Date(a.loggedAt).getTime() - new Date(b.loggedAt).getTime());
   let registradoAcc = 0;
-  orderedLogs.forEach((log, i) => {
-    registradoAcc += log.energyKcal;
+  orderedMeals.forEach((meal, i) => {
+    registradoAcc += meal.energyKcal;
     if (i < rows.length) {
       rows[i].registrado = Math.round(registradoAcc);
     } else {
@@ -349,15 +377,15 @@ function buildEvolutionSeries(
 }
 
 function DayEvolutionChart({
-  logs,
+  meals,
   target,
   plannedMeals,
 }: {
-  logs: DayIntakeResponse["logs"];
+  meals: NutritionIntakeMeal[];
   target: NonNullable<DayIntakeResponse["target"]>;
   plannedMeals: DayIntakeResponse["plannedMeals"];
 }) {
-  const { rows, usingPlan } = buildEvolutionSeries(logs, target, plannedMeals);
+  const { rows, usingPlan } = buildEvolutionSeries(meals, target, plannedMeals);
 
   return (
     <div>
@@ -393,27 +421,27 @@ function DayEvolutionChart({
 // ---------------------------------------------------------------------------
 
 function MicroInsight({
-  logs,
+  meals,
   target,
   plannedMeals,
   coverageLevel,
 }: {
-  logs: DayIntakeResponse["logs"];
+  meals: NutritionIntakeMeal[];
   target: DayIntakeResponse["target"];
   plannedMeals: DayIntakeResponse["plannedMeals"];
   coverageLevel: DayIntakeResponse["coverage"]["level"];
 }) {
-  if (logs.length === 0) return null;
+  if (meals.length === 0) return null;
 
   const expected = plannedMeals.length > 0 ? plannedMeals.length : target?.mealsPerDay ?? null;
   let text: string;
   if (expected != null) {
-    text = `Você registrou ${logs.length} de ${expected} refeições previstas hoje.`;
+    text = `Você registrou ${meals.length} de ${expected} refeições previstas hoje.`;
     if (coverageLevel === "high") {
       text += " Registros próximos do planejado até aqui.";
     }
   } else {
-    text = `Você registrou ${logs.length} ${logs.length === 1 ? "refeição" : "refeições"} hoje.`;
+    text = `Você registrou ${meals.length} ${meals.length === 1 ? "refeição" : "refeições"} hoje.`;
   }
 
   return (

@@ -109,7 +109,7 @@ function MealDrawer({
   meal: MealTimelineEntry;
   onClose: () => void;
   onCheckin: (mealId: number, status: MealCheckinStatus) => void;
-  onOpenIntake: (mealId: number) => void;
+  onOpenIntake: (mealId: number, mealName: string) => void;
 }) {
   const [selected, setSelected] = useState<MealCheckinStatus | null>(
     meal.checkin?.status ?? null
@@ -355,7 +355,7 @@ function MealDrawer({
             type="button"
             className="btn btn-primary hit-target-44"
             style={{ width: "100%", marginBottom: 16 }}
-            onClick={() => onOpenIntake(meal.id)}
+            onClick={() => onOpenIntake(meal.id, meal.name)}
           >
             <Utensils size={15} style={{ marginRight: 6 }} />
             Registrar o que comi
@@ -727,14 +727,18 @@ export default function NutritionPlanViewPage() {
   const [openMeal, setOpenMeal] = useState<MealTimelineEntry | null>(null);
   const [intakeSheetOpen, setIntakeSheetOpen] = useState(false);
   const [intakeMealId, setIntakeMealId] = useState<number | null>(null);
+  const [intakeMealLabel, setIntakeMealLabel] = useState<string | null>(null);
   const [dayRefreshToken, setDayRefreshToken] = useState(0);
 
   // Fecha o drawer de check-in antes de abrir o sheet de registro — os dois
   // são overlays "position:fixed" independentes; abrir um dentro do outro
   // empilhava por z-index e o sheet nascia atrás do drawer, invisível.
-  function handleOpenIntakeFromMeal(mealId: number) {
+  // O nome da refeição do plano vira o rótulo fixo do registro (PLAN P1B
+  // corrective "Agrupamento por Refeição" §5) — nunca o texto livre digitado.
+  function handleOpenIntakeFromMeal(mealId: number, mealName: string) {
     setOpenMeal(null);
     setIntakeMealId(mealId);
+    setIntakeMealLabel(mealName);
     setIntakeSheetOpen(true);
   }
 
@@ -1022,6 +1026,7 @@ export default function NutritionPlanViewPage() {
         open={intakeSheetOpen}
         onClose={() => setIntakeSheetOpen(false)}
         defaultMealId={intakeMealId}
+        defaultMealLabel={intakeMealLabel}
         onSaved={() => {
           setIntakeSheetOpen(false);
           setDayRefreshToken((t) => t + 1);

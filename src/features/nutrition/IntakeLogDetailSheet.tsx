@@ -2,27 +2,28 @@ import { useState } from "react";
 import { COLORS } from "../../styles/colors";
 import { DrawerShell } from "../../components/overlay/DrawerShell";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
-import { deleteIntakeLog, type IntakeLogRecord } from "../../services/nutritionIntakeApi";
+import { deleteIntakeLog, type NutritionIntakeMeal } from "../../services/nutritionIntakeApi";
 
 function formatLoggedTime(iso: string): string {
   return new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 }
 
 /**
- * Detalhe de uma refeição JÁ REGISTRADA (PLAN P1B corrective — "Consulta +
- * Edição"). STATUS → DETALHE → AÇÃO (§10): a timeline/lista compacta só
- * mostra o resumo; este drawer é onde "Editar"/"Excluir" aparecem — nunca
- * nos cards da lista. Não é página nova, é o MESMO padrão `DrawerShell`
- * já usado por `IntakeLogSheet`.
+ * Detalhe de uma REFEIÇÃO já registrada (PLAN P1B corrective — "Agrupamento
+ * por Refeição"). STATUS → DETALHE → AÇÃO: a lista compacta só mostra o
+ * resumo; este drawer é onde "Editar"/"Excluir" aparecem — nunca nos cards
+ * da lista. `meal` já vem AGRUPADO (`groupLogsIntoMeals`) — normalmente 1
+ * linha física por trás, mas "Excluir" precisa apagar TODAS as linhas do
+ * grupo (`sourceLogIds`) para a refeição sair de fato do dia.
  */
 export function IntakeLogDetailSheet({
-  log,
+  meal,
   open,
   onClose,
   onEdit,
   onDeleted,
 }: {
-  log: IntakeLogRecord | null;
+  meal: NutritionIntakeMeal | null;
   open: boolean;
   onClose: () => void;
   onEdit: () => void;
@@ -33,11 +34,11 @@ export function IntakeLogDetailSheet({
   const [error, setError] = useState<string | null>(null);
 
   async function handleDelete() {
-    if (!log) return;
+    if (!meal) return;
     setDeleting(true);
     setError(null);
     try {
-      await deleteIntakeLog(log.id);
+      await Promise.all(meal.sourceLogIds.map((id) => deleteIntakeLog(id)));
       setConfirmOpen(false);
       onDeleted();
     } catch {
@@ -50,15 +51,18 @@ export function IntakeLogDetailSheet({
   return (
     <>
       <DrawerShell open={open} onClose={onClose} ariaLabel="Detalhes da refeição">
-        {log && (
+        {meal && (
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             <div>
-              <div style={{ fontSize: 12, color: COLORS.muted }}>{formatLoggedTime(log.loggedAt)}</div>
-              <div style={{ fontSize: 16, fontWeight: 700, color: COLORS.text }}>{log.label}</div>
+              <div style={{ fontSize: 12, color: COLORS.muted }}>{formatLoggedTime(meal.loggedAt)}</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <div style={{ fontSize: 16, fontWeight: 700, color: COLORS.text }}>{meal.label}</div>
+                {meal.isExtra && <span className="badge badge-neutral">Fora do plano</span>}
+              </div>
             </div>
 
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {log.items.map((item, i) => (
+              {meal.items.map((item, i) => (
                 <div
                   key={i}
                   className="card cardPad"
@@ -82,8 +86,8 @@ export function IntakeLogDetailSheet({
             </div>
 
             <div style={{ fontSize: 13, fontWeight: 700, color: COLORS.text, borderTop: "1px solid var(--color-border)", paddingTop: 10 }}>
-              Total: ≈ {Math.round(log.energyKcal)} kcal · P {Math.round(log.proteinG)}g · C {Math.round(log.carbohydrateG)}g · G{" "}
-              {Math.round(log.fatG)}g
+              Total: ≈ {Math.round(meal.energyKcal)} kcal · P {Math.round(meal.proteinG)}g · C {Math.round(meal.carbohydrateG)}g · G{" "}
+              {Math.round(meal.fatG)}g
             </div>
 
             {error && <div style={{ fontSize: 12, color: "var(--color-danger)" }}>{error}</div>}
