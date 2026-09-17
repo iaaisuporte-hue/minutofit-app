@@ -100,7 +100,7 @@ describe("IntakeLogSheet", () => {
     expect(screen.getByRole("button", { name: "Confirmar" })).not.toBeDisabled();
   });
 
-  it("item não resolvido mantém Confirmar desabilitado", async () => {
+  it("item não resolvido mantém Confirmar desabilitado e NÃO mostra total 0 kcal (PLAN P1B corrective §13)", async () => {
     parseIntakeText.mockResolvedValue({
       items: [{ resolved: false, rawText: "xyz123", foodQuery: "xyz123" }],
       totals: { energyKcal: 0, proteinG: 0, carbohydrateG: 0, fatG: 0 },
@@ -114,6 +114,63 @@ describe("IntakeLogSheet", () => {
 
     await screen.findByText(/"xyz123"/);
     expect(screen.getByRole("button", { name: "Confirmar" })).toBeDisabled();
+    // 0 significa "zero kcal real", nunca "não identificado" — com item
+    // unresolved a tela pede identificação, nunca mostra "0 kcal".
+    expect(screen.queryByText(/0 kcal/)).not.toBeInTheDocument();
+    expect(screen.getByText(/Identifique os alimentos/)).toBeInTheDocument();
+  });
+
+  // PLAN P1B corrective §14/§21 — o caso "1 pão francês": fuzzy match médio
+  // mostra "Você quis dizer?" e resolve com um único toque, sem busca manual.
+  it('confiança "medium" mostra "Você quis dizer?" com "Usar este" — mesmo caminho do "1 pão francês"', async () => {
+    parseIntakeText.mockResolvedValue({
+      items: [
+        {
+          resolved: true, rawText: "1 pao francez", foodQuery: "pao francez", foodId: 42, name: "Pão, trigo, francês",
+          grams: 50, per100g: { kcal: 300, p: 8, c: 58, f: 3 }, energyKcal: 150, proteinG: 4, carbohydrateG: 29, fatG: 1.5,
+          resolver: "catalog", confidence: "medium", confirmed: false, matchScore: 0.83,
+        },
+      ],
+      totals: { energyKcal: 150, proteinG: 4, carbohydrateG: 29, fatG: 1.5 },
+      needsConfirmation: true,
+    });
+    render(<IntakeLogSheet open onClose={() => {}} onSaved={() => {}} />);
+
+    const input = screen.getByPlaceholderText(/Ex\.: 200g de frango/);
+    await userEvent.type(input, "1 pao francez");
+    await userEvent.click(screen.getByRole("button", { name: "Estimar" }));
+
+    await screen.findByText(/Você quis dizer/);
+    expect(screen.getByText(/Pão, trigo, francês/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Confirmar" })).toBeDisabled();
+    // Nenhum detalhe técnico do resolver aparece para o usuário.
+    expect(screen.queryByText(/matchScore|0\.83|fuzzy|resolver/i)).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Usar este" }));
+    expect(screen.getByRole("button", { name: "Confirmar" })).not.toBeDisabled();
+  });
+
+  it('confiança "medium" oferece "Buscar outro alimento" sem sair da jornada', async () => {
+    parseIntakeText.mockResolvedValue({
+      items: [
+        {
+          resolved: true, rawText: "1 pao francez", foodQuery: "pao francez", foodId: 42, name: "Pão, trigo, francês",
+          grams: 50, per100g: { kcal: 300, p: 8, c: 58, f: 3 }, energyKcal: 150, proteinG: 4, carbohydrateG: 29, fatG: 1.5,
+          resolver: "catalog", confidence: "medium", confirmed: false,
+        },
+      ],
+      totals: { energyKcal: 150, proteinG: 4, carbohydrateG: 29, fatG: 1.5 },
+      needsConfirmation: true,
+    });
+    render(<IntakeLogSheet open onClose={() => {}} onSaved={() => {}} />);
+
+    const input = screen.getByPlaceholderText(/Ex\.: 200g de frango/);
+    await userEvent.type(input, "1 pao francez");
+    await userEvent.click(screen.getByRole("button", { name: "Estimar" }));
+    await screen.findByText(/Você quis dizer/);
+
+    await userEvent.click(screen.getByRole("button", { name: "Buscar outro alimento" }));
+    expect(screen.getByPlaceholderText("Buscar alimento…")).toBeInTheDocument();
   });
 
   it("Cancelar fecha sem chamar submitIntakeLog", async () => {

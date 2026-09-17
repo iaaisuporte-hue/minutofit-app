@@ -148,7 +148,9 @@ export function IntakeLogSheet({
 
   const totals = sumTotals(items);
   const hasUnresolved = items.some((i) => !i.resolved);
-  const hasUnconfirmedLow = items.some((i) => i.resolved && i.confidence === "low" && !i.confirmed);
+  // "medium" (fuzzy "você quis dizer") exige o mesmo toque explícito de
+  // aceite que "low" já exigia — mesma regra do backend (PLAN P1B corrective §15).
+  const hasUnconfirmedLow = items.some((i) => i.resolved && i.confidence !== "high" && !i.confirmed);
   const canConfirm = items.length > 0 && !hasUnresolved && !hasUnconfirmedLow && !saving;
 
   async function handleConfirm() {
@@ -249,10 +251,19 @@ export function IntakeLogSheet({
                 onRemove={() => setItems((prev) => prev.filter((_, idx) => idx !== i))}
               />
             ))}
-            <div style={{ fontSize: 13, fontWeight: 700, color: COLORS.text, marginTop: 4 }}>
-              Total: ≈ {Math.round(totals.energyKcal)} kcal · P {Math.round(totals.proteinG)}g · C {Math.round(totals.carbohydrateG)}g · G{" "}
-              {Math.round(totals.fatG)}g
-            </div>
+            {hasUnresolved ? (
+              // 0 significa "zero calorias", nunca "desconhecido" — enquanto
+              // houver item não identificado, não existe total a mostrar
+              // (PLAN P1B corrective §13).
+              <div className="muted" style={{ fontSize: 13, marginTop: 4 }}>
+                Identifique os alimentos abaixo para calcular o total.
+              </div>
+            ) : (
+              <div style={{ fontSize: 13, fontWeight: 700, color: COLORS.text, marginTop: 4 }}>
+                Total: ≈ {Math.round(totals.energyKcal)} kcal · P {Math.round(totals.proteinG)}g · C {Math.round(totals.carbohydrateG)}g · G{" "}
+                {Math.round(totals.fatG)}g
+              </div>
+            )}
           </div>
         )}
 

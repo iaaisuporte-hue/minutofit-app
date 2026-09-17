@@ -127,7 +127,14 @@ export function IntakeItemRow({
     );
   }
 
-  const needsConfirmation = item.confidence === "low" && !item.confirmed;
+  // "medium" (fuzzy plausível, mas não certo) e "low" exigem o mesmo toque
+  // explícito antes do Confirmar geral liberar — só a apresentação muda:
+  // medium ganha o cartão "Você quis dizer?" (PLAN P1B corrective §14), nunca
+  // expondo score/resolver/algoritmo ao usuário. Nem "não" precisa navegar
+  // pra fora: "Buscar outro alimento" reaproveita a mesma busca inline do
+  // estado não-resolvido.
+  const needsConfirmation = item.confidence !== "high" && !item.confirmed;
+  const isSuggestion = needsConfirmation && item.confidence === "medium";
 
   return (
     <div
@@ -138,6 +145,11 @@ export function IntakeItemRow({
         borderColor: needsConfirmation ? "var(--color-warn-border, #F59E0B)" : undefined,
       }}
     >
+      {isSuggestion && (
+        <div style={{ fontSize: 12, color: COLORS.muted, marginBottom: 8 }}>
+          Não encontrei exatamente "{item.rawText}". Você quis dizer?
+        </div>
+      )}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
         <div style={{ minWidth: 0, flex: 1 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: COLORS.text, overflow: "hidden", textOverflow: "ellipsis" }}>
@@ -186,10 +198,24 @@ export function IntakeItemRow({
             style={{ background: "var(--color-warn-soft, #FEF3C7)", borderColor: "var(--color-warn-border, #F59E0B)" }}
             onClick={() => onChange({ ...item, confirmed: true })}
           >
-            Confirme
+            {isSuggestion ? "Usar este" : "Confirme"}
           </button>
         )}
       </div>
+
+      {isSuggestion && (
+        <button
+          type="button"
+          className="btn btn-ghost btn-sm"
+          style={{ marginTop: 8, width: "100%" }}
+          onClick={() => {
+            setQuery(item.foodQuery);
+            setSearchOpen(true);
+          }}
+        >
+          Buscar outro alimento
+        </button>
+      )}
     </div>
   );
 }

@@ -103,7 +103,8 @@ export async function saveMyNutritionTarget(input: EstimateTargetInput): Promise
 // ---------------------------------------------------------------------------
 
 export type IntakeItemResolver = 'catalog' | 'measure' | 'manual' | 'plan';
-export type IntakeConfidence = 'high' | 'low';
+/** `medium` = fuzzy match plausível mas não certo — UI "Você quis dizer?" (PLAN P1B corrective). */
+export type IntakeConfidence = 'high' | 'medium' | 'low';
 
 export interface IntakePreviewItem {
   resolved: boolean;
