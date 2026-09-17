@@ -218,6 +218,25 @@ export async function submitIntakeLog(input: {
   return json.data;
 }
 
+/**
+ * PLAN P1B corrective ("Consulta + Edição de Refeição Registrada") — edita
+ * o CONTEÚDO de um log já persistido. Nunca envia `dateKey`/`loggedAt`
+ * (preservados pelo servidor); o servidor sempre recalcula kcal/macros a
+ * partir dos itens, nunca aceita totais do cliente.
+ */
+export async function updateIntakeLog(
+  id: number,
+  input: { label: string; rawText?: string | null; items: IntakeItemRequest[]; source: IntakeSource }
+): Promise<IntakeLogRecord> {
+  const res = await authFetch(`${API_URL}/user/nutrition-intake/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  });
+  const json = await readJson(res);
+  return json.data;
+}
+
 export interface DayCoverage {
   loggedMeals: number;
   expectedMeals: number;

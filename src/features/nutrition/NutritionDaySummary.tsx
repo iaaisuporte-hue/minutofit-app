@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { ClipboardList, Calculator } from "lucide-react";
+import { ClipboardList, Calculator, ChevronRight } from "lucide-react";
 import { COLORS } from "../../styles/colors";
 import { SkeletonPanelCard } from "../../components/feedback/Skeleton";
 import { EmptyState } from "../../components/EmptyState";
-import { getDayIntake, type DayIntakeResponse } from "../../services/nutritionIntakeApi";
+import { IntakeLogSheet } from "./IntakeLogSheet";
+import { IntakeLogDetailSheet } from "./IntakeLogDetailSheet";
+import { getDayIntake, type DayIntakeResponse, type IntakeLogRecord } from "../../services/nutritionIntakeApi";
 
 /**
  * "Seu dia nutricional" — PLAN_NUTRITION_QUICK_MACROS (P1B, adendo).
@@ -20,6 +22,12 @@ export function NutritionDaySummary({ refreshToken = 0 }: { refreshToken?: numbe
   const [data, setData] = useState<DayIntakeResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  // PLAN P1B corrective ("Consulta + Edição") — detalhe/edição vivem aqui
+  // porque este componente já é quem busca e recarrega `getDayIntake()`;
+  // evita duplicar a chamada ou subir estado para a página só para isto.
+  const [detailLog, setDetailLog] = useState<IntakeLogRecord | null>(null);
+  const [editingLog, setEditingLog] = useState<IntakeLogRecord | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
 
   function load() {
     setLoading(true);
@@ -85,6 +93,10 @@ export function NutritionDaySummary({ refreshToken = 0 }: { refreshToken?: numbe
         )}
       </div>
 
+      {hasLogs && (
+        <RegisteredMealsList logs={logs} onOpenDetail={setDetailLog} />
+      )}
+
       {target && (
         <div style={{ marginTop: 16 }}>
           {hasLogs ? (
@@ -96,6 +108,96 @@ export function NutritionDaySummary({ refreshToken = 0 }: { refreshToken?: numbe
       )}
 
       <MicroInsight logs={logs} target={target} plannedMeals={plannedMeals} coverageLevel={coverage.level} />
+
+      <IntakeLogDetailSheet
+        log={detailLog}
+        open={detailLog != null}
+        onClose={() => setDetailLog(null)}
+        onEdit={() => {
+          setEditingLog(detailLog);
+          setDetailLog(null);
+          setEditOpen(true);
+        }}
+        onDeleted={() => {
+          setDetailLog(null);
+          load();
+        }}
+      />
+      <IntakeLogSheet
+        open={editOpen}
+        editingLog={editingLog}
+        onClose={() => {
+          setEditOpen(false);
+          setEditingLog(null);
+        }}
+        onSaved={() => {
+          setEditOpen(false);
+          setEditingLog(null);
+          load();
+        }}
+      />
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Refeições registradas hoje — consulta compacta (PLAN P1B corrective §1/§2)
+// ---------------------------------------------------------------------------
+
+function summarizeItems(items: DayIntakeResponse["logs"][number]["items"]): string {
+  const names = items.map((i) => i.name).join(", ");
+  return names.length > 42 ? `${names.slice(0, 41)}…` : names;
+}
+
+function RegisteredMealsList({
+  logs,
+  onOpenDetail,
+}: {
+  logs: DayIntakeResponse["logs"];
+  onOpenDetail: (log: IntakeLogRecord) => void;
+}) {
+  const sorted = [...logs].sort((a, b) => new Date(a.loggedAt).getTime() - new Date(b.loggedAt).getTime());
+  return (
+    <div style={{ marginTop: 14 }}>
+      <div className="muted" style={{ fontSize: "var(--text-xs)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 6 }}>
+        Refeições registradas
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        {sorted.map((log) => (
+          <button
+            key={log.id}
+            type="button"
+            onClick={() => onOpenDetail(log)}
+            className="hit-target-44"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              width: "100%",
+              textAlign: "left",
+              padding: "8px 10px",
+              borderRadius: "var(--radius-md)",
+              border: "1px solid var(--color-border)",
+              background: "var(--color-surface-raised)",
+              cursor: "pointer",
+            }}
+          >
+            <span className="muted" style={{ fontSize: 12, flexShrink: 0 }}>
+              {new Date(log.loggedAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+            </span>
+            <span style={{ minWidth: 0, flex: 1 }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: COLORS.text }}>{log.label}</span>
+              {log.items.length > 0 && (
+                <span className="muted" style={{ fontSize: 12, display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {summarizeItems(log.items)}
+                </span>
+              )}
+            </span>
+            <span style={{ fontSize: 12, fontWeight: 700, color: COLORS.text, flexShrink: 0 }}>{Math.round(log.energyKcal)} kcal</span>
+            <ChevronRight size={16} className="muted" style={{ flexShrink: 0 }} />
+          </button>
+        ))}
+      </div>
     </div>
   );
 }

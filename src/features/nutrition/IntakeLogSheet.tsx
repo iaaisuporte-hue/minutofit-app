@@ -6,6 +6,7 @@ import { IntakeItemRow } from "./IntakeItemRow";
 import {
   parseIntakeText,
   submitIntakeLog,
+  updateIntakeLog,
   getIntakeShortcuts,
   type IntakePreviewItem,
   type IntakeItemRequest,
@@ -91,17 +92,27 @@ function sumTotals(items: WorkingItem[]) {
  * Confirmar fica desabilitado enquanto existir item não resolvido OU item de
  * baixa confiança sem toque explícito de aceite — a MESMA regra que o
  * backend aplica (§9): isto é UX, não é a garantia.
+ *
+ * MESMO editor serve para criar e editar (PLAN P1B corrective — "Consulta +
+ * Edição"; §3 pede explicitamente reaproveitar, nunca duas implementações).
+ * `editingLog` presente = modo edição: os itens já persistidos entram
+ * pré-carregados (mesma conversão de `persistedToWorking` já usada para
+ * repetir favoritos/ontem), o botão salva via PATCH em vez de POST, e
+ * `dateKey`/`loggedAt`/`mealId` originais NUNCA são tocados — o editor só
+ * manda `label`/`items`/`source` (§9).
  */
 export function IntakeLogSheet({
   open,
   onClose,
   onSaved,
   defaultMealId,
+  editingLog,
 }: {
   open: boolean;
   onClose: () => void;
   onSaved: (log: IntakeLogRecord) => void;
   defaultMealId?: number | null;
+  editingLog?: IntakeLogRecord | null;
 }) {
   const [shortcuts, setShortcuts] = useState<IntakeShortcuts | null>(null);
   const [text, setText] = useState("");
@@ -112,16 +123,23 @@ export function IntakeLogSheet({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const isEditing = editingLog != null;
 
   useEffect(() => {
     if (!open) return;
     setText("");
-    setLabel("");
-    setItems([]);
-    setSource("manual");
     setError(null);
+    if (editingLog) {
+      setLabel(editingLog.label);
+      setItems(persistedToWorking(editingLog.items));
+      setSource(editingLog.source as IntakeSource);
+    } else {
+      setLabel("");
+      setItems([]);
+      setSource("manual");
+    }
     getIntakeShortcuts().then(setShortcuts).catch(() => setShortcuts(null));
-  }, [open]);
+  }, [open, editingLog]);
 
   async function handleEstimate() {
     if (!text.trim()) return;
@@ -129,9 +147,14 @@ export function IntakeLogSheet({
     setError(null);
     try {
       const preview = await parseIntakeText(text);
-      setItems(preview.items);
-      setLabel(text.trim().slice(0, 80));
+      // Com itens já presentes (edição, ou uma segunda estimativa sobre a
+      // mesma refeição), o texto novo ACRESCENTA alimento — nunca substitui
+      // o que já estava confirmado (PLAN P1B corrective §3, "adicionar
+      // alimento" reaproveita o mesmo caminho de texto, não um botão novo).
+      setItems((prev) => (prev.length > 0 ? [...prev, ...preview.items] : preview.items));
+      if (items.length === 0 && !isEditing) setLabel(text.trim().slice(0, 80));
       setSource("parse");
+      setText("");
     } catch {
       setError("Não foi possível interpretar o texto. Tente descrever de outro jeito.");
     } finally {
@@ -159,32 +182,36 @@ export function IntakeLogSheet({
     setError(null);
     try {
       const requests: IntakeItemRequest[] = items.map(previewToRequest);
-      const log = await submitIntakeLog({
-        label: label || "Refeição",
-        rawText: text.trim() || null,
-        mealId: defaultMealId ?? null,
-        items: requests,
-        source,
-      });
+      const log = editingLog
+        ? await updateIntakeLog(editingLog.id, { label: label || "Refeição", rawText: text.trim() || null, items: requests, source })
+        : await submitIntakeLog({
+            label: label || "Refeição",
+            rawText: text.trim() || null,
+            mealId: defaultMealId ?? null,
+            items: requests,
+            source,
+          });
       onSaved(log);
       onClose();
     } catch {
-      setError("Não foi possível registrar. Tente novamente.");
+      setError(isEditing ? "Não foi possível salvar as alterações. Tente novamente." : "Não foi possível registrar. Tente novamente.");
     } finally {
       setSaving(false);
     }
   }
 
   return (
-    <DrawerShell open={open} onClose={onClose} ariaLabel="Registrar refeição">
+    <DrawerShell open={open} onClose={onClose} ariaLabel={isEditing ? "Editar refeição" : "Registrar refeição"}>
       <div style={{ display: "flex", flexDirection: "column", gap: 14, maxHeight: "80dvh", overflowY: "auto" }}>
-        <div style={{ fontSize: 16, fontWeight: 700, color: COLORS.text }}>Registrar refeição</div>
+        <div style={{ fontSize: 16, fontWeight: 700, color: COLORS.text }}>
+          {isEditing ? "Editar refeição" : "Registrar refeição"}
+        </div>
 
         <input
           ref={inputRef}
           type="text"
           className="input"
-          placeholder="Ex.: 200g de frango + 150g de arroz + 2 ovos"
+          placeholder={items.length > 0 ? "Adicionar outro alimento…" : "Ex.: 200g de frango + 150g de arroz + 2 ovos"}
           value={text}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => {
@@ -192,10 +219,13 @@ export function IntakeLogSheet({
           }}
         />
         <button type="button" className="btn btn-sm" disabled={!text.trim() || parsing} onClick={() => void handleEstimate()}>
-          {parsing ? "Estimando..." : "Estimar"}
+          {parsing ? "Estimando..." : items.length > 0 ? "Adicionar" : "Estimar"}
         </button>
 
-        {shortcuts && (
+        {/* Atalhos substituem a lista inteira — fazem sentido para começar uma
+            refeição do zero, não para editar uma já confirmada (substituiria
+            silenciosamente o que o usuário está corrigindo). */}
+        {shortcuts && !isEditing && (
           <div role="toolbar" aria-label="Atalhos de refeição" style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
             {shortcuts.planMeals.map((m) => (
               <button
@@ -274,7 +304,7 @@ export function IntakeLogSheet({
             Cancelar
           </button>
           <button type="button" className="btn btn-primary hit-target-44" style={{ flex: 1 }} disabled={!canConfirm} onClick={() => void handleConfirm()}>
-            {saving ? "Salvando..." : "Confirmar"}
+            {saving ? "Salvando..." : isEditing ? "Salvar" : "Confirmar"}
           </button>
         </div>
         <div style={{ fontSize: 11, color: COLORS.muted, textAlign: "center" }}>
