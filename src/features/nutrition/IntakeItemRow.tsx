@@ -237,9 +237,17 @@ export function IntakeItemRow({
 
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 10 }}>
         {/* Item "como no plano" é a quantidade PRESCRITA — o servidor sempre grava o
-            snapshot original, então o stepper aqui ficaria enganoso; só exibe o valor. */}
-        {item.resolver === "plan" ? (
-          <span style={{ fontSize: 12, color: COLORS.muted }}>{item.grams}g (prescrito)</span>
+            snapshot original, então o stepper aqui ficaria enganoso; só exibe o valor.
+            Mesma lógica para qualquer item cuja unidade ORIGINAL não seja grama
+            (ml, scoop, xícara…) — o stepper ±10g mexeria num número que não é o
+            que o usuário disse (P1B.1 "Smart Food Logging" §3: nunca reescrever
+            "1 scoop"/"200 ml" como se fosse grama). */}
+        {item.resolver === "plan" || (item.unitLabel && item.unitLabel !== "g") ? (
+          <span style={{ fontSize: 12, color: COLORS.muted }}>
+            {item.resolver === "plan"
+              ? `${item.grams}g (prescrito)`
+              : `${item.quantity ?? item.grams} ${item.unitLabel}`}
+          </span>
         ) : (
           <div className="stepper" role="group" aria-label={`Gramas de ${item.name}`}>
             <button

@@ -102,7 +102,7 @@ export async function saveMyNutritionTarget(input: EstimateTargetInput): Promise
 // P1B — Registro rápido de refeição
 // ---------------------------------------------------------------------------
 
-export type IntakeItemResolver = 'catalog' | 'measure' | 'manual' | 'plan';
+export type IntakeItemResolver = 'catalog' | 'measure' | 'manual' | 'plan' | 'history';
 /** `medium` = fuzzy match plausível mas não certo — UI "Você quis dizer?" (PLAN P1B corrective). */
 export type IntakeConfidence = 'high' | 'medium' | 'low';
 
@@ -123,6 +123,13 @@ export interface IntakePreviewItem {
   resolver?: IntakeItemResolver;
   confidence?: IntakeConfidence;
   confirmed?: boolean;
+  /**
+   * Quantidade/unidade EXATAMENTE como o usuário disse (P1B.1 "Smart Food
+   * Logging" — nunca reescrever "200 ml" como "200 g"), preenchido mesmo
+   * quando `resolved:false`. `grams` continua a base de cálculo.
+   */
+  quantity?: number;
+  unitLabel?: string;
 }
 
 export interface NutrientTotals {
@@ -140,6 +147,8 @@ export interface ParsedPreview {
   items: IntakePreviewItem[];
   totals: NutrientTotals;
   needsConfirmation: boolean;
+  /** `true` quando a IA (não o parser determinístico) interpretou o texto — usado só para escolher `source:'parse_ai'` no POST. */
+  aiUsed: boolean;
 }
 
 export async function parseIntakeText(text: string): Promise<ParsedPreview> {
@@ -162,8 +171,20 @@ export type IntakeItemRequest =
       fallbackMeasureKey?: string | null;
       rawText?: string | null;
       confirmed?: boolean;
+      displayQuantity?: number | null;
+      displayUnitLabel?: string | null;
     }
-  | { kind: 'manual'; name: string; grams?: number | null; energyKcal: number; proteinG: number; carbohydrateG: number; fatG: number }
+  | {
+      kind: 'manual';
+      name: string;
+      grams?: number | null;
+      energyKcal: number;
+      proteinG: number;
+      carbohydrateG: number;
+      fatG: number;
+      displayQuantity?: number | null;
+      displayUnitLabel?: string | null;
+    }
   | { kind: 'plan'; planMealItemId: number };
 
 export interface PersistedIntakeItem {
@@ -179,6 +200,9 @@ export interface PersistedIntakeItem {
   resolver: IntakeItemResolver;
   confidence: IntakeConfidence;
   confirmed: boolean;
+  /** Quantidade/unidade ORIGINAIS tal como o usuário disse — exibição apenas (P1B.1); `grams` continua a base de cálculo. */
+  quantity?: number | null;
+  unitLabel?: string | null;
 }
 
 export interface IntakeLogRecord {
@@ -353,12 +377,12 @@ export function itemsToRequest(items: PersistedIntakeItem[]): IntakeItemRequest[
   return items.map((it) => {
     if ((it.resolver === 'catalog' || it.resolver === 'measure') && it.foodId != null && it.grams) {
       // Repetir só precisa do gramas já resolvido — nunca precisa rederivar a medida.
-      return { kind: 'food', foodId: it.foodId, quantity: it.grams, unitType: 'grams' };
+      return { kind: 'food', foodId: it.foodId, quantity: it.grams, unitType: 'grams', displayQuantity: it.quantity ?? null, displayUnitLabel: it.unitLabel ?? null };
     }
-    // manual e plan (o plano já é snapshot fixo; repetir um item plan de log
-    // antigo não tem mais o planMealItemId original — vira manual com os
-    // mesmos números, nunca um novo lookup no catálogo).
-    return { kind: 'manual', name: it.name, grams: it.grams, energyKcal: it.energyKcal, proteinG: it.proteinG, carbohydrateG: it.carbohydrateG, fatG: it.fatG };
+    // manual, history e plan (o plano já é snapshot fixo; repetir um item plan
+    // de log antigo não tem mais o planMealItemId original — vira manual com
+    // os mesmos números, nunca um novo lookup no catálogo).
+    return { kind: 'manual', name: it.name, grams: it.grams, energyKcal: it.energyKcal, proteinG: it.proteinG, carbohydrateG: it.carbohydrateG, fatG: it.fatG, displayQuantity: it.quantity ?? null, displayUnitLabel: it.unitLabel ?? null };
   });
 }
 

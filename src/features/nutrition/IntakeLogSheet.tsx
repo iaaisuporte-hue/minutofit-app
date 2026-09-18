@@ -54,6 +54,8 @@ function persistedToWorking(items: PersistedIntakeItem[]): WorkingItem[] {
     resolver: it.resolver,
     confidence: "high",
     confirmed: true,
+    quantity: it.quantity ?? undefined,
+    unitLabel: it.unitLabel ?? undefined,
   }));
 }
 
@@ -82,7 +84,11 @@ function previewToRequest(item: WorkingItem): IntakeItemRequest {
   // Sem correspondência confiável no catálogo (ex.: whey — PLAN P1B
   // corrective §21) — o usuário informou os macros diretamente; nunca
   // inventados pelo servidor, mesmo item `manual` já validado no backend.
-  if (item.resolver === "manual") {
+  if (item.resolver === "manual" || item.resolver === "history") {
+    // "history" (P1B.1 — reaproveitado do próprio histórico do usuário, ex.:
+    // whey na 2ª vez) persiste como `manual`: o backend já recalculou os
+    // macros a partir do histórico no preview; não há um `foodId` de
+    // catálogo para referenciar de volta.
     return {
       kind: "manual",
       name: item.name || item.rawText,
@@ -91,6 +97,8 @@ function previewToRequest(item: WorkingItem): IntakeItemRequest {
       proteinG: item.proteinG ?? 0,
       carbohydrateG: item.carbohydrateG ?? 0,
       fatG: item.fatG ?? 0,
+      displayQuantity: item.quantity ?? null,
+      displayUnitLabel: item.unitLabel ?? null,
     };
   }
   return {
@@ -100,6 +108,8 @@ function previewToRequest(item: WorkingItem): IntakeItemRequest {
     unitType: "grams",
     rawText: item.rawText || undefined,
     confirmed: item.confirmed,
+    displayQuantity: item.quantity ?? null,
+    displayUnitLabel: item.unitLabel ?? null,
   };
 }
 
@@ -202,7 +212,10 @@ export function IntakeLogSheet({
       // o que já estava confirmado (PLAN P1B corrective §3, "adicionar
       // alimento" reaproveita o mesmo caminho de texto, não um botão novo).
       setItems((prev) => (prev.length > 0 ? [...prev, ...preview.items] : preview.items));
-      setSource("parse");
+      // `aiUsed` só reflete se a IA (opcional, ROLLOUT_ONLY) interpretou o
+      // texto — a confiança de cada item já vem do Resolver de qualquer
+      // forma; isto é só telemetria de origem (P1B.1 "Smart Food Logging").
+      setSource(preview.aiUsed ? "parse_ai" : "parse");
       setText("");
     } catch {
       setError("Não foi possível interpretar o texto. Tente descrever de outro jeito.");

@@ -71,7 +71,11 @@ export function IntakeLogDetailSheet({
                   <div style={{ minWidth: 0 }}>
                     <div style={{ fontSize: 13, fontWeight: 600, color: COLORS.text }}>{item.name}</div>
                     <div className="muted" style={{ fontSize: 12 }}>
-                      {item.grams != null ? `${Math.round(item.grams)} g` : "quantidade informada"}
+                      {item.unitLabel && item.unitLabel !== "g" && item.quantity != null
+                        ? `${item.quantity} ${item.unitLabel}`
+                        : item.grams != null
+                        ? `${Math.round(item.grams)} g`
+                        : "quantidade informada"}
                       {item.confidence !== "high" && " · origem estimada"}
                     </div>
                   </div>
