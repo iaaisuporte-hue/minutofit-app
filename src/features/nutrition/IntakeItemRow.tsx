@@ -1,7 +1,22 @@
 import { useState } from "react";
 import { Minus, Plus, Search, X } from "lucide-react";
 import { COLORS } from "../../styles/colors";
-import { searchNutritionFoods, type CatalogFoodSummary, type IntakePreviewItem } from "../../services/nutritionIntakeApi";
+import { searchNutritionFoods, type CanonicalFood, type CatalogFoodSummary, type IntakePreviewItem } from "../../services/nutritionIntakeApi";
+
+/**
+ * Nome natural para exibição (PLAN CANONICAL_FOOD_MODEL_SPIKE §6/§23) — nunca
+ * a string bruta da fonte ("Frango, peito, sem pele, grelhado"). Sem
+ * `canonicalFood` (itens manuais/plano/histórico já têm nome natural do
+ * próprio usuário/nutri), cai no `name` como sempre foi.
+ */
+function displayTitle(canonicalFood: CanonicalFood | undefined, fallbackName: string | undefined): string {
+  if (!canonicalFood) return fallbackName ?? "";
+  const parts = [canonicalFood.baseFood, canonicalFood.variant].filter((p): p is string => Boolean(p));
+  // Espaço, não vírgula — vírgula é a convenção de catalogação da fonte que
+  // esta função existe para esconder ("Banana prata", nunca "Banana, prata").
+  const joined = parts.join(" ");
+  return joined.length > 0 ? joined.charAt(0).toUpperCase() + joined.slice(1) : (fallbackName ?? "");
+}
 
 /** Aceita "12", "12.5" ou "12,5"; string vazia/inválida vira 0. */
 function parseMacroInput(v: string): number {
@@ -99,6 +114,8 @@ export function IntakeItemRow({
       resolved: true,
       foodId: food.id,
       name: food.name,
+      canonicalFood: undefined,
+      candidates: undefined,
       grams,
       per100g: { kcal: food.energyKcal, p: food.proteinG, c: food.carbohydrateG, f: food.fatG },
       energyKcal: round1(food.energyKcal * factor),
@@ -110,6 +127,34 @@ export function IntakeItemRow({
       confirmed: true,
     });
     setSearchOpen(false);
+  }
+
+  /**
+   * Tocar um candidato alternativo (§10) — já vem com `per100g`/`canonicalFood`
+   * calculados pelo Resolver no preview, sem round-trip nova. Confiança sobe
+   * para `high`: o usuário escolheu explicitamente entre opções conhecidas,
+   * a mesma disciplina de "busca explícita" que `pickFood` já aplica.
+   */
+  function pickCandidate(candidate: NonNullable<IntakePreviewItem["candidates"]>[number]) {
+    const grams = item.grams && item.grams > 0 ? item.grams : 100;
+    const factor = grams / 100;
+    onChange({
+      ...item,
+      resolved: true,
+      foodId: candidate.foodId,
+      name: candidate.canonicalFood.baseFood,
+      canonicalFood: candidate.canonicalFood,
+      candidates: undefined,
+      grams,
+      per100g: candidate.per100g,
+      energyKcal: round1(candidate.per100g.kcal * factor),
+      proteinG: round1(candidate.per100g.p * factor),
+      carbohydrateG: round1(candidate.per100g.c * factor),
+      fatG: round1(candidate.per100g.f * factor),
+      resolver: "catalog",
+      confidence: "high",
+      confirmed: true,
+    });
   }
 
   if (!item.resolved || searchOpen) {
@@ -216,7 +261,7 @@ export function IntakeItemRow({
         borderColor: needsConfirmation ? "var(--color-warn-border, #F59E0B)" : undefined,
       }}
     >
-      {isSuggestion && (
+      {isSuggestion && !item.candidates && (
         <div style={{ fontSize: 12, color: COLORS.muted, marginBottom: 8 }}>
           Não encontrei exatamente "{item.rawText}". Você quis dizer?
         </div>
@@ -224,8 +269,13 @@ export function IntakeItemRow({
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
         <div style={{ minWidth: 0, flex: 1 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: COLORS.text, overflow: "hidden", textOverflow: "ellipsis" }}>
-            {item.name}
+            {displayTitle(item.canonicalFood, item.name)}
           </div>
+          {item.canonicalFood?.preparation && (
+            <div className="muted" style={{ fontSize: 11, textTransform: "capitalize" }}>
+              {item.canonicalFood.preparation}
+            </div>
+          )}
           <div style={{ fontSize: 12, color: COLORS.muted }}>
             ≈ {item.energyKcal} kcal · P {item.proteinG}g · C {item.carbohydrateG}g · G {item.fatG}g
           </div>
@@ -234,6 +284,46 @@ export function IntakeItemRow({
           <X size={14} />
         </button>
       </div>
+
+      {/*
+       * Chips de desambiguação (PLAN CANONICAL_FOOD_MODEL_SPIKE §10) — 1 toque,
+       * reaproveita o top-3 que o Resolver já calcula. Diferem por PREPARO
+       * ("Como foi preparado?") ou por serem alimentos genuinamente diferentes
+       * ("Qual destes?") — mesmo componente, o texto do rótulo é que muda,
+       * decidido caso a caso: quando o alimento-base é o mesmo em todos, a
+       * pergunta é sobre preparo; senão, sobre qual alimento.
+       */}
+      {needsConfirmation && item.candidates && item.candidates.length > 0 && (
+        <div style={{ marginTop: 8 }}>
+          <div style={{ fontSize: 12, color: COLORS.muted, marginBottom: 6 }}>
+            {item.candidates.every((c) => c.canonicalFood.baseFood === item.canonicalFood?.baseFood)
+              ? "Como foi preparado?"
+              : "Qual destes?"}
+          </div>
+          <div role="toolbar" aria-label="Alternativas" style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            <button
+              type="button"
+              className="btn btn-sm hit-target-44"
+              style={{ background: "var(--color-warn-soft, #FEF3C7)", borderColor: "var(--color-warn-border, #F59E0B)" }}
+              onClick={() => onChange({ ...item, confirmed: true })}
+            >
+              {displayTitle(item.canonicalFood, item.name)}
+              {item.canonicalFood?.preparation ? ` · ${item.canonicalFood.preparation}` : ""}
+            </button>
+            {item.candidates.map((c) => (
+              <button
+                key={c.foodId}
+                type="button"
+                className="btn btn-sm hit-target-44"
+                onClick={() => pickCandidate(c)}
+              >
+                {displayTitle(c.canonicalFood, undefined)}
+                {c.canonicalFood.preparation ? ` · ${c.canonicalFood.preparation}` : ""}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 10 }}>
         {/* Item "como no plano" é a quantidade PRESCRITA — o servidor sempre grava o
@@ -270,7 +360,7 @@ export function IntakeItemRow({
           </div>
         )}
 
-        {needsConfirmation && (
+        {needsConfirmation && !item.candidates && (
           <button
             type="button"
             className="btn btn-sm"

@@ -250,6 +250,68 @@ describe("IntakeLogSheet", () => {
     });
   });
 
+  // PLAN CANONICAL_FOOD_MODEL_SPIKE.md §6/§10/§23 — nome canônico em vez da
+  // taxonomia bruta da fonte, preparo como legenda própria, e chips de
+  // desambiguação de 1 toque reaproveitando os candidatos já calculados.
+  describe("Canonical Food + candidatos (§6/§10)", () => {
+    it('mostra o nome canônico ("Peito de frango") e o preparo como legenda ("grelhado") — nunca a string bruta da fonte', async () => {
+      parseIntakeText.mockResolvedValue({
+        items: [
+          {
+            resolved: true, rawText: "200g de frango grelhado", foodQuery: "frango grelhado", foodId: 7,
+            name: "Frango, peito, sem pele, grelhado",
+            canonicalFood: { baseFood: "peito de frango", variant: null, preparation: "grelhado" },
+            grams: 200, per100g: { kcal: 159, p: 32, c: 0, f: 2.5 }, energyKcal: 318, proteinG: 64, carbohydrateG: 0, fatG: 5,
+            resolver: "catalog", confidence: "high", confirmed: true,
+          },
+        ],
+        totals: { energyKcal: 318, proteinG: 64, carbohydrateG: 0, fatG: 5 },
+        needsConfirmation: false,
+      });
+      render(<IntakeLogSheet open onClose={() => {}} onSaved={() => {}} />);
+
+      const input = screen.getByPlaceholderText(/Ex\.: 200g de frango/);
+      await userEvent.type(input, "200g de frango grelhado");
+      await userEvent.click(screen.getByRole("button", { name: "Estimar" }));
+
+      await screen.findByText("Peito de frango");
+      expect(screen.getByText("grelhado")).toBeInTheDocument();
+      expect(screen.queryByText(/Frango, peito, sem pele, grelhado/)).not.toBeInTheDocument();
+    });
+
+    it('ambiguidade genuína mostra chips de candidatos — tocar um resolve direto, sem busca manual', async () => {
+      parseIntakeText.mockResolvedValue({
+        items: [
+          {
+            resolved: true, rawText: "2 ovos mexidos", foodQuery: "ovo mexidos", foodId: 478,
+            name: "Ovo, de galinha, inteiro, frito",
+            canonicalFood: { baseFood: "ovo", variant: null, preparation: null },
+            grams: 100, per100g: { kcal: 240, p: 15.6, c: 1.2, f: 18.6 }, energyKcal: 240, proteinG: 15.6, carbohydrateG: 1.2, fatG: 18.6,
+            resolver: "catalog", confidence: "low", confirmed: false,
+            candidates: [
+              { foodId: 474, canonicalFood: { baseFood: "Ovo, de galinha, clara", variant: null, preparation: "cozido" }, per100g: { kcal: 50, p: 11, c: 0, f: 0.2 } },
+              { foodId: 475, canonicalFood: { baseFood: "Ovo, de galinha, gema", variant: null, preparation: "cozido" }, per100g: { kcal: 350, p: 16, c: 1, f: 30 } },
+            ],
+          },
+        ],
+        totals: { energyKcal: 240, proteinG: 15.6, carbohydrateG: 1.2, fatG: 18.6 },
+        needsConfirmation: true,
+      });
+      render(<IntakeLogSheet open onClose={() => {}} onSaved={() => {}} />);
+
+      const input = screen.getByPlaceholderText(/Ex\.: 200g de frango/);
+      await userEvent.type(input, "2 ovos mexidos");
+      await userEvent.click(screen.getByRole("button", { name: "Estimar" }));
+
+      await screen.findByRole("toolbar", { name: "Alternativas" });
+      expect(screen.getByRole("button", { name: /Ovo, de galinha, clara · cozido/ })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Confirmar" })).toBeDisabled();
+
+      await userEvent.click(screen.getByRole("button", { name: /Ovo, de galinha, gema · cozido/ }));
+      expect(screen.getByRole("button", { name: "Confirmar" })).not.toBeDisabled();
+    });
+  });
+
   it("Cancelar fecha sem chamar submitIntakeLog", async () => {
     const onClose = vi.fn();
     render(<IntakeLogSheet open onClose={onClose} onSaved={() => {}} />);

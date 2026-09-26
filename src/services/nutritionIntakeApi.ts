@@ -106,12 +106,26 @@ export type IntakeItemResolver = 'catalog' | 'measure' | 'manual' | 'plan' | 'hi
 /** `medium` = fuzzy match plausível mas não certo — UI "Você quis dizer?" (PLAN P1B corrective). */
 export type IntakeConfidence = 'high' | 'medium' | 'low';
 
+/**
+ * Identidade de DOMÍNIO do alimento (PLAN CANONICAL_FOOD_MODEL_SPIKE §6) —
+ * nome natural para exibição ("Peito de frango" · "Grelhado"), nunca a
+ * string bruta da fonte de dados ("Frango, peito, sem pele, grelhado").
+ * `name`/`foodId` continuam a identidade do registro de composição (TACO/
+ * USDA/etc.) — a fonte nunca aparece nesta estrutura, só no dado interno.
+ */
+export interface CanonicalFood {
+  baseFood: string;
+  variant: string | null;
+  preparation: string | null;
+}
+
 export interface IntakePreviewItem {
   resolved: boolean;
   rawText: string;
   foodQuery: string;
   foodId?: number;
   name?: string;
+  canonicalFood?: CanonicalFood;
   grams?: number;
   measureId?: number | null;
   fallbackMeasureKey?: string | null;
@@ -130,6 +144,16 @@ export interface IntakePreviewItem {
    */
   quantity?: number;
   unitLabel?: string;
+  /**
+   * Candidatos alternativos quando a confiança NÃO é `high` (§10/§20) —
+   * nunca populado no caminho feliz. Alimenta a UI de chips "qual destes?"
+   * sem round-trip nova — já é o top-3 que o Resolver calcula hoje.
+   */
+  candidates?: Array<{
+    foodId: number;
+    canonicalFood: CanonicalFood;
+    per100g: { kcal: number; p: number; c: number; f: number };
+  }>;
 }
 
 export interface NutrientTotals {
@@ -203,6 +227,8 @@ export interface PersistedIntakeItem {
   /** Quantidade/unidade ORIGINAIS tal como o usuário disse — exibição apenas (P1B.1); `grams` continua a base de cálculo. */
   quantity?: number | null;
   unitLabel?: string | null;
+  /** Identidade de domínio (PLAN CANONICAL_FOOD_MODEL_SPIKE §6) — nome natural, snapshot do momento do registro. */
+  canonicalFood?: CanonicalFood | null;
 }
 
 export interface IntakeLogRecord {

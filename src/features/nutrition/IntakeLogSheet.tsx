@@ -56,6 +56,7 @@ function persistedToWorking(items: PersistedIntakeItem[]): WorkingItem[] {
     confirmed: true,
     quantity: it.quantity ?? undefined,
     unitLabel: it.unitLabel ?? undefined,
+    canonicalFood: it.canonicalFood ?? undefined,
   }));
 }
 
@@ -426,7 +427,10 @@ export function IntakeLogSheet({
           </button>
         </div>
         <div style={{ fontSize: 11, color: COLORS.muted, textAlign: "center" }}>
-          Valores estimados pelo catálogo TACO.
+          {/* Nunca nomear a fonte específica (TACO/USDA/...) — PLAN
+              CANONICAL_FOOD_MODEL_SPIKE §23: a origem do dado é auditoria
+              interna, nunca aparece na tela do aluno. */}
+          Valores nutricionais estimados a partir de composição de alimentos.
         </div>
       </div>
     </DrawerShell>

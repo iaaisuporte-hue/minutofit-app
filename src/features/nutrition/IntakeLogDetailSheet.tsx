@@ -2,10 +2,20 @@ import { useState } from "react";
 import { COLORS } from "../../styles/colors";
 import { DrawerShell } from "../../components/overlay/DrawerShell";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
-import { deleteIntakeLog, type NutritionIntakeMeal } from "../../services/nutritionIntakeApi";
+import { deleteIntakeLog, type CanonicalFood, type NutritionIntakeMeal } from "../../services/nutritionIntakeApi";
 
 function formatLoggedTime(iso: string): string {
   return new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+}
+
+/** Mesma regra de exibição de `IntakeItemRow.tsx` (PLAN CANONICAL_FOOD_MODEL_SPIKE §6/§23) — nome natural, nunca a string bruta da fonte. */
+function displayTitle(canonicalFood: CanonicalFood | null | undefined, fallbackName: string): string {
+  if (!canonicalFood) return fallbackName;
+  const parts = [canonicalFood.baseFood, canonicalFood.variant].filter((p): p is string => Boolean(p));
+  // Espaço, não vírgula — vírgula é a convenção de catalogação da fonte que
+  // esta função existe para esconder ("Banana prata", nunca "Banana, prata").
+  const joined = parts.join(" ");
+  return joined.length > 0 ? joined.charAt(0).toUpperCase() + joined.slice(1) : fallbackName;
 }
 
 /**
@@ -69,7 +79,12 @@ export function IntakeLogDetailSheet({
                   style={{ padding: 12, display: "flex", justifyContent: "space-between", gap: 8 }}
                 >
                   <div style={{ minWidth: 0 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: COLORS.text }}>{item.name}</div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: COLORS.text }}>{displayTitle(item.canonicalFood, item.name)}</div>
+                    {item.canonicalFood?.preparation && (
+                      <div className="muted" style={{ fontSize: 11, textTransform: "capitalize" }}>
+                        {item.canonicalFood.preparation}
+                      </div>
+                    )}
                     <div className="muted" style={{ fontSize: 12 }}>
                       {item.unitLabel && item.unitLabel !== "g" && item.quantity != null
                         ? `${item.quantity} ${item.unitLabel}`
