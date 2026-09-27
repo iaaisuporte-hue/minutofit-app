@@ -24,12 +24,26 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
 
+        <!--
+            `windowSoftInputMode`: sem ele o valor é `adjustUnspecified` e QUEM
+            DECIDE é o sistema/ROM — parte dos aparelhos (Samsung, notadamente)
+            escolhe `adjustPan`, que DESLOCA a janela inteira em vez de
+            encolhê-la. Nesse modo a conta de `visualViewport` (ver
+            `src/lib/KeyboardAwareFocus.tsx`) mede menos que o teclado real,
+            porque o deslocamento entra em `offsetTop` — e a barra de série sobe
+            só em parte, ficando encoberta. Com `adjustResize` a viewport encolhe
+            de verdade e o comportamento é o mesmo em todo aparelho. No Android
+            15+ a plataforma ignora este atributo (o teclado chega como IME
+            inset) e quem resolve é a variável CSS kb-inset: aqui não há
+            regressão, só determinismo no 14 e abaixo.
+        -->
         <activity
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode|navigation"
             android:name=".MainActivity"
             android:label="@string/title_activity_main"
             android:theme="@style/AppTheme.NoActionBarLaunch"
             android:launchMode="singleTask"
+            android:windowSoftInputMode="adjustResize"
             android:exported="true">
 
             <intent-filter>

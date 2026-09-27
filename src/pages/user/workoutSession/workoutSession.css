@@ -604,6 +604,24 @@
 :root.kb-open .ws-action-bar {
   padding-bottom: 10px;
   box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.18);
+  gap: 6px;
+}
+
+/* Versão COMPACTA da barra enquanto o teclado está aberto.
+   Com metade da tela ocupada pelo teclado, o que precisa sobreviver é o par
+   carga/reps e o "Concluir série" — é esse o fluxo de quem está digitando.
+   Os itens de apoio saem da VISTA, não do produto: voltam inteiros assim que o
+   teclado fecha (some informação, nunca função).
+   `.ws-ab-prev` cobre também o atalho "Repetir", que carrega as duas classes —
+   e repetir a série anterior é justamente o que NÃO se quer de quem abriu o
+   teclado para digitar um valor diferente. */
+:root.kb-open .ws-ab-prev,
+:root.kb-open .ws-ab-skip {
+  display: none;
+}
+
+:root.kb-open .ws-ab-done {
+  min-height: 48px;
 }
 
 .ws-ab-head {

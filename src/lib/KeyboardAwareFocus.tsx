@@ -32,39 +32,48 @@ function ehCampo(el: EventTarget | null): el is HTMLElement {
   return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || el.isContentEditable;
 }
 
-/**
- * O ancestral que realmente rola. Sem ele não dá para abrir espaço no lugar
- * certo: em telas como o Modo Treino quem rola é um container interno, não o
- * documento.
- */
-/**
- * O campo está dentro de um container `position: fixed` (barra ancorada no
- * rodapé)? Nesse caso rolar não adianta NADA: o elemento é posicionado contra a
- * viewport de layout, que não encolhe quando o teclado abre, então ele fica
- * atrás do teclado por mais que a página role. Quem resolve esse caso é a
- * variável `--kb-inset` (abaixo), que levanta a barra. Aqui só saímos do
- * caminho — insistir na rolagem empurraria a página sem motivo.
- */
-function dentroDeBarraFixa(el: HTMLElement): boolean {
-  let p: HTMLElement | null = el;
-  while (p && p !== document.body) {
-    if (getComputedStyle(p).position === "fixed") return true;
-    p = p.parentElement;
-  }
-  return false;
-}
+type ContextoDeRolagem =
+  | { tipo: "barra_fixa" }
+  | { tipo: "rolavel"; scroller: HTMLElement };
 
-function scrollerDe(el: HTMLElement): HTMLElement {
+/**
+ * Decide, numa única subida na árvore, se o campo dá para resolver por ROLAGEM
+ * ou se ele mora numa barra ancorada (onde rolar não alcança e quem resolve é
+ * `--kb-inset`, levantando a barra).
+ *
+ * **A ORDEM É A CORREÇÃO DO P0.** A checagem anterior era em duas etapas
+ * independentes e perguntava primeiro "existe QUALQUER ancestral fixo?",
+ * desistindo da rolagem se houvesse. O raciocínio valia para a barra de série
+ * (`position: fixed; bottom: 0`), mas o Modo Treino inteiro vive dentro de
+ * `.ws-root { position: fixed; inset: 0 }` — o shell da tela. Então TODO campo
+ * da tela batia nessa saída, inclusive os de carga/reps da lista de séries, que
+ * rolam muito bem dentro de `.ws-body` (`overflow-y: auto`). Na prática a
+ * rolagem automática nunca rodava no Modo Treino: o campo focado ficava atrás
+ * do teclado e nada acontecia.
+ *
+ * O que decide não é "existe um fixo em algum lugar acima", é QUEM VEM PRIMEIRO
+ * a partir do campo: havendo um container rolável antes do ancestral fixo, a
+ * rolagem chega no campo; se o fixo vem primeiro, não há para onde rolar.
+ */
+function resolverContexto(el: HTMLElement): ContextoDeRolagem {
   let p: HTMLElement | null = el.parentElement;
   while (p && p !== document.body) {
     const st = getComputedStyle(p);
-    const rolavel = /(auto|scroll)/.test(st.overflowY);
-    if (rolavel && p.scrollHeight > p.clientHeight + 1) return p;
+    // Rolável vence quando o mesmo elemento é as duas coisas (folha fixa com
+    // rolagem interna): ali a rolagem interna alcança o campo.
+    if (/(auto|scroll)/.test(st.overflowY) && p.scrollHeight > p.clientHeight + 1) {
+      return { tipo: "rolavel", scroller: p };
+    }
+    if (st.position === "fixed") return { tipo: "barra_fixa" };
     p = p.parentElement;
   }
-  return document.scrollingElement instanceof HTMLElement
-    ? document.scrollingElement
-    : document.documentElement;
+  return {
+    tipo: "rolavel",
+    scroller:
+      document.scrollingElement instanceof HTMLElement
+        ? document.scrollingElement
+        : document.documentElement,
+  };
 }
 
 /**
@@ -118,12 +127,9 @@ export function KeyboardAwareFocus() {
   useEffect(() => {
     const vv = window.visualViewport;
     let alvo: HTMLElement | null = null;
+    /** Container que rola para trazer `alvo` à vista — resolvido no foco. */
+    let scroller: HTMLElement | null = null;
 
-    /**
-     * Traz o campo para a área ainda visível, se o teclado o cobriu.
-     * `block: "center"` em vez de "nearest": no meio da tela o campo fica
-     * visível junto com o botão que costuma segui-lo (concluir série, salvar).
-     */
     /** Container ao qual demos espaço extra — para desfazer depois. */
     let folgado: HTMLElement | null = null;
 
@@ -135,7 +141,7 @@ export function KeyboardAwareFocus() {
     }
 
     function ajustar() {
-      if (!alvo || !alvo.isConnected) return;
+      if (!alvo || !alvo.isConnected || !scroller) return;
       // Sem visualViewport (navegador antigo), usa a altura da janela: aí o
       // cálculo só acerta quando a janela é redimensionada pelo teclado, que é
       // exatamente o caso em que a correção seria desnecessária. Sair é melhor
@@ -150,7 +156,7 @@ export function KeyboardAwareFocus() {
       // scroll — foi o que aconteceu com a última série do treino, que subiu
       // 20px e continuou embaixo do teclado. Aqui abrimos espaço equivalente
       // ao teclado no container que rola, e só então rolamos.
-      const sc = scrollerDe(alvo);
+      const sc = scroller;
       if (alturaTeclado > MIN_TECLADO && folgado !== sc) {
         limparFolga();
         folgado = sc;
@@ -169,8 +175,16 @@ export function KeyboardAwareFocus() {
 
     function onFocusIn(e: FocusEvent) {
       if (!ehCampo(e.target)) return;
-      if (dentroDeBarraFixa(e.target)) { alvo = null; return; }
+      const ctx = resolverContexto(e.target);
+      // Barra ancorada: `--kb-inset` já levanta a barra inteira, com o campo
+      // dentro. Rolar aqui só empurraria a página sem alcançar nada.
+      if (ctx.tipo === "barra_fixa") {
+        alvo = null;
+        scroller = null;
+        return;
+      }
       alvo = e.target;
+      scroller = ctx.scroller;
       // Dois tempos de propósito: o teclado abre DEPOIS do focus, então a
       // primeira medição ainda vê a tela inteira. O segundo ajuste é o que
       // costuma valer; o primeiro cobre o caso do teclado já aberto (pulando
@@ -181,6 +195,7 @@ export function KeyboardAwareFocus() {
 
     function onFocusOut() {
       alvo = null;
+      scroller = null;
       // Devolve o espaço: deixar o padding fixo criaria um vão no fim de toda
       // tela que já teve um campo focado.
       limparFolga();
