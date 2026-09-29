@@ -1,14 +1,50 @@
 apply plugin: 'com.android.application'
 
 // Assinatura de release (Play Store). O arquivo keystore.properties é local,
-// nunca commitado (contém senha em texto puro) — sem ele, o build de release
-// simplesmente sai sem assinar (falha no bundleRelease, com mensagem clara),
-// e builds de debug/CI continuam funcionando normalmente.
+// nunca commitado (contém senha em texto puro). Modelo do formato em
+// `keystore.properties.example`, ao lado.
 def keystorePropertiesFile = rootProject.file('keystore.properties')
 def keystoreProperties = new Properties()
 def hasKeystoreProperties = keystorePropertiesFile.exists()
 if (hasKeystoreProperties) {
     keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+}
+
+// Sem o arquivo, o AGP NÃO falha sozinho: ele simplesmente não aplica
+// `signingConfig` e entrega um `app-release.aab` SEM ASSINATURA, com build
+// bem-sucedido e nenhum aviso. O erro só aparece lá na frente, no upload ao
+// Play — com o build inteiro (lint + testes + bundle) já gasto, e um
+// versionCode queimado se o envio chegou a ser tentado. Este guard antecipa
+// essa falha para o começo, dizendo o motivo.
+//
+// `taskGraph.whenReady` em vez de checagem na configuração: assim
+// `assembleDebug` e qualquer tarefa que não seja de release continuam rodando
+// sem o arquivo — que é o caso de todo build local de desenvolvimento.
+//
+// Seguro para o CI: o workflow escreve `keystore.properties` no passo
+// "Restaurar keystore de release", ANTES de chamar `bundleRelease`.
+if (!hasKeystoreProperties) {
+    // Capturado FORA do closure: dentro dele, `project` dependeria da cadeia de
+    // resolução delegate/owner do Gradle. Comparar caminho de projeto é explícito
+    // e restringe o guard a ESTE módulo — os plugins do Capacitor também têm
+    // tarefas `assembleRelease`, e nenhuma delas precisa de chave de upload.
+    def caminhoDesteModulo = project.path
+    gradle.taskGraph.whenReady { graph ->
+        def ehRelease = graph.allTasks.any { tarefa ->
+            tarefa.project.path == caminhoDesteModulo &&
+                (tarefa.name == 'bundleRelease' || tarefa.name == 'assembleRelease')
+        }
+        if (ehRelease) {
+            // Mensagem em ASCII puro: ela é lida no terminal do Windows, onde a
+            // page de código nem sempre é UTF-8.
+            throw new GradleException(
+                "Build de release sem chave: 'android/keystore.properties' nao existe.\n" +
+                "Sem ele o AAB sairia NAO ASSINADO (o build 'passa' e o Play rejeita no upload).\n" +
+                "Copie 'android/keystore.properties.example' e preencha com a chave de upload JA\n" +
+                "USADA nos envios anteriores - chave nova faz o Play recusar por assinatura divergente."
+            )
+        }
+    }
 }
 
 // AccessKey do Picovoice (P5C — spike técnico de wake word, SEM fornecedor
