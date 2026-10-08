@@ -1,5 +1,7 @@
 ext {
-    minSdkVersion = 23
+    // 24: exigido pela Proteção Automática do Google Play (Play Protect) —
+    // o Play recusou o 1º upload com minSdk 23 pedindo pelo menos 24.
+    minSdkVersion = 24
     // 36: exigido por androidx.browser:browser:1.9.0 (trazido pelo
     // @capgo/capacitor-social-login — login nativo Google).
     compileSdkVersion = 36
