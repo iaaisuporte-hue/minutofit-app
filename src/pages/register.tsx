@@ -2,7 +2,8 @@ import { useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Turnstile, type TurnstileInstance } from "@marsidev/react-turnstile";
 import { useAuth, type Role } from "../auth/AuthContext";
-import { GoogleSignInButton } from "../auth/GoogleSignInButton";
+import { AppleSignInButton } from "../auth/AppleSignInButton";
+import { offerToSaveCredential } from "../lib/passwordCredential";
 import {
   formatCpf,
   formatPhone,
@@ -160,16 +161,22 @@ export default function RegisterPage() {
       return;
     }
 
+    void offerToSaveCredential(form.email.trim().toLowerCase(), form.password);
     setIsLoading(false);
     nav("/profile-completion", { replace: true });
   }
 
-  async function onGoogleCredential(idToken: string) {
+  async function onAppleCredential(
+    identityToken: string,
+    userData?: { name?: string; email?: string },
+  ) {
     setError(null);
     setIsLoading(true);
-    const res = await loginWithOAuth("google", idToken);
+    // `userData` só vem na primeira autorização deste Apple ID — é a única
+    // chance de o backend gravar nome e e-mail (ver appleNativeAuth.ts).
+    const res = await loginWithOAuth("apple", identityToken, userData);
     if (!res.ok) {
-      setError(res.message || "Falha no cadastro com Google.");
+      setError(res.message || "Falha no cadastro com a Apple.");
       setIsLoading(false);
       return;
     }
@@ -196,7 +203,11 @@ export default function RegisterPage() {
           Após criar a conta você completa o perfil físico e a triagem obrigatória em Configurações.
         </p>
 
-        <GoogleSignInButton onCredential={onGoogleCredential} text="signup_with" />
+        {/* Google removido (não funcionando, não publicado nas lojas ainda) —
+            GoogleSignInButton.tsx e o backend seguem intactos para religar depois. */}
+        <div style={{ display: "grid", gap: 10, justifyItems: "center" }}>
+          <AppleSignInButton onCredential={onAppleCredential} text="signup_with" />
+        </div>
         <div className="auth-divider"><span>ou preencha seus dados</span></div>
 
         {error && (

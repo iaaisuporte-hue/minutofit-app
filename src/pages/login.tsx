@@ -2,8 +2,9 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth, type Role, type AcademyForUser } from "../auth/AuthContext";
 import type { AccessProfile } from "../auth/accessControl";
-import { GoogleSignInButton } from "../auth/GoogleSignInButton";
+import { AppleSignInButton } from "../auth/AppleSignInButton";
 import S2CoreLogo from "../components/S2CoreLogo";
+import { offerToSaveCredential } from "../lib/passwordCredential";
 import { extractTenantSlug, fetchBranding, type AcademyBrandingPublic } from "../services/tenantHost";
 
 const ACADEMY_PROFILES: AccessProfile[] = [
@@ -83,19 +84,24 @@ export default function LoginPage() {
       return;
     }
 
+    void offerToSaveCredential(email, password);
     setIsLoading(false);
   }
 
-  async function onGoogleCredential(idToken: string) {
+  async function onAppleCredential(
+    identityToken: string,
+    userData?: { name?: string; email?: string },
+  ) {
     setError(null);
     setIsLoading(true);
-    const res = await loginWithOAuth("google", idToken);
+    // `userData` só vem na primeira autorização deste Apple ID — é a única
+    // chance de o backend gravar nome e e-mail (ver appleNativeAuth.ts).
+    const res = await loginWithOAuth("apple", identityToken, userData);
     if (!res.ok) {
-      setError(res.message || "Falha no login com Google.");
+      setError(res.message || "Falha no login com a Apple.");
       setIsLoading(false);
       return;
     }
-    // Redirecionamento é tratado pelo useEffect (isAuthenticated) + ProtectedRoute.
     setIsLoading(false);
   }
 
@@ -140,7 +146,11 @@ export default function LoginPage() {
         <h1 className="auth-title">{welcomeTitle}</h1>
         <p className="auth-subtitle">{welcomeSub}</p>
 
-        <GoogleSignInButton onCredential={onGoogleCredential} text="continue_with" />
+        {/* Google removido (não funcionando, não publicado nas lojas ainda) —
+            GoogleSignInButton.tsx e o backend seguem intactos para religar depois. */}
+        <div style={{ display: "grid", gap: 10, justifyItems: "center" }}>
+          <AppleSignInButton onCredential={onAppleCredential} text="continue_with" />
+        </div>
 
         <div className="auth-divider"><span>ou entre com e-mail</span></div>
 
