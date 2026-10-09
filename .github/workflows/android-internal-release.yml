@@ -1,0 +1,173 @@
+name: Android Internal Release
+
+# Publica o .aab do S2CORE EXCLUSIVAMENTE na faixa "internal" do Google Play.
+# Nunca dispara em push — sempre manual (workflow_dispatch), sempre a partir
+# de main. Ver docs/android/ANDROID_INTERNAL_RELEASE.md para setup e runbook.
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "true = gera o AAB e para antes do upload ao Play (padrão, seguro)"
+        type: boolean
+        default: true
+      release_notes:
+        description: "Notas desta versão (pt-BR). Vazio = 'Build interno automatizado <sha>'."
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-internal-release
+  cancel-in-progress: false
+
+env:
+  ANDROID_PACKAGE_NAME: com.s2core.app
+  # Maior que qualquer versionCode já publicado (7 no momento em que este
+  # workflow foi criado). Nunca abaixar — cada execução soma GITHUB_RUN_NUMBER,
+  # que só cresce, então o resultado é sempre monotônico.
+  BASE_VERSION_CODE: 100
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    environment: google-play-internal
+    steps:
+      - name: Garantir branch main
+        run: |
+          if [ "${{ github.ref }}" != "refs/heads/main" ]; then
+            echo "::error::Este workflow só pode ser disparado a partir de main (ref atual: ${{ github.ref }})."
+            exit 1
+          fi
+
+      - uses: actions/checkout@v4
+
+      - name: Node via .nvmrc
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm test
+
+      - name: Build web (inclui typecheck via tsc -b)
+        run: npm run build
+
+      - name: Capacitor sync android
+        run: npx cap sync android
+
+      - name: Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Calcular versionCode
+        id: version
+        run: |
+          CODE=$((BASE_VERSION_CODE + GITHUB_RUN_NUMBER))
+          echo "code=$CODE" >> "$GITHUB_OUTPUT"
+          echo "versionCode desta execução: $CODE"
+
+      - name: Restaurar keystore de release
+        working-directory: android
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -z "$ANDROID_KEYSTORE_BASE64" ]; then
+            echo "::error::Secret ANDROID_KEYSTORE_BASE64 ausente. Configure os secrets do environment 'google-play-internal' — ver docs/android/ANDROID_INTERNAL_RELEASE.md."
+            exit 1
+          fi
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > release.keystore
+          cat > keystore.properties <<PROPS
+          storeFile=release.keystore
+          storePassword=$ANDROID_KEYSTORE_PASSWORD
+          keyAlias=$ANDROID_KEY_ALIAS
+          keyPassword=$ANDROID_KEY_PASSWORD
+          PROPS
+
+      - name: Gradle bundleRelease
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew bundleRelease -PversionCode=${{ steps.version.outputs.code }} --no-daemon
+
+      - name: Remover keystore do runner
+        if: always()
+        working-directory: android
+        run: rm -f release.keystore keystore.properties
+
+      - name: Verificar AAB gerado
+        id: aab
+        run: |
+          AAB_PATH="android/app/build/outputs/bundle/release/app-release.aab"
+          if [ ! -f "$AAB_PATH" ]; then
+            echo "::error::AAB não encontrado em $AAB_PATH — build de release falhou silenciosamente ou não assinou."
+            exit 1
+          fi
+          echo "path=$AAB_PATH" >> "$GITHUB_OUTPUT"
+          echo "size=$(du -h "$AAB_PATH" | cut -f1)" >> "$GITHUB_OUTPUT"
+
+      - name: Upload AAB como artifact do workflow
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release-${{ steps.version.outputs.code }}
+          path: ${{ steps.aab.outputs.path }}
+          retention-days: 14
+
+      - name: Preparar release notes
+        id: notes
+        env:
+          RELEASE_NOTES_INPUT: ${{ inputs.release_notes }}
+        run: |
+          mkdir -p whatsnew
+          NOTES="$RELEASE_NOTES_INPUT"
+          if [ -z "$NOTES" ]; then
+            NOTES="Build interno automatizado ${GITHUB_SHA:0:7}"
+          fi
+          printf '%s' "$NOTES" > whatsnew/whatsnew-pt-BR
+
+      - name: Upload para Google Play (faixa internal)
+        if: ${{ inputs.dry_run == false }}
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: ${{ env.ANDROID_PACKAGE_NAME }}
+          releaseFiles: ${{ steps.aab.outputs.path }}
+          track: internal
+          status: completed
+          whatsNewDirectory: whatsnew
+
+      - name: Resumo
+        if: always()
+        env:
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          UPLOAD_STATUS="pulado (dry run)"
+          if [ "$DRY_RUN" = "false" ]; then
+            UPLOAD_STATUS="executado"
+          fi
+          {
+            echo "## S2CORE — Android Internal Release"
+            echo ""
+            echo "| Campo | Valor |"
+            echo "|---|---|"
+            echo "| Commit | \`${GITHUB_SHA:0:7}\` |"
+            echo "| versionCode | ${{ steps.version.outputs.code }} |"
+            echo "| AAB | \`${{ steps.aab.outputs.path }}\` (${{ steps.aab.outputs.size }}) |"
+            echo "| Track | internal |"
+            echo "| dry_run | $DRY_RUN |"
+            echo "| Upload ao Play | $UPLOAD_STATUS |"
+          } >> "$GITHUB_STEP_SUMMARY"
