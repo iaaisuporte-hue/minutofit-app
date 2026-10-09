@@ -788,27 +788,28 @@ export default function NutritionPlanViewPage() {
   }
 
   if (error || !timeline) {
+    // Sem plano do nutri (B2C / aluno sem nutricionista vinculada): o
+    // registro de refeição e os totais do dia NÃO dependem de plano — o
+    // backend aceita refeição avulsa (`mealId: null`) e calcula os totais
+    // contra a estimativa própria, se houver. Sem plano, toda refeição é
+    // naturalmente "extra": `NutritionDaySummary` já traz o CTA "Registrar
+    // refeição" + `IntakeLogSheet` em modo extra, então nada é duplicado aqui.
+    const intakeEnabled = hasFeature("nutrition_intake");
     return (
-      <div
-        style={{
-          maxWidth: 560,
-          margin: "40px auto",
-          padding: "0 16px",
-          textAlign: "left",
-        }}
-      >
-        {/* Sem plano do nutri: a meta diária ainda vale como estimativa própria (B2C). */}
-        {hasFeature("nutrition_intake") && <NutritionTargetCard />}
-        <div style={{ textAlign: "center" }}>
+      <div className="pageBottomSafe" style={{ maxWidth: 560, margin: "0 auto", paddingTop: 16 }}>
+        {intakeEnabled && <NutritionDaySummary />}
+        {/* A meta diária vale como estimativa própria enquanto não há plano. */}
+        {intakeEnabled && <NutritionTargetCard />}
+        <div style={{ textAlign: "center", marginTop: intakeEnabled ? 20 : 24 }}>
           <div
             style={{
-              fontSize: 16,
+              fontSize: intakeEnabled ? 14 : 16,
               fontWeight: 600,
               color: COLORS.text,
               marginBottom: 8,
             }}
           >
-            Nenhum plano alimentar ativo
+            {intakeEnabled ? "Ainda sem plano alimentar prescrito" : "Nenhum plano alimentar ativo"}
           </div>
           <div style={{ fontSize: 13, color: COLORS.muted }}>
             Quando sua nutricionista prescrever um plano, ele aparecerá aqui.

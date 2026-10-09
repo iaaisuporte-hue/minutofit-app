@@ -808,7 +808,8 @@ export default function TodayPage() {
         )}
       </motion.div>
 
-      {/* 6. Plano alimentar — só renderiza para quem tem nutri (silencioso caso contrário) */}
+      {/* 6. Alimentação — próxima refeição do plano (quem tem nutri) ou atalho de
+          registro avulso (sem plano, com `nutrition_intake`); silencioso sem ambos */}
       <motion.div variants={sectionRevealVariants}>
         <NutritionCheckinCard />
       </motion.div>

@@ -143,7 +143,87 @@ export function NutritionCheckinCard() {
     }
   }
 
-  if (cardState === "loading" || cardState === "no_plan") return null;
+  if (cardState === "loading") return null;
+
+  // ---------------------------------------------------------------------------
+  // Sem plano do nutri — atalho mínimo de registro avulso (refeição extra,
+  // `mealId: null`). Continua silencioso se o registro não está liberado.
+  // ---------------------------------------------------------------------------
+  if (cardState === "no_plan") {
+    if (!intakeEnabled) return null;
+    const hasLogs = Boolean(dayIntake && dayIntake.logs.length > 0);
+    return (
+      <div
+        className="today-card"
+        style={{
+          background: COLORS.card,
+          borderRadius: 16,
+          padding: "16px 20px",
+          border: "1px solid var(--color-border)",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            flexWrap: "wrap",
+            gap: 8,
+            marginBottom: 10,
+          }}
+        >
+          <div style={{ minWidth: 0 }}>
+            <div
+              style={{
+                fontSize: 11,
+                fontWeight: 600,
+                color: COLORS.muted,
+                textTransform: "uppercase",
+                letterSpacing: "0.04em",
+                marginBottom: 1,
+              }}
+            >
+              Alimentação
+            </div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: COLORS.text }}>
+              {hasLogs ? "Seu dia até agora" : "Registre o que você comeu"}
+            </div>
+          </div>
+          <Link
+            to="/app/user/plano-alimentar"
+            className="hit-target-44"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              fontSize: 13,
+              color: COLORS.primary,
+              fontWeight: 600,
+              textDecoration: "none",
+            }}
+          >
+            Ver dia →
+          </Link>
+        </div>
+        {hasLogs && dayIntake && (
+          <div style={{ marginBottom: 8 }}>
+            <IntakeDayStrip totals={dayIntake.totals} target={dayIntake.target} />
+          </div>
+        )}
+        <button type="button" className="btn btn-sm hit-target-44" onClick={() => setIntakeSheetOpen(true)}>
+          <Utensils size={13} style={{ marginRight: 6 }} />
+          Registrar refeição
+        </button>
+        <IntakeLogSheet
+          open={intakeSheetOpen}
+          onClose={() => setIntakeSheetOpen(false)}
+          defaultMealId={null}
+          onSaved={() => {
+            getDayIntake().then(setDayIntake).catch(() => {});
+          }}
+        />
+      </div>
+    );
+  }
 
   // ---------------------------------------------------------------------------
   // All done for the day
