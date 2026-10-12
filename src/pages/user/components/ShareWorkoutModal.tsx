@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { SlidersHorizontal } from "lucide-react";
 import {
   buildShareText,
   composeWorkoutImage,
@@ -14,8 +15,11 @@ import {
   podeCompartilharImagem,
   salvarArte,
 } from "../lib/nativeShare";
+import { createPhotoSession, type PhotoLayers } from "../lib/sharePhotoSource";
+import { defaultEdit } from "../lib/sharePhotoTransform";
 import { isNativeApp } from "../../../lib/platform";
 import { useDismissable } from "../../../lib/overlayStack";
+import { SharePhotoEditor, type SharePhotoEditorResult, type ShareEdits } from "./SharePhotoEditor";
 
 type Props = {
   focus: string;
@@ -55,11 +59,23 @@ const photoBtnStyle = (busy: boolean): React.CSSProperties => ({
 
 type Aviso = { tipo: "ok" | "erro"; texto: string } | null;
 
+const ERRO_FOTO = "Não consegui montar a imagem com essa foto. Tente outra.";
+
+function editsPadrao(): ShareEdits {
+  return { story: defaultEdit(), square: defaultEdit() };
+}
+
 export function ShareWorkoutModal({ focus, dayName, stats, exercises, eyebrow, panelLabel, title, shareText, onClose }: Props) {
   const [image, setImage] = useState<ComposedImage | null>(null);
   const [composing, setComposing] = useState(true);
   const [sharing, setSharing] = useState(false);
-  const [photo, setPhoto] = useState<File | null>(null);
+  // Foto decodificada uma vez e mantida pela sessão (no lugar do `File`):
+  // trocar formato ou reabrir o editor não decodifica de novo.
+  const [session] = useState(createPhotoSession);
+  const [hasPhoto, setHasPhoto] = useState(false);
+  const [step, setStep] = useState<"share" | "edit">("share");
+  const [edits, setEdits] = useState<ShareEdits>(editsPadrao);
+  const [editorLayers, setEditorLayers] = useState<PhotoLayers | null>(null);
   const [format, setFormat] = useState<WorkoutShareFormat>("story");
   const [error, setError] = useState<string | null>(null);
   const [aviso, setAviso] = useState<Aviso>(null);
@@ -67,11 +83,18 @@ export function ShareWorkoutModal({ focus, dayName, stats, exercises, eyebrow, p
   const fileRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
   const avisoTimer = useRef<number | null>(null);
+  // Só a recomposição mais recente grava `image`. Hoje os botões ficam
+  // desabilitados durante a composição; a guarda impede que uma resposta
+  // atrasada sobrescreva a prévia se algum caminho novo dispensar isso.
+  const composeReq = useRef(0);
+  // A prévia atual já contém a foto da sessão? Falso logo após escolher uma.
+  const imageHasPhoto = useRef(false);
 
   const nativo = isNativeApp();
 
-  // Escape + botão voltar do Android (auditoria do fechamento).
-  useDismissable(onClose);
+  // Escape + botão voltar do Android (auditoria do fechamento). No editor quem
+  // atende o voltar é ele (volta para cá); o modal só fecha da etapa share.
+  useDismissable(onClose, step === "share");
 
   // `capture` só faz sentido em device com câmera (touch). No desktop o atributo
   // é ignorado e abriria um segundo seletor de arquivo idêntico ao da galeria.
@@ -91,36 +114,119 @@ export function ShareWorkoutModal({ focus, dayName, stats, exercises, eyebrow, p
 
   useEffect(() => () => { if (avisoTimer.current) window.clearTimeout(avisoTimer.current); }, []);
 
-  async function recompose(bg: File | null, fmt: WorkoutShareFormat) {
+  // Pixels da foto saem junto com o modal, não quando o GC quiser.
+  useEffect(() => () => session.dispose(), [session]);
+
+  /**
+   * Gera a JPEG da prévia/exportação. Com foto, usa as camadas da sessão com
+   * o ajuste daquele formato (sem decodificar de novo); sem foto, a chamada é
+   * exatamente a de sempre.
+   */
+  async function recompose(fmt: WorkoutShareFormat, editsFor: ShareEdits = edits, layersFor?: PhotoLayers | null) {
+    const req = ++composeReq.current;
     setComposing(true);
     setError(null);
     try {
+      const edit = editsFor[fmt];
+      let layers: PhotoLayers | null = null;
+      if (layersFor !== undefined) layers = layersFor;
+      else if (session.layers) layers = session.setAdjust(edit.adjust);
       // `dayName`/`stats` seguem no componente para o TEXTO que acompanha o
       // compartilhamento — a arte deixou de exibir os dois.
-      const img = await composeWorkoutImage({ focus, backgroundFile: bg, format: fmt, exercises, eyebrow, panelLabel });
+      const img = layers
+        ? await composeWorkoutImage({
+            focus, format: fmt, exercises, eyebrow, panelLabel,
+            photoSource: layers, photoAdjust: edit.transform, overlay: edit.overlay,
+          })
+        : await composeWorkoutImage({ focus, backgroundFile: null, format: fmt, exercises, eyebrow, panelLabel });
+      if (req !== composeReq.current) return;
       setImage(img);
+      if (layers && !imageHasPhoto.current) {
+        imageHasPhoto.current = true;
+        mostrar("ok", "Foto adicionada ao card.");
+      }
     } catch {
-      setError("Não consegui montar a imagem com essa foto. Tente outra.");
+      if (req === composeReq.current) setError(ERRO_FOTO);
     } finally {
-      setComposing(false);
+      if (req === composeReq.current) setComposing(false);
     }
   }
 
   useEffect(() => {
-    void recompose(null, "story");
+    void recompose("story");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  function aplicarFoto(f: File) {
-    setPhoto(f);
-    void recompose(f, format);
-    mostrar("ok", "Foto adicionada ao card.");
+  /**
+   * Câmera e galeria (web e nativo) chegam aqui. Decodifica uma vez e abre o
+   * editor; se a foto não abrir, a atual (se houver) fica e a mensagem é a de
+   * sempre.
+   */
+  async function aplicarFoto(f: File) {
+    setComposing(true);
+    setError(null);
+    let layers: PhotoLayers | null;
+    try {
+      layers = await session.load(f);
+    } catch {
+      setError(ERRO_FOTO);
+      return;
+    } finally {
+      setComposing(false);
+    }
+    if (!layers) return; // outra foto chegou depois desta
+    imageHasPhoto.current = false;
+    setHasPhoto(true);
+    setEdits(editsPadrao()); // foto nova, enquadramento novo
+    setEditorLayers(layers);
+    setStep("edit");
+  }
+
+  function abrirEditor() {
+    let layers: PhotoLayers | null = null;
+    try {
+      layers = session.setAdjust(edits[format].adjust);
+    } catch {
+      layers = null;
+    }
+    if (!layers) {
+      setHasPhoto(false);
+      setError(ERRO_FOTO);
+      return;
+    }
+    setEditorLayers(layers);
+    setStep("edit");
+  }
+
+  function concluirEdicao({ format: fmt, edits: next, layers }: SharePhotoEditorResult) {
+    setEditorLayers(null);
+    setStep("share");
+    if (!layers) {
+      setHasPhoto(session.layers !== null);
+      setError(ERRO_FOTO);
+      return;
+    }
+    setEdits(next);
+    setFormat(fmt);
+    void recompose(fmt, next, layers);
+  }
+
+  function voltarDoEditor() {
+    // Os ajustes desta abertura são descartados: `edits`/`format` do modal
+    // nunca foram tocados. A foto fica — se a prévia ainda não a mostra
+    // (acabou de ser escolhida), recompõe com o enquadramento padrão.
+    setEditorLayers(null);
+    setStep("share");
+    // Devolve a sessão ao ajuste salvo: sem isso a cópia ajustada desta
+    // abertura (até ~12 MB) ficava viva sem ninguém a referenciar.
+    try { session.setAdjust(edits[format].adjust); } catch { /* sem foto */ }
+    if (!imageHasPhoto.current && session.layers) void recompose(format, edits);
   }
 
   function onPick(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0] ?? null;
     e.target.value = ""; // permite reescolher a mesma foto
-    if (f) aplicarFoto(f);
+    if (f) void aplicarFoto(f);
   }
 
   /**
@@ -135,7 +241,7 @@ export function ShareWorkoutModal({ focus, dayName, stats, exercises, eyebrow, p
       return;
     }
     const r = await pedirFoto(origem);
-    if (r.ok) { aplicarFoto(r.file); return; }
+    if (r.ok) { void aplicarFoto(r.file); return; }
     if (r.cancelado) return; // desistir não é erro
     mostrar("erro", r.motivo);
   }
@@ -143,10 +249,8 @@ export function ShareWorkoutModal({ focus, dayName, stats, exercises, eyebrow, p
   function onFormat(fmt: WorkoutShareFormat) {
     if (fmt === format) return;
     setFormat(fmt);
-    void recompose(photo, fmt);
+    void recompose(fmt);
   }
-
-  const hasPhoto = photo !== null;
 
   async function onShare() {
     if (!image) return;
@@ -186,7 +290,7 @@ export function ShareWorkoutModal({ focus, dayName, stats, exercises, eyebrow, p
   return (
     <div
       role="presentation"
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      onClick={(e) => { if (step === "share" && e.target === e.currentTarget) onClose(); }}
       style={{
         position: "fixed", inset: 0, zIndex: 9000,
         background: "rgba(7,12,18,0.55)",
@@ -198,6 +302,20 @@ export function ShareWorkoutModal({ focus, dayName, stats, exercises, eyebrow, p
         paddingBottom: "max(16px, env(safe-area-inset-bottom, 0px))",
       }}
     >
+      {step === "edit" && editorLayers ? (
+        <SharePhotoEditor
+          session={session}
+          initialLayers={editorLayers}
+          initialFormat={format}
+          initialEdits={edits}
+          focus={focus}
+          exercises={exercises}
+          eyebrow={eyebrow}
+          panelLabel={panelLabel}
+          onDone={concluirEdicao}
+          onBack={voltarDoEditor}
+        />
+      ) : (
       <div
         role="dialog"
         aria-modal="true"
@@ -351,6 +469,18 @@ export function ShareWorkoutModal({ focus, dayName, stats, exercises, eyebrow, p
             </svg>
             {hasCamera ? "Galeria" : hasPhoto ? "Trocar foto de fundo" : "Adicionar foto de fundo"}
           </button>
+
+          {hasPhoto ? (
+            <button
+              type="button"
+              onClick={abrirEditor}
+              disabled={composing}
+              style={photoBtnStyle(composing)}
+            >
+              <SlidersHorizontal size={15} aria-hidden="true" />
+              Ajustar foto
+            </button>
+          ) : null}
         </div>
 
         {/* Share sheet do sistema. No app empacotado sempre existe; na web,
@@ -416,6 +546,7 @@ export function ShareWorkoutModal({ focus, dayName, stats, exercises, eyebrow, p
           </button>
         </div>
       </div>
+      )}
     </div>
   );
 }

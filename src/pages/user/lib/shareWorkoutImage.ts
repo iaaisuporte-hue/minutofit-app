@@ -6,6 +6,25 @@
 // a acompanha. Compartilhar, salvar e capturar foto vivem em `nativeShare.ts`,
 // porque no app empacotado nenhuma das APIs web equivalentes funciona — e todas
 // falhavam em silêncio quando moravam aqui (QA mobile set/2026).
+//
+// O desenho é dividido em duas camadas que o editor de foto também usa:
+// `renderBackground` (foto enquadrada + escurecimento + vidro do painel, muda a
+// cada gesto) e `renderForeground` (faixa, textos e logo, fixa e cacheável).
+// A exportação passa pelas MESMAS funções a 1080×H — a prévia do editor é a
+// arte final por construção, não uma imitação dela.
+
+import {
+  clampTransform,
+  coverRect,
+  DEFAULT_ADJUST,
+  DEFAULT_OVERLAY,
+  DEFAULT_TRANSFORM,
+  type OverlayPreset,
+  type PhotoAdjust,
+  type PhotoTransform,
+  type ShareEdit,
+} from "./sharePhotoTransform";
+import { adjustSource, blurSource, disposeCanvas, loadPhotoSource } from "./sharePhotoSource";
 
 const BRAND = "S2Core"; // marca pública do app (domínio s2core.com.br)
 
@@ -95,25 +114,6 @@ function roundRectPath(ctx: CanvasRenderingContext2D, x: number, y: number, w: n
   ctx.closePath();
 }
 
-/** Desenha a imagem cobrindo o canvas (object-fit: cover, centralizada). */
-function drawCover(ctx: CanvasRenderingContext2D, img: HTMLImageElement, w: number, h: number) {
-  const ir = img.width / img.height;
-  const cr = w / h;
-  let dw: number, dh: number, dx: number, dy: number;
-  if (ir > cr) {
-    dh = h;
-    dw = h * ir;
-    dx = (w - dw) / 2;
-    dy = 0;
-  } else {
-    dw = w;
-    dh = w / ir;
-    dx = 0;
-    dy = (h - dh) / 2;
-  }
-  ctx.drawImage(img, dx, dy, dw, dh);
-}
-
 async function loadSvgLogo(): Promise<HTMLImageElement | null> {
   try {
     const img = new Image();
@@ -126,19 +126,22 @@ async function loadSvgLogo(): Promise<HTMLImageElement | null> {
   }
 }
 
-async function loadImage(file: File | Blob): Promise<HTMLImageElement> {
-  const url = URL.createObjectURL(file);
-  try {
-    const img = new Image();
-    img.src = url;
-    if (img.decode) await img.decode();
-    else await new Promise((res, rej) => { img.onload = res; img.onerror = rej; });
-    return img;
-  } finally {
-    // revoga após o draw — adiado para o caller não perder a imagem; aqui é seguro
-    // pois decode() já carregou os pixels.
-    URL.revokeObjectURL(url);
+let logoPromise: Promise<HTMLImageElement | null> | null = null;
+
+/**
+ * Logo da marca decodificado uma vez por sessão. Falha NÃO fica em cache: um
+ * tropeço de rede no primeiro card não pode condenar todos os seguintes ao
+ * fallback de texto.
+ */
+export function getLogo(): Promise<HTMLImageElement | null> {
+  if (!logoPromise) {
+    const p = loadSvgLogo();
+    logoPromise = p;
+    void p.then((img) => {
+      if (!img && logoPromise === p) logoPromise = null;
+    });
   }
+  return logoPromise;
 }
 
 /** Proporção do card: "story" = 1080×1920 (9:16, Stories) · "square" = 1080×1080 (feed). */
@@ -215,6 +218,13 @@ export function buildExerciseRows(
   return { rows, hiddenCount };
 }
 
+/**
+ * Foto já preparada para desenhar: `adjusted` com brilho/contraste aplicados e
+ * `glass`, a cópia pequena borrada do painel (ver `sharePhotoSource.ts`).
+ * `PhotoLayers` da sessão do editor satisfaz este tipo.
+ */
+export type CardPhoto = { adjusted: HTMLCanvasElement; glass: HTMLCanvasElement | null };
+
 export type ComposeWorkoutInput = {
   /** Foco do treino exibido em destaque, ex.: "Superiores". */
   focus: string;
@@ -231,6 +241,19 @@ export type ComposeWorkoutInput = {
   panelLabel?: string;
   /** Foto de fundo opcional (tirada ou da galeria). Sem ela, usa um fundo gradiente. */
   backgroundFile?: File | Blob | null;
+  /**
+   * Foto já decodificada pelo editor — tem prioridade sobre `backgroundFile`.
+   * Canvas cru: o brilho/contraste de `photoAdjust` é aplicado aqui. `CardPhoto`
+   * (as camadas que o editor já tem): usado como está, sem recalcular nada —
+   * evita duplicar dois buffers grandes no "Concluir"; o ajuste de cor de
+   * `photoAdjust` é ignorado porque já veio aplicado.
+   * O que é passado aqui nunca é liberado por esta função.
+   */
+  photoSource?: HTMLCanvasElement | CardPhoto | null;
+  /** Enquadramento e ajuste de cor da foto. Campos ausentes = padrão (sem edição). */
+  photoAdjust?: Partial<PhotoTransform & PhotoAdjust> | null;
+  /** Escurecimento sobre a foto. Padrão: "medium". Sem foto é ignorado. */
+  overlay?: OverlayPreset;
   /** Proporção do card. Padrão: "story". */
   format?: WorkoutShareFormat;
   /** Exercícios executados — viram a mini tabela do rodapé. Vazio = bloco some. */
@@ -276,46 +299,241 @@ function panelMetrics(isStory: boolean, rowCount: number, hasOverflow: boolean):
 }
 
 /**
- * Mini tabela "Exercícios executados" — cartão translúcido escurecido.
- *
- * O ponto crítico é ser legível TAMBÉM com foto de fundo, e a foto pode ser
- * clara. Por isso o painel não conta com o scrim: ele redesenha a própria foto
- * borrada dentro do recorte (vidro) e por cima aplica um véu escuro próprio.
- * Sem foto, o mesmo painel usa um véu mais leve para parecer nativo da peça —
- * e não um remendo colado sobre o gradiente.
+ * Quanto escurecer a foto, por preset. A legibilidade mora no scrim do rodapé
+ * (gradiente localizado onde o texto está) e no véu do painel — não num véu
+ * uniforme sobre a foto inteira, que era o que deixava a foto apagada. Só o
+ * "Forte" mantém um véu global, e fica ≈ à arte anterior para quem prefere.
  */
-function drawExercisePanel(
-  ctx: CanvasRenderingContext2D,
-  opts: {
-    x: number; y: number; w: number; m: PanelMetrics;
-    rows: ExerciseRow[]; hiddenCount: number;
-    bgImage: HTMLImageElement | null; canvasW: number; canvasH: number;
-    label: string; isStory: boolean; titulo: string;
-  },
-) {
-  const { x, y, w, m, rows, hiddenCount, bgImage, canvasW, canvasH, label, isStory, titulo } = opts;
-  const h = m.height;
+export type OverlayStyle = {
+  /** Véu uniforme sobre a foto inteira (0 = nenhum). */
+  globalVeil: number;
+  /** Opacidade do scrim onde o texto começa. */
+  scrimText: number;
+  /** Opacidade do scrim na base da peça. */
+  scrimBase: number;
+  /** Véu escuro sobre o vidro do painel de exercícios. */
+  panelVeil: number;
+  /** Sombra sutil no título/eyebrow — compensa o scrim mais leve do "Suave". */
+  textShadow: boolean;
+};
 
-  // — Fundo do cartão (recortado nos cantos arredondados)
+export const OVERLAY_PRESETS: Readonly<Record<OverlayPreset, Readonly<OverlayStyle>>> = Object.freeze({
+  soft: Object.freeze({ globalVeil: 0, scrimText: 0.48, scrimBase: 0.8, panelVeil: 0.66, textShadow: true }),
+  medium: Object.freeze({ globalVeil: 0, scrimText: 0.56, scrimBase: 0.88, panelVeil: 0.74, textShadow: false }),
+  strong: Object.freeze({ globalVeil: 0.2, scrimText: 0.7, scrimBase: 0.94, panelVeil: 0.8, textShadow: false }),
+});
+
+// Sem foto o fundo é o gradiente da marca, que já é escuro: valores fixos,
+// iguais aos de antes do editor — o card sem foto não muda.
+const NO_PHOTO_SCRIM_TEXT = 0.34;
+const NO_PHOTO_SCRIM_BASE = 0.88;
+const NO_PHOTO_PANEL_VEIL = 0.46;
+
+function overlayStyle(preset: OverlayPreset | null | undefined): OverlayStyle {
+  return OVERLAY_PRESETS[preset ?? DEFAULT_OVERLAY] ?? OVERLAY_PRESETS[DEFAULT_OVERLAY];
+}
+
+/** O que o card diz. Separado do resto do input porque só isto afeta o layout. */
+export type CardContent = Pick<ComposeWorkoutInput, "focus" | "exercises" | "eyebrow" | "panelLabel">;
+
+/**
+ * Posição de tudo no card, em coordenadas lógicas (1080×H). Calculada uma vez
+ * por formato/conteúdo: o editor redesenha a foto a cada gesto sem medir texto.
+ */
+export type CardLayout = {
+  format: WorkoutShareFormat;
+  width: number;
+  height: number;
+  isStory: boolean;
+  padX: number;
+  logo: { x: number; y: number; w: number; h: number };
+  hero: { lines: HeroLine[]; size: number; lineH: number; lastBaseline: number };
+  eyebrow: { text: string; size: number; baseline: number };
+  /** Topo do bloco de texto — de onde o scrim deriva. */
+  textTop: number;
+  panel: {
+    x: number; y: number; w: number; h: number; m: PanelMetrics;
+    rows: ExerciseRow[]; hiddenCount: number; title: string;
+  } | null;
+};
+
+let measureCtx: CanvasRenderingContext2D | null = null;
+
+/** Contexto 1×1 só para `measureText` — o layout não depende de onde se vai desenhar. */
+function measureContext(): CanvasRenderingContext2D {
+  if (measureCtx) return measureCtx;
+  const c = document.createElement("canvas");
+  c.width = 1;
+  c.height = 1;
+  const ctx = c.getContext("2d");
+  if (!ctx) throw new Error("canvas indisponível");
+  measureCtx = ctx;
+  return ctx;
+}
+
+export function computeCardLayout(format: WorkoutShareFormat, content: CardContent): CardLayout {
+  const W = 1080;
+  const H = format === "story" ? 1920 : 1080;
+  const isStory = format === "story";
+  const ctx = measureContext();
+  // Lift extra no rodapé: Story afasta da UI do Instagram; square dá respiro
+  // mínimo. Mantido só o necessário — cada pixel aqui é foto a menos.
+  const lift = isStory ? 108 : 36;
+
+  // Mini tabela do rodapé. Teto de linhas por formato: a peça é uma conquista,
+  // não um relatório — 12 exercícios listados afogariam o título.
+  // O quadrado tem metade da altura do Story para o mesmo rodapé — cabe menos.
+  const { rows: exerciseRows, hiddenCount } = buildExerciseRows(content.exercises, isStory ? 6 : 3);
+  const hasPanel = exerciseRows.length > 0;
+  const pm = hasPanel ? panelMetrics(isStory, exerciseRows.length, hiddenCount > 0) : null;
+
+  // Bloco de rodapé coeso, ancorado de baixo p/ cima com ritmo consistente:
+  // [eyebrow] · [herói multilinha] · [exercícios] · [logo]
+  const padX = 96;
+
+  // Zona segura inferior (no Story, afasta da UI do Instagram)
+  const bottomSafe = lift + (isStory ? 16 : 24);
+
+  // — Logo (âncora de marca, base do bloco)
+  const logoW = isStory ? 400 : 260;
+  const logoH = Math.round(logoW * (56 / 264));
+  const logoTop = H - bottomSafe - logoH;
+
+  // — Tokens de espaçamento vertical (ritmo do rodapé)
+  const gapHeroBelow = isStory ? 52 : 38;
+  const gapHeroEyebrow = isStory ? 26 : 20;
+
+  // — Painel de exercícios: entra ENTRE o herói e o logo. A ordem de leitura
+  //   fica eyebrow → título → detalhe → marca, e o rodapé inteiro só sobe:
+  //   sem exercícios, `panelH` é 0 e a composição é a mesma de antes.
+  const panelW = W - padX * 2;
+  const panelH = pm?.height ?? 0;
+  const gapLogoPanel = isStory ? 38 : 28;
+  const panelTop = hasPanel ? logoTop - gapLogoPanel - panelH : logoTop;
+
+  // — Herói (foco do treino): encolhe p/ caber em até 3 linhas, "+" verde deliberado
+  // 96 em vez de 132: com o painel de exercícios embaixo, um herói de 132px em
+  // duas linhas comia um terço do Story e sobrava pouca foto.
+  const hero = buildHeroLines(ctx, content.focus, W - padX * 2, isStory ? 96 : 82, 3, 800);
+  const heroLineH = Math.round(hero.size * 1.06);
+  const heroLastBaseline = (hasPanel ? panelTop : logoTop) - gapHeroBelow;
+
+  // — Topo do bloco de texto
+  const heroTopBaseline = heroLastBaseline - (hero.lines.length - 1) * heroLineH;
+  const eyebrowSize = isStory ? 34 : 29;
+  const eyebrowBaseline = heroTopBaseline - Math.round(hero.size * 0.72) - gapHeroEyebrow;
+
+  return {
+    format,
+    width: W,
+    height: H,
+    isStory,
+    padX,
+    logo: { x: padX, y: logoTop, w: logoW, h: logoH },
+    hero: { lines: hero.lines, size: hero.size, lineH: heroLineH, lastBaseline: heroLastBaseline },
+    eyebrow: { text: content.eyebrow ?? "TREINO CONCLUÍDO", size: eyebrowSize, baseline: eyebrowBaseline },
+    textTop: eyebrowBaseline - eyebrowSize,
+    panel: pm
+      ? {
+          x: padX, y: panelTop, w: panelW, h: pm.height, m: pm,
+          rows: exerciseRows, hiddenCount,
+          title: content.panelLabel ?? "EXERCÍCIOS EXECUTADOS",
+        }
+      : null,
+  };
+}
+
+/** Canvas zerado por `disposeCanvas` faz o `drawImage` lançar — tratar como ausente. */
+function drawable(c: HTMLCanvasElement | null | undefined): c is HTMLCanvasElement {
+  return !!c && c.width > 0 && c.height > 0;
+}
+
+/**
+ * Camada de fundo: foto enquadrada (ou gradiente), escurecimento e o vidro do
+ * painel de exercícios. É a única parte que muda durante um gesto.
+ *
+ * Desenha em coordenadas lógicas sobre um canvas de `largura lógica × scale`:
+ * o `ctx.scale` é aplicado aqui (somado à transformação que já houver).
+ */
+export function renderBackground(
+  ctx: CanvasRenderingContext2D,
+  scale: number,
+  photo: CardPhoto | null,
+  edit: Pick<ShareEdit, "transform" | "overlay">,
+  layout: CardLayout,
+): void {
+  const { width: W, height: H } = layout;
+  const hasPhoto = !!photo && drawable(photo.adjusted);
+  const style = overlayStyle(edit.overlay);
+
   ctx.save();
-  roundRectPath(ctx, x, y, w, h, m.radius);
-  ctx.clip();
-  if (bgImage) {
-    // `ctx.filter` não existe em jsdom nem em Safari antigo — sem ele o véu
-    // escuro abaixo continua garantindo o contraste sozinho.
-    try {
-      ctx.filter = "blur(22px)";
-      drawCover(ctx, bgImage, canvasW, canvasH);
-    } catch {
-      /* sem blur — segue só com o véu */
+  ctx.scale(scale, scale);
+
+  // 1) Fundo: foto (cover enquadrado) ou gradiente
+  let rect: ReturnType<typeof coverRect> | null = null;
+  if (hasPhoto) {
+    const frame = { imgW: photo.adjusted.width, imgH: photo.adjusted.height, canvasW: W, canvasH: H };
+    // Limitado de novo aqui: o export pode receber `photoAdjust` de qualquer
+    // chamador, e borda vazia na arte final não é aceitável.
+    rect = coverRect(frame, clampTransform(frame, edit.transform));
+    ctx.drawImage(photo.adjusted, rect.dx, rect.dy, rect.dw, rect.dh);
+    if (style.globalVeil > 0) {
+      ctx.fillStyle = `rgba(7,12,18,${style.globalVeil})`;
+      ctx.fillRect(0, 0, W, H);
     }
-    ctx.filter = "none";
+  } else {
+    const grad = ctx.createLinearGradient(0, 0, W, H);
+    grad.addColorStop(0, "#0b1220");
+    grad.addColorStop(1, "#0f2a24");
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, W, H);
   }
-  ctx.fillStyle = bgImage ? "rgba(8,13,20,0.78)" : "rgba(8,13,20,0.46)";
-  ctx.fillRect(x, y, w, h);
-  ctx.fillStyle = "rgba(255,255,255,0.045)";
-  ctx.fillRect(x, y, w, h);
+
+  // 2) Scrim derivado do bloco medido em vez de uma fração fixa da altura:
+  //    o rodapé cresce com o painel de exercícios e com um herói de 3 linhas, e
+  //    uma fração fixa deixava o topo do texto sobre a parte clara da foto —
+  //    visível no formato quadrado, onde o bloco ocupa quase a peça inteira.
+  const fade = layout.isStory ? 300 : 240; // altura da transição até o texto começar
+  const scrimStart = Math.max(0, layout.textTop - fade);
+  const scrim = ctx.createLinearGradient(0, scrimStart, 0, H);
+  const textStop = Math.min(0.95, (layout.textTop - scrimStart) / Math.max(1, H - scrimStart));
+  scrim.addColorStop(0, "rgba(7,12,18,0)");
+  scrim.addColorStop(textStop, `rgba(7,12,18,${hasPhoto ? style.scrimText : NO_PHOTO_SCRIM_TEXT})`);
+  scrim.addColorStop(1, `rgba(7,12,18,${hasPhoto ? style.scrimBase : NO_PHOTO_SCRIM_BASE})`);
+  ctx.fillStyle = scrim;
+  ctx.fillRect(0, 0, W, H);
+
+  // 3) Fundo do painel de exercícios (recortado nos cantos arredondados).
+  //    Precisa ser legível TAMBÉM sobre foto clara, então não conta com o
+  //    scrim: mostra a própria foto borrada dentro do recorte (vidro), no mesmo
+  //    retângulo da foto — acompanha o enquadramento — e por cima um véu
+  //    escuro próprio. Sem foto, um véu mais leve para parecer nativo da peça.
+  const p = layout.panel;
+  if (p) {
+    ctx.save();
+    roundRectPath(ctx, p.x, p.y, p.w, p.h, p.m.radius);
+    ctx.clip();
+    if (hasPhoto && rect && drawable(photo.glass)) {
+      ctx.drawImage(photo.glass, rect.dx, rect.dy, rect.dw, rect.dh);
+    }
+    ctx.fillStyle = `rgba(8,13,20,${hasPhoto ? style.panelVeil : NO_PHOTO_PANEL_VEIL})`;
+    ctx.fillRect(p.x, p.y, p.w, p.h);
+    ctx.fillStyle = "rgba(255,255,255,0.045)";
+    ctx.fillRect(p.x, p.y, p.w, p.h);
+    ctx.restore();
+  }
+
   ctx.restore();
+}
+
+/** Borda e texto da mini tabela "Exercícios executados" (o fundo é do `renderBackground`). */
+function drawPanelForeground(
+  ctx: CanvasRenderingContext2D,
+  p: NonNullable<CardLayout["panel"]>,
+  label: string,
+  isStory: boolean,
+) {
+  const { x, y, w, h, m, rows, hiddenCount, title } = p;
 
   // — Borda hairline: separa o cartão de fundos claros sem pesar
   ctx.save();
@@ -338,7 +556,7 @@ function drawExercisePanel(
   ctx.font = `700 ${m.labelSize}px Inter, system-ui, sans-serif`;
   ctx.fillStyle = label;
   setTracking(isStory ? "3px" : "2px");
-  ctx.fillText(titulo, labelX, labelBaseline);
+  ctx.fillText(title, labelX, labelBaseline);
   setTracking("0px");
 
   // — Linhas: nome à esquerda, séries × reps à direita (mini tabela)
@@ -388,117 +606,48 @@ function drawExercisePanel(
   ctx.textAlign = "left";
 }
 
-export type ComposedImage = { blob: Blob; dataUrl: string; focus: string; format: WorkoutShareFormat };
-
-/** Monta o card-imagem (story 1080×1920 ou square 1080²) e devolve blob + dataUrl. */
-export async function composeWorkoutImage({ focus, backgroundFile, format = "story", exercises, eyebrow, panelLabel }: ComposeWorkoutInput): Promise<ComposedImage> {
-  const W = 1080;
-  const H = format === "story" ? 1920 : 1080;
-  // Lift extra no rodapé: Story afasta da UI do Instagram; square dá respiro
-  // mínimo. Mantido só o necessário — cada pixel aqui é foto a menos.
-  const lift = format === "story" ? 108 : 36;
-
-  const canvas = document.createElement("canvas");
-  canvas.width = W;
-  canvas.height = H;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) throw new Error("canvas indisponível");
-
+/**
+ * Camada fixa: faixa de marca, eyebrow, título, texto do painel e logo. Não
+ * pinta fundo nenhum — pode ser desenhada uma vez num canvas transparente e
+ * reaproveitada a cada frame do editor.
+ *
+ * `overlay` é o preset em uso, ou `null` quando não há foto (aí nenhuma
+ * sombra entra e o card sem foto sai como sempre saiu). Sombra ignora a
+ * transformação do contexto, por isso blur/deslocamento são multiplicados
+ * por `scale` à mão.
+ */
+export function renderForeground(
+  ctx: CanvasRenderingContext2D,
+  scale: number,
+  layout: CardLayout,
+  logo: HTMLImageElement | null,
+  overlay: OverlayPreset | null,
+): void {
+  const { width: W, isStory, padX, hero, eyebrow } = layout;
   const primary = cssVar("--color-primary", "#7B9919");
   // Oliva clara do design system (`--highlight`) — variante para fundo escuro.
   const primaryBright = cssVar("--color-primary-hover", "#91B51E");
+  const shadow = overlay !== null && overlayStyle(overlay).textShadow;
 
-  const isStory = format === "story";
-
-  // Mini tabela do rodapé. Teto de linhas por formato: a peça é uma conquista,
-  // não um relatório — 12 exercícios listados afogariam o título.
-  // O quadrado tem metade da altura do Story para o mesmo rodapé — cabe menos.
-  const { rows: exerciseRows, hiddenCount } = buildExerciseRows(exercises, isStory ? 6 : 3);
-  const hasPanel = exerciseRows.length > 0;
-  const pm = hasPanel ? panelMetrics(isStory, exerciseRows.length, hiddenCount > 0) : null;
-
-  // 1) Fundo: foto (cover) ou gradiente
-  let bgImage: HTMLImageElement | null = null;
-  if (backgroundFile) {
-    bgImage = await loadImage(backgroundFile);
-    drawCover(ctx, bgImage, W, H);
-  } else {
-    const grad = ctx.createLinearGradient(0, 0, W, H);
-    grad.addColorStop(0, "#0b1220");
-    grad.addColorStop(1, "#0f2a24");
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, W, H);
-  }
-
-  // 2) Bloco de rodapé coeso, ancorado de baixo p/ cima com ritmo consistente:
-  //    [stats] · [eyebrow] · [herói multilinha] · [data] · [exercícios] · [logo]
-  const padX = 96;
+  ctx.save();
+  ctx.scale(scale, scale);
   ctx.textAlign = "left";
 
-  // Zona segura inferior (no Story, afasta da UI do Instagram)
-  const bottomSafe = lift + (isStory ? 16 : 24);
-
-  // — Logo (âncora de marca, base do bloco)
-  const logoImg = await loadSvgLogo();
-  const logoW = isStory ? 400 : 260;
-  const logoH = Math.round(logoW * (56 / 264));
-  const logoTop = H - bottomSafe - logoH;
-
-  // — Tokens de espaçamento vertical (ritmo do rodapé)
-  const gapHeroBelow = isStory ? 52 : 38;
-  const gapHeroEyebrow = isStory ? 26 : 20;
-
-  // — Painel de exercícios: entra ENTRE a data e o logo. A ordem de leitura
-  //   fica eyebrow → título → data → detalhe → marca, e o rodapé inteiro só
-  //   sobe: sem exercícios, `panelH` é 0 e a composição é a mesma de antes.
-  const panelW = W - padX * 2;
-  const panelH = pm?.height ?? 0;
-  const gapLogoPanel = isStory ? 38 : 28;
-  const panelTop = hasPanel ? logoTop - gapLogoPanel - panelH : logoTop;
-
-  // — Herói (foco do treino): encolhe p/ caber em até 3 linhas, "+" verde deliberado
-  // 96 em vez de 132: com o painel de exercícios embaixo, um herói de 132px em
-  // duas linhas comia um terço do Story e sobrava pouca foto.
-  const hero = buildHeroLines(ctx, focus, W - padX * 2, isStory ? 96 : 82, 3, 800);
-  const heroLineH = Math.round(hero.size * 1.06);
-  const heroLastBaseline = (hasPanel ? panelTop : logoTop) - gapHeroBelow;
-
-  // — Topo do bloco de texto
-  const heroTopBaseline = heroLastBaseline - (hero.lines.length - 1) * heroLineH;
-  const eyebrowSize = isStory ? 34 : 29;
-  const eyebrowBaseline = heroTopBaseline - Math.round(hero.size * 0.72) - gapHeroEyebrow;
-
-  // 3) Tratamento de legibilidade, agora que se sabe ONDE o texto começa.
-  //    O scrim é derivado do bloco medido em vez de uma fração fixa da altura:
-  //    o rodapé cresce com o painel de exercícios e com um herói de 3 linhas, e
-  //    uma fração fixa deixava o topo do texto sobre a parte clara da foto —
-  //    visível no formato quadrado, onde o bloco ocupa quase a peça inteira.
-  const textTop = eyebrowBaseline - eyebrowSize;
-  if (bgImage) {
-    // Véu global: a foto é escolha do usuário e pode ser clara em qualquer
-    // ponto. Sem ele, branco sobre céu/parede branca some. Leve de propósito —
-    // quem escolheu a foto quer ver a foto; o scrim cobre a área do texto.
-    ctx.fillStyle = "rgba(7,12,18,0.26)";
-    ctx.fillRect(0, 0, W, H);
-  }
-  const fade = isStory ? 300 : 240; // altura da transição até o texto começar
-  const scrimStart = Math.max(0, textTop - fade);
-  const scrim = ctx.createLinearGradient(0, scrimStart, 0, H);
-  const textStop = Math.min(0.95, (textTop - scrimStart) / Math.max(1, H - scrimStart));
-  scrim.addColorStop(0, "rgba(7,12,18,0)");
-  scrim.addColorStop(textStop, bgImage ? "rgba(7,12,18,0.66)" : "rgba(7,12,18,0.34)");
-  scrim.addColorStop(1, bgImage ? "rgba(7,12,18,0.94)" : "rgba(7,12,18,0.88)");
-  ctx.fillStyle = scrim;
-  ctx.fillRect(0, 0, W, H);
-
-  // 4) Faixa de marca no topo — verde primário S2Core (coeso com o logo)
+  // Faixa de marca no topo — verde primário S2Core (coeso com o logo)
   ctx.fillStyle = primary;
   ctx.fillRect(0, 0, W, 14);
 
-  // 5) Texto do rodapé, sobre o scrim
+  if (shadow) {
+    ctx.shadowColor = "rgba(0,0,0,0.38)";
+    ctx.shadowBlur = 14 * scale;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 2 * scale;
+  }
+
+  // Herói, sobre o scrim
   hero.lines.forEach((line, i) => {
     const fromBottom = hero.lines.length - 1 - i;
-    const yy = heroLastBaseline - fromBottom * heroLineH;
+    const yy = hero.lastBaseline - fromBottom * hero.lineH;
     ctx.font = `800 ${hero.size}px Inter, system-ui, sans-serif`;
     ctx.fillStyle = "#ffffff";
     ctx.fillText(line.text, padX, yy);
@@ -509,43 +658,129 @@ export async function composeWorkoutImage({ focus, backgroundFile, format = "sto
     }
   });
 
-  // — Eyebrow (acima do herói): tracked, branco suave
-  ctx.font = `700 ${eyebrowSize}px Inter, system-ui, sans-serif`;
+  // Eyebrow (acima do herói): tracked, branco suave
+  ctx.font = `700 ${eyebrow.size}px Inter, system-ui, sans-serif`;
   ctx.fillStyle = "rgba(255,255,255,0.82)";
   const hasTracking = "letterSpacing" in ctx;
   if (hasTracking) (ctx as unknown as { letterSpacing: string }).letterSpacing = isStory ? "4px" : "3px";
-  ctx.fillText(eyebrow ?? "TREINO CONCLUÍDO", padX, eyebrowBaseline);
+  ctx.fillText(eyebrow.text, padX, eyebrow.baseline);
   if (hasTracking) (ctx as unknown as { letterSpacing: string }).letterSpacing = "0px";
 
-  // — Painel "Exercícios executados"
-  if (hasPanel && pm) {
-    drawExercisePanel(ctx, {
-      x: padX, y: panelTop, w: panelW, m: pm,
-      rows: exerciseRows, hiddenCount,
-      bgImage, canvasW: W, canvasH: H,
-      label: primaryBright, isStory,
-      titulo: panelLabel ?? "EXERCÍCIOS EXECUTADOS",
-    });
+  if (shadow) {
+    // O painel tem véu próprio; sombra ali só borraria o texto pequeno.
+    ctx.shadowColor = "rgba(0,0,0,0)";
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetY = 0;
   }
 
-  // — Logo (SVG claro para fundo escuro; fallback p/ texto)
-  if (logoImg) {
-    ctx.drawImage(logoImg, padX, logoTop, logoW, logoH);
+  if (layout.panel) drawPanelForeground(ctx, layout.panel, primaryBright, isStory);
+
+  // Logo (SVG claro para fundo escuro; fallback p/ texto)
+  const { x: logoX, y: logoTop, w: logoW, h: logoH } = layout.logo;
+  if (logo) {
+    ctx.drawImage(logo, logoX, logoTop, logoW, logoH);
   } else {
     ctx.font = "800 56px Inter, system-ui, sans-serif";
     ctx.fillStyle = "#ffffff";
-    ctx.fillText(BRAND, padX, logoTop + logoH - 12);
+    ctx.fillText(BRAND, logoX, logoTop + logoH - 12);
     const brandWidth = ctx.measureText(BRAND).width;
     ctx.fillStyle = primary;
     ctx.beginPath();
-    ctx.arc(padX + brandWidth + 18, logoTop + logoH - 30, 8, 0, Math.PI * 2);
+    ctx.arc(logoX + brandWidth + 18, logoTop + logoH - 30, 8, 0, Math.PI * 2);
     ctx.fill();
   }
 
-  const blob = await new Promise<Blob | null>((res) => canvas.toBlob(res, "image/jpeg", 0.9));
-  if (!blob) throw new Error("falha ao gerar imagem");
-  const dataUrl = canvas.toDataURL("image/jpeg", 0.9);
-  return { blob, dataUrl, focus, format };
+  ctx.restore();
+}
+
+/** Card completo: fundo + camada fixa, no contexto e escala dados. */
+export function renderWorkoutCard(
+  ctx: CanvasRenderingContext2D,
+  scale: number,
+  layout: CardLayout,
+  photo: CardPhoto | null,
+  edit: Pick<ShareEdit, "transform" | "overlay">,
+  logo: HTMLImageElement | null,
+): void {
+  renderBackground(ctx, scale, photo, edit, layout);
+  const hasPhoto = !!photo && drawable(photo.adjusted);
+  renderForeground(ctx, scale, layout, logo, hasPhoto ? edit.overlay : null);
+}
+
+export type ComposedImage = { blob: Blob; dataUrl: string; focus: string; format: WorkoutShareFormat };
+
+function blobToDataUrl(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(reader.error ?? new Error("falha ao ler imagem"));
+    reader.readAsDataURL(blob);
+  });
+}
+
+/** Monta o card-imagem (story 1080×1920 ou square 1080²) e devolve blob + dataUrl. */
+export async function composeWorkoutImage({
+  focus,
+  backgroundFile,
+  photoSource,
+  photoAdjust,
+  overlay = DEFAULT_OVERLAY,
+  format = "story",
+  exercises,
+  eyebrow,
+  panelLabel,
+}: ComposeWorkoutInput): Promise<ComposedImage> {
+  const layout = computeCardLayout(format, { focus, exercises, eyebrow, panelLabel });
+  const transform: PhotoTransform = {
+    zoom: photoAdjust?.zoom ?? DEFAULT_TRANSFORM.zoom,
+    offsetX: photoAdjust?.offsetX ?? DEFAULT_TRANSFORM.offsetX,
+    offsetY: photoAdjust?.offsetY ?? DEFAULT_TRANSFORM.offsetY,
+  };
+  const adjust: PhotoAdjust = {
+    brightness: photoAdjust?.brightness ?? DEFAULT_ADJUST.brightness,
+    contrast: photoAdjust?.contrast ?? DEFAULT_ADJUST.contrast,
+  };
+
+  // Só o que esta chamada criou é liberado no fim — a fonte do editor não.
+  const owned: HTMLCanvasElement[] = [];
+  const canvas = document.createElement("canvas");
+  owned.push(canvas);
+  try {
+    canvas.width = layout.width;
+    canvas.height = layout.height;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("canvas indisponível");
+
+    let photo: CardPhoto | null = null;
+    if (photoSource && "adjusted" in photoSource) {
+      photo = photoSource;
+    } else {
+      let source: HTMLCanvasElement | null = photoSource ?? null;
+      if (!source && backgroundFile) {
+        source = await loadPhotoSource(backgroundFile);
+        owned.push(source);
+      }
+      if (source) {
+        const adjusted = adjustSource(source, adjust);
+        if (adjusted !== source) owned.push(adjusted);
+        const glass = blurSource(adjusted);
+        owned.push(glass);
+        photo = { adjusted, glass };
+      }
+    }
+
+    const logo = await getLogo();
+    renderWorkoutCard(ctx, 1, layout, photo, { transform, overlay }, logo);
+
+    // Um encode só: o dataUrl sai do próprio blob em vez de um segundo
+    // `toDataURL`, que recomprimiria a peça inteira de novo.
+    const blob = await new Promise<Blob | null>((res) => canvas.toBlob(res, "image/jpeg", 0.9));
+    if (!blob) throw new Error("falha ao gerar imagem");
+    const dataUrl = await blobToDataUrl(blob);
+    return { blob, dataUrl, focus, format };
+  } finally {
+    owned.forEach(disposeCanvas);
+  }
 }
 
 const CTA = "Treine com inteligência metabólica";
