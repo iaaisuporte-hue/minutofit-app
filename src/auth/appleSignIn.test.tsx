@@ -1,42 +1,17 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter } from "react-router-dom";
 
 /**
- * Apple Sign-In é bloqueante para a App Store (guideline 4.8): app que oferece
- * login social de terceiro precisa oferecer o da Apple, com a mesma
- * proeminência. Estes testes cobrem o caminho web, que é o único executável sem
- * device — o fluxo nativo (`appleNativeAuth.ts`) só roda no aparelho.
+ * Apple Sign-In fica pronto para quando o app chegar à App Store (guideline
+ * 4.8: quem oferece login social de terceiro precisa oferecer o da Apple, com
+ * a mesma proeminência) — mas não está wireado em nenhuma tela hoje (app só
+ * no Android por enquanto). Estes testes cobrem só o componente, no caminho
+ * web (o único executável sem device — o fluxo nativo em
+ * `appleNativeAuth.ts` só roda no aparelho).
  */
 
-const authApi = vi.hoisted(() => ({
-  loginWithProvider: vi.fn(async () => ({
-    user: { id: 1, email: "a@b.c", role: "user", profileCompleted: true },
-    accessToken: "acc",
-    refreshToken: "ref",
-  })),
-  fetchCurrentUser: vi.fn(async () => null),
-  fetchUserAcademies: vi.fn(async () => []),
-  loginWithPassword: vi.fn(),
-  registerWithPassword: vi.fn(),
-  registerPersonalWithPassword: vi.fn(),
-  switchAcademy: vi.fn(),
-}));
-
-vi.mock("../services/authApi", () => authApi);
-
-vi.mock("../services/tenantHost", () => ({
-  extractTenantSlug: () => null,
-  fetchBranding: async () => null,
-  applyBranding: () => {},
-  removeBranding: () => {},
-  currentRootDomain: () => null,
-}));
-
 const { AppleSignInButton } = await import("./AppleSignInButton");
-const { AuthProvider } = await import("./AuthContext");
-const { default: LoginPage } = await import("../pages/login");
 
 type AppleResponse = {
   authorization?: { id_token?: string };
@@ -55,7 +30,6 @@ function mockarAppleId(resposta: AppleResponse | Error) {
 
 beforeEach(() => {
   vi.stubEnv("VITE_APPLE_CLIENT_ID", "com.s2core.web");
-  authApi.loginWithProvider.mockClear();
 });
 
 afterEach(() => {
@@ -119,29 +93,6 @@ describe("AppleSignInButton — caminho web", () => {
   });
 });
 
-describe("tela de login", () => {
-  it("oferece Apple e chama loginWithProvider('apple', token)", async () => {
-    const user = userEvent.setup();
-    mockarAppleId({
-      authorization: { id_token: "id-token-login" },
-      user: { email: "ana@exemplo.com", name: { firstName: "Ana" } },
-    });
-
-    render(
-      <MemoryRouter>
-        <AuthProvider>
-          <LoginPage />
-        </AuthProvider>
-      </MemoryRouter>,
-    );
-
-    await user.click(screen.getByRole("button", { name: /continuar com a apple/i }));
-
-    await waitFor(() =>
-      expect(authApi.loginWithProvider).toHaveBeenCalledWith("apple", "id-token-login", {
-        name: "Ana",
-        email: "ana@exemplo.com",
-      }),
-    );
-  });
-});
+// A tela de login não oferece mais Apple nem Google (ambos removidos — app só
+// no Android por enquanto, religar quando fizer sentido). O componente em si
+// continua coberto pelos testes acima.

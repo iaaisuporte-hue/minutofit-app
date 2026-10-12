@@ -1,8 +1,7 @@
 import { useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Turnstile, type TurnstileInstance } from "@marsidev/react-turnstile";
-import { useAuth, type Role } from "../auth/AuthContext";
-import { AppleSignInButton } from "../auth/AppleSignInButton";
+import { useAuth } from "../auth/AuthContext";
 import { offerToSaveCredential } from "../lib/passwordCredential";
 import {
   formatCpf,
@@ -42,18 +41,9 @@ const turnstileSiteKey =
     ? import.meta.env.VITE_TURNSTILE_SITE_KEY.trim() || undefined
     : undefined;
 
-function appPathForRole(role: Role): string {
-  switch (role) {
-    case "personal": return "/app/personal";
-    case "nutri":    return "/app/nutri";
-    case "admin":    return "/app/admin";
-    default:         return "/app/user/today";
-  }
-}
-
 export default function RegisterPage() {
   const nav = useNavigate();
-  const { register, loginWithOAuth } = useAuth();
+  const { register } = useAuth();
   const turnstileRef = useRef<TurnstileInstance | null>(null);
 
   const [form, setForm]             = useState<RegisterForm>(initialState);
@@ -166,26 +156,6 @@ export default function RegisterPage() {
     nav("/profile-completion", { replace: true });
   }
 
-  async function onAppleCredential(
-    identityToken: string,
-    userData?: { name?: string; email?: string },
-  ) {
-    setError(null);
-    setIsLoading(true);
-    // `userData` só vem na primeira autorização deste Apple ID — é a única
-    // chance de o backend gravar nome e e-mail (ver appleNativeAuth.ts).
-    const res = await loginWithOAuth("apple", identityToken, userData);
-    if (!res.ok) {
-      setError(res.message || "Falha no cadastro com a Apple.");
-      setIsLoading(false);
-      return;
-    }
-    setIsLoading(false);
-    nav(res.requiresProfileCompletion ? "/profile-completion" : appPathForRole(res.role), {
-      replace: true,
-    });
-  }
-
   return (
     <main className="auth-page">
       <form
@@ -203,12 +173,9 @@ export default function RegisterPage() {
           Após criar a conta você completa o perfil físico e a triagem obrigatória em Configurações.
         </p>
 
-        {/* Google removido (não funcionando, não publicado nas lojas ainda) —
-            GoogleSignInButton.tsx e o backend seguem intactos para religar depois. */}
-        <div style={{ display: "grid", gap: 10, justifyItems: "center" }}>
-          <AppleSignInButton onCredential={onAppleCredential} text="signup_with" />
-        </div>
-        <div className="auth-divider"><span>ou preencha seus dados</span></div>
+        {/* Google e Apple removidos (sem funcionar / app só no Android por
+            enquanto) — GoogleSignInButton.tsx, AppleSignInButton.tsx e o
+            backend seguem intactos para religar quando fizer sentido. */}
 
         {error && (
           <div className="auth-error" role="alert">

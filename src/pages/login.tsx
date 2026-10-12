@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth, type Role, type AcademyForUser } from "../auth/AuthContext";
 import type { AccessProfile } from "../auth/accessControl";
-import { AppleSignInButton } from "../auth/AppleSignInButton";
 import S2CoreLogo from "../components/S2CoreLogo";
 import { offerToSaveCredential } from "../lib/passwordCredential";
 import { extractTenantSlug, fetchBranding, type AcademyBrandingPublic } from "../services/tenantHost";
@@ -46,7 +45,7 @@ function nextPathByRole(
 
 export default function LoginPage() {
   const nav = useNavigate();
-  const { login, loginWithOAuth, isAuthenticated, role, academies, activeAcademyId, accessProfile } = useAuth();
+  const { login, isAuthenticated, role, academies, activeAcademyId, accessProfile } = useAuth();
 
 
   const [email, setEmail]             = useState("");
@@ -85,23 +84,6 @@ export default function LoginPage() {
     }
 
     void offerToSaveCredential(email, password);
-    setIsLoading(false);
-  }
-
-  async function onAppleCredential(
-    identityToken: string,
-    userData?: { name?: string; email?: string },
-  ) {
-    setError(null);
-    setIsLoading(true);
-    // `userData` só vem na primeira autorização deste Apple ID — é a única
-    // chance de o backend gravar nome e e-mail (ver appleNativeAuth.ts).
-    const res = await loginWithOAuth("apple", identityToken, userData);
-    if (!res.ok) {
-      setError(res.message || "Falha no login com a Apple.");
-      setIsLoading(false);
-      return;
-    }
     setIsLoading(false);
   }
 
@@ -146,13 +128,9 @@ export default function LoginPage() {
         <h1 className="auth-title">{welcomeTitle}</h1>
         <p className="auth-subtitle">{welcomeSub}</p>
 
-        {/* Google removido (não funcionando, não publicado nas lojas ainda) —
-            GoogleSignInButton.tsx e o backend seguem intactos para religar depois. */}
-        <div style={{ display: "grid", gap: 10, justifyItems: "center" }}>
-          <AppleSignInButton onCredential={onAppleCredential} text="continue_with" />
-        </div>
-
-        <div className="auth-divider"><span>ou entre com e-mail</span></div>
+        {/* Google e Apple removidos (sem funcionar / app só no Android por
+            enquanto) — GoogleSignInButton.tsx, AppleSignInButton.tsx e o
+            backend seguem intactos para religar quando fizer sentido. */}
 
         {error && (
           <div className="auth-error" role="alert">
