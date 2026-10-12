@@ -70,12 +70,29 @@ jobs:
         with:
           distribution: temurin
           java-version: "21"
-      - name: Verificar ambiente Java
+          
+      - name: Diagnosticar Java e Gradle
+        working-directory: android
         run: |
-          java -version
-          javac -version
-          ./android/gradlew --version
+          echo "=== JAVA_HOME ==="
+          echo "$JAVA_HOME"
 
+          echo "=== Java ==="
+          java -version
+
+          echo "=== Compilador ==="
+          javac -version
+
+          echo "=== Gradle JVM ==="
+          chmod +x gradlew
+          ./gradlew --version
+
+          echo "=== Configuracoes Gradle ==="
+          grep -R -n -E \
+            'org.gradle.java.home|VERSION_17|VERSION_21|jvmToolchain|JavaLanguageVersion' \
+            gradle.properties app/build.gradle build.gradle \
+            2>/dev/null || true
+                  
       - name: Calcular versionCode
         id: version
         run: |
