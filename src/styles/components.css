@@ -32,6 +32,8 @@
   padding: 28px var(--space-6);
   /* Área segura do topo (notch/status bar) no app empacotado e PWA; 0 no desktop. */
   padding-top: max(28px, env(safe-area-inset-top, 0px));
+  /* Banner de cookies fixo no rodapé: o fim do conteúdo nunca fica sob ele (0 sem banner). */
+  padding-bottom: calc(28px + var(--cookie-consent-h, 0px));
   background: var(--color-bg-main);
 }
 
@@ -1069,7 +1071,7 @@ html[data-color-mode="daltonic"] .navLinkActive {
   }
 
   .main {
-    padding: var(--space-5) var(--space-4) var(--space-7);
+    padding: var(--space-5) var(--space-4) calc(var(--space-7) + var(--cookie-consent-h, 0px));
   }
 
   .pageSurface { border-radius: var(--radius-xl); }
