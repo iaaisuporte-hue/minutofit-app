@@ -16,7 +16,7 @@
 .ws-top {
   flex-shrink: 0;
   padding: 10px 14px calc(10px + env(safe-area-inset-top));
-  padding-top: max(10px, env(safe-area-inset-top));
+  padding-top: max(10px, env(safe-area-inset-top), calc(var(--offline-banner-h, 0px) + 10px));
   border-bottom: 1px solid var(--color-border);
   background: var(--color-surface);
 }

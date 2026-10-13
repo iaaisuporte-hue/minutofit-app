@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useLayoutVar } from "../../hooks/useLayoutVar";
 
 /**
  * Avisa que o aparelho está sem rede.
@@ -23,24 +24,23 @@ export function OfflineBanner() {
     };
   }, []);
 
+  const ref = useRef<HTMLDivElement | null>(null);
+  // Publica a altura real: top bar, conteúdo, toasts e Modo Treino descem por ela.
+  useLayoutVar(ref, "--offline-banner-h", offline);
+  useEffect(() => {
+    if (!offline) return;
+    const root = document.documentElement;
+    root.classList.add("is-offline");
+    return () => root.classList.remove("is-offline");
+  }, [offline]);
+
   if (!offline) return null;
 
   return (
     <div
+      ref={ref}
       role="status"
-      style={{
-        position: "fixed",
-        top: 0,
-        left: 0,
-        right: 0,
-        zIndex: 950,
-        padding: "calc(env(safe-area-inset-top, 0px) + 6px) 12px 6px",
-        textAlign: "center",
-        background: "var(--color-warn-soft, #FEF3C7)",
-        color: "var(--color-warn-text, #92400E)",
-        fontSize: "var(--text-xs, 12px)",
-        fontWeight: 600,
-      }}
+      className="offline-banner"
     >
       Sem conexão — o que você registrar agora pode não ser salvo.
     </div>

@@ -3201,3 +3201,41 @@ html[data-academy-branding="applied"] .admin-pill-positive {
     bottom: calc(var(--bottom-nav-h, 64px) + env(safe-area-inset-bottom, 0px) + var(--mini-player-h, 0px) + var(--cookie-consent-h, 0px) + 12px);
   }
 }
+
+
+/* ── Banner offline (G5) ──────────────────────────────────────────────────
+   Fixo no topo, OPACO (o tom de aviso tem 8% de alpha: composto sobre a
+   superfície para o texto não se misturar com a top bar) e acima do Modo
+   Treino (z-status). Não reserva espaço sozinho: publica --offline-banner-h e
+   quem fica no topo (top bar, conteúdo, Modo Treino, toasts) desce por ele. */
+.offline-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: var(--z-status, 1400);
+  padding: calc(env(safe-area-inset-top, 0px) + 6px) max(12px, env(safe-area-inset-right, 0px)) 6px max(12px, env(safe-area-inset-left, 0px));
+  text-align: center;
+  background: linear-gradient(var(--color-warn-soft, #FEF3C7), var(--color-warn-soft, #FEF3C7)), var(--color-surface, #fff);
+  border-bottom: 1px solid var(--color-warn-border, transparent);
+  color: var(--color-warn-text, #92400E);
+  font-size: var(--text-xs, 12px);
+  font-weight: 600;
+}
+
+/* mobile-shell */
+@media (max-width: 980px) {
+  .mobileTopBar {
+    top: var(--offline-banner-h, 0px);
+  }
+
+  /* O banner já cobre a safe-area do topo: a top bar não a soma de novo. */
+  html.is-offline .mobileTopBar {
+    padding-top: 8px;
+  }
+
+  .appShell--withBottomNav .main,
+  .appShell--withMobileHeader:not(.appShell--withBottomNav) .main {
+    padding-top: var(--offline-banner-h, 0px);
+  }
+}
