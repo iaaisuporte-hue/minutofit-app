@@ -45,6 +45,7 @@ import { trackPersonalExerciseEvent } from "./personalExerciseEvents";
 import "../personalPremium.css";
 import "./personalExercises.css";
 
+import { useOverlay } from "../../../lib/overlayStack";
 // Mesmo regex de `personalExerciseService.ts` (backend) — feedback imediato
 // no cliente, mas o backend segue sendo quem valida de verdade.
 const YOUTUBE_URL_RE = /^https?:\/\/(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/)[\w-]+/i;
@@ -59,6 +60,7 @@ interface Props {
 }
 
 export function PersonalExerciseFormModal({ exerciseId, onClose, onSaved }: Props) {
+  useOverlay(onClose, true);
   const isEdit = exerciseId != null;
 
   const [loadingExisting, setLoadingExisting] = useState(isEdit);

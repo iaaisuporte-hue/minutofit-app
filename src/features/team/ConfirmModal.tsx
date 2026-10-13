@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useOverlay } from '../../lib/overlayStack';
 import { COLORS } from '../../styles/colors';
 
 interface Props {
@@ -26,6 +27,8 @@ export function ConfirmModal({
   onCancel,
 }: Props) {
   const [reason, setReason] = useState('');
+  // Voltar do Android / Escape / scroll lock / foco. Durante `loading` a ação está em curso: não fecha.
+  useOverlay(() => { if (!loading) onCancel(); }, true);
 
   return (
     <div
@@ -40,7 +43,7 @@ export function ConfirmModal({
         alignItems: 'center',
         justifyContent: 'center',
         zIndex: 1100,
-        padding: 16,
+        padding: 'max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px))',
       }}
       onClick={(e) => e.target === e.currentTarget && !loading && onCancel()}
     >
@@ -51,6 +54,8 @@ export function ConfirmModal({
           borderRadius: 12,
           maxWidth: 380,
           width: '100%',
+          maxHeight: '100%',
+          overflowY: 'auto',
           padding: 20,
           boxShadow: 'var(--shadow-md)',
         }}

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useOverlay } from "../../../lib/overlayStack";
 import { getExerciseById, type Exercise } from "../../../services/exercisesApi";
 import { WB } from "./workoutBuilderTheme";
 import { WbButton } from "./WorkoutBuilderUi";
@@ -41,12 +42,8 @@ export function ExerciseDetailModal({ exerciseId, alreadyAdded, onAdd, onClose }
     return () => { cancelled = true; };
   }, [exerciseId]);
 
-  // Close on Escape
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [onClose]);
+  // Voltar do Android / Escape / scroll lock / foco devolvido ao gatilho.
+  useOverlay(onClose, true);
 
   const primaryMedia = exercise?.media.find((m) => m.isPrimary) ?? exercise?.media[0] ?? null;
   const mediaUrl = !imgError ? (primaryMedia?.url ?? null) : null;
@@ -77,7 +74,7 @@ export function ExerciseDetailModal({ exerciseId, alreadyAdded, onAdd, onClose }
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        padding: 16,
+        padding: "max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px))",
       }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
@@ -101,7 +98,7 @@ export function ExerciseDetailModal({ exerciseId, alreadyAdded, onAdd, onClose }
           boxShadow: "var(--shadow-lg)",
           width: "100%",
           maxWidth: 480,
-          maxHeight: "90vh",
+          maxHeight: "100%", // do contêiner fixo (viewport dinâmica) — sem depender de vh
           overflowY: "auto",
           display: "grid",
           gap: 0,

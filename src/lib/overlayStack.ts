@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 /**
  * Pilha de camadas dispensáveis (overlays abertos).
@@ -33,10 +33,27 @@ const pilha: Fechar[] = [];
 /** Registra um overlay. Devolve a função que o remove. */
 export function registrarOverlay(fechar: Fechar): () => void {
   pilha.push(fechar);
+  instalarEscape();
   return () => {
     const i = pilha.lastIndexOf(fechar);
     if (i >= 0) pilha.splice(i, 1);
+    if (pilha.length === 0) removerEscape();
   };
+}
+
+/**
+ * UM ouvinte de Escape para a pilha inteira (instalado com o primeiro overlay,
+ * removido com o último). Com um ouvinte por overlay, o Escape fechava a camada
+ * do topo e, no mesmo evento, o ouvinte seguinte fechava a debaixo.
+ */
+function onEscape(e: KeyboardEvent) {
+  if (e.key === "Escape") fecharTopo();
+}
+function instalarEscape() {
+  if (typeof window !== "undefined") window.addEventListener("keydown", onEscape);
+}
+function removerEscape() {
+  if (typeof window !== "undefined") window.removeEventListener("keydown", onEscape);
 }
 
 /**
@@ -59,6 +76,7 @@ export function overlaysAbertos(): number {
 /** Só para teste: esvazia a pilha entre casos. */
 export function __limparOverlays(): void {
   pilha.length = 0;
+  removerEscape();
 }
 
 /**
@@ -69,16 +87,72 @@ export function __limparOverlays(): void {
  * overlay que usa este hook está coberto nas duas plataformas sem pensar nisso.
  */
 export function useDismissable(onClose: Fechar, ativo = true): void {
+  // Ref para o `onClose` mais recente: com `onClose` na lista de dependências, um
+  // callback inline (`() => setX(false)`) re-registrava o overlay a CADA render e
+  // o levava ao topo da pilha — um overlay de baixo que re-renderizava passava a
+  // fechar antes do de cima. Registra uma vez por abertura; a ordem é a da abertura.
+  const ultimo = useRef(onClose);
+  useEffect(() => {
+    ultimo.current = onClose;
+  });
   useEffect(() => {
     if (!ativo) return;
-    const remover = registrarOverlay(onClose);
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKey);
+    return registrarOverlay(() => ultimo.current());
+  }, [ativo]);
+}
+
+/* ── Comportamento comum de overlay: scroll lock e foco ─────────────────── */
+
+let travas = 0;
+let overflowOriginal = "";
+
+/**
+ * Trava a rolagem do body enquanto houver ao menos um overlay aberto.
+ *
+ * Com contagem de referências: dois overlays empilhados que guardam e
+ * restauram `body.style.overflow` cada um por conta própria se atropelam —
+ * fechar o de baixo primeiro restaura "" e o de cima fica aberto com o fundo
+ * rolando. Aqui só o último a sair restaura o valor original.
+ */
+export function useBodyScrollLock(ativo = true): void {
+  useEffect(() => {
+    if (!ativo) return;
+    if (travas === 0) overflowOriginal = document.body.style.overflow;
+    travas += 1;
+    document.body.style.overflow = "hidden";
     return () => {
-      remover();
-      window.removeEventListener("keydown", onKey);
+      travas -= 1;
+      if (travas <= 0) {
+        travas = 0;
+        document.body.style.overflow = overflowOriginal;
+      }
     };
-  }, [onClose, ativo]);
+  }, [ativo]);
+}
+
+/** Só para teste. */
+export function __travasAtivas(): number {
+  return travas;
+}
+
+/**
+ * Foco previsível: ao abrir, memoriza o elemento que o tinha (o gatilho); ao
+ * fechar, devolve o foco a ele se ainda estiver no documento. Não move o foco
+ * inicial — cada overlay sabe qual controle merece recebê-lo (ver `autoFocus`).
+ */
+export function useRestoreFocus(ativo = true): void {
+  useEffect(() => {
+    if (!ativo) return;
+    const gatilho = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    return () => {
+      if (gatilho && gatilho.isConnected && typeof gatilho.focus === "function") gatilho.focus();
+    };
+  }, [ativo]);
+}
+
+/** Tudo que um overlay dispensável precisa: voltar/Escape, scroll lock e foco. */
+export function useOverlay(onClose: Fechar, ativo = true): void {
+  useDismissable(onClose, ativo);
+  useBodyScrollLock(ativo);
+  useRestoreFocus(ativo);
 }

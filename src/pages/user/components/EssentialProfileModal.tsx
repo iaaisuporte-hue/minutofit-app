@@ -5,6 +5,7 @@ import { API_URL } from "../../../services/apiBase";
 import { authFetch } from "../../../services/apiClient";
 import { COLORS } from "../../../styles/colors";
 
+import { useOverlay } from "../../../lib/overlayStack";
 // Mesmas listas do onboarding (ProfileCompletionPage.tsx) — duplicadas de
 // propósito para não acoplar o fluxo de cadastro à edição do perfil.
 const EXPERIENCE_LEVELS = ["Iniciante", "Intermediário", "Avançado"];
@@ -60,17 +61,8 @@ export default function EssentialProfileModal({ open, onClose }: Props) {
     setWeightKg(user?.weightKg ? String(user.weightKg) : "");
   }, [open, user]);
 
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
-    window.addEventListener("keydown", onKey);
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      document.body.style.overflow = prev;
-    };
-  }, [open, onClose]);
+  // Voltar do Android / Escape / scroll lock (contado) / foco devolvido ao gatilho.
+  useOverlay(onClose, open);
 
   if (!open) return null;
 

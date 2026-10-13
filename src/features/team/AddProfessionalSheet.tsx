@@ -14,6 +14,7 @@ import {
 import type { ResolvedProfessional } from './types';
 import { Toast } from './Toast';
 
+import { useOverlay } from "../../lib/overlayStack";
 const PERIOD_LABELS: Record<OfferingPeriod, string> = {
   monthly: 'Mensal',
   quarterly: 'Trimestral',
@@ -52,6 +53,7 @@ const modalityLabel = (value: NetworkProfessional['modality']) => {
 };
 
 export function AddProfessionalSheet({ onSuccess, onClose, initialRole = 'personal' }: Props) {
+  useOverlay(onClose, true);
   const [role, setRole] = useState<ProfessionalRole>(initialRole);
   const [step, setStep] = useState<Step>('browse');
   const [identifier, setIdentifier] = useState('');
@@ -218,7 +220,7 @@ export function AddProfessionalSheet({ onSuccess, onClose, initialRole = 'person
           background: COLORS.panel,
           borderRadius: 12,
           width: 'min(100%, 520px)',
-          maxHeight: 'calc(100vh - 32px)',
+          maxHeight: '100%',
           overflow: 'auto',
           boxShadow: 'var(--shadow-md)',
         }}

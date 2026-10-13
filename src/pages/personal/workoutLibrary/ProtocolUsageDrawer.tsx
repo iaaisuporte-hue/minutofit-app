@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useOverlay } from "../../../lib/overlayStack";
 import type { WorkoutProtocol } from "../../../services/workoutProtocolsApi";
 import { WbButton } from "../workoutBuilder/WorkoutBuilderUi";
 import { useProtocolUsages } from "./useProtocolUsages";
@@ -18,15 +18,8 @@ function formatDate(value: string) {
 export function ProtocolUsageDrawer({ protocol, open, onClose, onChanged }: Props) {
   const { students, loading, error, remove } = useProtocolUsages(protocol?.id ?? null, open);
 
-  // Escape fecha (padrão de acessibilidade ARIA dialog).
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open, onClose]);
+  // Voltar do Android / Escape / scroll lock / foco devolvido ao gatilho.
+  useOverlay(onClose, open);
 
   if (!open || !protocol) return null;
 

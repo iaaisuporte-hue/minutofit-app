@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useOverlay } from "../lib/overlayStack";
 
 interface Props {
   open: boolean;
@@ -26,21 +26,8 @@ export function ConfirmDialog({
   onConfirm,
   onCancel,
 }: Props) {
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onCancel();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open, onCancel]);
-
-  useEffect(() => {
-    if (!open) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => { document.body.style.overflow = prev; };
-  }, [open]);
+  // Voltar do Android, Escape, scroll lock (contado) e foco devolvido ao gatilho.
+  useOverlay(onCancel, open);
 
   if (!open) return null;
 
@@ -51,7 +38,7 @@ export function ConfirmDialog({
         position: "fixed", inset: 0, zIndex: 1000,
         background: "rgba(0,0,0,0.45)",
         display: "flex", alignItems: "center", justifyContent: "center",
-        padding: "var(--space-4)",
+        padding: "max(var(--space-4), env(safe-area-inset-top, 0px)) max(var(--space-4), env(safe-area-inset-right, 0px)) max(var(--space-4), env(safe-area-inset-bottom, 0px)) max(var(--space-4), env(safe-area-inset-left, 0px))",
       }}
       onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}
     >
@@ -66,6 +53,10 @@ export function ConfirmDialog({
           padding: "var(--space-6)",
           maxWidth: 440,
           width: "100%",
+          // Nunca maior que a área visível (paisagem / teclado): o corpo rola e as ações ficam alcançáveis.
+          maxHeight: "100%",
+          overflowY: "auto",
+          overscrollBehavior: "contain",
           boxShadow: "var(--shadow-lg, 0 8px 32px rgba(0,0,0,0.18))",
         }}
       >
@@ -99,6 +90,7 @@ export function ConfirmDialog({
             display: "flex",
             gap: "var(--space-2)",
             justifyContent: "flex-end",
+            flexWrap: "wrap",
           }}
         >
           <button className="btn btn-ghost btn-sm" onClick={onCancel}>

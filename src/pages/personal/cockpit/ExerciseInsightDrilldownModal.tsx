@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useOverlay } from "../../../lib/overlayStack";
 import { X } from "lucide-react";
 import {
   getExerciseInsightDrillDown,
@@ -40,6 +41,8 @@ export function ExerciseInsightDrilldownModal({
   const [detail, setDetail] = useState<ExerciseInsightDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [errored, setErrored] = useState(false);
+
+  useOverlay(onClose, true);
 
   useEffect(() => {
     const controller = new AbortController();

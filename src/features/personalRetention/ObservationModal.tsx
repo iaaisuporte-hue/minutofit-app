@@ -2,6 +2,7 @@ import { useState } from "react";
 import { X } from "lucide-react";
 import { createRelationshipAction, type ActionType } from "../../services/personalRetentionApi";
 
+import { useOverlay } from "../../lib/overlayStack";
 type Props = {
   studentId: string;
   studentName: string;
@@ -19,6 +20,7 @@ export function ObservationModal({
   onClose,
   onSaved,
 }: Props) {
+  useOverlay(onClose, true);
   const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);

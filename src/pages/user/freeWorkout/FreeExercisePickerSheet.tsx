@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useOverlay } from "../../../lib/overlayStack";
 import { searchExercises, type ExerciseSummary } from "../../../services/exercisesApi";
 import { FREE_WORKOUT_GROUPS } from "../../../features/training/freeWorkout/catalogGroups";
 import { ExerciseOriginBadge } from "../../../features/training/ExerciseOriginBadge";
@@ -94,14 +95,8 @@ export function FreeExercisePickerSheet({
     void load();
   }, [open, bodyPart, debouncedQuery, reloadTick]);
 
-  useEffect(() => {
-    if (!open) return;
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [open, onClose]);
+  // Voltar do Android / Escape / scroll lock / foco devolvido ao gatilho.
+  useOverlay(onClose, open);
 
   useEffect(() => () => {
     if (justAddedTimer.current) clearTimeout(justAddedTimer.current);

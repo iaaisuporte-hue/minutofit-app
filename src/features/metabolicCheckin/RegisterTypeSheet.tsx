@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import type { MetabolicCheckinInput } from './types';
 
+import { useOverlay } from "../../lib/overlayStack";
 // Seletor único de tipo de registro (Fase 1) — resolve o conflito de CTAs.
 // Tipos métricos abrem o MetabolicCheckinModal já focado; "Carga de treino"
 // roteia para o treino do dia (carga NÃO é campo deste modal); "Foto" em breve.
@@ -31,6 +32,7 @@ export function RegisterTypeSheet({ open, onClose, onPick }: {
   onClose: () => void;
   onPick: (field: RegisterField) => void;
 }) {
+  useOverlay(onClose, open);
   const navigate = useNavigate();
   if (!open) return null;
 

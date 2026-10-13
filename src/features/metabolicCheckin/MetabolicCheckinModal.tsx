@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import type { MetabolicCheckinInput } from './types';
 import './metabolicCheckin.css';
 
+import { useOverlay } from "../../lib/overlayStack";
 interface Props {
   open: boolean;
   onClose: () => void;
@@ -29,6 +30,7 @@ function numberOrNull(value: string) {
 }
 
 export function MetabolicCheckinModal({ open, onClose, onSave, initialField }: Props) {
+  useOverlay(onClose, open);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useOverlay } from "../../../lib/overlayStack";
 import { useNavigate } from "react-router-dom";
 import { X } from "lucide-react";
 import {
@@ -63,6 +64,7 @@ export function PlanReviewModal({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [manualEdit, setManualEdit] = useState<{ planId: number; dayIndex: number } | null>(null);
   const appliedRef = useRef(false);
+  useOverlay(handleClose, true);
 
   useEffect(() => {
     trackPersonalInsightsEvent("personal_plan_review_started", { insightType: insight.type });

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { EmptyState } from "../../components/EmptyState";
 import { SkeletonStudentList } from "../../components/feedback/Skeleton";
 import { COLORS } from "../../styles/colors";
+import { useOverlay } from "../../lib/overlayStack";
 import {
   fetchPersonalStudentSnapshot,
   type PersonalStudentSnapshot,
@@ -317,6 +318,9 @@ export default function ReviewWorkoutsPage() {
     setFeedback("");
     setNotes("");
   }
+
+  // Voltar do Android / Escape / scroll lock / foco: a revisão é um overlay como qualquer outro.
+  useOverlay(close, !!selected);
 
   function applyUpdate(updated: WorkoutReview, planByStudent?: Map<string, Plan>) {
     setQueue((prev) => {
@@ -654,6 +658,9 @@ export default function ReviewWorkoutsPage() {
           onClick={close}
         >
           <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Revisão de ficha"
             onClick={(e) => e.stopPropagation()}
             style={{
               width: "100%",

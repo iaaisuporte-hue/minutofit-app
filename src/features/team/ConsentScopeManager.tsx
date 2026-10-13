@@ -5,6 +5,7 @@ import { SCOPE_LABELS, MANAGEABLE_SCOPES_PERSONAL, MANAGEABLE_SCOPES_NUTRI } fro
 import { listConsents, revokeConsent, grantConsent } from './api';
 import { Toast } from './Toast';
 
+import { useOverlay } from "../../lib/overlayStack";
 interface Props {
   professionalId: number;
   professionalRole: ProfessionalRole;
@@ -22,6 +23,7 @@ export function ConsentScopeManager({
   onRevoke,
   onClose,
 }: Props) {
+  useOverlay(onClose, true);
   const [consents, setConsents] = useState<ConsentEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [togglingScope, setTogglingScope] = useState<ConsentScope | null>(null);
@@ -104,7 +106,7 @@ export function ConsentScopeManager({
           borderRadius: '12px 12px 0 0',
           width: '100%',
           maxWidth: 480,
-          maxHeight: '85vh',
+          maxHeight: '100%',
           overflow: 'auto',
           boxShadow: 'var(--shadow-md)',
         }}

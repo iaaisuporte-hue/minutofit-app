@@ -1,4 +1,5 @@
 import { useState, type CSSProperties } from "react";
+import { useOverlay } from "../../../lib/overlayStack";
 import type { UserWorkoutPlanItem } from "../../../services/userWorkoutPlansApi";
 
 // Folha de registro pós-treino (Spec 010, V1.1). Carga opcional por exercício,
@@ -49,12 +50,14 @@ function leadingInt(s?: string): number | null {
 
 const overlay: CSSProperties = {
   position: "fixed", inset: 0, background: "rgba(10,19,13,.45)", zIndex: 1000,
-  display: "flex", alignItems: "flex-end", justifyContent: "center", padding: 12,
+  display: "flex", alignItems: "flex-end", justifyContent: "center",
+  padding: "12px max(12px, env(safe-area-inset-right, 0px)) max(12px, env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px))",
 };
 const sheet: CSSProperties = {
   width: "min(560px, 100%)", background: "var(--color-surface, #fff)", borderRadius: 18,
   border: "1px solid var(--color-border, var(--color-border))", boxShadow: "var(--shadow-lg)",
   padding: 18, display: "grid", gap: 12,
+  maxHeight: "100%", overflowY: "auto", overscrollBehavior: "contain",
 };
 const rowStyle: CSSProperties = {
   display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10,
@@ -87,6 +90,7 @@ interface Props {
 }
 
 export function WorkoutLogSheet({ items, onConfirm, onClose }: Props) {
+  useOverlay(onClose, true);
   const [loads, setLoads] = useState<Record<number, string>>({});
   const [skipped, setSkipped] = useState<Record<number, boolean>>({});
   const [sessionRpe, setSessionRpe] = useState<number | null>(null);

@@ -22,6 +22,7 @@ import {
 } from "./homeWorkoutExtraYoutube";
 import { COLORS } from "../../styles/colors";
 
+import { useOverlay } from "../../lib/overlayStack";
 const groupLabelMap: Record<MuscleGroup, string> = {
   chest: "Peito",
   back: "Costas",
@@ -62,6 +63,7 @@ function ExtraYoutubeModal({
   group: HomeExtraYoutubeGroup;
   onClose: () => void;
 }) {
+  useOverlay(onClose, true);
   const shouldReduceMotion = Boolean(useReducedMotion());
   const videos = HOME_EXTRA_YOUTUBE_BY_GROUP[group];
   const title = group === "chest" ? "Treino de peito — mais opções no YouTube" : "Treino de perna — mais opções no YouTube";

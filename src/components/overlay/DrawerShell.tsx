@@ -1,6 +1,6 @@
-import { useEffect, useRef, type ReactNode } from "react";
+import { useRef, type ReactNode } from "react";
 import "../../pages/personal/personalPremium.css";
-import { useDismissable } from "../../lib/overlayStack";
+import { useBodyScrollLock, useDismissable, useRestoreFocus } from "../../lib/overlayStack";
 
 type DrawerShellProps = {
   open: boolean;
@@ -48,15 +48,9 @@ export function DrawerShell({
   // Botão Voltar do Android fecha o drawer; Escape idem (useDismissable cobre os dois).
   useDismissable(onClose, open && closeOnEscape);
 
-  // Scroll lock no body enquanto aberto.
-  useEffect(() => {
-    if (!open) return;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [open]);
+  // Scroll lock contado (overlays empilhados não se atropelam) e foco devolvido ao gatilho.
+  useBodyScrollLock(open);
+  useRestoreFocus(open);
 
   if (!open) return null;
 
