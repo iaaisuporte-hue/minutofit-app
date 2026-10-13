@@ -1566,8 +1566,29 @@ html:not([data-theme="dark"]) .personal-app-canvas {
   -webkit-line-clamp: 2;
   line-clamp: 2;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+}
+
+.pp-timeline-more {
+  position: relative;
+  margin: 2px 0 0;
+  padding: 2px 0;
+  border: 0;
+  background: none;
+  color: var(--action-primary, var(--color-primary));
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Área tocável de 44px sem engordar o layout (mesmo padrão de .hit-target-44). */
+.pp-timeline-more::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: max(100%, 44px);
+  height: 44px;
+  transform: translate(-50%, -50%);
 }
 
 .pp-timeline-date {
@@ -2466,4 +2487,61 @@ html:not([data-theme="dark"]) .personal-app-canvas {
 
 .wb-library {
   overflow-wrap: anywhere;
+}
+
+/* ── Menu contextual de linha (lista de alunos) ───────────────────────────
+   Portal em <body> com posição fixa: o painel da lista tem overflow:hidden e cortaria um popover comum. */
+.pp-row-menu-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pp-row-menu {
+  position: fixed;
+  z-index: 400;
+  min-width: 200px;
+  max-width: calc(100vw - 16px);
+  padding: 6px;
+  border-radius: 12px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.18);
+}
+
+.pp-row-menu__item {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 14px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--color-text-primary);
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.pp-row-menu__item:hover,
+.pp-row-menu__item:focus-visible {
+  background: var(--color-surface-subtle);
+  outline: none;
+}
+
+.pp-row-menu__item:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--action-primary, var(--color-primary));
+}
+
+.pp-row-menu__item--danger {
+  color: var(--color-danger);
+}
+
+.pp-row-menu__sep {
+  height: 1px;
+  margin: 4px 6px;
+  background: var(--color-border);
 }

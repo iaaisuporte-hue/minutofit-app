@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { EmptyState } from "../../components/EmptyState";
 import { SkeletonStudentList } from "../../components/feedback/Skeleton";
 import {
@@ -16,6 +16,7 @@ import { COLORS } from "../../styles/colors";
 import StudentProfileModal from "./StudentProfileModal";
 import { StudentRegisterDrawer } from "./students/StudentRegisterDrawer";
 import { StudentInviteDrawer } from "./students/StudentInviteDrawer";
+import { StudentRowMenu } from "./students/StudentRowMenu";
 import "./personalPremium.css";
 import { StudentLimitBanner } from "../../features/personalPlan/StudentLimitBanner";
 
@@ -60,22 +61,6 @@ function fmtDate(iso: string | null) {
   return new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
 }
 
-function ActionLink({ to, label }: { to: string; label: string }) {
-  return (
-    <Link
-      to={to}
-      className="pp-btn pp-btn--primary pp-btn--sm"
-      onMouseDown={(e) => {
-        (e.currentTarget as HTMLAnchorElement).style.transform = "scale(0.98)";
-      }}
-      onMouseUp={(e) => {
-        (e.currentTarget as HTMLAnchorElement).style.transform = "scale(1)";
-      }}
-    >
-      {label}
-    </Link>
-  );
-}
 
 export default function StudentsListPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -409,23 +394,27 @@ export default function StudentsListPage() {
               </div>
 
               <div className="pp-actions">
+                {/* Uma ação principal + as secundárias num menu: 4 botões lado a lado quebravam em 2+ linhas em 320px. */}
                 <button
                   type="button"
                   onClick={() => setSelectedStudent({ id: s.id, name: s.name })}
-                  className="pp-btn pp-btn--quiet pp-btn--sm"
+                  className="pp-btn pp-btn--primary pp-btn--sm"
                 >
                   Ver aluno
                 </button>
-                <ActionLink to={routes.studentWorkouts(s.id)} label="Ver ficha(s)" />
-                <ActionLink to={routes.workoutBuilder(s.id)} label="Criar treino" />
-                <button
-                  type="button"
-                  onClick={() => { setRemoveError(null); setRemoveTarget({ id: s.id, name: s.name }); }}
-                  className="pp-btn pp-btn--quiet pp-btn--sm"
-                  style={{ color: COLORS.danger }}
-                >
-                  Retirar
-                </button>
+                <StudentRowMenu
+                  label={`Mais ações para ${s.name}`}
+                  items={[
+                    { kind: "link", label: "Ver ficha(s)", to: routes.studentWorkouts(s.id) },
+                    { kind: "link", label: "Criar treino", to: routes.workoutBuilder(s.id) },
+                    {
+                      kind: "button",
+                      label: "Retirar",
+                      danger: true,
+                      onSelect: () => { setRemoveError(null); setRemoveTarget({ id: s.id, name: s.name }); },
+                    },
+                  ]}
+                />
               </div>
             </div>
           );
@@ -472,7 +461,7 @@ export default function StudentsListPage() {
           </button>
 
           {showInvites ? (
-            <div style={{ marginTop: 14, display: "grid", gap: 8 }}>
+            <div style={{ marginTop: 14, display: "grid", gridTemplateColumns: "minmax(0, 1fr)", gap: 8 }}>
               {invitesLoading ? (
                 <SkeletonStudentList rows={2} label="Carregando convites" />
               ) : invites.length === 0 ? (
@@ -492,20 +481,23 @@ export default function StudentsListPage() {
                       border: `1px solid ${COLORS.border}`,
                       background: "var(--color-surface)",
                       display: "flex",
+                      flexWrap: "wrap", // sem espaço, "Revogar" desce para baixo do texto em vez de espremê-lo
                       gap: 12,
                       alignItems: "center",
+                      minWidth: 0,
                       opacity: inv.status !== "pending" ? 0.65 : 1,
                     }}
                   >
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontWeight: 650, fontSize: 13 }}>
+                    <div style={{ flex: "1 1 180px", minWidth: 0 }}>
+                      <div style={{ fontWeight: 650, fontSize: 13, overflowWrap: "anywhere" }}>
                         {inv.invited_name || inv.invitedName || "Aluno sem nome"}
-                        {(inv.invited_email || inv.invitedEmail) && (
-                          <span style={{ fontWeight: 400, color: COLORS.muted, marginLeft: 6 }}>
-                            {inv.invited_email || inv.invitedEmail}
-                          </span>
-                        )}
                       </div>
+                      {(inv.invited_email || inv.invitedEmail) && (
+                        // e-mail em linha própria e com quebra em qualquer ponto: sem espaço, empurrava "Revogar" para fora
+                        <div style={{ fontWeight: 400, fontSize: 13, color: COLORS.muted, overflowWrap: "anywhere" }}>
+                          {inv.invited_email || inv.invitedEmail}
+                        </div>
+                      )}
                       <div style={{ fontSize: 11, color: COLORS.muted, marginTop: 2 }}>
                         Status: <b>{inv.status === "pending" ? "Aguardando" : inv.status === "accepted" ? "Aceito" : inv.status === "revoked" ? "Revogado" : "Expirado"}</b>
                         {inv.accepted_user_name || inv.acceptedUserName
@@ -521,6 +513,7 @@ export default function StudentsListPage() {
                             value={inv.inviteUrl}
                             style={{
                               width: "100%",
+                              minWidth: 0,
                               fontSize: 11,
                               padding: "4px 8px",
                               borderRadius: 6,
@@ -538,7 +531,8 @@ export default function StudentsListPage() {
                         type="button"
                         className="pp-btn pp-btn--quiet pp-btn--sm"
                         onClick={() => void handleRevoke(inv.id)}
-                        style={{ flexShrink: 0 }}
+                        // `.pp-btn` tem flex:1 1 auto no mobile: sem isto o botão crescia e espremia o e-mail (84px de 292)
+                        style={{ flex: "0 0 auto" }}
                       >
                         Revogar
                       </button>
