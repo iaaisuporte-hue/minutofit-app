@@ -2756,9 +2756,9 @@ html[data-academy-branding="applied"] .admin-pill-positive {
   left: 0;
   right: 0;
   bottom: calc(var(--bottom-nav-h, 64px) + env(safe-area-inset-bottom, 0px));
-  z-index: 95; /* abaixo do bottom nav (100), acima do conteúdo */
+  z-index: var(--z-mini-player, 95); /* abaixo do bottom nav, acima do conteúdo */
   display: none; /* visível só no shell mobile (abaixo): no desktop a sidebar é permanente e a sessão fica a um clique */
-  padding: 0 8px 8px;
+  padding: 0 max(8px, env(safe-area-inset-right, 0px)) 8px max(8px, env(safe-area-inset-left, 0px));
   max-width: 720px;
   margin: 0 auto;
   pointer-events: none;
@@ -2783,7 +2783,9 @@ html[data-academy-branding="applied"] .admin-pill-positive {
 
 .wmp--rest .wmp__body {
   border-color: var(--color-warn-border);
-  background: var(--color-warn-soft);
+  /* Opaco: o tom de aviso (8% de alpha) é composto sobre a superfície, senão o
+     conteúdo da página aparece através do player. */
+  background: linear-gradient(var(--color-warn-soft), var(--color-warn-soft)), var(--color-surface);
 }
 
 .wmp__pulse {

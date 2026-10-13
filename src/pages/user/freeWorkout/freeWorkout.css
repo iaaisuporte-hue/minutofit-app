@@ -306,7 +306,8 @@
 /* mobile-shell: a barra de CTA fica ACIMA da bottom nav sempre que ela existe. */
 @media (max-width: 980px) {
   .fw-cta-bar {
-    bottom: calc(var(--bottom-nav-h) + env(safe-area-inset-bottom) + var(--space-2));
+    /* + mini-player e banner de cookies medidos: o CTA nunca fica por baixo deles. */
+    bottom: calc(var(--bottom-nav-h) + env(safe-area-inset-bottom) + var(--space-2) + var(--mini-player-h, 0px) + var(--cookie-consent-h, 0px));
   }
 }
 

@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useLayoutVar } from "../../../hooks/useLayoutVar";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   findInProgressSession,
@@ -39,6 +40,7 @@ export function WorkoutMiniPlayer() {
   const location = useLocation();
   const [sessao, setSessao] = useState<InProgressSession | null>(null);
   const [agora, setAgora] = useState(() => Date.now());
+  const wrapRef = useRef<HTMLDivElement | null>(null);
 
   const reler = useCallback(() => setSessao(findInProgressSession()), []);
 
@@ -58,11 +60,15 @@ export function WorkoutMiniPlayer() {
     };
   }, [reler]);
 
-  if (!sessao) return null;
-  if (ehTelaDeTreino(location.pathname, sessao.route)) return null;
   // Treino esquecido aberto não vira um cronômetro correndo há 14 horas no
   // rodapé — esse caso é do card de retomada (ver ResumeWorkoutCard).
-  if (!sessaoAtiva(sessao, agora)) return null;
+  const visivel =
+    !!sessao && !ehTelaDeTreino(location.pathname, sessao.route) && sessaoAtiva(sessao, agora);
+  // Publica a altura real em `--mini-player-h` (reserva do .main, do banner de
+  // cookies e do CTA do treino livre); some junto com o player.
+  useLayoutVar(wrapRef, "--mini-player-h", visivel);
+
+  if (!sessao || !visivel) return null;
 
   const decorrido = Math.floor((agora - sessao.startedAt) / 1000);
   const descansoRestante =
@@ -70,7 +76,7 @@ export function WorkoutMiniPlayer() {
   const descansando = descansoRestante > 0;
 
   return (
-    <div className={`wmp${descansando ? " wmp--rest" : ""}`} role="status" aria-live="off">
+    <div ref={wrapRef} className={`wmp${descansando ? " wmp--rest" : ""}`} role="status" aria-live="off">
       <button
         type="button"
         className="wmp__body"
