@@ -3196,7 +3196,7 @@ html[data-academy-branding="applied"] .admin-pill-positive {
 /* mobile-shell */
 @media (max-width: 980px) {
   .toast-stack {
-    top: calc(var(--offline-banner-h, 0px) + var(--top-bar-h, 0px) + 8px);
+    top: max(calc(env(safe-area-inset-top, 0px) + 8px), calc(var(--offline-banner-h, 0px) + var(--top-bar-h, 0px) + 8px));
   }
 
   /* Acima da nav (e do mini-player / banner de cookies medidos). */
