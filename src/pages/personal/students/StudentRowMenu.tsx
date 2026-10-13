@@ -85,9 +85,12 @@ export function StudentRowMenu({ label, items }: Props) {
     else if (e.key === "ArrowUp") els[(i - 1 + els.length) % els.length]?.focus();
     else if (e.key === "Home") els[0]?.focus();
     else if (e.key === "End") els[els.length - 1]?.focus();
-    else if (e.key === "Tab") close(false);
-    else return;
-    if (e.key !== "Tab") e.preventDefault();
+    else if (e.key === "Tab") {
+      // foco volta ao gatilho e o Tab segue dali (próximo elemento da página), em vez de cair no <body>
+      close(true);
+      return;
+    } else return;
+    e.preventDefault();
   }
 
   return (

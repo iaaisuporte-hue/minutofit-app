@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { EmptyState } from "../../components/EmptyState";
 import { SkeletonStudentList } from "../../components/feedback/Skeleton";
 import {
@@ -17,6 +17,7 @@ import StudentProfileModal from "./StudentProfileModal";
 import { StudentRegisterDrawer } from "./students/StudentRegisterDrawer";
 import { StudentInviteDrawer } from "./students/StudentInviteDrawer";
 import { StudentRowMenu } from "./students/StudentRowMenu";
+import { useMobileShell } from "../../layout/mobileShell";
 import "./personalPremium.css";
 import { StudentLimitBanner } from "../../features/personalPlan/StudentLimitBanner";
 
@@ -62,7 +63,26 @@ function fmtDate(iso: string | null) {
 }
 
 
+function ActionLink({ to, label }: { to: string; label: string }) {
+  return (
+    <Link
+      to={to}
+      className="pp-btn pp-btn--primary pp-btn--sm"
+      onMouseDown={(e) => {
+        (e.currentTarget as HTMLAnchorElement).style.transform = "scale(0.98)";
+      }}
+      onMouseUp={(e) => {
+        (e.currentTarget as HTMLAnchorElement).style.transform = "scale(1)";
+      }}
+    >
+      {label}
+    </Link>
+  );
+}
+
 export default function StudentsListPage() {
+  // Mesmo critério do shell mobile (CSS e React dizem a mesma coisa): ações compactas só onde a largura é de celular/tablet.
+  const compactActions = useMobileShell();
   const [searchParams, setSearchParams] = useSearchParams();
   const [students, setStudents] = useState<Student[]>([]);
   const [loadingStudents, setLoadingStudents] = useState(true);
@@ -394,27 +414,52 @@ export default function StudentsListPage() {
               </div>
 
               <div className="pp-actions">
-                {/* Uma ação principal + as secundárias num menu: 4 botões lado a lado quebravam em 2+ linhas em 320px. */}
-                <button
-                  type="button"
-                  onClick={() => setSelectedStudent({ id: s.id, name: s.name })}
-                  className="pp-btn pp-btn--primary pp-btn--sm"
-                >
-                  Ver aluno
-                </button>
-                <StudentRowMenu
-                  label={`Mais ações para ${s.name}`}
-                  items={[
-                    { kind: "link", label: "Ver ficha(s)", to: routes.studentWorkouts(s.id) },
-                    { kind: "link", label: "Criar treino", to: routes.workoutBuilder(s.id) },
-                    {
-                      kind: "button",
-                      label: "Retirar",
-                      danger: true,
-                      onSelect: () => { setRemoveError(null); setRemoveTarget({ id: s.id, name: s.name }); },
-                    },
-                  ]}
-                />
+                {compactActions ? (
+                  <>
+                    {/* Shell mobile: uma ação principal + as secundárias num menu (4 botões quebravam em 2+ linhas em 320px). */}
+                    <button
+                      type="button"
+                      onClick={() => setSelectedStudent({ id: s.id, name: s.name })}
+                      className="pp-btn pp-btn--primary pp-btn--sm"
+                    >
+                      Ver aluno
+                    </button>
+                    <StudentRowMenu
+                      label={`Mais ações para ${s.name}`}
+                      items={[
+                        { kind: "link", label: "Ver ficha(s)", to: routes.studentWorkouts(s.id) },
+                        { kind: "link", label: "Criar treino", to: routes.workoutBuilder(s.id) },
+                        {
+                          kind: "button",
+                          label: "Retirar",
+                          danger: true,
+                          onSelect: () => { setRemoveError(null); setRemoveTarget({ id: s.id, name: s.name }); },
+                        },
+                      ]}
+                    />
+                  </>
+                ) : (
+                  <>
+                    {/* Desktop (>980px): como antes — todas as ações à vista, sem um clique a mais. */}
+                    <button
+                      type="button"
+                      onClick={() => setSelectedStudent({ id: s.id, name: s.name })}
+                      className="pp-btn pp-btn--quiet pp-btn--sm"
+                    >
+                      Ver aluno
+                    </button>
+                    <ActionLink to={routes.studentWorkouts(s.id)} label="Ver ficha(s)" />
+                    <ActionLink to={routes.workoutBuilder(s.id)} label="Criar treino" />
+                    <button
+                      type="button"
+                      onClick={() => { setRemoveError(null); setRemoveTarget({ id: s.id, name: s.name }); }}
+                      className="pp-btn pp-btn--quiet pp-btn--sm"
+                      style={{ color: COLORS.danger }}
+                    >
+                      Retirar
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           );

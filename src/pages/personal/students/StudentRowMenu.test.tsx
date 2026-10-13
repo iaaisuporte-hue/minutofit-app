@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { StudentRowMenu } from "./StudentRowMenu";
@@ -59,6 +59,17 @@ describe("StudentRowMenu", () => {
     expect(screen.getByRole("menuitem", { name: "Ver ficha(s)" })).toHaveFocus();
 
     await user.keyboard("{Escape}");
+    expect(screen.queryByRole("menu")).toBeNull();
+    expect(trigger).toHaveFocus();
+  });
+
+  it("Tab fecha o menu e deixa o foco NO GATILHO — o Tab nativo segue dali, em vez de cair no body", async () => {
+    const { user } = setup();
+    const trigger = screen.getByRole("button", { name: "Mais ações para Maria" });
+    await user.click(trigger);
+    // fireEvent: o user-event calcula o próximo foco a partir do item que já foi desmontado (artefato do jsdom);
+    // no navegador o Tab nativo usa o foco ATUAL, que é o que garantimos aqui.
+    fireEvent.keyDown(screen.getByRole("menu"), { key: "Tab" });
     expect(screen.queryByRole("menu")).toBeNull();
     expect(trigger).toHaveFocus();
   });
