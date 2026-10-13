@@ -731,6 +731,10 @@ html:not([data-theme="dark"]) .personal-app-canvas {
   background: var(--color-surface);
   box-shadow: -18px 0 48px rgba(15, 23, 42, 0.12);
   display: grid;
+  /* A coluna implícita de um grid é `auto` e cresce até o min-content do filho: um resumo `nowrap` de 140
+     caracteres (~770px) inflava a coluna e o cockpit virava um scroller horizontal acidental em 320px.
+     `minmax(0, 1fr)` deixa o conteúdo encolher e quebrar. */
+  grid-template-columns: minmax(0, 1fr);
   grid-auto-rows: max-content;
   align-content: start;
   gap: 12px;
@@ -1552,6 +1556,15 @@ html:not([data-theme="dark"]) .personal-app-canvas {
   font-size: 12px;
   color: var(--color-text-secondary);
   margin: 0;
+  overflow-wrap: anywhere;
+}
+
+/* Prévia de 2 linhas; o texto completo continua a um toque ("Ver mais"), nunca perdido. */
+.pp-timeline-summary--clamped {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

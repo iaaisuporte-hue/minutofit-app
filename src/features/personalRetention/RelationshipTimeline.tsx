@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useId, useLayoutEffect, useRef } from "react";
 import {
   MessageSquare,
   Dumbbell,
@@ -86,6 +86,49 @@ function signalContextLabel(item: TimelineItem): string | null {
   return SIGNAL_LABEL[sig] ?? null;
 }
 
+/**
+ * Resumo de uma linha da timeline: prévia de 2 linhas + "Ver mais" quando há mais texto.
+ *
+ * Antes era `nowrap + ellipsis` — a observação do próprio personal ficava cortada sem como ler. O botão só
+ * aparece se o texto REALMENTE passa de 2 linhas (medido, e remedido quando a largura muda).
+ */
+export function TimelineSummary({ text }: { text: string }) {
+  const [expanded, setExpanded] = useState(false);
+  const [overflowing, setOverflowing] = useState(false);
+  const ref = useRef<HTMLParagraphElement>(null);
+  const id = useId();
+
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el || expanded) return;
+    const measure = () => setOverflowing(el.scrollHeight > el.clientHeight + 1);
+    measure();
+    if (typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [text, expanded]);
+
+  return (
+    <>
+      <p id={id} ref={ref} className={`pp-timeline-summary${expanded ? "" : " pp-timeline-summary--clamped"}`}>
+        {text}
+      </p>
+      {overflowing || expanded ? (
+        <button
+          type="button"
+          className="pp-timeline-more"
+          aria-expanded={expanded}
+          aria-controls={id}
+          onClick={() => setExpanded((v) => !v)}
+        >
+          {expanded ? "Ver menos" : "Ver mais"}
+        </button>
+      ) : null}
+    </>
+  );
+}
+
 export function RelationshipTimeline({ studentId }: Props) {
   const [items, setItems] = useState<TimelineItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -117,9 +160,7 @@ export function RelationshipTimeline({ studentId }: Props) {
           <div className="pp-timeline-icon">{getIcon(item)}</div>
           <div className="pp-timeline-body">
             <p className="pp-timeline-title">{getTitle(item)}</p>
-            {item.summary && (
-              <p className="pp-timeline-summary">{item.summary}</p>
-            )}
+            {item.summary && <TimelineSummary text={item.summary} />}
             {signalContextLabel(item) && (
               <p className="pp-timeline-signal">Sinal: {signalContextLabel(item)}</p>
             )}
