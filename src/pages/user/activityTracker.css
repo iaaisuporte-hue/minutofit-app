@@ -361,6 +361,9 @@
 .tr-map-frame {
   border-radius: 14px;
   overflow: hidden;
+  /* Contém os panes (z 400) e controles (z 1000) do Leaflet: sem isso eles
+     competem na raiz e pintam sobre a nav, o banner de cookies e os sheets. */
+  isolation: isolate;
   border: 1px solid var(--tr-live-line, var(--color-border));
 }
 

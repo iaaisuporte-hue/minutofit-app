@@ -67,17 +67,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     <ToastContext.Provider value={ctx}>
       {children}
       <div
-        style={{
-          position: "fixed",
-          top: 20,
-          right: 20,
-          zIndex: "var(--z-toast)" as unknown as number,
-          display: "grid",
-          gap: 10,
-          maxWidth: 360,
-          width: "calc(100% - 40px)",
-          pointerEvents: "none",
-        }}
+        className="toast-stack"
+        style={{ display: "grid", gap: 10, pointerEvents: "none" }}
       >
         <AnimatePresence>
           {toasts.map((toast) => {

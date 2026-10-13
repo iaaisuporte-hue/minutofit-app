@@ -3167,3 +3167,37 @@ html[data-academy-branding="applied"] .admin-pill-positive {
   outline-offset: -2px;
   border-radius: var(--radius-sm);
 }
+
+
+/* ── Toasts (G4) ──────────────────────────────────────────────────────────
+   Acima de TODOS os modais (token --z-toast = 10000, ver tokens.css). Posição
+   abaixo da safe-area do topo e do banner offline; no shell mobile também
+   abaixo da top bar, para não tapar os ícones dela. Fixo, sem criar stacking
+   context novo na árvore da página. */
+.toast-stack {
+  position: fixed;
+  z-index: var(--z-toast, 10000);
+  top: max(12px, env(safe-area-inset-top, 0px), calc(var(--offline-banner-h, 0px) + 8px));
+  right: max(16px, env(safe-area-inset-right, 0px));
+  width: min(360px, calc(100% - 32px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)));
+}
+
+.team-toast {
+  position: fixed;
+  z-index: var(--z-toast, 10000);
+  bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+/* mobile-shell */
+@media (max-width: 980px) {
+  .toast-stack {
+    top: calc(var(--offline-banner-h, 0px) + var(--top-bar-h, 0px) + 8px);
+  }
+
+  /* Acima da nav (e do mini-player / banner de cookies medidos). */
+  html.has-bottom-nav .team-toast {
+    bottom: calc(var(--bottom-nav-h, 64px) + env(safe-area-inset-bottom, 0px) + var(--mini-player-h, 0px) + var(--cookie-consent-h, 0px) + 12px);
+  }
+}

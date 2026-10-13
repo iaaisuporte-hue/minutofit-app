@@ -29,11 +29,8 @@ export function Toast({ message, kind = 'info', onDismiss, durationMs = 3200 }: 
     <div
       role="status"
       aria-live="polite"
+      className="team-toast"
       style={{
-        position: 'fixed',
-        bottom: 20,
-        left: '50%',
-        transform: 'translateX(-50%)',
         background: bg,
         border: `1px solid ${border}`,
         borderRadius: 10,
@@ -41,7 +38,6 @@ export function Toast({ message, kind = 'info', onDismiss, durationMs = 3200 }: 
         fontSize: 13,
         color,
         fontWeight: 500,
-        zIndex: 1200,
         boxShadow: 'var(--shadow-md)',
         maxWidth: 'calc(100vw - 32px)',
       }}
