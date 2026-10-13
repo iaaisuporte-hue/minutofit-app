@@ -374,22 +374,57 @@ const stepReviewFooter = {
     }),
 };
 
-/** P8 — as 4 ações de cada aluno quebram em quantas linhas? */
+/**
+ * P8 — ações de cada aluno. Onda 0: 4 botões lado a lado quebravam em 2+ linhas.
+ * Onda 1A: 1 ação principal + menu. O passo agora verifica (a) quantas linhas os controles VISÍVEIS ocupam e
+ * (b) que TODAS as ações originais continuam existindo e alcançáveis (dentro da tela, alvo >= 44px) ao abrir o menu.
+ * Nenhuma ação pode ter sumido para o defeito "deixar de reproduzir".
+ */
 const stepRowActions = {
   states: ['default'],
   run: async (page) => {
-    const missing = await waitData(page, 'button:has-text("Retirar")', 'ações do aluno');
+    const missing = await waitData(page, 'button:has-text("Ver aluno")', 'ações do aluno');
     if (missing) return missing;
-    return page.evaluate(() => {
-      const labels = ['Ver aluno', 'Ver ficha(s)', 'Criar treino', 'Retirar'];
-      const els = labels.map((t) => [...document.querySelectorAll('button,a')].find((e) => (e.textContent || '').trim() === t && e.checkVisibility?.())).filter(Boolean);
-      if (els.length < 2) return { applicable: false, reason: 'ações do aluno não encontradas' };
+    const REQUIRED = ['Ver aluno', 'Ver ficha(s)', 'Criar treino', 'Retirar'];
+    const visible = await page.evaluate(() => {
+      // a linha do ALUNO (não a barra de ações do cabeçalho da página, que também usa .pp-actions)
+      const row = [...document.querySelectorAll('.pp-student-row .pp-actions')].find((e) => e.checkVisibility?.());
+      if (!row) return null;
+      const els = [...row.querySelectorAll('button,a')].filter((e) => e.checkVisibility?.());
       const rects = els.map((e) => {
         const r = e.getBoundingClientRect();
-        return [(e.textContent || '').trim(), Math.round(r.left), Math.round(r.top), Math.round(r.width), Math.round(r.height)];
+        return { label: (e.getAttribute('aria-label') || e.textContent || '').trim(), l: Math.round(r.left), t: Math.round(r.top), w: Math.round(r.width), h: Math.round(r.height), inViewport: r.left >= 0 && r.right <= innerWidth + 1 };
       });
-      return { applicable: true, actions: els.length, distinctRows: new Set(rects.map((r) => r[2])).size, rects };
+      return { rects, distinctRows: new Set(rects.map((r) => r.t)).size };
     });
+    if (!visible) return { applicable: false, reason: 'linha de ações do aluno não encontrada' };
+    let menu = null;
+    const trigger = page.locator('.pp-student-row .pp-actions button[aria-haspopup="menu"]').first();
+    if (await trigger.count()) {
+      await trigger.scrollIntoViewIfNeeded();
+      await trigger.click();
+      await page.getByRole('menu').first().waitFor({ state: 'visible', timeout: 3000 }).catch(() => {});
+      menu = await page.evaluate(() => {
+        const items = [...document.querySelectorAll('[role="menuitem"]')].filter((e) => e.checkVisibility?.());
+        return items.map((e) => {
+          const r = e.getBoundingClientRect();
+          return { label: (e.textContent || '').trim(), h: Math.round(r.height), inViewport: r.left >= 0 && r.right <= innerWidth + 1 && r.top >= 0 && r.bottom <= innerHeight + 1 };
+        });
+      });
+      await page.keyboard.press('Escape');
+    }
+    const labels = [...visible.rects.map((r) => r.label), ...(menu ?? []).map((m) => m.label)].filter((l) => !/^Mais ações/.test(l));
+    const missingActions = REQUIRED.filter((r) => !labels.some((l) => l.includes(r)));
+    return {
+      applicable: true,
+      distinctRows: visible.distinctRows,
+      visibleControls: visible.rects.map((r) => r.label),
+      visibleInViewport: visible.rects.every((r) => r.inViewport),
+      menuItems: (menu ?? []).map((m) => m.label),
+      menuAllInViewport: menu ? menu.every((m) => m.inViewport) : null,
+      menuMinItemHeight: menu && menu.length ? Math.min(...menu.map((m) => m.h)) : null,
+      missingActions,
+    };
   },
 };
 
@@ -412,7 +447,9 @@ const stepHistoryPill = {
           }
         }
       }
-      return { applicable: true, pillRect: [Math.round(r.left), Math.round(r.top), Math.round(r.width), Math.round(r.height)], clipped, beyondViewport: r.right > innerWidth + 1, viewportWidth: innerWidth };
+      const items = [...document.querySelectorAll('.metabolic-history-item')].filter((e) => e.checkVisibility?.());
+      const itemsBeyond = items.filter((e) => e.getBoundingClientRect().right > innerWidth + 1 || [...e.querySelectorAll('button,span,strong')].some((c) => c.getBoundingClientRect().right > innerWidth + 1)).length;
+      return { applicable: true, pillRect: [Math.round(r.left), Math.round(r.top), Math.round(r.width), Math.round(r.height)], clipped, beyondViewport: r.right > innerWidth + 1, viewportWidth: innerWidth, historyItems: items.length, historyItemsBeyondViewport: itemsBeyond };
     }),
 };
 
@@ -427,6 +464,31 @@ const stepTimeline = {
       if (!els.length) return { applicable: false, reason: 'sem .pp-timeline-summary na tela' };
       return { applicable: true, items: els.length, maxTextLen: Math.max(...els.map((e) => (e.textContent || '').length)), widestPx: Math.round(Math.max(...els.map((e) => e.getBoundingClientRect().width))), viewportWidth: innerWidth, truncated: els.filter((e) => e.scrollWidth > e.clientWidth + 1).length, sample: els.slice(0, 2).map((e) => ({ text: (e.textContent || '').slice(0, 40), clientWidth: e.clientWidth, scrollWidth: e.scrollWidth })) };
     });
+  },
+};
+
+/** P7 — "Ver mais" expande o resumo por toque e por teclado e recolhe de novo (roda DEPOIS da medição). */
+const stepTimelineExpand = {
+  states: ['default'],
+  after: true,
+  run: async (page) => {
+    const btn = page.locator('.pp-timeline-more').first();
+    if (!(await btn.count())) return { applicable: false, reason: 'nenhum resumo passou de 2 linhas (sem "Ver mais")' };
+    await btn.scrollIntoViewIfNeeded();
+    const state = () => page.evaluate(() => {
+      const b = document.querySelector('.pp-timeline-more');
+      const p = document.getElementById(b?.getAttribute('aria-controls') ?? '');
+      return { label: b?.textContent?.trim(), expanded: b?.getAttribute('aria-expanded'), fullyVisible: p ? p.scrollHeight <= p.clientHeight + 1 : null, clamped: p?.classList.contains('pp-timeline-summary--clamped') };
+    });
+    const before = await state();
+    await btn.tap().catch(() => btn.click());
+    const afterTouch = await state();
+    await btn.focus();
+    await page.keyboard.press('Enter');
+    const afterKeyboardCollapse = await state();
+    await page.keyboard.press('Space');
+    const afterKeyboardExpand = await state();
+    return { applicable: true, before, afterTouch, afterKeyboardCollapse, afterKeyboardExpand, touchExpands: afterTouch.expanded === 'true' && afterTouch.fullyVisible === true, keyboardToggles: afterKeyboardCollapse.expanded === 'false' && afterKeyboardExpand.expanded === 'true' };
   },
 };
 
@@ -758,7 +820,7 @@ export const SCENARIOS = [
   { id: 'personal.messages', role: 'personal', route: '/app/personal/messages', states: ['default', 'keyboard'], viewports: ALL, wait: '.main', steps: { composer: stepComposer } },
   { id: 'personal.profile', role: 'personal', route: '/app/personal/meu-perfil', states: ['default'], viewports: ALL, wait: '.main' },
   { id: 'personal.cockpit', role: 'personal', route: '/app/personal/students/{studentId}', states: ['default'], viewports: ALL, wait: '.main' },
-  { id: 'personal.cockpit-relationship', role: 'personal', route: '/app/personal/students/{studentId}?ctab=relationship', states: ['default'], viewports: ALL, wait: '.main', steps: { timeline: stepTimeline } },
+  { id: 'personal.cockpit-relationship', role: 'personal', route: '/app/personal/students/{studentId}?ctab=relationship', states: ['default'], viewports: ALL, wait: '.main', steps: { timeline: stepTimeline, timelineExpand: stepTimelineExpand } },
   { id: 'personal.cockpit-technical', role: 'personal', route: '/app/personal/students/{studentId}?ctab=technical', states: ['default'], viewports: ALL, wait: '.main' },
   {
     id: 'personal.builder',

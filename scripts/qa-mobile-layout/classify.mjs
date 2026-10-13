@@ -292,7 +292,7 @@ export const DEFS = [
       const h = custom(c, 'historyPill');
       if (!h || h.error) return BLK(h?.error ?? 'passo historyPill não executou');
       if (!h.applicable) return BLK(h.reason);
-      return { hit: !!h.clipped || h.beyondViewport, detail: h };
+      return { hit: !!h.clipped || h.beyondViewport || h.historyItemsBeyondViewport > 0, detail: h };
     },
     claims: [(f, c) => c.scenario === 'student.evolucao-history' && ['clipped-x', 'overflow-x', 'unreachable', 'covered', 'partly-covered', 'wide-in-scroller', 'text-clipped'].includes(f.type)],
   },
@@ -459,7 +459,8 @@ export const DEFS = [
       if (!t.applicable) return BLK(t.reason);
       if (t.maxTextLen < 60) return BLK('resumos curtos demais para truncar: o resultado seria artefato do dado de teste');
       const wide = fnd(c, 'wide-in-scroller', (f) => /pp-timeline-summary/.test(f.selector));
-      return { hit: t.truncated > 0 || wide.length > 0, detail: { items: t.items, truncated: t.truncated, wideInScroller: wide.length, maxTextLen: t.maxTextLen, widestPx: t.widestPx, viewportWidth: t.viewportWidth, sample: t.sample } };
+      const ex = custom(c, 'timelineExpand');
+      return { hit: t.truncated > 0 || wide.length > 0 || (ex?.applicable === true && !(ex.touchExpands && ex.keyboardToggles)), detail: { expand: ex?.applicable ? { touchExpands: ex.touchExpands, keyboardToggles: ex.keyboardToggles } : (ex?.reason ?? null), items: t.items, truncated: t.truncated, wideInScroller: wide.length, maxTextLen: t.maxTextLen, widestPx: t.widestPx, viewportWidth: t.viewportWidth, sample: t.sample } };
     },
     claims: [(f) => ['text-truncated', 'wide-in-scroller'].includes(f.type) && /pp-timeline-summary/.test(f.selector)],
   },
@@ -472,11 +473,14 @@ export const DEFS = [
       {
         part: 'ações por aluno quebram em 2+ linhas',
         cells: [{ scenario: 'personal.students', states: ['default'], viewports: PORTRAIT }],
+        // Onda 1A: reproduz se os controles visíveis ainda ocupam 2+ linhas, OU se alguma ação original sumiu/ficou
+        // inalcançável (fora da tela ou alvo < 44px). Sumir uma ação para "ganhar espaço" NÃO conta como correção.
         test: (c) => {
           const r = custom(c, 'rowActions');
           if (!r || r.error) return BLK(r?.error ?? 'passo rowActions não executou');
           if (!r.applicable) return BLK(r.reason);
-          return { hit: r.distinctRows >= 2, detail: { distinctRows: r.distinctRows, actions: r.actions } };
+          const unreachable = r.missingActions?.length > 0 || r.visibleInViewport === false || r.menuAllInViewport === false || (r.menuMinItemHeight != null && r.menuMinItemHeight < 44);
+          return { hit: r.distinctRows >= 2 || unreachable, detail: { distinctRows: r.distinctRows, visibleControls: r.visibleControls, menuItems: r.menuItems, missingActions: r.missingActions, menuAllInViewport: r.menuAllInViewport, menuMinItemHeight: r.menuMinItemHeight } };
         },
       },
       {
