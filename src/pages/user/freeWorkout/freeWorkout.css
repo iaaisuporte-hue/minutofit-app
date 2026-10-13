@@ -303,7 +303,8 @@
   color: var(--color-text-muted);
 }
 
-@media (max-width: 720px) {
+/* mobile-shell: a barra de CTA fica ACIMA da bottom nav sempre que ela existe. */
+@media (max-width: 980px) {
   .fw-cta-bar {
     bottom: calc(var(--bottom-nav-h) + env(safe-area-inset-bottom) + var(--space-2));
   }

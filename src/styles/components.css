@@ -872,7 +872,9 @@ html[data-color-mode="daltonic"] .navLinkActive {
   box-shadow: var(--shadow-lg);
 }
 
-@media (max-width: 720px) {
+/* mobile-shell: condição ÚNICA do shell mobile (top bar + bottom nav, sem sidebar). Espelhada em
+   src/layout/mobileShell.ts; um teste falha se qualquer media query marcada divergir. */
+@media (max-width: 980px) {
   .mobileTopBar {
     display: flex;
     align-items: center;
@@ -896,7 +898,8 @@ html[data-color-mode="daltonic"] .navLinkActive {
   display: none;
 }
 
-@media (max-width: 720px) {
+/* mobile-shell */
+@media (max-width: 980px) {
   .mobileBottomNav {
     display: grid;
     grid-auto-columns: 1fr;
@@ -1016,6 +1019,10 @@ html[data-color-mode="daltonic"] .navLinkActive {
     padding-bottom: calc(var(--bottom-nav-h) + 32px + env(safe-area-inset-bottom));
   }
 
+}
+
+/* Regras de CONTEÚDO que dividiam o bloco do shell: continuam em 720px (largura de conteúdo, não de navegação). */
+@media (max-width: 720px) {
   /* Slot de gráficos (recharts ResponsiveContainer) — precisa poder encolher
      dentro de itens de grid/flex, senão estoura a largura no mobile. */
   .chart-slot {
@@ -2583,7 +2590,23 @@ html[data-academy-branding="applied"] .admin-pill-positive {
    aparelho mostrava o FAB em paisagem e o escondia em retrato, então o
    controle de tema aparecia e desaparecia ao girar a tela. Girar não muda o
    aparelho; a regra não pode mudar de resposta por causa disso. */
-@media (max-width: 720px), (max-height: 560px) {
+/* Comportamento anterior, global (inclui Admin/Academia): abaixo de 720px o FAB some. */
+@media (max-width: 720px) {
+  .theme-toggle-fab {
+    display: none;
+  }
+}
+
+/* mobile-shell: onde existe bottom nav/top bar (aluno, personal, nutri) o FAB some também em 721–980px. Escopado por
+   :has() para NÃO tirar o botão de tema do Admin/Academia em tablet — eles não têm Perfil › Aparência. */
+@media (max-width: 980px) {
+  body:has(.appShell--withBottomNav, .appShell--withMobileHeader) .theme-toggle-fab {
+    display: none;
+  }
+}
+
+/* Janelas baixas (<=560px), mesmo sem bottom nav: o FAB cobriria conteúdo (decisão do QA de ago/2026). */
+@media (max-height: 560px) {
   .theme-toggle-fab {
     display: none;
   }
@@ -2734,6 +2757,7 @@ html[data-academy-branding="applied"] .admin-pill-positive {
   right: 0;
   bottom: calc(var(--bottom-nav-h, 64px) + env(safe-area-inset-bottom, 0px));
   z-index: 95; /* abaixo do bottom nav (100), acima do conteúdo */
+  display: none; /* visível só no shell mobile (abaixo): no desktop a sidebar é permanente e a sessão fica a um clique */
   padding: 0 8px 8px;
   max-width: 720px;
   margin: 0 auto;
@@ -2824,10 +2848,10 @@ html[data-academy-branding="applied"] .admin-pill-positive {
   padding: 0 2px;
 }
 
-/* Some no desktop: lá a sidebar é permanente e a sessão fica a um clique. */
-@media (min-width: 721px) {
+/* mobile-shell */
+@media (max-width: 980px) {
   .wmp {
-    display: none;
+    display: block;
   }
 }
 
