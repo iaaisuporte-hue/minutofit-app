@@ -176,13 +176,16 @@ export function ExerciseDemoModal({ name, onClose }: { name: string; onClose: ()
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        padding: 16,
+        padding: "max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px))",
       }}
     >
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
           background: COLORS.panel,
+          maxHeight: "100%",
+          overflowY: "auto",
+          overscrollBehavior: "contain",
           borderRadius: 18,
           padding: 18,
           maxWidth: 420,
@@ -201,8 +204,9 @@ export function ExerciseDemoModal({ name, onClose }: { name: string; onClose: ()
             onClick={onClose}
             aria-label="Fechar"
             style={{
-              width: 32,
-              height: 32,
+              width: 44,
+              height: 44,
+              margin: "-6px -6px 0 0",
               flexShrink: 0,
               borderRadius: 999,
               border: `1px solid ${COLORS.border}`,

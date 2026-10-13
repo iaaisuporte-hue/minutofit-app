@@ -21,6 +21,7 @@ import { MovementLabEntryCard } from "./components/MovementLabEntryCard";
 import { FreeWorkoutEntryCard } from "./components/FreeWorkoutEntryCard";
 import { useFeatureFlags } from "../../auth/FeatureFlagsContext";
 
+import { useOverlay } from "../../lib/overlayStack";
 function formatDate(value: string) {
   try {
     return new Date(value).toLocaleString("pt-BR");
@@ -65,6 +66,7 @@ type ExerciseModalProps = {
 };
 
 function ExerciseGifModal({ exercise, onClose }: ExerciseModalProps) {
+  useOverlay(onClose, true);
   const gifMedia = getPreferredVisualMedia(exercise);
   const frame1 = frame1FromUrl(gifMedia?.url);
   const showFrame1 = useThumbTick();
@@ -72,6 +74,9 @@ function ExerciseGifModal({ exercise, onClose }: ExerciseModalProps) {
   return (
     <div
       onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-label={exercise.name}
       style={{
         position: "fixed",
         inset: 0,
@@ -80,13 +85,16 @@ function ExerciseGifModal({ exercise, onClose }: ExerciseModalProps) {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        padding: 16,
+        padding: "max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px))",
       }}
     >
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
           background: COLORS.panel,
+          maxHeight: "100%",
+          overflowY: "auto",
+          overscrollBehavior: "contain",
           borderRadius: 16,
           padding: 20,
           maxWidth: 420,
@@ -98,7 +106,9 @@ function ExerciseGifModal({ exercise, onClose }: ExerciseModalProps) {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div style={{ fontWeight: 700, fontSize: 16, color: COLORS.text }}>{exercise.name}</div>
           <button
+            type="button"
             onClick={onClose}
+            aria-label="Fechar"
             style={{
               background: "none",
               border: "none",
@@ -106,6 +116,9 @@ function ExerciseGifModal({ exercise, onClose }: ExerciseModalProps) {
               color: COLORS.muted,
               fontSize: 20,
               lineHeight: 1,
+              width: 44,
+              height: 44,
+              margin: "-10px -10px -10px 0",
             }}
           >
             ×
