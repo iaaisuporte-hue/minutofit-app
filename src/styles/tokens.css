@@ -153,9 +153,17 @@
   --bottom-nav-h: 64px;
 
   /* ── Z-index ──────────────────────────────────────────────── */
-  --z-dropdown: 100;
-  --z-modal:    200;
-  --z-toast:    300;
+  /* Escala declarada (menor → maior). Modais legados usam valores inline de
+     1000–9999; o toast fica acima de todos eles para nunca ser engolido. */
+  --z-topbar:      90;
+  --z-mini-player: 95;
+  --z-nav:         100;
+  --z-dropdown:    100;
+  --z-fab:         150;
+  --z-consent:     160;
+  --z-modal:       200;
+  --z-status:      1400;
+  --z-toast:       10000;
 
   /* ── Radius (slightly rounder for modern SaaS feel) ──────── */
   --radius-card: 16px;

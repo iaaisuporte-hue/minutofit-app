@@ -1,3 +1,5 @@
+import { useEffect } from "react";
+
 export default function AppShell({
   sidebar,
   children,
@@ -9,6 +11,15 @@ export default function AppShell({
   bottomNav?: React.ReactNode;
   mobileHeader?: React.ReactNode;
 }) {
+  const hasBottomNav = !!bottomNav;
+  // Par JS de `appShell--withBottomNav`: o banner de cookies vive fora do shell
+  // (App.tsx) e precisa saber se há nav para subir acima dela, sem depender de :has.
+  useEffect(() => {
+    if (!hasBottomNav) return;
+    const root = document.documentElement;
+    root.classList.add("has-bottom-nav");
+    return () => root.classList.remove("has-bottom-nav");
+  }, [hasBottomNav]);
   return (
     <div
       className={`appShell${bottomNav ? " appShell--withBottomNav" : ""}${

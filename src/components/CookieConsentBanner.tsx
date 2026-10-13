@@ -4,6 +4,7 @@ import {
   readCookieConsent,
   writeCookieConsent,
 } from "../lib/cookieConsent";
+import { useLayoutVar } from "../hooks/useLayoutVar";
 import "../styles/cookieConsent.css";
 
 /**
@@ -13,7 +14,7 @@ import "../styles/cookieConsent.css";
 export default function CookieConsentBanner() {
   const [visible, setVisible] = useState(false);
   const [analytics, setAnalytics] = useState(false);
-  const innerRef = useRef<HTMLDivElement | null>(null);
+  const wrapRef = useRef<HTMLDivElement | null>(null);
 
   const sync = useCallback(() => {
     setVisible(readCookieConsent() === null);
@@ -25,29 +26,12 @@ export default function CookieConsentBanner() {
   // tocava num botão visível e nada acontecia, sem nenhuma pista do porquê
   // (QA mobile 02/ago/2026). Com o espaço reservado a página passa a rolar e a
   // ação sai de baixo do banner.
+  useLayoutVar(wrapRef, "--cookie-consent-h", visible);
   useEffect(() => {
+    if (!visible) return;
     const root = document.documentElement;
-    if (!visible) {
-      root.classList.remove("has-cookie-consent");
-      root.style.removeProperty("--cookie-consent-h");
-      return;
-    }
     root.classList.add("has-cookie-consent");
-    const el = innerRef.current;
-    const medir = () => {
-      const h = el?.getBoundingClientRect().height ?? 0;
-      root.style.setProperty("--cookie-consent-h", `${Math.ceil(h) + 24}px`);
-    };
-    medir();
-    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(medir) : null;
-    if (ro && el) ro.observe(el);
-    window.addEventListener("resize", medir);
-    return () => {
-      ro?.disconnect();
-      window.removeEventListener("resize", medir);
-      root.classList.remove("has-cookie-consent");
-      root.style.removeProperty("--cookie-consent-h");
-    };
+    return () => root.classList.remove("has-cookie-consent");
   }, [visible]);
 
   useEffect(() => {
@@ -72,12 +56,13 @@ export default function CookieConsentBanner() {
   return (
     <div
       className="cookie-consent"
+      ref={wrapRef}
       role="dialog"
       aria-modal="false"
       aria-labelledby="cookie-consent-title"
       aria-describedby="cookie-consent-desc"
     >
-      <div className="cookie-consent__inner" ref={innerRef}>
+      <div className="cookie-consent__inner">
         <div className="cookie-consent__text">
           <h2 id="cookie-consent-title" className="cookie-consent__title">
             Cookies e privacidade (LGPD)

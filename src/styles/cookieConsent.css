@@ -3,8 +3,12 @@
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: 5000;
+  z-index: var(--z-consent, 160);
+  /* Safe-area: recuo lateral/inferior (notch em paisagem, home indicator). */
   padding: var(--space-3, 12px);
+  padding-left: max(var(--space-3, 12px), env(safe-area-inset-left, 0px));
+  padding-right: max(var(--space-3, 12px), env(safe-area-inset-right, 0px));
+  padding-bottom: max(var(--space-3, 12px), env(safe-area-inset-bottom, 0px));
   pointer-events: none;
 }
 
@@ -150,8 +154,8 @@
 /* Espaço reservado no fim da página enquanto o banner está na tela — a altura
    real é publicada pelo componente em `--cookie-consent-h`.
 
-   O padding vai na PÁGINA, não no body: o body tem altura fixa e rolagem
-   própria (`globals.css`), então padding nele não gera rolagem nenhuma. Já em
+   O padding vai na PÁGINA, não no body: quem rola é a janela e o body tem
+   altura fixa (`globals.css`), então padding nele não gera rolagem nenhuma. Já em
    `.auth-page`, que é `min-height: 100vh` + `place-items: center`, reservar o
    rodapé faz o cartão se centralizar no espaço ACIMA do banner — e o botão
    "Entrar" deixa de nascer embaixo dele. */
@@ -159,10 +163,15 @@ html.has-cookie-consent .auth-page {
   padding-bottom: calc(var(--cookie-consent-h, 0px) + var(--space-5));
 }
 
-/* Demais telas (layout de app, com o próprio scroller) só precisam do respiro
-   no fim do conteúdo. */
-html.has-cookie-consent body {
-  padding-bottom: var(--cookie-consent-h, 0px);
+/* Dentro do shell com bottom nav o banner sobe ACIMA da nav e do mini-player
+   (ordem vertical medida em runtime) e o `.main` soma a mesma altura na reserva
+   (components.css): o banner nunca cobre a navegação. */
+/* mobile-shell */
+@media (max-width: 980px) {
+  html.has-bottom-nav .cookie-consent {
+    bottom: calc(var(--bottom-nav-h, 64px) + env(safe-area-inset-bottom, 0px) + var(--mini-player-h, 0px));
+    padding-bottom: var(--space-3, 12px);
+  }
 }
 
 .cookie-consent__title {

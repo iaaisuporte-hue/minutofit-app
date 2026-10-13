@@ -26,6 +26,12 @@ describe("layout contract — bottom nav reserve", () => {
     expect(components).toMatch(/padding-bottom:\s*calc\(var\(--bottom-nav-h\)\s*\+/);
   });
 
+  it("a reserva do .main soma mini-player e cookie medidos (com fallback 0px)", () => {
+    expect(components).toMatch(
+      /appShell--withBottomNav \.main[\s\S]*?padding-bottom:[^;]*var\(--mini-player-h, 0px\)[^;]*var\(--cookie-consent-h, 0px\)/,
+    );
+  });
+
   it("a topbar mobile é sticky e respeita a safe-area do topo", () => {
     expect(components).toMatch(/\.mobileTopBar\b[\s\S]*?position:\s*sticky/);
     expect(components).toMatch(/padding-top:\s*calc\([^)]*env\(safe-area-inset-top/);
