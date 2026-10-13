@@ -175,7 +175,7 @@ function MealDrawer({
           padding: "24px 20px 32px",
           width: "100%",
           maxWidth: 560,
-          maxHeight: "90vh",
+          maxHeight: "100%", // do contêiner fixo (viewport dinâmica)
           overflowY: "auto",
         }}
       >

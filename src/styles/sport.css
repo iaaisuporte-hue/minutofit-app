@@ -54,6 +54,7 @@
   width: 100%;
   max-width: 480px;
   max-height: 90vh;
+  max-height: 90dvh; /* viewport dinâmica (barra de URL / teclado); vh acima é o fallback */
   overflow-y: auto;
 }
 

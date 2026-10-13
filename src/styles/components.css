@@ -2034,9 +2034,12 @@ html[data-color-mode="daltonic"] .navLinkActive {
   border-bottom: none;
   box-shadow: var(--shadow-lg);
   padding: var(--space-6);
+  /* Ações do rodapé nunca ficam sob o home indicator. */
+  padding-bottom: calc(var(--space-6) + env(safe-area-inset-bottom, 0px));
   width: 100%;
   max-width: 520px;
   max-height: 90vh;
+  max-height: 90dvh; /* viewport dinâmica (barra de URL / teclado); vh acima é o fallback */
   overflow-y: auto;
 }
 

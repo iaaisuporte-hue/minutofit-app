@@ -320,6 +320,7 @@
   width: min(560px, 100%);
   max-width: 560px;
   max-height: 88vh;
+  max-height: 88dvh; /* viewport dinâmica (barra de URL / teclado); vh acima é o fallback */
   display: grid;
   grid-template-rows: auto auto auto minmax(0, 1fr);
   gap: var(--space-3);
@@ -335,6 +336,7 @@
   width: min(560px, 100%);
   max-width: 560px;
   max-height: 88vh;
+  max-height: 88dvh; /* viewport dinâmica (barra de URL / teclado); vh acima é o fallback */
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
   gap: var(--space-3);

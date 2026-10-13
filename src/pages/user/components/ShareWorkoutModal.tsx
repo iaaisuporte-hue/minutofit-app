@@ -325,7 +325,7 @@ export function ShareWorkoutModal({ focus, dayName, stats, exercises, eyebrow, p
           borderRadius: 18,
           padding: 18,
           width: "min(420px, 100%)",
-          maxHeight: "92vh",
+          maxHeight: "100%", // do contêiner fixo (viewport dinâmica)
           overflowY: "auto",
           display: "grid",
           gap: 14,

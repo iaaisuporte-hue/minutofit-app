@@ -116,7 +116,7 @@ export function SportReadinessCard() {
             padding: 'var(--space-6)',
             width: '100%',
             maxWidth: 480,
-            maxHeight: '90vh',
+            maxHeight: '100%',
             overflowY: 'auto',
           }}>
             <PreWorkoutCheckinSheet
