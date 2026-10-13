@@ -1017,8 +1017,8 @@ html[data-color-mode="daltonic"] .navLinkActive {
   .appShell--withBottomNav .main {
     /* A topbar sticky já cobre a safe-area do topo — zera aqui pra não duplicar. */
     padding-top: 0;
-    padding-left: var(--space-3);
-    padding-right: var(--space-3);
+    padding-left: max(var(--space-3), env(safe-area-inset-left, 0px));
+    padding-right: max(var(--space-3), env(safe-area-inset-right, 0px));
     /* Reserva = altura da nav + folga de 32px + área segura. Mesmo token da nav
        (evita regressão de conteúdo escondido). Antes: 80px fixo → folga real de 16px. */
     padding-bottom: calc(var(--bottom-nav-h) + 32px + env(safe-area-inset-bottom) + var(--mini-player-h, 0px) + var(--cookie-consent-h, 0px));
@@ -1072,6 +1072,9 @@ html[data-color-mode="daltonic"] .navLinkActive {
 
   .main {
     padding: var(--space-5) var(--space-4) calc(var(--space-7) + var(--cookie-consent-h, 0px));
+    /* Paisagem com notch: conteúdo recuado da área segura lateral (0 no resto). */
+    padding-left: max(var(--space-4), env(safe-area-inset-left, 0px));
+    padding-right: max(var(--space-4), env(safe-area-inset-right, 0px));
   }
 
   .pageSurface { border-radius: var(--radius-xl); }
