@@ -1841,7 +1841,8 @@ html:not([data-theme="dark"]) .personal-app-canvas {
   align-items: start;
 }
 
-@media (max-width: 900px) {
+/* mobile-shell: o cabeçalho sticky do builder compete com a top bar sticky do shell mobile (mesma condição). */
+@media (max-width: 980px) {
   .wb-header {
     border-radius: 0;
     position: static;

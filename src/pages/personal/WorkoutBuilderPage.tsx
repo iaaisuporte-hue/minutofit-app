@@ -45,6 +45,7 @@ import { ExerciseOriginBadge } from "../../features/training/ExerciseOriginBadge
 import { useAuth } from "../../auth/AuthContext";
 import { trackPersonalExerciseEvent } from "./exercises/personalExerciseEvents";
 import "./personalPremium.css";
+import { useMobileShell } from "../../layout/mobileShell";
 
 const BUILDER_BASE = "/app/personal/students";
 
@@ -64,18 +65,6 @@ const CADENCE_REGEX = /^\d-\d-\d-\d$/;
 
 function mapDashboardToStudents(rows: PersonalDashboardStudent[]): Student[] {
   return rows.map((s) => ({ id: s.id, name: s.name, plan: s.plan, gender: null }));
-}
-
-function useNarrowLayout(maxPx = 900) {
-  const [narrow, setNarrow] = useState(false);
-  useEffect(() => {
-    const mq = window.matchMedia(`(max-width: ${maxPx}px)`);
-    const update = () => setNarrow(mq.matches);
-    mq.addEventListener("change", update);
-    update();
-    return () => mq.removeEventListener("change", update);
-  }, [maxPx]);
-  return narrow;
 }
 
 function useThumbTick() {
@@ -102,7 +91,9 @@ export default function WorkoutBuilderPage() {
   const prefilledStudentName = (location.state as { studentName?: string } | null)?.studentName;
   const prefilledStudentId = (location.state as { studentId?: string } | null)?.studentId;
 
-  const narrow = useNarrowLayout(900);
+  // Mesmo critério do shell mobile: entre 901 e 980px a top bar sticky (z 90) cobria o cabeçalho sticky do builder
+  // e a bottom nav cobria a coluna lateral, porque o layout de 2 colunas continuava ativo dentro do shell mobile.
+  const narrow = useMobileShell();
   const thumbTick = useThumbTick();
   // `AuthState.id` (não `user.id`, que é numérico) é a forma string comparável
   // a `Exercise.ownerPersonalId` (o backend devolve o dono como string).
