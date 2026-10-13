@@ -193,7 +193,9 @@ function SessionRow({ session }: { session: WorkoutSessionListItem }) {
   if (session.sessionRpe != null) metaParts.push(`Esforço ${session.sessionRpe}/10`);
 
   return (
-    <article className="metabolic-history-item" style={{ display: "grid", gap: 6 }}>
+    // `minmax(0, 1fr)`: a coluna implícita de um grid é `auto` e cresce até o min-content do filho. Com título
+    // `nowrap` isso inflava a linha para ~830px numa tela de 320 e empurrava pill e status para fora.
+    <article className="metabolic-history-item" style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr)", gap: 6 }}>
       <button
         type="button"
         onClick={toggle}
@@ -211,8 +213,9 @@ function SessionRow({ session }: { session: WorkoutSessionListItem }) {
           textAlign: "left",
         }}
       >
-        <div style={{ minWidth: 0, flex: 1, display: "grid", gap: 2 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div style={{ minWidth: 0, flex: 1, display: "grid", gridTemplateColumns: "minmax(0, 1fr)", gap: 2 }}>
+          {/* wrap: o pill "Registrado retroativamente" desce para a linha de baixo em vez de estourar a coluna */}
+          <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", columnGap: 8, rowGap: 4, minWidth: 0 }}>
             {session.readinessLevel && (
               <span
                 aria-hidden="true"
@@ -225,12 +228,12 @@ function SessionRow({ session }: { session: WorkoutSessionListItem }) {
                 }}
               />
             )}
+            {/* Título completo e legível: quebra (inclusive palavra longa) em vez de ellipsis irreversível. */}
             <strong
               style={{
                 color: "var(--color-text)",
-                whiteSpace: "nowrap",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
+                minWidth: 0,
+                overflowWrap: "anywhere",
               }}
             >
               {session.title || "Treino"}
