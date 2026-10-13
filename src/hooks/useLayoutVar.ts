@@ -7,6 +7,7 @@ import { useLayoutEffect, type RefObject } from "react";
  *
  * - `useLayoutEffect`: publica antes do primeiro paint (sem salto duplo);
  * - `ResizeObserver` em border-box + `resize`: o safe-area muda só o padding;
+ * - o alvo deve permanecer o mesmo enquanto `active` não muda;
  * - remove a variável ao desmontar / desativar — nenhuma reserva residual;
  * - consumidores devem usar sempre `var(--nome, 0px)`.
  */
@@ -31,7 +32,11 @@ export function useLayoutVar(
     };
     publish();
     const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(publish) : null;
-    ro?.observe(el, { box: "border-box" });
+    try {
+      ro?.observe(el, { box: "border-box" });
+    } catch {
+      ro?.observe(el); // Safari < 15.4 não conhece a opção `box`
+    }
     window.addEventListener("resize", publish);
     return () => {
       ro?.disconnect();

@@ -5,7 +5,7 @@ export default function PrivacyPolicyPage() {
   const consent = readCookieConsent();
 
   return (
-    <main className="auth-page" style={{ maxWidth: 720, margin: "0 auto", padding: "24px 16px 80px" }}>
+    <main className="auth-page" style={{ maxWidth: 720, margin: "0 auto", padding: "24px 16px calc(80px + var(--cookie-consent-h, 0px))" }}>
       <h1 className="auth-title" style={{ textAlign: "left" }}>
         Privacidade e cookies
       </h1>

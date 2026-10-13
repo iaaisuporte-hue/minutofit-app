@@ -21,7 +21,7 @@ const P_STYLE: React.CSSProperties = {
 
 export default function TermsOfUsePage() {
   return (
-    <main className="auth-page" style={{ maxWidth: 720, margin: "0 auto", padding: "24px 16px 80px" }}>
+    <main className="auth-page" style={{ maxWidth: 720, margin: "0 auto", padding: "24px 16px calc(80px + var(--cookie-consent-h, 0px))" }}>
       <h1 className="auth-title" style={{ textAlign: "left" }}>
         Termos de Uso
       </h1>

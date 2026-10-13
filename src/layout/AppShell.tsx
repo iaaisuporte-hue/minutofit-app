@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useLayoutEffect, useRef } from "react";
 import { useLayoutVar } from "../hooks/useLayoutVar";
 
 export default function AppShell({
@@ -18,7 +18,7 @@ export default function AppShell({
   useLayoutVar(topBarRef, "--top-bar-h", !!mobileHeader);
   // Par JS de `appShell--withBottomNav`: o banner de cookies vive fora do shell
   // (App.tsx) e precisa saber se há nav para subir acima dela, sem depender de :has.
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!hasBottomNav) return;
     const root = document.documentElement;
     root.classList.add("has-bottom-nav");
