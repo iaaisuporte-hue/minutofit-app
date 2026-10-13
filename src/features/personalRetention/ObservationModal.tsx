@@ -20,7 +20,7 @@ export function ObservationModal({
   onClose,
   onSaved,
 }: Props) {
-  useOverlay(onClose, true);
+  useOverlay(() => { if (!saving) onClose(); }, true);
   const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);

@@ -64,7 +64,7 @@ export function PlanReviewModal({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [manualEdit, setManualEdit] = useState<{ planId: number; dayIndex: number } | null>(null);
   const appliedRef = useRef(false);
-  useOverlay(handleClose, true);
+  useOverlay(() => { if (!applying) handleClose(); }, true);
 
   useEffect(() => {
     trackPersonalInsightsEvent("personal_plan_review_started", { insightType: insight.type });

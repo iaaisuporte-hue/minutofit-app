@@ -30,7 +30,7 @@ function numberOrNull(value: string) {
 }
 
 export function MetabolicCheckinModal({ open, onClose, onSave, initialField }: Props) {
-  useOverlay(onClose, open);
+  useOverlay(() => { if (!saving) onClose(); }, open);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);

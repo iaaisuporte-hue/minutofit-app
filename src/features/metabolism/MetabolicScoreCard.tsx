@@ -9,6 +9,7 @@ import { computeMetabolicTrends } from '../metabolicCheckin/computeMetabolicTren
 import type { MetabolicCheckinRecord, MetabolicNudgeState } from '../metabolicCheckin/types';
 import '../metabolicCheckin/metabolicCheckin.css';
 
+import { useOverlay } from '../../lib/overlayStack';
 interface Props {
   data: MetabolicData | null;
   loading: boolean;
@@ -122,21 +123,8 @@ export function MetabolicScoreCard({ data, loading, error, derivedStatus, foreca
     return () => window.clearInterval(timer);
   }, [data?.score]);
 
-  // Fechar detail com Escape
-  useEffect(() => {
-    if (!detailOpen) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setDetailOpen(false); };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [detailOpen]);
-
-  // Scroll lock quando modal aberto
-  useEffect(() => {
-    if (!detailOpen) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = prev; };
-  }, [detailOpen]);
+  // Voltar do Android / Escape / scroll lock (contado) / foco.
+  useOverlay(() => setDetailOpen(false), detailOpen);
 
   const cardStyle: React.CSSProperties = {
     background: 'var(--color-surface)',

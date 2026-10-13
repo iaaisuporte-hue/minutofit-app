@@ -47,7 +47,9 @@ export function registrarOverlay(fechar: Fechar): () => void {
  * do topo e, no mesmo evento, o ouvinte seguinte fechava a debaixo.
  */
 function onEscape(e: KeyboardEvent) {
-  if (e.key === "Escape") fecharTopo();
+  // IME em composição usa Escape para cancelar a candidata; e um componente interno
+  // (autocomplete, dica) que já tratou a tecla marca `defaultPrevented`.
+  if (e.key === "Escape" && !e.isComposing && !e.defaultPrevented) fecharTopo();
 }
 function instalarEscape() {
   if (typeof window !== "undefined") window.addEventListener("keydown", onEscape);
@@ -136,16 +138,32 @@ export function __travasAtivas(): number {
 }
 
 /**
- * Foco previsível: ao abrir, memoriza o elemento que o tinha (o gatilho); ao
- * fechar, devolve o foco a ele se ainda estiver no documento. Não move o foco
- * inicial — cada overlay sabe qual controle merece recebê-lo (ver `autoFocus`).
+ * Foco previsível: memoriza o elemento que tinha o foco quando o overlay ABRE e o
+ * devolve ao fechar.
+ *
+ * O gatilho é capturado durante o render da transição fechado→aberto, e não num
+ * efeito: o `autoFocus` do React roda na fase de layout, ANTES dos efeitos, então
+ * num efeito o "gatilho" já seria o próprio input autofocado. E na saída só devolve
+ * o foco se ninguém o reivindicou (`body`/nada focado): quando um overlay fecha e
+ * outro abre no mesmo gesto (folha → modal já focado no campo), o foco do novo
+ * vence e o cleanup do antigo não o rouba.
  */
 export function useRestoreFocus(ativo = true): void {
+  const gatilho = useRef<HTMLElement | null>(null);
+  const abertoAntes = useRef(false);
+  /* eslint-disable react-hooks/refs -- captura deliberada na transição, ver comentário acima */
+  if (ativo && !abertoAntes.current) {
+    gatilho.current = typeof document !== "undefined" && document.activeElement instanceof HTMLElement ? document.activeElement : null;
+  }
+  abertoAntes.current = ativo;
+  /* eslint-enable react-hooks/refs */
   useEffect(() => {
     if (!ativo) return;
-    const gatilho = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     return () => {
-      if (gatilho && gatilho.isConnected && typeof gatilho.focus === "function") gatilho.focus();
+      const alvo = gatilho.current;
+      const atual = document.activeElement;
+      const ninguemFocado = !atual || atual === document.body;
+      if (ninguemFocado && alvo && alvo.isConnected && typeof alvo.focus === "function") alvo.focus();
     };
   }, [ativo]);
 }

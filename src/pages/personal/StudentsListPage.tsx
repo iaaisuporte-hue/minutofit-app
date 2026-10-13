@@ -92,7 +92,7 @@ export default function StudentsListPage() {
 
   // ── Remove student ─────────────────────────────────────────────────
   const [removeTarget, setRemoveTarget] = useState<{ id: string; name: string } | null>(null);
-  useOverlay(() => setRemoveTarget(null), removeTarget !== null);
+  useOverlay(() => { if (!removeLoading) setRemoveTarget(null); }, removeTarget !== null);
   const [removeLoading, setRemoveLoading] = useState(false);
   const [removeError, setRemoveError] = useState<string | null>(null);
 

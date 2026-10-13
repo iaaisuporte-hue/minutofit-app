@@ -3010,7 +3010,7 @@ export default function WorkoutSessionPage() {
           role="dialog"
           aria-modal="true"
           aria-labelledby="ws-keep-title"
-          style={{ position: "fixed", inset: 0, zIndex: 1300, background: "rgba(10,19,13,.5)", display: "flex", alignItems: "flex-end", justifyContent: "center", padding: "12px max(12px, env(safe-area-inset-right, 0px)) max(12px, env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px))" }}
+          style={{ position: "fixed", inset: 0, zIndex: 1300, background: "rgba(10,19,13,.5)", display: "flex", alignItems: "flex-end", justifyContent: "center", padding: "max(12px, env(safe-area-inset-top, 0px)) max(12px, env(safe-area-inset-right, 0px)) max(12px, env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px))" }}
           onClick={() => setSwapKeepAsk(null)}
         >
           <div
@@ -3051,7 +3051,7 @@ export default function WorkoutSessionPage() {
           role="dialog"
           aria-modal="true"
           aria-labelledby="ws-unchecked-title"
-          style={{ position: "fixed", inset: 0, zIndex: 1300, background: "rgba(10,19,13,.5)", display: "flex", alignItems: "flex-end", justifyContent: "center", padding: "12px max(12px, env(safe-area-inset-right, 0px)) max(12px, env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px))" }}
+          style={{ position: "fixed", inset: 0, zIndex: 1300, background: "rgba(10,19,13,.5)", display: "flex", alignItems: "flex-end", justifyContent: "center", padding: "max(12px, env(safe-area-inset-top, 0px)) max(12px, env(safe-area-inset-right, 0px)) max(12px, env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px))" }}
           onClick={() => setShowUnchecked(false)}
         >
           <div
@@ -3094,7 +3094,7 @@ export default function WorkoutSessionPage() {
           role="dialog"
           aria-modal="true"
           aria-labelledby="ws-pend-title"
-          style={{ position: "fixed", inset: 0, zIndex: 1300, background: "rgba(10,19,13,.5)", display: "flex", alignItems: "flex-end", justifyContent: "center", padding: "12px max(12px, env(safe-area-inset-right, 0px)) max(12px, env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px))" }}
+          style={{ position: "fixed", inset: 0, zIndex: 1300, background: "rgba(10,19,13,.5)", display: "flex", alignItems: "flex-end", justifyContent: "center", padding: "max(12px, env(safe-area-inset-top, 0px)) max(12px, env(safe-area-inset-right, 0px)) max(12px, env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px))" }}
           onClick={() => setShowPendentes(false)}
         >
           <div
@@ -3144,7 +3144,7 @@ export default function WorkoutSessionPage() {
         <div
           role="dialog"
           aria-modal="true"
-          style={{ position: "fixed", inset: 0, zIndex: 1300, background: "rgba(10,19,13,.5)", display: "flex", alignItems: "flex-end", justifyContent: "center", padding: "12px max(12px, env(safe-area-inset-right, 0px)) max(12px, env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px))" }}
+          style={{ position: "fixed", inset: 0, zIndex: 1300, background: "rgba(10,19,13,.5)", display: "flex", alignItems: "flex-end", justifyContent: "center", padding: "max(12px, env(safe-area-inset-top, 0px)) max(12px, env(safe-area-inset-right, 0px)) max(12px, env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px))" }}
           onClick={closeExitDialog}
         >
           <div

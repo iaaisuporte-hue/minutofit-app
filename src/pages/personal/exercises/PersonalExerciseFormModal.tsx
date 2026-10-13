@@ -60,7 +60,13 @@ interface Props {
 }
 
 export function PersonalExerciseFormModal({ exerciseId, onClose, onSaved }: Props) {
-  useOverlay(onClose, true);
+  // Voltar do Android / Escape: não descarta em silêncio o que já foi preenchido, nem fecha durante o salvamento.
+  useOverlay(() => {
+    if (saving) return;
+    const sujo = !exerciseId && (name.trim() || equipment.trim() || instructionsText.trim() || tipsText.trim() || youtubeInput.trim() || secondaryMuscles.length > 0);
+    if (sujo && !window.confirm("Descartar o exercício que você começou a preencher?")) return;
+    onClose();
+  }, true);
   const isEdit = exerciseId != null;
 
   const [loadingExisting, setLoadingExisting] = useState(isEdit);

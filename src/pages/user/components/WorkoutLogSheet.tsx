@@ -51,7 +51,7 @@ function leadingInt(s?: string): number | null {
 const overlay: CSSProperties = {
   position: "fixed", inset: 0, background: "rgba(10,19,13,.45)", zIndex: 1000,
   display: "flex", alignItems: "flex-end", justifyContent: "center",
-  padding: "12px max(12px, env(safe-area-inset-right, 0px)) max(12px, env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px))",
+  padding: "max(12px, env(safe-area-inset-top, 0px)) max(12px, env(safe-area-inset-right, 0px)) max(12px, env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px))",
 };
 const sheet: CSSProperties = {
   width: "min(560px, 100%)", background: "var(--color-surface, #fff)", borderRadius: 18,

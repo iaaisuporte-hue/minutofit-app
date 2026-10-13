@@ -78,4 +78,53 @@ describe("comportamento comum de overlay", () => {
     expect(document.activeElement).toBe(gatilho);
     gatilho.remove();
   });
+
+  it("overlay com autoFocus: não guarda o próprio input como gatilho e devolve o foco ao botão", () => {
+    function Modal({ onClose }: { onClose: () => void }) {
+      useOverlay(onClose, true);
+      return <input aria-label="campo" autoFocus />;
+    }
+    const gatilho = document.createElement("button");
+    document.body.appendChild(gatilho);
+    gatilho.focus();
+    const r = render(<Modal onClose={() => {}} />);
+    expect(document.activeElement).toBe(r.getByLabelText("campo"));
+    r.unmount();
+    expect(document.activeElement).toBe(gatilho);
+    gatilho.remove();
+  });
+
+  it("folha fecha e modal com autoFocus abre no mesmo gesto: o foco do modal não é roubado", () => {
+    function Folha() {
+      useOverlay(() => {}, true);
+      return <button>folha</button>;
+    }
+    function Modal() {
+      useOverlay(() => {}, true);
+      return <input aria-label="campo" autoFocus />;
+    }
+    function Fluxo({ etapa }: { etapa: "folha" | "modal" }) {
+      return etapa === "folha" ? <Folha /> : <Modal />;
+    }
+    const gatilho = document.createElement("button");
+    document.body.appendChild(gatilho);
+    gatilho.focus();
+    const r = render(<Fluxo etapa="folha" />);
+    r.rerender(<Fluxo etapa="modal" />);
+    expect(document.activeElement).toBe(r.getByLabelText("campo"));
+    gatilho.remove();
+  });
+
+  it("Escape em composição de IME ou já tratado por um componente interno não fecha o overlay", () => {
+    const fechar = vi.fn();
+    render(<Camada onClose={fechar} label="x" />);
+    fireEvent.keyDown(window, { key: "Escape", isComposing: true });
+    expect(fechar).not.toHaveBeenCalled();
+    const ev = new KeyboardEvent("keydown", { key: "Escape", cancelable: true });
+    ev.preventDefault();
+    window.dispatchEvent(ev);
+    expect(fechar).not.toHaveBeenCalled();
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(fechar).toHaveBeenCalledTimes(1);
+  });
 });

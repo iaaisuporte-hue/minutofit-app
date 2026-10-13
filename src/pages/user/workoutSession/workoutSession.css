@@ -15,7 +15,7 @@
 /* ── Topo: progresso + sair ─────────────────────────── */
 .ws-top {
   flex-shrink: 0;
-  padding: 10px 14px calc(10px + env(safe-area-inset-top));
+  padding: 10px 14px; /* o inset do topo vai em padding-top (abaixo), não na base */
   padding-top: max(10px, env(safe-area-inset-top), calc(var(--offline-banner-h, 0px) + 10px));
   /* Paisagem com notch: o "Sair" não fica sob o recorte. */
   padding-left: max(14px, env(safe-area-inset-left, 0px));
