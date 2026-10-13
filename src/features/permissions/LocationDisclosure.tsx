@@ -26,13 +26,15 @@ export function LocationDisclosure({
         zIndex: 1000,
         display: "grid",
         placeItems: "center",
-        padding: 16,
+        padding: "max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px))",
         background: "rgba(0,0,0,0.55)",
       }}
     >
       <div
         style={{
           width: "min(420px, 100%)",
+          maxHeight: "100%",
+          overflowY: "auto",
           borderRadius: "var(--radius-card, 12px)",
           border: "1px solid var(--color-border)",
           background: "var(--color-surface)",

@@ -3,6 +3,7 @@ import { COLORS } from "../../styles/colors";
 import { exportMyData, deleteMyAccount } from "../../services/accountApi";
 import { handleExternal } from "../../lib/externalLink";
 
+import { useOverlay } from "../../lib/overlayStack";
 /**
  * Seção "Seus dados e conta" (LGPD + requisito de loja Apple 5.1.1v / Google).
  * Exportação (SAR) e exclusão self-service. `onDeleted` deve encerrar a sessão.
@@ -15,6 +16,8 @@ export function AccountDataSection({ onDeleted }: { onDeleted: () => void }) {
   const [password, setPassword] = useState("");
   const [confirmText, setConfirmText] = useState("");
   const [deleting, setDeleting] = useState(false);
+  // Exclusão em andamento não pode ser dispensada por voltar/Escape.
+  useOverlay(() => { if (!deleting) setShowDelete(false); }, showDelete);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
   async function handleExport() {
@@ -99,10 +102,10 @@ export function AccountDataSection({ onDeleted }: { onDeleted: () => void }) {
         <div
           role="dialog"
           aria-modal="true"
-          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 16 }}
+          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: "max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px))" }}
           onClick={(e) => e.target === e.currentTarget && !deleting && setShowDelete(false)}
         >
-          <div style={{ background: COLORS.panel, borderRadius: 14, maxWidth: 420, width: "100%", padding: 20, display: "grid", gap: 12 }}>
+          <div style={{ background: COLORS.panel, borderRadius: 14, maxWidth: 420, width: "100%", maxHeight: "100%", overflowY: "auto", padding: 20, display: "grid", gap: 12 }}>
             <div style={{ fontSize: 16, fontWeight: 700, color: COLORS.text }}>Excluir sua conta</div>
             <div style={{ fontSize: 13, color: COLORS.muted, lineHeight: 1.55 }}>
               Sua conta e seus dados de treino, dieta, check-ins e fotos serão <strong>excluídos permanentemente</strong>.

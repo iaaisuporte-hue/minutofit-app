@@ -34,6 +34,7 @@ import { QuickMessageModal } from "../../features/personalRetention/QuickMessage
 import { SessionQuickLog } from "../../features/personalRetention/SessionQuickLog";
 import "./personalPremium.css";
 
+import { useOverlay } from "../../lib/overlayStack";
 const PERSONAL_BASE = "/app/personal" as const;
 
 const routes = {
@@ -201,6 +202,7 @@ export default function DashboardPage() {
   const [recognizingMilestone, setRecognizingMilestone] = useState<RecognitionMilestone | null>(null);
   const [isDemoMode, setIsDemoMode] = useState(false);
   const [demoCTAOpen, setDemoCTAOpen] = useState(false);
+  useOverlay(() => setDemoCTAOpen(false), demoCTAOpen);
   // Cobrança de aluno congelada na V1 (STUDENT_BILLING_ENABLED): a aba/painel
   // financeiro fica inacessível mesmo via ?tab=financeiro na URL.
   const activeTab =
@@ -798,7 +800,7 @@ export default function DashboardPage() {
           <div
             style={{
               background: "var(--color-surface)", borderRadius: 16,
-              padding: "28px 24px", maxWidth: 360, width: "100%",
+              padding: "28px 24px", maxWidth: 360, width: "100%", maxHeight: "100%", overflowY: "auto",
               boxShadow: "var(--shadow-lg)", display: "grid", gap: 16,
             }}
             onClick={(e) => e.stopPropagation()}

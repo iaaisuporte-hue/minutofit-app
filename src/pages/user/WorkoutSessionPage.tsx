@@ -3010,12 +3010,12 @@ export default function WorkoutSessionPage() {
           role="dialog"
           aria-modal="true"
           aria-labelledby="ws-keep-title"
-          style={{ position: "fixed", inset: 0, zIndex: 1300, background: "rgba(10,19,13,.5)", display: "flex", alignItems: "flex-end", justifyContent: "center", padding: 12 }}
+          style={{ position: "fixed", inset: 0, zIndex: 1300, background: "rgba(10,19,13,.5)", display: "flex", alignItems: "flex-end", justifyContent: "center", padding: "12px max(12px, env(safe-area-inset-right, 0px)) max(12px, env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px))" }}
           onClick={() => setSwapKeepAsk(null)}
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            style={{ width: "min(480px,100%)", background: "var(--color-surface)", borderRadius: 18, border: "1px solid var(--color-border)", padding: 18, display: "grid", gap: 10 }}
+            style={{ width: "min(480px,100%)", maxHeight: "100%", overflowY: "auto", overscrollBehavior: "contain", background: "var(--color-surface)", borderRadius: 18, border: "1px solid var(--color-border)", padding: 18, display: "grid", gap: 10 }}
           >
             <div id="ws-keep-title" style={{ fontWeight: 700, fontSize: 17 }}>
               Você já registrou trabalho em {current.name}
@@ -3051,12 +3051,12 @@ export default function WorkoutSessionPage() {
           role="dialog"
           aria-modal="true"
           aria-labelledby="ws-unchecked-title"
-          style={{ position: "fixed", inset: 0, zIndex: 1300, background: "rgba(10,19,13,.5)", display: "flex", alignItems: "flex-end", justifyContent: "center", padding: 12 }}
+          style={{ position: "fixed", inset: 0, zIndex: 1300, background: "rgba(10,19,13,.5)", display: "flex", alignItems: "flex-end", justifyContent: "center", padding: "12px max(12px, env(safe-area-inset-right, 0px)) max(12px, env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px))" }}
           onClick={() => setShowUnchecked(false)}
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            style={{ width: "min(480px,100%)", background: "var(--color-surface)", borderRadius: 18, border: "1px solid var(--color-border)", padding: 18, display: "grid", gap: 10 }}
+            style={{ width: "min(480px,100%)", maxHeight: "100%", overflowY: "auto", overscrollBehavior: "contain", background: "var(--color-surface)", borderRadius: 18, border: "1px solid var(--color-border)", padding: 18, display: "grid", gap: 10 }}
           >
             <div id="ws-unchecked-title" style={{ fontWeight: 700, fontSize: 17 }}>
               {filledUnchecked.length === 1
@@ -3094,12 +3094,12 @@ export default function WorkoutSessionPage() {
           role="dialog"
           aria-modal="true"
           aria-labelledby="ws-pend-title"
-          style={{ position: "fixed", inset: 0, zIndex: 1300, background: "rgba(10,19,13,.5)", display: "flex", alignItems: "flex-end", justifyContent: "center", padding: 12 }}
+          style={{ position: "fixed", inset: 0, zIndex: 1300, background: "rgba(10,19,13,.5)", display: "flex", alignItems: "flex-end", justifyContent: "center", padding: "12px max(12px, env(safe-area-inset-right, 0px)) max(12px, env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px))" }}
           onClick={() => setShowPendentes(false)}
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            style={{ width: "min(480px,100%)", background: "var(--color-surface)", borderRadius: 18, border: "1px solid var(--color-border)", padding: 18, display: "grid", gap: 10 }}
+            style={{ width: "min(480px,100%)", maxHeight: "100%", overflowY: "auto", overscrollBehavior: "contain", background: "var(--color-surface)", borderRadius: 18, border: "1px solid var(--color-border)", padding: 18, display: "grid", gap: 10 }}
           >
             <div id="ws-pend-title" style={{ fontWeight: 700, fontSize: 17 }}>
               {exerciciosPendentes.length === 1
@@ -3144,12 +3144,12 @@ export default function WorkoutSessionPage() {
         <div
           role="dialog"
           aria-modal="true"
-          style={{ position: "fixed", inset: 0, zIndex: 1300, background: "rgba(10,19,13,.5)", display: "flex", alignItems: "flex-end", justifyContent: "center", padding: 12 }}
+          style={{ position: "fixed", inset: 0, zIndex: 1300, background: "rgba(10,19,13,.5)", display: "flex", alignItems: "flex-end", justifyContent: "center", padding: "12px max(12px, env(safe-area-inset-right, 0px)) max(12px, env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px))" }}
           onClick={closeExitDialog}
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            style={{ width: "min(480px,100%)", background: "var(--color-surface)", borderRadius: 18, border: "1px solid var(--color-border)", padding: 18, display: "grid", gap: 10 }}
+            style={{ width: "min(480px,100%)", maxHeight: "100%", overflowY: "auto", overscrollBehavior: "contain", background: "var(--color-surface)", borderRadius: 18, border: "1px solid var(--color-border)", padding: 18, display: "grid", gap: 10 }}
           >
             <div style={{ fontWeight: 700, fontSize: 17 }}>Sair do treino?</div>
             <div style={{ fontSize: 13, color: "var(--color-text-muted)" }}>

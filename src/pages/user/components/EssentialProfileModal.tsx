@@ -117,7 +117,7 @@ export default function EssentialProfileModal({ open, onClose }: Props) {
         position: "fixed", inset: 0, zIndex: 1000,
         background: "rgba(0,0,0,0.45)",
         display: "flex", alignItems: "center", justifyContent: "center",
-        padding: "var(--space-4)",
+        padding: "max(var(--space-4), env(safe-area-inset-top, 0px)) max(var(--space-4), env(safe-area-inset-right, 0px)) max(var(--space-4), env(safe-area-inset-bottom, 0px)) max(var(--space-4), env(safe-area-inset-left, 0px))",
       }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
@@ -132,6 +132,10 @@ export default function EssentialProfileModal({ open, onClose }: Props) {
           padding: "var(--space-6)",
           maxWidth: 460,
           width: "100%",
+          // Teclado / paisagem: o painel rola por dentro em vez de vazar pelo topo e pela base.
+          maxHeight: "100%",
+          overflowY: "auto",
+          overscrollBehavior: "contain",
           boxShadow: "var(--shadow-lg, 0 8px 32px rgba(0,0,0,0.18))",
         }}
       >

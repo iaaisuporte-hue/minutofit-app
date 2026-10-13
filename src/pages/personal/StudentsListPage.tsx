@@ -21,6 +21,7 @@ import { useMobileShell } from "../../layout/mobileShell";
 import "./personalPremium.css";
 import { StudentLimitBanner } from "../../features/personalPlan/StudentLimitBanner";
 
+import { useOverlay } from "../../lib/overlayStack";
 type Plan = PersonalDashboardStudent["plan"];
 type Student = PersonalDashboardStudent;
 
@@ -91,6 +92,7 @@ export default function StudentsListPage() {
 
   // ── Remove student ─────────────────────────────────────────────────
   const [removeTarget, setRemoveTarget] = useState<{ id: string; name: string } | null>(null);
+  useOverlay(() => setRemoveTarget(null), removeTarget !== null);
   const [removeLoading, setRemoveLoading] = useState(false);
   const [removeError, setRemoveError] = useState<string | null>(null);
 
@@ -616,6 +618,8 @@ export default function StudentsListPage() {
               padding: 28,
               maxWidth: 440,
               width: "100%",
+              maxHeight: "100%",
+              overflowY: "auto",
               display: "grid",
               gap: 16,
               boxShadow: "var(--shadow-lg)",
