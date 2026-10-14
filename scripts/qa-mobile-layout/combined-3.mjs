@@ -58,6 +58,39 @@ const names = (page) => page.evaluate(() => [...document.querySelectorAll('[data
 const effArea = (page, sel) => page.evaluate((s) => { const e = document.querySelector(s); e.scrollIntoView({ block: 'center' }); const b = e.getBoundingClientRect(); let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9; for (let y = Math.floor(b.top - 24); y <= b.bottom + 24; y += 2) for (let x = Math.floor(b.left - 24); x <= b.right + 24; x += 2) { const h = document.elementFromPoint(x, y); if (h && (e === h || e.contains(h))) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); } } return [x1 - x0 + 2, y1 - y0 + 2]; }, sel);
 
 const SCEN = {
+  // ── P6: abas de Programas com pista de rolagem ─────────────────────────────
+  async p6(browser) {
+    for (const vp of [{ name: '320x568', w: 320, h: 568 }, { name: '360x740', w: 360, h: 740 }, { name: '390x844', w: 390, h: 844, insets: { top: 47, bottom: 34, left: 0, right: 0 } }, { name: '844x390', w: 844, h: 390, insets: { top: 0, bottom: 21, left: 47, right: 47 } }]) {
+      const { ctx, page } = await mk(browser, vp, a.personal);
+      const S = 'P6 abas de Programas';
+      try {
+        await page.goto(`${BASE}/app/personal/library`, { waitUntil: 'domcontentloaded' });
+        await page.waitForSelector('.ch-tabs', { timeout: 7000 });
+        await page.waitForTimeout(600);
+        const m = await page.evaluate(() => {
+          const t = document.querySelector('.ch-tabs');
+          const cs = getComputedStyle(t);
+          const tabs = [...t.querySelectorAll('.ch-tab')];
+          const last = tabs[tabs.length - 1];
+          return { overflow: t.scrollWidth > t.clientWidth + 1, mask: (cs.maskImage || cs.webkitMaskImage || '').slice(0, 30), n: tabs.length, docOverflow: document.documentElement.scrollWidth - innerWidth, tabH: Math.min(...tabs.map((x) => x.getBoundingClientRect().height)) };
+        });
+        if (m.overflow) check(S, vp, 'barra rola e tem pista visual (mask) na borda', /gradient/.test(m.mask), JSON.stringify(m));
+        else check(S, vp, 'cabe inteira (sem overflow) — pista é inócua', true, JSON.stringify(m));
+        check(S, vp, 'a página não ganha scroll horizontal', m.docOverflow <= 1, `docOverflow=${m.docOverflow}`);
+        check(S, vp, 'abas com altura ≥ 44px', m.tabH >= 44, `tabH=${m.tabH}`);
+        // a última aba é alcançável ao rolar até o fim, inteira e clicável (fora do esmaecimento)
+        const r = await page.evaluate(async () => {
+          const t = document.querySelector('.ch-tabs'); t.scrollLeft = t.scrollWidth; await new Promise((x) => setTimeout(x, 150));
+          const last = [...t.querySelectorAll('.ch-tab')].pop(); const b = last.getBoundingClientRect(); const tb = t.getBoundingClientRect();
+          const h = document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2);
+          return { inside: b.left >= tb.left - 1 && b.right <= tb.right - 20, hit: !!h && (last === h || last.contains(h)), label: last.textContent.trim() };
+        });
+        check(S, vp, 'última aba inteira, fora do esmaecimento e tocável após rolar', r.hit && (r.inside || !m.overflow), JSON.stringify(r));
+      } catch (e) { check(S, vp, 'cenário executável', false, String(e.message).split('\n')[0]); }
+      await ctx.close();
+    }
+  },
+
   // ── P3: modal de revisão do Personal ───────────────────────────────────────
   async p3(browser) {
     for (const vp of VPS) {

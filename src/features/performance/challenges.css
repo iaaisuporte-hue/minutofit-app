@@ -177,6 +177,13 @@
   gap: var(--space-2);
   overflow-x: auto;
   scrollbar-width: none;
+  /* Pista de rolagem (P6): a borda direita esmaece — "Meus Exercícios" ficava cortado sem nenhuma indicação de que
+     havia mais abas. O padding final de 28px mantém a ÚLTIMA aba inteira e fora do esmaecimento quando a barra
+     chega ao fim; sem overflow o esmaecimento cai em área vazia. Nada de scroll horizontal na página. */
+  padding-inline-end: 28px;
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+  mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+  overscroll-behavior-x: contain;
 }
 .ch-tabs::-webkit-scrollbar { display: none; }
 
