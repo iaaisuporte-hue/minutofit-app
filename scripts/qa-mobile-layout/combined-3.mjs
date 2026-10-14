@@ -58,6 +58,42 @@ const names = (page) => page.evaluate(() => [...document.querySelectorAll('[data
 const effArea = (page, sel) => page.evaluate((s) => { const e = document.querySelector(s); e.scrollIntoView({ block: 'center' }); const b = e.getBoundingClientRect(); let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9; for (let y = Math.floor(b.top - 24); y <= b.bottom + 24; y += 2) for (let x = Math.floor(b.left - 24); x <= b.right + 24; x += 2) { const h = document.elementFromPoint(x, y); if (h && (e === h || e.contains(h))) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); } } return [x1 - x0 + 2, y1 - y0 + 2]; }, sel);
 
 const SCEN = {
+  // ── P3: modal de revisão do Personal ───────────────────────────────────────
+  async p3(browser) {
+    for (const vp of VPS) {
+      const { ctx, page } = await mk(browser, vp, a.personal);
+      const S = 'P3 modal de revisão';
+      try {
+        await page.goto(`${BASE}/app/personal/review`, { waitUntil: 'domcontentloaded' });
+        await page.waitForTimeout(1800);
+        await page.locator('button').filter({ hasText: /^Revisar$/ }).first().click();
+        await page.getByText('Salvar observações').first().waitFor({ state: 'visible', timeout: 6000 });
+        const probe = () => page.evaluate(() => {
+          const d = document.querySelector('[role=dialog][aria-label="Revisão de ficha"]');
+          const vis = (e) => { const b = e.getBoundingClientRect(); const h = document.elementFromPoint(Math.min(Math.max(b.left + b.width / 2, 1), innerWidth - 1), Math.min(Math.max(b.top + b.height / 2, 1), innerHeight - 1)); return b.top >= 0 && b.bottom <= innerHeight + 1 && !!h && (e === h || e.contains(h)); };
+          const btn = (re) => [...d.querySelectorAll('button')].find((b) => re.test((b.textContent || '') + (b.getAttribute('aria-label') || '')));
+          const scrollers = [d, ...d.querySelectorAll('*')].filter((e) => { const o = getComputedStyle(e).overflowY; return (o === 'auto' || o === 'scroll') && e.scrollHeight > e.clientHeight + 1; }).length;
+          const back = d.parentElement; const bo = getComputedStyle(back).overflowY;
+          const r = d.getBoundingClientRect(); const ab = btn(/^Aprovar$/)?.getBoundingClientRect(); const ft = d.querySelector('.rw-modal-footer')?.getBoundingClientRect(); const hd = d.children[0].getBoundingClientRect();
+          return { ab: ab && [Math.round(ab.top), Math.round(ab.bottom)], ft: ft && [Math.round(ft.top), Math.round(ft.bottom)], hd: [Math.round(hd.top), Math.round(hd.bottom)], closeVisible: vis(btn(/Fechar revisão/)), approve: vis(btn(/^Aprovar$/)), request: vis(btn(/Pedir ajustes|ajuste/i) ?? btn(/Aprovar/)), scrollers, backdropScroll: bo === 'auto' || bo === 'scroll', top: r.top, bottom: r.bottom, ih: innerHeight };
+        });
+        const g = await probe();
+        check(S, vp, 'fechar no cabeçalho visível e tocável', g.closeVisible, JSON.stringify(g));
+        check(S, vp, 'Aprovar visível sem rolar (rodapé fixo)', g.approve, JSON.stringify(g));
+        check(S, vp, 'um único scroller no modal e o fundo não rola', g.scrollers <= 1 && !g.backdropScroll, JSON.stringify(g));
+        check(S, vp, 'painel dentro da área visível', g.top >= -1 && g.bottom <= g.ih + 1, JSON.stringify(g));
+        await page.setViewportSize({ width: vp.w, height: Math.round(vp.h * 0.6) });
+        await page.waitForTimeout(400);
+        const k = await probe();
+        check(S, vp, 'com teclado simulado (viewport 60%) fechar e Aprovar seguem visíveis', k.closeVisible && k.approve, JSON.stringify(k));
+        await page.keyboard.press('Escape');
+        await page.waitForTimeout(300);
+        check(S, vp, 'Escape fecha o modal', (await page.locator('[role=dialog][aria-label="Revisão de ficha"]').count()) === 0, '');
+      } catch (e) { check(S, vp, 'cenário executável', false, String(e.message).split('\n')[0]); }
+      await ctx.close();
+    }
+  },
+
   // ── P2: mensagens do Personal ──────────────────────────────────────────────
   async p2(browser) {
     for (const vp of VPS) {

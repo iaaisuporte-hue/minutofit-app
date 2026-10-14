@@ -648,11 +648,9 @@ export default function ReviewWorkoutsPage() {
             inset: 0,
             background: "rgba(0,0,0,.60)",
             display: "flex",
-            alignItems: "flex-start",
+            alignItems: "center",
             justifyContent: "center",
-            padding: 18,
-            paddingBottom: "calc(18px + env(safe-area-inset-bottom, 0px))",
-            overflowY: "auto",
+            padding: "max(18px, env(safe-area-inset-top, 0px)) max(18px, env(safe-area-inset-right, 0px)) max(18px, env(safe-area-inset-bottom, 0px)) max(18px, env(safe-area-inset-left, 0px))",
             zIndex: "var(--z-modal)",
           }}
           onClick={close}
@@ -665,9 +663,12 @@ export default function ReviewWorkoutsPage() {
             style={{
               width: "100%",
               maxWidth: 860,
-              margin: "auto",
-              maxHeight: "calc(100dvh - 36px)",
-              overflowY: "auto",
+              // Coluna: cabeçalho (com Fechar) e rodapé (ações) FIXOS; só o miolo rola. Antes o fundo E o painel
+              // rolavam (dois scrollers aninhados) e Aprovar/Pedir ajustes ficavam abaixo da dobra.
+              display: "flex",
+              flexDirection: "column",
+              maxHeight: "100%",
+              overflow: "hidden",
               borderRadius: 18,
               border: `1px solid ${COLORS.border}`,
               background: COLORS.panel,
@@ -677,6 +678,7 @@ export default function ReviewWorkoutsPage() {
           >
             {/* Header modal */}
             <div
+              className="rw-modal-header"
               style={{
                 padding: 16,
                 borderBottom: `1px solid ${COLORS.border}`,
@@ -685,23 +687,36 @@ export default function ReviewWorkoutsPage() {
                 gap: 12,
                 alignItems: "center",
                 flexWrap: "wrap",
+                flex: "none",
               }}
             >
-              <div style={{ display: "grid", gap: 6 }}>
+              <div style={{ display: "grid", gap: 6, minWidth: 0, flex: "1 1 0" }}>
                 <div style={{ fontWeight: 700, fontSize: 16, color: COLORS.text }}>
                   Revisão • {selected.studentName}
                 </div>
-                <div style={{ color: COLORS.muted, fontSize: 12 }}>
+                <div className="rw-modal-dates" style={{ color: COLORS.muted, fontSize: 12 }}>
                   Criado: <b style={{ color: COLORS.text }}>{formatDateTimeBR(selected.createdAt)}</b> • Atualizado:{" "}
                   <b style={{ color: COLORS.text }}>{formatDateTimeBR(selected.updatedAt)}</b>
                 </div>
               </div>
 
-              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+              <div className="rw-modal-pills" style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                 {planPill(selected.plan)}
                 <Pill variant={statusVariant(selected.status)}>{statusLabel(selected.status)}</Pill>
               </div>
+              <button
+                type="button"
+                className="pp-icon-btn"
+                onClick={close}
+                aria-label="Fechar revisão"
+                style={{ minWidth: 44, minHeight: 44, flex: "none" }}
+              >
+                ✕
+              </button>
             </div>
+
+            {/* Miolo rolável (único scroller do modal) */}
+            <div style={{ flex: "1 1 auto", minHeight: 0, overflowY: "auto", overscrollBehavior: "contain" }}>
 
             {/* Contexto do aluno */}
             <div
@@ -827,10 +842,15 @@ export default function ReviewWorkoutsPage() {
               </div>
             </div>
 
-            {/* Footer modal */}
+            </div>
+
+            {/* Footer modal (fixo: as ações ficam sempre à vista) */}
             <div
+              className="rw-modal-footer"
               style={{
+                flex: "none",
                 padding: 16,
+                paddingBottom: "max(16px, env(safe-area-inset-bottom, 0px))",
                 borderTop: `1px solid ${COLORS.border}`,
                 display: "flex",
                 justifyContent: "space-between",
