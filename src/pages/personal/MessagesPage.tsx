@@ -286,7 +286,7 @@ export default function MessagesPage() {
       : null;
 
   return (
-    <div className="mp-page">
+    <div className="mp-page" data-mobile-view={selectedId ? "thread" : "inbox"}>
       {/* Header */}
       <div className="mp-card mp-header">
         <div>
@@ -472,7 +472,7 @@ export default function MessagesPage() {
 
               {/* Context strip */}
               {studentSnapshot && selectedStudent ? (
-                <div className="mp-context-strip">
+                <div className="mp-context-strip" tabIndex={0} role="group" aria-label="Resumo do aluno">
                   <span>
                     Frequência (30d) <b>{studentSnapshot.adherencePct}%</b>
                   </span>

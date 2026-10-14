@@ -39,3 +39,21 @@ describe("paisagem baixa — condição única", () => {
     expect(h).toBeGreaterThanOrEqual(44);
   });
 });
+
+/**
+ * Condições de altura baixa PERMITIDAS fora do `low-landscape`. São intencionais: incluem o teclado do Android em
+ * retrato (viewport de layout encolhida) porque ali o objetivo é recuperar espaço para o compositor do chat.
+ */
+const LOW_VIEWPORT = [
+  "@media (max-width: 980px) and (max-height: 480px)",
+  "@media (max-width: 980px) and (max-height: 700px)",
+];
+describe("alturas baixas fora do low-landscape — só condições nomeadas", () => {
+  for (const f of ["../pages/user/userMessages.css", "../pages/personal/messagesPersonal.css", "../pages/personal/personalPremium.css"]) {
+    it(`${f} usa apenas condições de altura permitidas`, () => {
+      const css = read(f);
+      const blocos = css.match(/@media[^{]*max-height[^{]*\{/g) ?? [];
+      for (const b of blocos) expect([...LOW_VIEWPORT.map((x) => `${x} {`), `${LOW_LANDSCAPE} {`]).toContain(b);
+    });
+  }
+});

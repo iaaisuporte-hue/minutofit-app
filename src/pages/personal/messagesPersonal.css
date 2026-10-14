@@ -233,11 +233,6 @@
   grid-template-rows: auto minmax(0, 1fr) auto;
   min-height: 540px;
 }
-/* Com a faixa de contexto a thread tem 4 filhos (cabeçalho, faixa, mensagens, compositor): sem a linha extra a
-   faixa recebia a linha 1fr (esticada) e a lista de mensagens ficava com a `auto`. */
-.mp-thread:has(> .mp-context-strip) {
-  grid-template-rows: auto auto minmax(0, 1fr) auto;
-}
 
 /* Thread header */
 .mp-thread-header {
@@ -596,11 +591,12 @@
    O `calc(100dvh - nav - 130px)` ignorava a top bar, o cabeçalho da página, o mini-player e o banner, e em
    721–980px (paisagem, tablet) nem existia: o compositor (Enviar) ia parar a 2700px do topo. Agora a página
    inteira vira uma coluna de altura fixa (viewport dinâmica menos o que o shell mede), o cabeçalho tem a
-   altura que tiver e o grid recebe o resto; a lista de mensagens rola por dentro. `:has` é o gancho: sem ele
-   (WebView antigo) o layout cai no comportamento anterior, sem quebrar.
+   altura que tiver e o grid recebe o resto; a lista de mensagens rola por dentro. O gancho é um atributo
+   (`data-mobile-view` no próprio `.mp-page`), sem `:has` — funciona em qualquer WebView.
    ══════════════════════════════════════════════════════════════════════════ */
+/* mobile-shell */
 @media (max-width: 980px) {
-  .mp-page:has(.mp-grid[data-mobile-view="thread"]) {
+  .mp-page[data-mobile-view="thread"] {
     /* coluna flex (e não grid de 2 linhas): cabeçalho, aviso/erro opcionais e o grid mudam de quantidade */
     display: flex;
     flex-direction: column;
@@ -609,20 +605,24 @@
     height: calc(100dvh - var(--top-bar-h, 0px) - var(--offline-banner-h, 0px) - var(--bottom-nav-h, 64px) - env(safe-area-inset-bottom, 0px) - var(--mini-player-h, 0px) - var(--cookie-consent-h, 0px) - 12px);
     min-height: 320px;
   }
-  .mp-page:has(.mp-grid[data-mobile-view="thread"]) > .mp-grid {
+  .mp-page[data-mobile-view="thread"] > .mp-grid {
     flex: 1 1 0;
     min-height: 0;
     /* a única linha do grid recebe a altura restante (com `auto` ela crescia com a conversa inteira) */
     grid-template-rows: minmax(0, 1fr);
     align-items: stretch;
   }
-  .mp-page:has(.mp-grid[data-mobile-view="thread"]) > :not(.mp-grid) {
+  .mp-page[data-mobile-view="thread"] > :not(.mp-grid) {
     flex: none;
   }
-  .mp-page:has(.mp-grid[data-mobile-view="thread"]) .mp-grid > .mp-card {
+  .mp-page[data-mobile-view="thread"] .mp-grid > .mp-card {
     min-height: 0;
   }
-  .mp-page:has(.mp-grid[data-mobile-view="thread"]) .mp-thread {
+  /* 721–980px: duas colunas — a lista de conversas (cartão da esquerda) rola por dentro em vez de ser cortada. */
+  .mp-page[data-mobile-view="thread"] .mp-grid > .mp-card:first-child {
+    overflow-y: auto;
+  }
+  .mp-page[data-mobile-view="thread"] .mp-thread {
     height: 100%;
     min-height: 0;
   }
@@ -677,14 +677,16 @@
 
 /* No celular (uma coluna) o cabeçalho da página repete o contexto da conversa: some enquanto a thread está aberta. */
 @media (max-width: 720px) {
-  .mp-page:has(.mp-grid[data-mobile-view="thread"]) > .mp-header {
+  .mp-page[data-mobile-view="thread"] > .mp-header {
     display: none;
   }
 }
 
-/* Viewport baixa (paisagem ou teclado do Android em retrato): compacta o compositor e tira o texto de apoio. */
+/* low-viewport — paisagem OU teclado do Android aberto em retrato (a viewport de layout encolhe). Divergência
+   INTENCIONAL da condição `low-landscape`: aqui o objetivo é justamente recuperar espaço para o compositor com o
+   teclado aberto. Condições permitidas travadas em src/test/lowLandscape.test.ts. Compacta o compositor e tira o texto de apoio. */
 @media (max-width: 980px) and (max-height: 480px) {
-  .mp-page:has(.mp-grid[data-mobile-view="thread"]) > .mp-header {
+  .mp-page[data-mobile-view="thread"] > .mp-header {
     display: none;
   }
   .mp-thread-header {
@@ -740,7 +742,7 @@
   }
 }
 
-/* O texto de apoio ("Enviar salva no chat interno...") sai de telas baixas: a informação continua nos botões. */
+/* low-viewport (altura ≤ 700px) — o texto de apoio ("Enviar salva no chat interno...") sai de telas baixas: a informação continua nos botões. */
 @media (max-width: 980px) and (max-height: 700px) {
   .mp-composer-hint {
     display: none;

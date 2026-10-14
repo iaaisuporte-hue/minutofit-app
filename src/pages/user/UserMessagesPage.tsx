@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "../../auth/AuthContext";
 import { useIsMobile } from "../../hooks/useIsMobile";
+import { useLayoutVar } from "../../hooks/useLayoutVar";
 import "./userMessages.css";
 import {
   ensureChatConversation,
@@ -61,6 +62,9 @@ export default function UserMessagesPage() {
   const { user } = useAuth();
   const myRole: Role = (user?.role as Role) || "user";
   const isMobile = useIsMobile(720);
+  // Altura REAL do título da página (mede, em vez de assumir 84px): o cartão do chat desconta esta altura.
+  const heroRef = useRef<HTMLDivElement | null>(null);
+  useLayoutVar(heroRef, "--um-hero-h");
 
   const [conversations, setConversations] = useState<ChatConversation[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -184,7 +188,7 @@ export default function UserMessagesPage() {
   // ── Subcomponentes inline (mantêm o arquivo coeso; pequenos o suficiente) ──
 
   const Hero = (
-    <div className="um-hero" style={{ display: "grid", gap: 6 }}>
+    <div className="um-hero" ref={heroRef} style={{ display: "grid", gap: 6 }}>
       <span
         style={{
           fontSize: 11,

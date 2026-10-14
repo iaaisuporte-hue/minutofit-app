@@ -174,6 +174,10 @@ const SCEN = {
         check(S, vp, 'a página não vira um documento longo (≤ 130px de rolagem)', g.doc <= 130, `doc-ih=${g.doc}`);
         check(S, vp, 'sobra área de mensagens (≥ 60px) e ela rola por dentro', g.msgsClient >= 60 && g.msgsScrolls, `client=${g.msgsClient}`);
         check(S, vp, 'modelos de resposta em uma faixa (≤ 56px)', g.chipsH <= 56, `chips=${Math.round(g.chipsH)}`);
+        if (vp.w > 720) {
+          const inbox = await page.evaluate(() => { const c = document.querySelector('.mp-grid > .mp-card:first-child'); return c ? { oy: getComputedStyle(c).overflowY, vis: c.getBoundingClientRect().height > 40 } : null; });
+          check(S, vp, 'em 2 colunas (721–980) a lista de conversas rola por dentro (não é cortada)', !inbox || (inbox.oy === 'auto' && inbox.vis), JSON.stringify(inbox));
+        }
         await page.setViewportSize({ width: vp.w, height: Math.round(vp.h * 0.6) });
         await page.waitForTimeout(400);
         const k = await geo();

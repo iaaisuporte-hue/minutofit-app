@@ -11,8 +11,8 @@
   .um-chat-card {
     /* viewport dinâmica (teclado do Android encolhe a viewport de layout) menos o que fica acima do cartão
        (top bar medida + cabeçalho da página) e o que fica abaixo (nav + safe-area + mini-player + cookie). */
-    height: calc(100vh - var(--top-bar-h, 0px) - var(--offline-banner-h, 0px) - 84px - var(--bottom-nav-h, 64px) - env(safe-area-inset-bottom, 0px) - var(--mini-player-h, 0px) - var(--cookie-consent-h, 0px) - 12px);
-    height: calc(100dvh - var(--top-bar-h, 0px) - var(--offline-banner-h, 0px) - 84px - var(--bottom-nav-h, 64px) - env(safe-area-inset-bottom, 0px) - var(--mini-player-h, 0px) - var(--cookie-consent-h, 0px) - 12px);
+    height: calc(100vh - var(--top-bar-h, 0px) - var(--offline-banner-h, 0px) - var(--um-hero-h, 72px) - 16px - var(--bottom-nav-h, 64px) - env(safe-area-inset-bottom, 0px) - var(--mini-player-h, 0px) - var(--cookie-consent-h, 0px) - 12px);
+    height: calc(100dvh - var(--top-bar-h, 0px) - var(--offline-banner-h, 0px) - var(--um-hero-h, 72px) - 16px - var(--bottom-nav-h, 64px) - env(safe-area-inset-bottom, 0px) - var(--mini-player-h, 0px) - var(--cookie-consent-h, 0px) - 12px);
     min-height: 260px;
   }
 }
