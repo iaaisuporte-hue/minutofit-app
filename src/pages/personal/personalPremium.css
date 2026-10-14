@@ -2622,3 +2622,29 @@ html:not([data-theme="dark"]) .personal-app-canvas {
     font-size: 16px !important;
   }
 }
+
+/* ── P5: cockpit INLINE do aluno não é bottom-sheet ──────────────────────────────────────────────
+   As regras de celular de `.pp-drawer` (altura 92dvh, borda arredondada, sombra, alça, padding da nav, overflow)
+   valem para o drawer SOBREPOSTO. O cockpit inline (`.pp-drawer--inline`, uma página) as herdava — mesma
+   especificidade, vindas depois — e virava uma caixa de 92dvh com rolagem própria DENTRO da rolagem da página
+   (scroller aninhado, ~88px de padding morto). Aqui o inline volta a ser conteúdo normal da página. */
+@media (max-width: 720px) {
+  .pp-drawer.pp-drawer--inline {
+    padding-bottom: 0;
+  }
+}
+@media (max-width: 540px) {
+  .pp-drawer.pp-drawer--inline {
+    height: auto;
+    max-height: none;
+    overflow: visible;
+    border-top: 0;
+    border-radius: 0;
+    box-shadow: none;
+    padding: 0;
+    animation: none;
+  }
+  .pp-drawer.pp-drawer--inline::before {
+    display: none;
+  }
+}
