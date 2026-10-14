@@ -197,6 +197,8 @@ export type IntakeItemRequest =
       confirmed?: boolean;
       displayQuantity?: number | null;
       displayUnitLabel?: string | null;
+      /** UUID gerado no cliente — um reenvio com a mesma chave nunca duplica o item (registro incremental). */
+      clientKey?: string | null;
     }
   | {
       kind: 'manual';
@@ -208,8 +210,14 @@ export type IntakeItemRequest =
       fatG: number;
       displayQuantity?: number | null;
       displayUnitLabel?: string | null;
+      clientKey?: string | null;
     }
-  | { kind: 'plan'; planMealItemId: number };
+  | { kind: 'plan'; planMealItemId: number; clientKey?: string | null }
+  /**
+   * SÓ no PATCH: mantém um item já salvo sem re-resolver (snapshot intacto, inclusive item `plan`, que não tem
+   * `foodId`). `index` = posição do item na refeição (a ordem de `NutritionIntakeMeal.items`).
+   */
+  | { kind: 'existing'; index: number };
 
 export interface PersistedIntakeItem {
   foodId?: number;
@@ -248,6 +256,8 @@ export interface IntakeLogRecord {
   confidenceScore: number;
   source: string;
   isFavorite: boolean;
+  /** null enquanto a linha nunca foi editada — vai de volta como `baseUpdatedAt` (409 se outro aparelho editou antes). */
+  updatedAt: string | null;
 }
 
 export type IntakeSource = 'parse' | 'parse_ai' | 'manual' | 'repeat' | 'favorite' | 'plan';
@@ -256,6 +266,8 @@ export async function submitIntakeLog(input: {
   label: string;
   rawText?: string | null;
   mealId?: number | null;
+  /** Anexa a uma refeição já iniciada (registro incremental) em vez de criar outra. */
+  logId?: number | null;
   items: IntakeItemRequest[];
   source: IntakeSource;
 }): Promise<IntakeLogRecord> {
@@ -276,7 +288,7 @@ export async function submitIntakeLog(input: {
  */
 export async function updateIntakeLog(
   id: number,
-  input: { label: string; rawText?: string | null; items: IntakeItemRequest[]; source: IntakeSource }
+  input: { label: string; rawText?: string | null; items: IntakeItemRequest[]; source: IntakeSource; baseUpdatedAt?: string | null }
 ): Promise<IntakeLogRecord> {
   const res = await authFetch(`${API_URL}/user/nutrition-intake/${id}`, {
     method: 'PATCH',
@@ -396,25 +408,6 @@ export async function getIntakeShortcuts(): Promise<IntakeShortcuts> {
   const res = await authFetch(`${API_URL}/user/nutrition-intake/shortcuts`);
   const json = await readJson(res);
   return json.data;
-}
-
-/** Converte itens já resolvidos (log de recentes/favoritos/ontem) em `IntakeItemRequest[]` para o POST. */
-export function itemsToRequest(items: PersistedIntakeItem[]): IntakeItemRequest[] {
-  return items.map((it) => {
-    if ((it.resolver === 'catalog' || it.resolver === 'measure') && it.foodId != null && it.grams) {
-      // Repetir só precisa do gramas já resolvido — nunca precisa rederivar a medida.
-      return { kind: 'food', foodId: it.foodId, quantity: it.grams, unitType: 'grams', displayQuantity: it.quantity ?? null, displayUnitLabel: it.unitLabel ?? null };
-    }
-    // manual, history e plan (o plano já é snapshot fixo; repetir um item plan
-    // de log antigo não tem mais o planMealItemId original — vira manual com
-    // os mesmos números, nunca um novo lookup no catálogo).
-    return { kind: 'manual', name: it.name, grams: it.grams, energyKcal: it.energyKcal, proteinG: it.proteinG, carbohydrateG: it.carbohydrateG, fatG: it.fatG, displayQuantity: it.quantity ?? null, displayUnitLabel: it.unitLabel ?? null };
-  });
-}
-
-/** Converte itens do PLANO (chip "Como no plano") em `IntakeItemRequest[]` para o POST. */
-export function planItemsToRequest(items: PlanMealItemRef[]): IntakeItemRequest[] {
-  return items.map((it) => ({ kind: 'plan', planMealItemId: it.id }));
 }
 
 export interface CatalogFoodSummary {

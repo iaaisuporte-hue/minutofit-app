@@ -244,7 +244,7 @@ describe("NutritionDaySummary", () => {
       expect(screen.getByText("Fora do plano")).toBeInTheDocument();
     });
 
-    it('"Editar" fecha o detalhe e abre o MESMO editor pré-carregado com os itens da refeição', async () => {
+    it('"Editar" fecha o detalhe e abre o MESMO editor (espaço de trabalho) já com os itens salvos', async () => {
       getDayIntake.mockResolvedValue(DAY_RESPONSE);
       render(<NutritionDaySummary />);
 
@@ -252,24 +252,30 @@ describe("NutritionDaySummary", () => {
       await screen.findByRole("button", { name: "Editar" });
       await userEvent.click(screen.getByRole("button", { name: "Editar" }));
 
-      expect(await screen.findByText("Editar refeição")).toBeInTheDocument();
+      expect(await screen.findByRole("dialog", { name: "Editar refeição" })).toBeInTheDocument();
+      expect(screen.getByRole("list", { name: "Alimentos salvos" })).toBeInTheDocument();
       expect(screen.getAllByText("Ovo, de galinha, inteiro, cru").length).toBeGreaterThan(0);
-      expect(screen.getByRole("button", { name: "Salvar" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Pronto" })).toBeInTheDocument();
     });
 
-    it("salvar a edição chama updateIntakeLog com o id físico da refeição (nunca submitIntakeLog) e recarrega o dia", async () => {
+    it("salvar um item editado atualiza o dia em silêncio: a folha continua aberta, sem skeleton", async () => {
       getDayIntake.mockResolvedValue(DAY_RESPONSE);
-      updateIntakeLog.mockResolvedValue({ ...LOG_WITH_ITEMS, energyKcal: 750 });
+      updateIntakeLog.mockResolvedValue({ ...LOG_WITH_ITEMS, energyKcal: 750, updatedAt: "2026-09-17T12:05:00Z" });
       render(<NutritionDaySummary />);
 
       await userEvent.click(await screen.findByRole("button", { name: /Almoço/ }));
       await userEvent.click(await screen.findByRole("button", { name: "Editar" }));
-      await screen.findByText("Editar refeição");
+      await screen.findByRole("dialog", { name: "Editar refeição" });
 
-      await userEvent.click(screen.getByRole("button", { name: "Salvar" }));
+      await userEvent.click(screen.getByRole("button", { name: `Editar ${BASE_ITEM.name}` }));
+      await userEvent.click(screen.getByRole("button", { name: "Salvar item" }));
 
+      // PATCH no id físico da refeição (nunca POST), com o rótulo preservado
       await waitFor(() => expect(updateIntakeLog).toHaveBeenCalledWith(MEAL_WITH_ITEMS.sourceLogIds[0], expect.objectContaining({ label: "Almoço" })));
-      await waitFor(() => expect(getDayIntake).toHaveBeenCalledTimes(2)); // reload após salvar
+      // O dia é relido (2ª chamada) sem desmontar a folha: nada de skeleton, diálogo segue aberto
+      await waitFor(() => expect(getDayIntake).toHaveBeenCalledTimes(2));
+      expect(screen.getByRole("dialog", { name: "Editar refeição" })).toBeInTheDocument();
+      expect(document.querySelector(".pp-skeleton-card")).toBeNull();
     });
 
     it('"Excluir" pede confirmação e só chama deleteIntakeLog após confirmar', async () => {
@@ -292,16 +298,17 @@ describe("NutritionDaySummary", () => {
       await waitFor(() => expect(getDayIntake).toHaveBeenCalledTimes(2)); // reload após excluir
     });
 
-    it("cancelar a edição não chama updateIntakeLog nem recarrega o dia", async () => {
+    it('"Pronto" sem alterar nada fecha o editor sem gravar nem recarregar o dia', async () => {
       getDayIntake.mockResolvedValue(DAY_RESPONSE);
       render(<NutritionDaySummary />);
 
       await userEvent.click(await screen.findByRole("button", { name: /Almoço/ }));
       await userEvent.click(await screen.findByRole("button", { name: "Editar" }));
-      await screen.findByText("Editar refeição");
+      await screen.findByRole("dialog", { name: "Editar refeição" });
 
-      await userEvent.click(screen.getByRole("button", { name: "Cancelar" }));
+      await userEvent.click(screen.getByRole("button", { name: "Pronto" }));
 
+      await waitFor(() => expect(screen.queryByRole("dialog", { name: "Editar refeição" })).not.toBeInTheDocument());
       expect(updateIntakeLog).not.toHaveBeenCalled();
       expect(getDayIntake).toHaveBeenCalledTimes(1);
     });

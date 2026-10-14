@@ -508,6 +508,8 @@ export function NutritionCheckinCard() {
             open={intakeSheetOpen}
             onClose={() => setIntakeSheetOpen(false)}
             defaultMealId={nextMeal?.id ?? null}
+            // Sem o rótulo a folha mostrava "Refeição" e gravava na próxima refeição do plano sem dizer qual.
+            defaultMealLabel={nextMeal?.name ?? null}
             onSaved={() => {
               getDayIntake().then(setDayIntake).catch(() => {});
             }}

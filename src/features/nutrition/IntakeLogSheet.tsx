@@ -2,21 +2,18 @@ import { useEffect, useRef, useState } from "react";
 import { Star } from "lucide-react";
 import { COLORS } from "../../styles/colors";
 import { DrawerShell } from "../../components/overlay/DrawerShell";
-import { IntakeItemRow } from "./IntakeItemRow";
+import { ConfirmDialog } from "../../components/ConfirmDialog";
+import { IntakeItemRow, displayTitle } from "./IntakeItemRow";
+import { persistedToWorking, planToWorking, sumTotals, type WorkingItem } from "./intakeWorking";
+import { useMealWorkspace } from "./useMealWorkspace";
 import {
   parseIntakeText,
-  submitIntakeLog,
-  updateIntakeLog,
-  deleteIntakeLog,
   getIntakeShortcuts,
-  type IntakePreviewItem,
-  type IntakeItemRequest,
   type IntakeShortcuts,
   type IntakeLogRecord,
   type NutritionIntakeMeal,
   type IntakeSource,
   type PersistedIntakeItem,
-  type PlanMealItemRef,
 } from "../../services/nutritionIntakeApi";
 
 /** Opções fixas de "momento da refeição" para o registro extra (PLAN P1B corrective §9/§10). */
@@ -36,124 +33,28 @@ function suggestMealType(date: Date = new Date()): string {
   return "Ceia";
 }
 
-type WorkingItem = IntakePreviewItem & { planMealItemId?: number };
-
-function persistedToWorking(items: PersistedIntakeItem[]): WorkingItem[] {
-  return items.map((it) => ({
-    resolved: true,
-    rawText: it.name,
-    foodQuery: it.name,
-    foodId: it.foodId,
-    name: it.name,
-    grams: it.grams ?? undefined,
-    per100g: it.per100g,
-    energyKcal: it.energyKcal,
-    proteinG: it.proteinG,
-    carbohydrateG: it.carbohydrateG,
-    fatG: it.fatG,
-    resolver: it.resolver,
-    confidence: "high",
-    confirmed: true,
-    quantity: it.quantity ?? undefined,
-    unitLabel: it.unitLabel ?? undefined,
-    canonicalFood: it.canonicalFood ?? undefined,
-  }));
-}
-
-function planToWorking(items: PlanMealItemRef[]): WorkingItem[] {
-  return items.map((it) => ({
-    resolved: true,
-    rawText: it.foodName,
-    foodQuery: it.foodName,
-    name: it.foodName,
-    grams: it.grams,
-    energyKcal: it.energyKcal,
-    proteinG: it.proteinG,
-    carbohydrateG: it.carbohydrateG,
-    fatG: it.fatG,
-    resolver: "plan",
-    confidence: "high",
-    confirmed: true,
-    planMealItemId: it.id,
-  }));
-}
-
-function previewToRequest(item: WorkingItem): IntakeItemRequest {
-  if (item.resolver === "plan" && item.planMealItemId != null) {
-    return { kind: "plan", planMealItemId: item.planMealItemId };
-  }
-  // Sem correspondência confiável no catálogo (ex.: whey — PLAN P1B
-  // corrective §21) — o usuário informou os macros diretamente; nunca
-  // inventados pelo servidor, mesmo item `manual` já validado no backend.
-  if (item.resolver === "manual" || item.resolver === "history") {
-    // "history" (P1B.1 — reaproveitado do próprio histórico do usuário, ex.:
-    // whey na 2ª vez) persiste como `manual`: o backend já recalculou os
-    // macros a partir do histórico no preview; não há um `foodId` de
-    // catálogo para referenciar de volta.
-    return {
-      kind: "manual",
-      name: item.name || item.rawText,
-      grams: item.grams ?? null,
-      energyKcal: item.energyKcal ?? 0,
-      proteinG: item.proteinG ?? 0,
-      carbohydrateG: item.carbohydrateG ?? 0,
-      fatG: item.fatG ?? 0,
-      displayQuantity: item.quantity ?? null,
-      displayUnitLabel: item.unitLabel ?? null,
-    };
-  }
-  return {
-    kind: "food",
-    foodId: item.foodId!,
-    quantity: item.grams ?? 0,
-    unitType: "grams",
-    rawText: item.rawText || undefined,
-    confirmed: item.confirmed,
-    displayQuantity: item.quantity ?? null,
-    displayUnitLabel: item.unitLabel ?? null,
-  };
-}
-
-function sumTotals(items: WorkingItem[]) {
-  return items
-    .filter((i) => i.resolved)
-    .reduce(
-      (acc, i) => ({
-        energyKcal: acc.energyKcal + (i.energyKcal ?? 0),
-        proteinG: acc.proteinG + (i.proteinG ?? 0),
-        carbohydrateG: acc.carbohydrateG + (i.carbohydrateG ?? 0),
-        fatG: acc.fatG + (i.fatG ?? 0),
-      }),
-      { energyKcal: 0, proteinG: 0, carbohydrateG: 0, fatG: 0 }
-    );
+function quantityText(item: PersistedIntakeItem): string {
+  if (item.quantity != null && item.unitLabel) return `${item.quantity} ${item.unitLabel}`;
+  if (item.grams != null) return `${Math.round(item.grams)} g`;
+  return "";
 }
 
 /**
- * Bottom sheet "Registrar refeição" (PLAN_NUTRITION_QUICK_MACROS P1B).
+ * Folha "Registrar refeição" — ESPAÇO DE TRABALHO da refeição (registro alimentar incremental).
  *
- * Caminho rápido (chip → confirmar): 3 toques no total, contando o toque que
- * abriu o sheet. Caminho de texto: digitar → Estimar → revisar → Confirmar.
- * Confirmar fica desabilitado enquanto existir item não resolvido OU item de
- * baixa confiança sem toque explícito de aceite — a MESMA regra que o
- * backend aplica (§9): isto é UX, não é a garantia.
+ * Cada alimento confirmado é gravado NA HORA (ver `useMealWorkspace`) e a folha continua aberta: o aluno lança
+ * pão, depois ovo, depois leite, vendo a lista e o total acumulado, e só toca em "Pronto" quando terminar — "Pronto"
+ * encerra a SESSÃO DE LANÇAMENTO, não cria status de refeição nem mexe em adesão. Abrir uma refeição que já tem
+ * registro hoje retoma a lista (esqueceu a bebida? abre e adiciona).
  *
- * MESMO editor serve para criar e editar (PLAN P1B corrective — "Consulta +
- * Edição"; §3 pede explicitamente reaproveitar, nunca duas implementações).
- * `editingMeal` presente = modo edição: os itens já persistidos entram
- * pré-carregados (mesma conversão de `persistedToWorking` já usada para
- * repetir favoritos/ontem), o botão salva via PATCH em vez de POST, e
- * `dateKey`/`loggedAt`/`mealId` originais NUNCA são tocados — o editor só
- * manda `label`/`items`/`source` (§9). `editingMeal` é a refeição JÁ
- * AGRUPADA (PLAN P1B corrective "Agrupamento por Refeição") — normalmente 1
- * linha física (`sourceLogIds.length === 1`); no raro caso legado de >1,
- * salvar consolida tudo na primeira e apaga as demais (nunca deixa 2 linhas
- * representando a mesma refeição).
- *
- * `defaultMealId` (vindo de uma refeição ESPECÍFICA do plano) fixa o rótulo
- * como o nome dessa refeição (`defaultMealLabel`) — não há o que perguntar.
- * Sem `defaultMealId` (CTA genérico "+ Registrar refeição"), o momento é
- * sugerido pelo horário e o usuário pode trocar (§9/§10) — a refeição
- * resultante nasce SEM `mealId` (extra, fora do plano, §7).
+ * - Leitura de ALTA confiança entra direto, com "Desfazer"; média/baixa/não resolvida continua pedindo o toque de
+ *   confirmação (mesma regra do backend, PLAN P1B corrective §15) e fica em "Falta confirmar" até ser adicionada.
+ * - Itens salvos podem ser editados (quantidade/alimento) ou removidos (com "Desfazer"); remover o último apaga a
+ *   refeição (pede confirmação).
+ * - Sem "Cancelar" depois que algo foi salvo: cada item tem o seu remover.
+ * - MESMO editor serve para criar e editar (`editingMeal`): os itens já persistidos entram como salvos.
+ * - `defaultMealId` fixa o rótulo da refeição do plano; sem ele (CTA genérico) o momento é sugerido pelo horário e a
+ *   refeição nasce SEM `mealId` (extra, fora do plano, §7).
  */
 export function IntakeLogSheet({
   open,
@@ -165,59 +66,87 @@ export function IntakeLogSheet({
 }: {
   open: boolean;
   onClose: () => void;
-  onSaved: (log: IntakeLogRecord) => void;
+  /** Depois de CADA gravação (adicionar/editar/remover) — o pai atualiza totais sem fechar a folha. `null` = refeição apagada. */
+  onSaved: (log: IntakeLogRecord | null) => void;
   defaultMealId?: number | null;
   defaultMealLabel?: string | null;
   editingMeal?: NutritionIntakeMeal | null;
 }) {
   const [shortcuts, setShortcuts] = useState<IntakeShortcuts | null>(null);
   const [text, setText] = useState("");
-  const [label, setLabel] = useState("");
-  const [items, setItems] = useState<WorkingItem[]>([]);
-  const [source, setSource] = useState<IntakeSource>("manual");
+  const [shortcutLabel, setShortcutLabel] = useState("");
+  const [pending, setPending] = useState<WorkingItem[]>([]);
+  const [pendingSource, setPendingSource] = useState<IntakeSource>("manual");
   const [mealType, setMealType] = useState(suggestMealType());
   const [customMealType, setCustomMealType] = useState("");
   const [parsing, setParsing] = useState(false);
-  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [editIndex, setEditIndex] = useState<number | null>(null);
+  const [editDraft, setEditDraft] = useState<WorkingItem | null>(null);
+  const [confirmRemoveAll, setConfirmRemoveAll] = useState(false);
+  const [closeBlocked, setCloseBlocked] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+
   const isEditing = editingMeal != null;
   const isExtraFlow = !isEditing && defaultMealId == null;
+  const mealId = isEditing ? editingMeal.mealId : defaultMealId ?? null;
+  const ws = useMealWorkspace({ open, mealId, editingMeal, onChanged: onSaved });
 
   useEffect(() => {
     if (!open) return;
     setText("");
-    setError(null);
+    setShortcutLabel("");
+    setPending([]);
+    setPendingSource("manual");
     setMealType(suggestMealType());
     setCustomMealType("");
-    if (editingMeal) {
-      setLabel(editingMeal.label);
-      setItems(persistedToWorking(editingMeal.items));
-      setSource("manual");
-    } else {
-      setLabel("");
-      setItems([]);
-      setSource("manual");
-    }
+    setError(null);
+    setEditIndex(null);
+    setEditDraft(null);
+    setConfirmRemoveAll(false);
+    setCloseBlocked(false);
     getIntakeShortcuts().then(setShortcuts).catch(() => setShortcuts(null));
   }, [open, editingMeal]);
 
-  async function handleEstimate() {
-    if (!text.trim()) return;
+  const hasAnything = ws.saved.length > 0 || ws.inflight.length > 0;
+
+  // Rótulo da refeição ainda NÃO gravada: refeição do plano usa o nome fixo; atalho traz rótulo próprio; texto livre
+  // usa o momento escolhido/sugerido (§9). Depois da 1ª gravação o rótulo é o do servidor e não muda mais.
+  const firstLabel = isEditing
+    ? editingMeal.label
+    : defaultMealId != null
+    ? defaultMealLabel || "Refeição"
+    : shortcutLabel
+    ? shortcutLabel
+    : mealType === "Outro"
+    ? customMealType.trim().slice(0, 80) || "Refeição"
+    : mealType;
+  const title = ws.label ?? firstLabel;
+  const showMealTypePicker = isExtraFlow && !hasAnything && ws.logId == null && !shortcutLabel;
+
+  const hasUnresolved = pending.some((i) => !i.resolved);
+  const hasUnconfirmed = pending.some((i) => i.resolved && i.confidence !== "high" && !i.confirmed);
+  const canAddPending = pending.length > 0 && !hasUnresolved && !hasUnconfirmed;
+  const pendingTotals = sumTotals(pending);
+
+  async function handleSubmitText() {
+    const value = text.trim();
+    if (!value || parsing) return;
     setParsing(true);
     setError(null);
     try {
-      const preview = await parseIntakeText(text);
-      // Com itens já presentes (edição, ou uma segunda estimativa sobre a
-      // mesma refeição), o texto novo ACRESCENTA alimento — nunca substitui
-      // o que já estava confirmado (PLAN P1B corrective §3, "adicionar
-      // alimento" reaproveita o mesmo caminho de texto, não um botão novo).
-      setItems((prev) => (prev.length > 0 ? [...prev, ...preview.items] : preview.items));
-      // `aiUsed` só reflete se a IA (opcional, ROLLOUT_ONLY) interpretou o
-      // texto — a confiança de cada item já vem do Resolver de qualquer
-      // forma; isto é só telemetria de origem (P1B.1 "Smart Food Logging").
-      setSource(preview.aiUsed ? "parse_ai" : "parse");
+      const preview = await parseIntakeText(value);
+      const source: IntakeSource = preview.aiUsed ? "parse_ai" : "parse";
+      // Alta confiança entra direto (com "Desfazer"); o resto fica em "Falta confirmar" — nunca salva palpite.
+      const direct = preview.items.filter((i) => i.resolved && i.confidence === "high");
+      const rest = preview.items.filter((i) => !(i.resolved && i.confidence === "high"));
+      if (direct.length > 0) ws.addItems(direct, { label: firstLabel, source, rawText: value });
+      if (rest.length > 0) {
+        setPending((prev) => [...prev, ...rest]);
+        setPendingSource(source);
+      }
       setText("");
+      inputRef.current?.focus();
     } catch {
       setError("Não foi possível interpretar o texto. Tente descrever de outro jeito.");
     } finally {
@@ -225,214 +154,275 @@ export function IntakeLogSheet({
     }
   }
 
-  function applyShortcut(shortcutLabel: string, working: WorkingItem[], src: IntakeSource) {
-    setItems(working);
-    setLabel(shortcutLabel);
-    setSource(src);
+  function addPending() {
+    if (!canAddPending) return;
+    ws.addItems(pending, { label: firstLabel, source: pendingSource, rawText: null });
+    setPending([]);
+    setShortcutLabel("");
+    inputRef.current?.focus();
+  }
+
+  function applyShortcut(label: string, working: WorkingItem[], src: IntakeSource) {
+    setPending(working);
+    setPendingSource(src);
+    setShortcutLabel(label);
     setText("");
   }
 
-  const totals = sumTotals(items);
-  const hasUnresolved = items.some((i) => !i.resolved);
-  // "medium" (fuzzy "você quis dizer") exige o mesmo toque explícito de
-  // aceite que "low" já exigia — mesma regra do backend (PLAN P1B corrective §15).
-  const hasUnconfirmedLow = items.some((i) => i.resolved && i.confidence !== "high" && !i.confirmed);
-  const canConfirm = items.length > 0 && !hasUnresolved && !hasUnconfirmedLow && !saving;
-
-  // Rótulo final: refeição do plano usa o nome fixo dela; editar preserva o
-  // que já existia; um atalho (chip) já traz rótulo próprio e específico
-  // ("Como no plano: Almoço") — nunca sobrescrito pelo momento sugerido; só
-  // quando NADA disso se aplica (texto livre puro, sem chip) o momento
-  // escolhido/sugerido decide o rótulo (§9).
-  const effectiveLabel = isEditing
-    ? label
-    : defaultMealId != null
-    ? defaultMealLabel || "Refeição"
-    : label
-    ? label
-    : mealType === "Outro"
-    ? customMealType.trim().slice(0, 80) || "Refeição"
-    : mealType;
-
-  // O seletor de momento só faz sentido quando NENHUM atalho definiu um
-  // rótulo próprio — mostrá-lo depois de um chip ("Como no plano: Almoço")
-  // seria redundante e daria a impressão de que ele pode ser trocado.
-  const showMealTypePicker = isExtraFlow && items.length > 0 && !label;
-
-  async function handleConfirm() {
-    if (!canConfirm) return;
-    setSaving(true);
-    setError(null);
-    try {
-      const requests: IntakeItemRequest[] = items.map(previewToRequest);
-      let log: IntakeLogRecord;
-      if (editingMeal) {
-        const [primaryId, ...extraIds] = editingMeal.sourceLogIds;
-        log = await updateIntakeLog(primaryId, { label: effectiveLabel, rawText: text.trim() || null, items: requests, source });
-        // Caso raro de refeição legada agregando >1 linha física — consolida
-        // tudo na primeira e apaga as demais (nunca deixa 2 linhas para a
-        // mesma refeição depois de uma edição).
-        if (extraIds.length > 0) await Promise.all(extraIds.map((id) => deleteIntakeLog(id)));
-      } else {
-        log = await submitIntakeLog({
-          label: effectiveLabel,
-          rawText: text.trim() || null,
-          mealId: defaultMealId ?? null,
-          items: requests,
-          source,
-        });
-      }
-      onSaved(log);
-      onClose();
-    } catch {
-      setError(isEditing ? "Não foi possível salvar as alterações. Tente novamente." : "Não foi possível registrar. Tente novamente.");
-    } finally {
-      setSaving(false);
-    }
+  async function requestClose() {
+    const { ok } = await ws.flush();
+    if (ok) onClose();
+    else setCloseBlocked(true);
   }
 
+  function requestRemove(index: number) {
+    if (ws.saved.length <= 1) setConfirmRemoveAll(true);
+    else ws.removeItem(index);
+  }
+
+  const showUndoAdd = ws.lastAdded != null && ws.pendingRemoval == null;
+
   return (
-    <DrawerShell open={open} onClose={onClose} ariaLabel={isEditing ? "Editar refeição" : "Registrar refeição"}>
-      <div style={{ display: "flex", flexDirection: "column", gap: 14, maxHeight: "80dvh", overflowY: "auto" }}>
-        <div style={{ fontSize: 16, fontWeight: 700, color: COLORS.text }}>
-          {isEditing ? "Editar refeição" : "Registrar refeição"}
-        </div>
-
-        <input
-          ref={inputRef}
-          type="text"
-          className="input"
-          placeholder={items.length > 0 ? "Adicionar outro alimento…" : "Ex.: 200g de frango + 150g de arroz + 2 ovos"}
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") void handleEstimate();
-          }}
-        />
-        <button type="button" className="btn btn-sm" disabled={!text.trim() || parsing} onClick={() => void handleEstimate()}>
-          {parsing ? "Estimando..." : items.length > 0 ? "Adicionar" : "Estimar"}
-        </button>
-
-        {/* Atalhos substituem a lista inteira — fazem sentido para começar uma
-            refeição do zero, não para editar uma já confirmada (substituiria
-            silenciosamente o que o usuário está corrigindo). */}
-        {shortcuts && !isEditing && (
-          <div role="toolbar" aria-label="Atalhos de refeição" style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-            {shortcuts.planMeals.map((m) => (
-              <button
-                key={`plan-${m.mealId}`}
-                type="button"
-                className="btn btn-sm hit-target-44"
-                onClick={() => applyShortcut(`Como no plano: ${m.name}`, planToWorking(m.items), "plan")}
-              >
-                Como no plano: {m.name}
-              </button>
-            ))}
-            {shortcuts.yesterdayMeals.map((m) => (
-              <button
-                key={`y-${m.logId}`}
-                type="button"
-                className="btn btn-sm hit-target-44"
-                onClick={() => applyShortcut(`Ontem: ${m.label}`, persistedToWorking(m.items), "repeat")}
-              >
-                Ontem: {m.label}
-              </button>
-            ))}
-            {shortcuts.favorites.map((m) => (
-              <button
-                key={`f-${m.id}`}
-                type="button"
-                className="btn btn-sm hit-target-44"
-                onClick={() => applyShortcut(m.label, persistedToWorking(m.items), "favorite")}
-              >
-                <Star size={12} style={{ marginRight: 4 }} />
-                {m.label}
-              </button>
-            ))}
-            {shortcuts.recent.map((m, i) => (
-              <button
-                key={`r-${i}-${m.label}`}
-                type="button"
-                className="btn btn-sm hit-target-44"
-                onClick={() => applyShortcut(m.label, persistedToWorking(m.items), "repeat")}
-              >
-                {m.label}
-              </button>
-            ))}
-          </div>
-        )}
-
-        {showMealTypePicker && (
+    <DrawerShell open={open} onClose={() => void requestClose()} ariaLabel={isEditing ? "Editar refeição" : "Registrar refeição"}>
+      <div style={{ display: "flex", flexDirection: "column", maxHeight: "80dvh" }}>
+        {/* Cabeçalho + conteúdo rolável */}
+        <div style={{ overflowY: "auto", display: "flex", flexDirection: "column", gap: 12, flex: "1 1 auto", minHeight: 0 }}>
           <div>
-            <label className="muted" style={{ fontSize: 12, display: "block", marginBottom: 4 }} htmlFor="intake-meal-type">
-              Refeição
-            </label>
-            <select
-              id="intake-meal-type"
-              className="input"
-              value={mealType}
-              onChange={(e) => setMealType(e.target.value)}
+            <div style={{ fontSize: 16, fontWeight: 700, color: COLORS.text }}>{title}</div>
+            <div className="muted" style={{ fontSize: 12 }} data-testid="workspace-count">
+              {ws.loading
+                ? "Carregando…"
+                : ws.saved.length === 0
+                ? "Nenhum alimento salvo ainda"
+                : `${ws.saved.length} ${ws.saved.length === 1 ? "alimento salvo" : "alimentos salvos"}`}
+            </div>
+          </div>
+
+          {/* Itens SALVOS (vêm do servidor) */}
+          {ws.saved.length > 0 && (
+            <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "grid", gap: 6 }} aria-label="Alimentos salvos">
+              {ws.saved.map(({ item, index }) =>
+                editIndex === index && editDraft ? (
+                  <li key={`edit-${index}`}>
+                    <IntakeItemRow item={editDraft} onChange={setEditDraft} onRemove={() => { setEditIndex(null); setEditDraft(null); }} />
+                    <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
+                      <button type="button" className="btn btn-ghost btn-sm hit-target-44" onClick={() => { setEditIndex(null); setEditDraft(null); }}>
+                        Cancelar edição
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-primary btn-sm hit-target-44"
+                        disabled={!editDraft.resolved || (editDraft.confidence !== "high" && !editDraft.confirmed)}
+                        onClick={() => {
+                          void ws.replaceItem(index, editDraft);
+                          setEditIndex(null);
+                          setEditDraft(null);
+                        }}
+                      >
+                        Salvar item
+                      </button>
+                    </div>
+                  </li>
+                ) : (
+                  <li
+                    key={`saved-${index}`}
+                    style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", border: `1px solid ${COLORS.border}`, borderRadius: 10 }}
+                  >
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: COLORS.text, overflowWrap: "anywhere" }}>
+                        {displayTitle(item.canonicalFood ?? undefined, item.name)}
+                      </div>
+                      <div className="muted" style={{ fontSize: 12 }}>
+                        {quantityText(item)} · {Math.round(item.energyKcal)} kcal
+                      </div>
+                    </div>
+                    {item.resolver !== "plan" && (
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-sm hit-target-44"
+                        aria-label={`Editar ${item.name}`}
+                        onClick={() => {
+                          setEditIndex(index);
+                          setEditDraft(persistedToWorking([item])[0]);
+                        }}
+                      >
+                        Editar
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm hit-target-44"
+                      aria-label={`Remover ${item.name}`}
+                      onClick={() => requestRemove(index)}
+                    >
+                      Remover
+                    </button>
+                  </li>
+                )
+              )}
+            </ul>
+          )}
+
+          {/* Em gravação / falhou */}
+          {ws.inflight.map((op) => (
+            <div
+              key={op.key}
+              role={op.status === "failed" ? "alert" : "status"}
+              style={{ padding: "8px 10px", border: `1px dashed ${op.status === "failed" ? "var(--color-danger)" : COLORS.border}`, borderRadius: 10, fontSize: 13 }}
             >
-              {MEAL_TYPE_OPTIONS.map((opt) => (
-                <option key={opt} value={opt}>{opt}</option>
+              <div style={{ fontWeight: 600 }}>{op.items.map((i) => i.name || i.rawText).join(", ")}</div>
+              {op.status === "saving" ? (
+                <span className="muted">Salvando…</span>
+              ) : (
+                <>
+                  <div style={{ color: "var(--color-danger)" }}>{op.error}</div>
+                  <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
+                    <button type="button" className="btn btn-sm hit-target-44" onClick={() => ws.retry(op.key)}>Tentar de novo</button>
+                    <button type="button" className="btn btn-ghost btn-sm hit-target-44" onClick={() => ws.discard(op.key)}>Descartar</button>
+                  </div>
+                </>
+              )}
+            </div>
+          ))}
+
+          {ws.saved.length > 0 && (
+            <div style={{ fontSize: 13, fontWeight: 700, color: COLORS.text }} data-testid="workspace-totals">
+              Total salvo: ≈ {Math.round(ws.totals.energyKcal)} kcal · P {Math.round(ws.totals.proteinG)}g · C {Math.round(ws.totals.carbohydrateG)}g · G{" "}
+              {Math.round(ws.totals.fatG)}g
+            </div>
+          )}
+
+          {/* Falta confirmar: nunca entra na refeição nem no total até o aluno aceitar */}
+          {pending.length > 0 && (
+            <div aria-label="Falta confirmar" style={{ display: "grid", gap: 4 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.muted }}>Falta confirmar</div>
+              {pending.map((item, i) => (
+                <IntakeItemRow
+                  key={`${item.rawText}-${i}`}
+                  item={item}
+                  onChange={(next) => setPending((prev) => prev.map((it, idx) => (idx === i ? { ...next, planMealItemId: it.planMealItemId } : it)))}
+                  onRemove={() => setPending((prev) => prev.filter((_, idx) => idx !== i))}
+                />
               ))}
-            </select>
-            {mealType === "Outro" && (
-              <input
-                type="text"
-                className="input"
-                style={{ marginTop: 6 }}
-                placeholder="Ex.: Pré-treino"
-                value={customMealType}
-                onChange={(e) => setCustomMealType(e.target.value.slice(0, 80))}
-              />
-            )}
-          </div>
-        )}
+              {hasUnresolved ? (
+                <div className="muted" style={{ fontSize: 13 }}>Identifique os alimentos acima para adicionar à refeição.</div>
+              ) : (
+                <div style={{ fontSize: 12, color: COLORS.muted }}>
+                  A adicionar: ≈ {Math.round(pendingTotals.energyKcal)} kcal · P {Math.round(pendingTotals.proteinG)}g
+                </div>
+              )}
+              <button type="button" className="btn btn-primary hit-target-44" disabled={!canAddPending} onClick={addPending}>
+                Adicionar à refeição
+              </button>
+            </div>
+          )}
 
-        {items.length > 0 && (
-          <div>
-            {items.map((item, i) => (
-              <IntakeItemRow
-                key={`${item.rawText}-${i}`}
-                item={item}
-                onChange={(next) => setItems((prev) => prev.map((it, idx) => (idx === i ? { ...next, planMealItemId: it.planMealItemId } : it)))}
-                onRemove={() => setItems((prev) => prev.filter((_, idx) => idx !== i))}
-              />
-            ))}
-            {hasUnresolved ? (
-              // 0 significa "zero calorias", nunca "desconhecido" — enquanto
-              // houver item não identificado, não existe total a mostrar
-              // (PLAN P1B corrective §13).
-              <div className="muted" style={{ fontSize: 13, marginTop: 4 }}>
-                Identifique os alimentos abaixo para calcular o total.
-              </div>
-            ) : (
-              <div style={{ fontSize: 13, fontWeight: 700, color: COLORS.text, marginTop: 4 }}>
-                Total: ≈ {Math.round(totals.energyKcal)} kcal · P {Math.round(totals.proteinG)}g · C {Math.round(totals.carbohydrateG)}g · G{" "}
-                {Math.round(totals.fatG)}g
-              </div>
-            )}
-          </div>
-        )}
+          {/* Atalhos: só para COMEÇAR uma refeição vazia; acrescentam, nunca substituem o que já foi salvo */}
+          {shortcuts && !hasAnything && pending.length === 0 && !ws.loading && (
+            <div role="toolbar" aria-label="Atalhos de refeição" style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+              {shortcuts.planMeals.map((m) => (
+                <button key={`plan-${m.mealId}`} type="button" className="btn btn-sm hit-target-44" onClick={() => applyShortcut(`Como no plano: ${m.name}`, planToWorking(m.items), "plan")}>
+                  Como no plano: {m.name}
+                </button>
+              ))}
+              {shortcuts.yesterdayMeals.map((m) => (
+                <button key={`y-${m.logId}`} type="button" className="btn btn-sm hit-target-44" onClick={() => applyShortcut(`Ontem: ${m.label}`, persistedToWorking(m.items), "repeat")}>
+                  Ontem: {m.label}
+                </button>
+              ))}
+              {shortcuts.favorites.map((m) => (
+                <button key={`f-${m.id}`} type="button" className="btn btn-sm hit-target-44" onClick={() => applyShortcut(m.label, persistedToWorking(m.items), "favorite")}>
+                  <Star size={12} style={{ marginRight: 4 }} />
+                  {m.label}
+                </button>
+              ))}
+              {shortcuts.recent.map((m, i) => (
+                <button key={`r-${i}-${m.label}`} type="button" className="btn btn-sm hit-target-44" onClick={() => applyShortcut(m.label, persistedToWorking(m.items), "repeat")}>
+                  {m.label}
+                </button>
+              ))}
+            </div>
+          )}
 
-        {error && <div style={{ fontSize: 12, color: "var(--color-danger)" }}>{error}</div>}
+          {showMealTypePicker && (
+            <div>
+              <label className="muted" style={{ fontSize: 12, display: "block", marginBottom: 4 }} htmlFor="intake-meal-type">
+                Refeição
+              </label>
+              <select id="intake-meal-type" className="input" value={mealType} onChange={(e) => setMealType(e.target.value)}>
+                {MEAL_TYPE_OPTIONS.map((opt) => (
+                  <option key={opt} value={opt}>{opt}</option>
+                ))}
+              </select>
+              {mealType === "Outro" && (
+                <input type="text" className="input" style={{ marginTop: 6 }} placeholder="Ex.: Pré-treino" value={customMealType} onChange={(e) => setCustomMealType(e.target.value.slice(0, 80))} />
+              )}
+            </div>
+          )}
 
-        <div style={{ display: "flex", gap: 8, position: "sticky", bottom: "var(--kb-inset, 0)", background: "var(--color-surface)", paddingTop: 8 }}>
-          <button type="button" className="btn btn-ghost hit-target-44" style={{ flex: 1 }} onClick={onClose}>
-            Cancelar
-          </button>
-          <button type="button" className="btn btn-primary hit-target-44" style={{ flex: 1 }} disabled={!canConfirm} onClick={() => void handleConfirm()}>
-            {saving ? "Salvando..." : isEditing ? "Salvar" : "Confirmar"}
-          </button>
+          {ws.notice && <div role="alert" style={{ fontSize: 12, color: "var(--color-danger)" }}>{ws.notice}</div>}
+          {error && <div role="alert" style={{ fontSize: 12, color: "var(--color-danger)" }}>{error}</div>}
         </div>
-        <div style={{ fontSize: 11, color: COLORS.muted, textAlign: "center" }}>
-          {/* Nunca nomear a fonte específica (TACO/USDA/...) — PLAN
-              CANONICAL_FOOD_MODEL_SPIKE §23: a origem do dado é auditoria
-              interna, nunca aparece na tela do aluno. */}
-          Valores nutricionais estimados a partir de composição de alimentos.
+
+        {/* Rodapé fixo acima do teclado: campo + Adicionar + Pronto */}
+        <div style={{ flex: "none", display: "grid", gap: 8, position: "sticky", bottom: "var(--kb-inset, 0)", background: "var(--color-surface)", paddingTop: 8 }}>
+          {(showUndoAdd || ws.pendingRemoval != null) && (
+            <div role="status" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, fontSize: 13, padding: "6px 10px", borderRadius: 10, background: "var(--color-surface-raised)" }}>
+              <span>{ws.pendingRemoval != null ? "Item removido" : "Adicionado"}</span>
+              <button type="button" className="btn btn-ghost btn-sm hit-target-44" onClick={() => (ws.pendingRemoval != null ? ws.undoRemoval() : ws.undoLastAdd())}>
+                Desfazer
+              </button>
+            </div>
+          )}
+          {closeBlocked && (
+            <div role="alert" style={{ fontSize: 13, padding: "8px 10px", borderRadius: 10, border: "1px solid var(--color-danger)" }}>
+              Um alimento não foi salvo. Tente de novo ou descarte para sair.
+              <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
+                <button type="button" className="btn btn-sm hit-target-44" onClick={() => setCloseBlocked(false)}>Voltar</button>
+                <button type="button" className="btn btn-ghost btn-sm hit-target-44" onClick={onClose}>Descartar e sair</button>
+              </div>
+            </div>
+          )}
+          <div style={{ display: "flex", gap: 8 }}>
+            <input
+              ref={inputRef}
+              type="text"
+              className="input"
+              style={{ flex: 1, minWidth: 0 }}
+              aria-label="Adicionar alimento"
+              placeholder={hasAnything ? "Adicionar outro alimento…" : "Ex.: 1 pão francês, 2 ovos e 200 ml de leite"}
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") void handleSubmitText();
+              }}
+            />
+            <button type="button" className="btn btn-sm hit-target-44" disabled={!text.trim() || parsing} onClick={() => void handleSubmitText()}>
+              {parsing ? "Lendo…" : "Adicionar"}
+            </button>
+          </div>
+          <button type="button" className={`btn hit-target-44 ${hasAnything ? "btn-primary" : "btn-ghost"}`} onClick={() => void requestClose()}>
+            {hasAnything ? "Pronto" : "Cancelar"}
+          </button>
+          <div style={{ fontSize: 11, color: COLORS.muted, textAlign: "center" }}>
+            {/* Nunca nomear a fonte específica (TACO/USDA/...) — PLAN CANONICAL_FOOD_MODEL_SPIKE §23. */}
+            Valores nutricionais estimados a partir de composição de alimentos.
+          </div>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={confirmRemoveAll}
+        title="Remover a refeição inteira?"
+        message="Este é o último alimento salvo: a refeição será removida."
+        confirmLabel="Remover"
+        danger
+        onCancel={() => setConfirmRemoveAll(false)}
+        onConfirm={() => {
+          setConfirmRemoveAll(false);
+          ws.removeItem(ws.saved[0]?.index ?? 0);
+        }}
+      />
     </DrawerShell>
   );
 }

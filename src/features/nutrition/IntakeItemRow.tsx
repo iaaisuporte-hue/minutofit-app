@@ -9,7 +9,7 @@ import { searchNutritionFoods, type CanonicalFood, type CatalogFoodSummary, type
  * `canonicalFood` (itens manuais/plano/histórico já têm nome natural do
  * próprio usuário/nutri), cai no `name` como sempre foi.
  */
-function displayTitle(canonicalFood: CanonicalFood | undefined, fallbackName: string | undefined): string {
+export function displayTitle(canonicalFood: CanonicalFood | undefined, fallbackName: string | undefined): string {
   if (!canonicalFood) return fallbackName ?? "";
   const parts = [canonicalFood.baseFood, canonicalFood.variant].filter((p): p is string => Boolean(p));
   // Espaço, não vírgula — vírgula é a convenção de catalogação da fonte que

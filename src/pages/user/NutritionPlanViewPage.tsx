@@ -5,6 +5,7 @@ import DietaryProfileCard from "../../features/nutrition/DietaryProfileCard";
 import NutritionTargetCard from "../../features/nutrition/NutritionTargetCard";
 import { NutritionDaySummary } from "../../features/nutrition/NutritionDaySummary";
 import { IntakeLogSheet } from "../../features/nutrition/IntakeLogSheet";
+import { useOverlay } from "../../lib/overlayStack";
 import { useFeatureFlags } from "../../auth/FeatureFlagsContext";
 import { Utensils } from "lucide-react";
 import {
@@ -120,6 +121,8 @@ function MealDrawer({
   const [selectedAltId, setSelectedAltId] = useState<number | null>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
   const { hasFeature } = useFeatureFlags();
+  // Voltar do Android / Escape fecham o drawer antes de qualquer navegação (antes o botão voltar saía da página).
+  useOverlay(onClose, true);
 
   // For 'substituted' with alternatives: first click selects status and shows picker;
   // second action (via confirm button) submits with chosen alternative.
@@ -154,6 +157,9 @@ function MealDrawer({
   return (
     <div
       ref={overlayRef}
+      role="dialog"
+      aria-modal="true"
+      aria-label={meal.name}
       onClick={(e) => {
         if (e.target === overlayRef.current) onClose();
       }}
@@ -1028,10 +1034,8 @@ export default function NutritionPlanViewPage() {
         onClose={() => setIntakeSheetOpen(false)}
         defaultMealId={intakeMealId}
         defaultMealLabel={intakeMealLabel}
-        onSaved={() => {
-          setIntakeSheetOpen(false);
-          setDayRefreshToken((t) => t + 1);
-        }}
+        // A folha continua aberta (registro incremental): só atualiza o dia, em silêncio.
+        onSaved={() => setDayRefreshToken((t) => t + 1)}
       />
     </div>
   );

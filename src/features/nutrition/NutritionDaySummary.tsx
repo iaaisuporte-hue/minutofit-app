@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { ClipboardList, Calculator, ChevronRight, Plus } from "lucide-react";
 import { COLORS } from "../../styles/colors";
@@ -33,17 +33,27 @@ export function NutritionDaySummary({ refreshToken = 0 }: { refreshToken?: numbe
   const [sheetOpen, setSheetOpen] = useState(false);
   const [yesterdayOpen, setYesterdayOpen] = useState(false);
 
-  function load() {
-    setLoading(true);
+  // Já com dados na tela, recarregar é SILENCIOSO (nada de skeleton): o registro incremental atualiza o dia a cada
+  // alimento salvo enquanto a folha está aberta, e o skeleton desmontava o card inteiro — folha junto.
+  const hasData = useRef(false);
+
+  function load(quiet = hasData.current) {
+    if (!quiet) setLoading(true);
     setError(false);
     getDayIntake()
-      .then(setData)
-      .catch(() => setError(true))
+      .then((d) => {
+        hasData.current = true;
+        setData(d);
+      })
+      .catch(() => {
+        if (!quiet) setError(true);
+      })
       .finally(() => setLoading(false));
   }
 
   useEffect(() => {
     load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refreshToken]);
 
   if (loading) return <SkeletonPanelCard />;
@@ -53,7 +63,7 @@ export function NutritionDaySummary({ refreshToken = 0 }: { refreshToken?: numbe
         <div style={{ fontSize: 13, color: COLORS.muted, marginBottom: 8 }}>
           Não foi possível carregar seu dia nutricional agora.
         </div>
-        <button type="button" className="btn btn-ghost btn-sm" onClick={load}>
+        <button type="button" className="btn btn-ghost btn-sm" onClick={() => load(false)}>
           Tentar de novo
         </button>
       </div>
@@ -150,11 +160,8 @@ export function NutritionDaySummary({ refreshToken = 0 }: { refreshToken?: numbe
           setSheetOpen(false);
           setEditingMeal(null);
         }}
-        onSaved={() => {
-          setSheetOpen(false);
-          setEditingMeal(null);
-          load();
-        }}
+        // A folha continua aberta (registro incremental): só os totais do dia são atualizados, em silêncio.
+        onSaved={() => load(true)}
       />
       <YesterdayMealsSheet open={yesterdayOpen} onClose={() => setYesterdayOpen(false)} />
     </div>
