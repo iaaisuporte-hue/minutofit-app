@@ -126,10 +126,34 @@ export function IntakeItemRow({
     }
   }
 
+  /**
+   * Consulta pré-preenchida ("biscoito recheados": o parser só singulariza a 1ª palavra e a busca exige todos os termos):
+   * se nada casa, tenta de novo sem a(s) última(s) palavra(s) até achar — o aluno vê opções em vez de "nenhum resultado".
+   * O campo mostra a consulta que de fato produziu os resultados.
+   */
+  async function searchWithFallback(q: string) {
+    const words = q.trim().split(/\s+/);
+    setSearching(true);
+    try {
+      for (let n = words.length; n >= 1; n--) {
+        const attempt = words.slice(0, n).join(" ");
+        const found = await searchNutritionFoods(attempt).catch(() => []);
+        if (found.length > 0 || n === 1) {
+          setQuery(attempt);
+          setResults(found);
+          return;
+        }
+      }
+    } finally {
+      setSearching(false);
+      setSearched(true);
+    }
+  }
+
   // Item não resolvido já abre com as opções do catálogo para a consulta do aluno (sem exigir reescrever o texto).
   useEffect(() => {
     // Mistura de ingredientes não tem busca útil pelo texto inteiro (traria um ingrediente como se fosse o preparo).
-    if (!item.resolved && !item.composite && item.foodQuery.trim()) void runSearch(item.foodQuery);
+    if (!item.resolved && !item.composite && item.foodQuery.trim()) void searchWithFallback(item.foodQuery);
     // só na montagem: depois disso a busca é guiada pelo que o aluno digita
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

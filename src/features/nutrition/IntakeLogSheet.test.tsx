@@ -100,6 +100,25 @@ describe("IntakeLogSheet — espaço de trabalho da refeição", () => {
     expect(submitIntakeLog.mock.calls[0][0].items[0].clientKey).not.toBe(submitIntakeLog.mock.calls[1][0].items[0].clientKey);
   });
 
+  it("dois toques em Adicionar na mesma tarefa interpretam e gravam UMA vez só (sem esperar o próximo render)", async () => {
+    parseIntakeText.mockResolvedValue(parsed([highItem("Água", 0, { resolver: "manual" })]));
+    submitIntakeLog.mockResolvedValue(logOf(1, [persisted("Água", 0)]));
+    render(<IntakeLogSheet open onClose={() => {}} onSaved={() => {}} />);
+    await userEvent.type(screen.getByLabelText("Adicionar alimento"), "1 copo de água");
+    const add = screen.getByRole("button", { name: "Adicionar" });
+    // cliques NATIVOS na mesma tarefa, fora do act(): o React ainda não re-renderizou o `disabled` entre eles
+    (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = false;
+    try {
+      add.click();
+      add.click();
+    } finally {
+      (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+    }
+    await screen.findByText("1 alimento salvo");
+    expect(parseIntakeText).toHaveBeenCalledTimes(1);
+    expect(submitIntakeLog).toHaveBeenCalledTimes(1);
+  });
+
   it("dois adicionar seguidos são serializados — o 2º só sai depois do 1º e usa o id dele", async () => {
     parseIntakeText
       .mockResolvedValueOnce(parsed([highItem("Pão francês", 135)]))

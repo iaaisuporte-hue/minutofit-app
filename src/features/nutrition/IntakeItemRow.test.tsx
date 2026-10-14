@@ -104,6 +104,16 @@ describe("IntakeItemRow — escolher alimento para item não resolvido", () => {
     expect(screen.getByRole("button", { name: "Usar estes valores" })).not.toBeDisabled();
   });
 
+  it("consulta com termos demais ('biscoito recheados', sem resultado) cai para a busca mais ampla e mostra opções", async () => {
+    searchNutritionFoods.mockImplementation(async (q: string) => (q === "biscoito" ? [{ id: 9, name: "Biscoito, doce, recheado com chocolate", energyKcal: 472, proteinG: 6, carbohydrateG: 69, fatG: 19 }] : []));
+    render(<Harness spy={vi.fn()} initial={{ resolved: false, rawText: "Comi 4 biscoitos recheados", foodQuery: "biscoito recheados", quantity: 4, unitLabel: "unidade" }} />);
+    expect(await screen.findByRole("button", { name: "Biscoito, doce, recheado com chocolate" })).toBeInTheDocument();
+    expect(searchNutritionFoods).toHaveBeenNthCalledWith(1, "biscoito recheados");
+    expect(searchNutritionFoods).toHaveBeenLastCalledWith("biscoito");
+    expect((screen.getByPlaceholderText("Buscar alimento…") as HTMLInputElement).value).toBe("biscoito");
+    expect(screen.queryByText(/Nenhum resultado/)).not.toBeInTheDocument();
+  });
+
   it("busca sem resultado de fato mostra 'Nenhum resultado no catálogo'", async () => {
     searchNutritionFoods.mockResolvedValue([]);
     render(<Harness spy={vi.fn()} initial={{ resolved: false, rawText: "1 xyzzy", foodQuery: "xyzzy", quantity: 1, unitLabel: "unidade" }} />);

@@ -88,6 +88,7 @@ export function IntakeLogSheet({
   const [momentOpen, setMomentOpen] = useState(false);
   const [confirmDiscardPending, setConfirmDiscardPending] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const submitLock = useRef(false);
 
   const isEditing = editingMeal != null;
   const isExtraFlow = !isEditing && defaultMealId == null;
@@ -136,7 +137,9 @@ export function IntakeLogSheet({
 
   async function handleSubmitText() {
     const value = text.trim();
-    if (!value || parsing || closing) return;
+    // `parsing` (state) só vale depois do próximo render: dois toques na MESMA tarefa passariam os dois. O ref fecha a porta já.
+    if (!value || parsing || closing || submitLock.current) return;
+    submitLock.current = true;
     setParsing(true);
     setError(null);
     try {
@@ -155,6 +158,7 @@ export function IntakeLogSheet({
     } catch {
       setError("Não foi possível interpretar o texto. Tente descrever de outro jeito.");
     } finally {
+      submitLock.current = false;
       setParsing(false);
     }
   }
@@ -363,7 +367,7 @@ export function IntakeLogSheet({
                   <label className="muted" style={{ fontSize: 12, display: "block", marginBottom: 4 }} htmlFor="intake-meal-type">
                     Refeição
                   </label>
-                  <select id="intake-meal-type" className="input" value={mealType} onChange={(e) => setMealType(e.target.value)}>
+                  <select id="intake-meal-type" className="input" style={{ minHeight: 44 }} value={mealType} onChange={(e) => setMealType(e.target.value)}>
                     {MEAL_TYPE_OPTIONS.map((opt) => (
                       <option key={opt} value={opt}>{opt}</option>
                     ))}
