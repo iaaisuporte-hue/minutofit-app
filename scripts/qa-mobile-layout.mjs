@@ -28,7 +28,7 @@
  *                   2 = falha de INFRAESTRUTURA (ambiente fora do ar, inseguro,
  *                       auth impossível, detector cego no canário, >50% de erro)
  */
-import { mkdirSync, rmSync, writeFileSync, existsSync, mkdtempSync } from 'node:fs';
+import { mkdirSync, rmSync, writeFileSync, existsSync, mkdtempSync, copyFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -624,6 +624,19 @@ async function main() {
     return runDir;
   } finally {
     await browser.close().catch(() => {});
+    // --keep-state <dir>: preserva os storageStates (aluno, aluno com treino ativo, personal, nutri) para sondas
+    // dirigidas e cenários combinados reutilizarem a sessão sem novo login (limite de 5/min).
+    if (ARGS['keep-state']) {
+      try {
+        mkdirSync(ARGS['keep-state'], { recursive: true });
+        for (const f of ['student', 'student-active', 'personal', 'nutri']) {
+          const src = path.join(tmpDir, `${f}.state.json`);
+          if (existsSync(src)) copyFileSync(src, path.join(ARGS['keep-state'], `${f}.state.json`));
+        }
+      } catch {
+        /* melhor esforço */
+      }
+    }
     rmSync(tmpDir, { recursive: true, force: true });
   }
 }
