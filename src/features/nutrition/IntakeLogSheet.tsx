@@ -3,7 +3,7 @@ import { Star } from "lucide-react";
 import { COLORS } from "../../styles/colors";
 import { DrawerShell } from "../../components/overlay/DrawerShell";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
-import { IntakeItemRow, displayTitle } from "./IntakeItemRow";
+import { IntakeItemRow, ItemQuantityEditor, displayTitle } from "./IntakeItemRow";
 import { persistedToWorking, planToWorking, sumTotals, type WorkingItem } from "./intakeWorking";
 import { useMealWorkspace } from "./useMealWorkspace";
 import {
@@ -82,7 +82,6 @@ export function IntakeLogSheet({
   const [parsing, setParsing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [editUid, setEditUid] = useState<string | null>(null);
-  const [editDraft, setEditDraft] = useState<WorkingItem | null>(null);
   const [confirmRemoveAll, setConfirmRemoveAll] = useState(false);
   const [closeBlocked, setCloseBlocked] = useState(false);
   const [closing, setClosing] = useState(false);
@@ -104,7 +103,6 @@ export function IntakeLogSheet({
     setCustomMealType("");
     setError(null);
     setEditUid(null);
-    setEditDraft(null);
     setConfirmRemoveAll(false);
     setCloseBlocked(false);
     setClosing(false);
@@ -216,26 +214,16 @@ export function IntakeLogSheet({
           {ws.saved.length > 0 && (
             <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "grid", gap: 6 }} aria-label="Alimentos salvos">
               {ws.saved.map(({ item, uid }) =>
-                editUid === uid && editDraft ? (
+                editUid === uid ? (
                   <li key={uid}>
-                    <IntakeItemRow item={editDraft} onChange={setEditDraft} onRemove={() => { setEditUid(null); setEditDraft(null); }} />
-                    <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
-                      <button type="button" className="btn btn-ghost btn-sm hit-target-44" onClick={() => { setEditUid(null); setEditDraft(null); }}>
-                        Cancelar edição
-                      </button>
-                      <button
-                        type="button"
-                        className="btn btn-primary btn-sm hit-target-44"
-                        disabled={!editDraft.resolved || (editDraft.confidence !== "high" && !editDraft.confirmed)}
-                        onClick={() => {
-                          void ws.replaceItem(uid, editDraft);
-                          setEditUid(null);
-                          setEditDraft(null);
-                        }}
-                      >
-                        Salvar item
-                      </button>
-                    </div>
+                    <ItemQuantityEditor
+                      item={item}
+                      onCancel={() => setEditUid(null)}
+                      onSave={(quantity) => {
+                        void ws.updateQuantity(uid, quantity);
+                        setEditUid(null);
+                      }}
+                    />
                   </li>
                 ) : (
                   <li
@@ -250,15 +238,12 @@ export function IntakeLogSheet({
                         {quantityText(item)} · {Math.round(item.energyKcal)} kcal
                       </div>
                     </div>
-                    {item.resolver !== "plan" && (
+                    {item.grams != null && item.grams > 0 && (
                       <button
                         type="button"
                         className="btn btn-ghost btn-sm hit-target-44"
                         aria-label={`Editar ${item.name}`}
-                        onClick={() => {
-                          setEditUid(uid);
-                          setEditDraft(persistedToWorking([item])[0]);
-                        }}
+                        onClick={() => setEditUid(uid)}
                       >
                         Editar
                       </button>
@@ -378,52 +363,55 @@ export function IntakeLogSheet({
           {error && <div role="alert" style={{ fontSize: 12, color: "var(--color-danger)" }}>{error}</div>}
         </div>
 
-        {/* Rodapé fixo acima do teclado: campo + Adicionar + Pronto */}
-        <div style={{ flex: "none", display: "grid", gap: 8, position: "sticky", bottom: "var(--kb-inset, 0)", background: "var(--color-surface)", paddingTop: 8 }}>
-          {(showUndoAdd || ws.pendingRemovalCount > 0) && (
-            <div role="status" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, fontSize: 13, padding: "6px 10px", borderRadius: 10, background: "var(--color-surface-raised)" }}>
-              <span>{ws.pendingRemovalCount > 1 ? `${ws.pendingRemovalCount} itens removidos` : ws.pendingRemovalCount === 1 ? "Item removido" : "Adicionado"}</span>
-              <button type="button" className="btn btn-ghost btn-sm hit-target-44" onClick={() => (ws.pendingRemovalCount > 0 ? ws.undoRemoval() : ws.undoLastAdd())}>
-                Desfazer
+        {/* Rodapé fixo acima do teclado: campo + Adicionar + Pronto. Some enquanto a quantidade de um item está sendo
+            editada: o editor tem seus próprios Salvar/Cancelar e, em tela curta com teclado, o rodapé cobria o campo. */}
+        {editUid == null && (
+          <div style={{ flex: "none", display: "grid", gap: 8, position: "sticky", bottom: "var(--kb-inset, 0)", background: "var(--color-surface)", paddingTop: 8 }}>
+            {(showUndoAdd || ws.pendingRemovalCount > 0) && (
+              <div role="status" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, fontSize: 13, padding: "6px 10px", borderRadius: 10, background: "var(--color-surface-raised)" }}>
+                <span>{ws.pendingRemovalCount > 1 ? `${ws.pendingRemovalCount} itens removidos` : ws.pendingRemovalCount === 1 ? "Item removido" : "Adicionado"}</span>
+                <button type="button" className="btn btn-ghost btn-sm hit-target-44" onClick={() => (ws.pendingRemovalCount > 0 ? ws.undoRemoval() : ws.undoLastAdd())}>
+                  Desfazer
+                </button>
+              </div>
+            )}
+            {closeBlocked && (
+              <div role="alert" style={{ fontSize: 13, padding: "8px 10px", borderRadius: 10, border: "1px solid var(--color-danger)" }}>
+                Um alimento não foi salvo. Tente de novo ou descarte para sair.
+                <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
+                  <button type="button" className="btn btn-sm hit-target-44" onClick={() => setCloseBlocked(false)}>Voltar</button>
+                  <button type="button" className="btn btn-ghost btn-sm hit-target-44" onClick={onClose}>Descartar e sair</button>
+                </div>
+              </div>
+            )}
+            <div style={{ display: "flex", gap: 8 }}>
+              <input
+                ref={inputRef}
+                type="text"
+                className="input"
+                style={{ flex: 1, minWidth: 0 }}
+                aria-label="Adicionar alimento"
+                disabled={closing}
+                placeholder={hasAnything ? "Adicionar outro alimento…" : "Ex.: 1 pão francês, 2 ovos e 200 ml de leite"}
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") void handleSubmitText();
+                }}
+              />
+              <button type="button" className="btn btn-sm hit-target-44" disabled={!text.trim() || parsing || closing} onClick={() => void handleSubmitText()}>
+                {parsing ? "Lendo…" : "Adicionar"}
               </button>
             </div>
-          )}
-          {closeBlocked && (
-            <div role="alert" style={{ fontSize: 13, padding: "8px 10px", borderRadius: 10, border: "1px solid var(--color-danger)" }}>
-              Um alimento não foi salvo. Tente de novo ou descarte para sair.
-              <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
-                <button type="button" className="btn btn-sm hit-target-44" onClick={() => setCloseBlocked(false)}>Voltar</button>
-                <button type="button" className="btn btn-ghost btn-sm hit-target-44" onClick={onClose}>Descartar e sair</button>
-              </div>
-            </div>
-          )}
-          <div style={{ display: "flex", gap: 8 }}>
-            <input
-              ref={inputRef}
-              type="text"
-              className="input"
-              style={{ flex: 1, minWidth: 0 }}
-              aria-label="Adicionar alimento"
-              disabled={closing}
-              placeholder={hasAnything ? "Adicionar outro alimento…" : "Ex.: 1 pão francês, 2 ovos e 200 ml de leite"}
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") void handleSubmitText();
-              }}
-            />
-            <button type="button" className="btn btn-sm hit-target-44" disabled={!text.trim() || parsing || closing} onClick={() => void handleSubmitText()}>
-              {parsing ? "Lendo…" : "Adicionar"}
+            <button type="button" className={`btn hit-target-44 ${hasAnything ? "btn-primary" : "btn-ghost"}`} disabled={closing} onClick={() => void requestClose()}>
+              {hasAnything ? "Pronto" : "Cancelar"}
             </button>
+            <div style={{ fontSize: 11, color: COLORS.muted, textAlign: "center" }}>
+              {/* Nunca nomear a fonte específica (TACO/USDA/...) — PLAN CANONICAL_FOOD_MODEL_SPIKE §23. */}
+              Valores nutricionais estimados a partir de composição de alimentos.
+            </div>
           </div>
-          <button type="button" className={`btn hit-target-44 ${hasAnything ? "btn-primary" : "btn-ghost"}`} disabled={closing} onClick={() => void requestClose()}>
-            {hasAnything ? "Pronto" : "Cancelar"}
-          </button>
-          <div style={{ fontSize: 11, color: COLORS.muted, textAlign: "center" }}>
-            {/* Nunca nomear a fonte específica (TACO/USDA/...) — PLAN CANONICAL_FOOD_MODEL_SPIKE §23. */}
-            Valores nutricionais estimados a partir de composição de alimentos.
-          </div>
-        </div>
+        )}
       </div>
 
       <ConfirmDialog

@@ -268,10 +268,19 @@ describe("NutritionDaySummary", () => {
       await screen.findByRole("dialog", { name: "Editar refeição" });
 
       await userEvent.click(screen.getByRole("button", { name: `Editar ${BASE_ITEM.name}` }));
+      const qty = screen.getByLabelText("Quantidade (g)");
+      await userEvent.clear(qty);
+      await userEvent.type(qty, "150");
       await userEvent.click(screen.getByRole("button", { name: "Salvar item" }));
 
-      // PATCH no id físico da refeição (nunca POST), com o rótulo preservado
-      await waitFor(() => expect(updateIntakeLog).toHaveBeenCalledWith(MEAL_WITH_ITEMS.sourceLogIds[0], expect.objectContaining({ label: "Almoço" })));
+      // PATCH no id físico da refeição (nunca POST), rótulo preservado; o cliente só manda a quantidade nova —
+      // gramas e nutrientes são do servidor
+      await waitFor(() =>
+        expect(updateIntakeLog).toHaveBeenCalledWith(
+          MEAL_WITH_ITEMS.sourceLogIds[0],
+          expect.objectContaining({ label: "Almoço", items: [{ kind: "existing", index: 0, quantity: 150 }] })
+        )
+      );
       // O dia é relido (2ª chamada) sem desmontar a folha: nada de skeleton, diálogo segue aberto
       await waitFor(() => expect(getDayIntake).toHaveBeenCalledTimes(2));
       expect(screen.getByRole("dialog", { name: "Editar refeição" })).toBeInTheDocument();

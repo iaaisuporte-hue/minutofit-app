@@ -50,9 +50,13 @@ describe("YesterdayMealsSheet", () => {
     await userEvent.click(await screen.findByRole("button", { name: "Editar" }));
     const dialog = await screen.findByRole("dialog", { name: "Editar refeição" });
     await userEvent.click(screen.getByRole("button", { name: "Editar Arroz" }));
+    const qty = screen.getByLabelText("Quantidade (g)");
+    await userEvent.clear(qty);
+    await userEvent.type(qty, "150");
     await userEvent.click(screen.getByRole("button", { name: "Salvar item" }));
 
     await waitFor(() => expect(updateIntakeLog).toHaveBeenCalled());
+    expect(updateIntakeLog.mock.calls[0][1].items).toEqual([{ kind: "existing", index: 0, quantity: 150 }]);
     expect(updateIntakeLog.mock.calls[0][1].baseUpdatedAt).toBeNull(); // conflito checado já na 1ª edição
     await waitFor(() => expect(getDayIntake).toHaveBeenCalledTimes(2)); // lista de ontem relida…
     expect(dialog).toBeInTheDocument(); // …sem fechar a folha

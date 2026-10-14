@@ -128,7 +128,8 @@ export function IntakeItemRow({
 
   // Item não resolvido já abre com as opções do catálogo para a consulta do aluno (sem exigir reescrever o texto).
   useEffect(() => {
-    if (!item.resolved && item.foodQuery.trim()) void runSearch(item.foodQuery);
+    // Mistura de ingredientes não tem busca útil pelo texto inteiro (traria um ingrediente como se fosse o preparo).
+    if (!item.resolved && !item.composite && item.foodQuery.trim()) void runSearch(item.foodQuery);
     // só na montagem: depois disso a busca é guiada pelo que o aluno digita
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -228,6 +229,12 @@ export function IntakeItemRow({
             <X size={14} />
           </button>
         </div>
+        {item.composite && !item.resolved && (
+          <div role="note" style={{ fontSize: 13, color: COLORS.text, marginBottom: 8 }}>
+            Isso é uma mistura de ingredientes e a proporção não é adivinhada. Registre cada um com a sua quantidade (ex.:
+            “1 xícara de café” e “100 ml de leite”) ou adicione manualmente.
+          </div>
+        )}
         <div style={{ display: "flex", gap: 6 }}>
           <input
             type="text"
@@ -422,6 +429,78 @@ export function IntakeItemRow({
           Buscar outro alimento
         </button>
       )}
+    </div>
+  );
+}
+
+/** Passo do stepper por unidade: massa/volume andam de 10 em 10; unidade, fatia, scoop, copo… de 1 em 1. */
+function quantityStep(unitLabel: string): number {
+  return unitLabel === "g" || unitLabel === "ml" ? 10 : 1;
+}
+
+/**
+ * Editor de QUANTIDADE de um alimento já salvo ("2 ovos" → 3; "200 ml" → 150; "1 scoop" → 2; "120 g" → 150).
+ * Mantém a unidade que o aluno disse e só devolve o número novo — gramas e nutrientes são recalculados pelo servidor
+ * a partir do que o próprio item guarda (nada de converter unidade nem multiplicar macros aqui; por isso as
+ * calorias mostradas são as SALVAS até o item ser gravado).
+ */
+export function ItemQuantityEditor({
+  item,
+  onCancel,
+  onSave,
+}: {
+  item: { name: string; canonicalFood?: CanonicalFood | null; quantity?: number | null; unitLabel?: string | null; grams: number | null; energyKcal: number };
+  onCancel: () => void;
+  onSave: (quantity: number) => void;
+}) {
+  const unit = item.unitLabel || "g";
+  const current = item.quantity != null && item.quantity > 0 ? item.quantity : item.grams ?? 0;
+  const [text, setText] = useState(String(current));
+  const parsed = Number(text.replace(",", "."));
+  const valid = Number.isFinite(parsed) && parsed > 0;
+  const step = quantityStep(unit);
+  const title = displayTitle(item.canonicalFood ?? undefined, item.name);
+
+  function bump(delta: number) {
+    const base = valid ? parsed : current;
+    const next = Math.max(step, Math.round((base + delta) * 100) / 100);
+    setText(String(next));
+  }
+
+  return (
+    <div className="card cardPad" style={{ padding: 12 }}>
+      <div style={{ fontSize: 13, fontWeight: 600, color: COLORS.text, overflowWrap: "anywhere" }}>{title}</div>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8 }}>
+        <div className="stepper" role="group" aria-label={`Quantidade de ${title}`}>
+          <button type="button" className="stepper-btn hit-target-44" aria-label="Diminuir quantidade" onClick={() => bump(-step)}>
+            <Minus size={14} />
+          </button>
+          <input
+            type="text"
+            inputMode="decimal"
+            className="input"
+            style={{ width: 72, minHeight: 44, textAlign: "center" }}
+            aria-label={`Quantidade (${unit})`}
+            value={text}
+            onChange={(e) => setText(e.target.value.slice(0, 8))}
+          />
+          <button type="button" className="stepper-btn hit-target-44" aria-label="Aumentar quantidade" onClick={() => bump(step)}>
+            <Plus size={14} />
+          </button>
+        </div>
+        <span style={{ fontSize: 13, color: COLORS.muted }}>{unit}</span>
+      </div>
+      <div className="muted" style={{ fontSize: 12, marginTop: 6 }}>
+        Hoje: ≈ {Math.round(item.energyKcal)} kcal. As calorias são recalculadas ao salvar.
+      </div>
+      <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+        <button type="button" className="btn btn-ghost btn-sm hit-target-44" onClick={onCancel}>
+          Cancelar edição
+        </button>
+        <button type="button" className="btn btn-primary btn-sm hit-target-44" disabled={!valid || parsed === current} onClick={() => onSave(parsed)}>
+          Salvar item
+        </button>
+      </div>
     </div>
   );
 }

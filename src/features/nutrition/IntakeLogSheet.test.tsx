@@ -430,13 +430,86 @@ describe("IntakeLogSheet — espaço de trabalho da refeição", () => {
 
       await userEvent.click(screen.getByRole("button", { name: "Remover Pão" }));
       await userEvent.click(screen.getByRole("button", { name: "Editar Ovo" }));
+      const qty = screen.getByLabelText("Quantidade (g)");
+      await userEvent.clear(qty);
+      await userEvent.type(qty, "150");
       await userEvent.click(screen.getByRole("button", { name: "Salvar item" }));
 
       await waitFor(() => expect(updateIntakeLog).toHaveBeenCalledTimes(1));
+      // saiu o Pão; o Ovo (editado) e o Leite (intacto) vão com o índice ATUAL do servidor, tudo num PATCH só
+      expect(updateIntakeLog.mock.calls[0][1].items).toEqual([
+        { kind: "existing", index: 1, quantity: 150 },
+        { kind: "existing", index: 2 },
+      ]);
+    });
+
+    it("item 'Como no plano' agora é editável na quantidade; item sem gramas conhecidos não oferece Editar", async () => {
+      const planItem = persisted("Arroz", 128, { resolver: "plan", grams: 100 });
+      const noGrams = persisted("Prato do restaurante", 600, { resolver: "manual", grams: null });
+      getDayIntake.mockResolvedValue({
+        date: "2026-10-14",
+        logs: [logOf(9, [planItem, noGrams], { mealId: 10 })],
+        meals: [{
+          groupKey: "p10", mealId: 10, label: "Almoço", loggedAt: "2026-10-14T12:00:00Z", isExtra: false, items: [planItem, noGrams],
+          energyKcal: 728, proteinG: 10, carbohydrateG: 40, fatG: 2, fiberG: null, fiberPartial: false, confidenceScore: 1, sourceLogIds: [9],
+        }],
+        totals: {}, coverage: {}, target: null, plannedMeals: [],
+      });
+      updateIntakeLog.mockResolvedValue(logOf(9, [planItem, noGrams], { mealId: 10 }));
+      render(<IntakeLogSheet open onClose={() => {}} onSaved={() => {}} defaultMealId={10} defaultMealLabel="Almoço" />);
+      await screen.findByText("2 alimentos salvos");
+
+      expect(screen.queryByRole("button", { name: "Editar Prato do restaurante" })).not.toBeInTheDocument();
+      await userEvent.click(screen.getByRole("button", { name: "Editar Arroz" }));
+      const qty = screen.getByLabelText("Quantidade (g)");
+      await userEvent.clear(qty);
+      await userEvent.type(qty, "150");
+      await userEvent.click(screen.getByRole("button", { name: "Salvar item" }));
+      await waitFor(() => expect(updateIntakeLog).toHaveBeenCalledTimes(1));
+      expect(updateIntakeLog.mock.calls[0][1].items).toEqual([{ kind: "existing", index: 0, quantity: 150 }, { kind: "existing", index: 1 }]);
+    });
+
+    it("editar a quantidade em ml e em unidade mantém a unidade e não envia gramas nem nutrientes do cliente", async () => {
+      const leite = persisted("Leite", 125, { grams: 206, quantity: 200, unitLabel: "ml" });
+      const ovo = persisted("Ovo", 143, { grams: 100, quantity: 2, unitLabel: "unidade" });
+      getDayIntake.mockResolvedValue({
+        date: "2026-10-14",
+        logs: [logOf(9, [leite, ovo], { mealId: 10 })],
+        meals: [{
+          groupKey: "p10", mealId: 10, label: "Café", loggedAt: "2026-10-14T08:00:00Z", isExtra: false, items: [leite, ovo],
+          energyKcal: 268, proteinG: 10, carbohydrateG: 40, fatG: 2, fiberG: null, fiberPartial: false, confidenceScore: 1, sourceLogIds: [9],
+        }],
+        totals: {}, coverage: {}, target: null, plannedMeals: [],
+      });
+      updateIntakeLog.mockResolvedValue(logOf(9, [leite, ovo], { mealId: 10 }));
+      render(<IntakeLogSheet open onClose={() => {}} onSaved={() => {}} defaultMealId={10} defaultMealLabel="Café" />);
+      await screen.findByText("2 alimentos salvos");
+
+      await userEvent.click(screen.getByRole("button", { name: "Editar Ovo" }));
+      const qty = screen.getByLabelText("Quantidade (unidade)");
+      await userEvent.clear(qty);
+      await userEvent.type(qty, "3");
+      await userEvent.click(screen.getByRole("button", { name: "Salvar item" }));
+      await waitFor(() => expect(updateIntakeLog).toHaveBeenCalledTimes(1));
       const items = updateIntakeLog.mock.calls[0][1].items;
-      expect(items).toHaveLength(2);
-      expect(items[0].kind).toBe("food"); // Ovo (editado) — saiu o Pão
-      expect(items[1]).toEqual({ kind: "existing", index: 2 }); // Leite intacto, com o índice ATUAL do servidor
+      expect(items).toEqual([{ kind: "existing", index: 0 }, { kind: "existing", index: 1, quantity: 3 }]);
+      expect(JSON.stringify(items)).not.toMatch(/grams|energyKcal|proteinG/);
+    });
+
+    it("enquanto a quantidade de um item é editada, o rodapé (campo + Pronto) some — não cobre o editor em tela curta com teclado", async () => {
+      getDayIntake.mockResolvedValue(THREE);
+      render(<IntakeLogSheet open onClose={() => {}} onSaved={() => {}} defaultMealId={10} defaultMealLabel="Café da manhã" />);
+      await screen.findByText("3 alimentos salvos");
+      expect(screen.getByLabelText("Adicionar alimento")).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole("button", { name: "Editar Ovo" }));
+      expect(screen.getByLabelText("Quantidade (g)")).toBeInTheDocument();
+      expect(screen.queryByLabelText("Adicionar alimento")).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Pronto" })).not.toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole("button", { name: "Cancelar edição" }));
+      expect(screen.getByLabelText("Adicionar alimento")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Pronto" })).toBeInTheDocument();
     });
 
     it("sair com item em 'Falta confirmar' avisa antes de descartar", async () => {

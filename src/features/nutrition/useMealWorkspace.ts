@@ -398,7 +398,7 @@ export function useMealWorkspace({
    * obsoleto se outro PATCH da fila encolhesse a lista antes.
    */
   const queuePatch = useCallback(
-    (extra: { remove?: string[]; replace?: { uid: string; edited: WorkingItem } } = {}) => {
+    (extra: { remove?: string[]; quantity?: { uid: string; value: number } } = {}) => {
       const drop = new Set<string>([...takeRemovals(), ...(extra.remove ?? [])]);
       return enqueue(() =>
         runPatch((current, currentUids) => {
@@ -407,7 +407,7 @@ export function useMealWorkspace({
           current.forEach((_, i) => {
             const u = currentUids[i];
             if (drop.has(u)) return;
-            requests.push(extra.replace?.uid === u ? previewToRequest(extra.replace.edited) : { kind: "existing", index: i });
+            requests.push(extra.quantity?.uid === u ? { kind: "existing", index: i, quantity: extra.quantity.value } : { kind: "existing", index: i });
             nextUids.push(u);
           });
           return { requests, nextUids };
@@ -441,11 +441,15 @@ export function useMealWorkspace({
     setPendingRemovals([]);
   }, []);
 
-  /** Troca o item salvo `uid` por uma versão editada (re-resolvida no servidor); os demais ficam como estão. */
-  const replaceItem = useCallback(
-    (uid: string, edited: WorkingItem) => {
+  /**
+   * Muda a quantidade do item salvo `uid` na MESMA unidade ("2 ovos" → 3). Quem reescala os gramas e recalcula os
+   * nutrientes é o servidor (a partir do que o próprio item guarda) — o cliente só manda o número novo; os demais
+   * itens ficam como estão.
+   */
+  const updateQuantity = useCallback(
+    (uid: string, value: number) => {
       setLastAdded(null);
-      return queuePatch({ replace: { uid, edited } });
+      return queuePatch({ quantity: { uid, value } });
     },
     [queuePatch]
   );
@@ -497,7 +501,7 @@ export function useMealWorkspace({
     discard,
     removeItem,
     undoRemoval,
-    replaceItem,
+    updateQuantity,
     undoLastAdd,
     flush,
     clearNotice: () => setNotice(null),

@@ -154,6 +154,8 @@ export interface IntakePreviewItem {
     canonicalFood: CanonicalFood;
     per100g: { kcal: number; p: number; c: number; f: number };
   }>;
+  /** Mistura de ingredientes sem composição no catálogo ("café com leite"): nunca vem com sugestão; a UI orienta a registrar cada ingrediente. */
+  composite?: boolean;
 }
 
 export interface NutrientTotals {
@@ -217,7 +219,12 @@ export type IntakeItemRequest =
    * SÓ no PATCH: mantém um item já salvo sem re-resolver (snapshot intacto, inclusive item `plan`, que não tem
    * `foodId`). `index` = posição do item na refeição (a ordem de `NutritionIntakeMeal.items`).
    */
-  | { kind: 'existing'; index: number };
+  | {
+      kind: 'existing';
+      index: number;
+      /** Nova quantidade na MESMA unidade do item — o servidor reescala os gramas e recalcula os nutrientes. */
+      quantity?: number;
+    };
 
 export interface PersistedIntakeItem {
   foodId?: number;
