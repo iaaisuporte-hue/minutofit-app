@@ -229,6 +229,7 @@ export function ProfessionalVoiceCard({ personal, nutri, criticalSignals = [] }:
             border: '1px solid var(--color-border)',
             cursor: 'pointer',
           }}
+          className="hit-target-44"
         >
           Abrir conversa →
         </button>

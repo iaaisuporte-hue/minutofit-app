@@ -147,6 +147,7 @@ export function IncomingMessageBanner({ conversation, onDismiss }: Props) {
                 border: 'none',
                 cursor: 'pointer',
               }}
+              className="hit-target-44"
             >
               Abrir conversa →
             </button>

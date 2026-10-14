@@ -927,6 +927,7 @@ export default function MyWorkoutPlansPage() {
               flexShrink: 0,
               whiteSpace: "nowrap",
             }}
+            className="hit-target-44"
           >
             Registrar no painel do dia →
           </Link>
