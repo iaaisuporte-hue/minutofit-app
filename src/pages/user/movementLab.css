@@ -81,6 +81,7 @@
 }
 
 .ml-exercise-chip {
+  min-height: 44px;
   padding: 9px 16px;
   border-radius: var(--radius-lg);
   border: 1px solid var(--color-border);
@@ -913,4 +914,24 @@
   letter-spacing: -0.04em;
   color: var(--color-primary);
   line-height: 1;
+}
+
+/* ── Onda 2 (Aluno): enquadramento do canvas ────────────────────────────────
+   `object-fit: cover` num quadro mais alto que 16:9 (min-height 280px em 320px de largura) recorta
+   as laterais do vídeo — justamente onde ficam braços e pernas que a análise de pose precisa ver.
+   `contain` mostra o quadro inteiro (faixas pretas em vez de perda de informação) e o limite de
+   altura impede o canvas de passar da tela em paisagem. A câmera e a análise não mudam; a
+   verificação com câmera real continua pendente de aparelho. */
+.ml-canvas-el {
+  object-fit: contain;
+}
+.ml-canvas-wrap {
+  max-height: calc(100vh - 160px);
+  max-height: calc(100dvh - 160px);
+}
+@media (max-height: 500px) and (orientation: landscape) {
+  .ml-canvas-wrap {
+    min-height: 0;
+    max-height: calc(100dvh - 110px);
+  }
 }
