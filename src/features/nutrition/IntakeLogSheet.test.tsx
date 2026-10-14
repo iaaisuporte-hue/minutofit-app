@@ -119,6 +119,23 @@ describe("IntakeLogSheet — espaço de trabalho da refeição", () => {
     expect(submitIntakeLog).toHaveBeenCalledTimes(1);
   });
 
+  it("quantidade fracionária é exibida no formato pt-BR (0,5 unidade; 1,5 unidade)", async () => {
+    getDayIntake.mockResolvedValue({
+      date: "2026-10-14",
+      logs: [logOf(9, [persisted("Banana", 35, { grams: 35, quantity: 0.5, unitLabel: "unidade" }), persisted("Pão", 75, { grams: 75, quantity: 1.5, unitLabel: "unidade" })], { mealId: 10 })],
+      meals: [{
+        groupKey: "p10", mealId: 10, label: "Café", loggedAt: "2026-10-14T08:00:00Z", isExtra: false,
+        items: [persisted("Banana", 35, { grams: 35, quantity: 0.5, unitLabel: "unidade" }), persisted("Pão", 75, { grams: 75, quantity: 1.5, unitLabel: "unidade" })],
+        energyKcal: 110, proteinG: 1, carbohydrateG: 1, fatG: 1, fiberG: null, fiberPartial: false, confidenceScore: 1, sourceLogIds: [9],
+      }],
+      totals: {}, coverage: {}, target: null, plannedMeals: [],
+    });
+    render(<IntakeLogSheet open onClose={() => {}} onSaved={() => {}} defaultMealId={10} defaultMealLabel="Café" />);
+    await screen.findByText("2 alimentos salvos");
+    expect(screen.getByText(/0,5 unidade/)).toBeInTheDocument();
+    expect(screen.getByText(/1,5 unidade/)).toBeInTheDocument();
+  });
+
   it("dois adicionar seguidos são serializados — o 2º só sai depois do 1º e usa o id dele", async () => {
     parseIntakeText
       .mockResolvedValueOnce(parsed([highItem("Pão francês", 135)]))

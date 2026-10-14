@@ -34,7 +34,8 @@ function suggestMealType(date: Date = new Date()): string {
 }
 
 function quantityText(item: PersistedIntakeItem): string {
-  if (item.quantity != null && item.unitLabel) return `${item.quantity} ${item.unitLabel}`;
+  // pt-BR: "0,5 unidade", não "0.5 unidade"
+  if (item.quantity != null && item.unitLabel) return `${item.quantity.toLocaleString("pt-BR", { maximumFractionDigits: 2 })} ${item.unitLabel}`;
   if (item.grams != null) return `${Math.round(item.grams)} g`;
   return "";
 }
