@@ -6,6 +6,7 @@ import { IntakeLogSheet } from "./IntakeLogSheet";
 import { IntakeLogDetailSheet } from "./IntakeLogDetailSheet";
 import { getDayIntake, type NutritionIntakeMeal } from "../../services/nutritionIntakeApi";
 import { dayKey } from "../../lib/appDay";
+import { dayHasPlan } from "./intakeWorking";
 
 /** Aritmética pura de calendário (Date.UTC sobre y/m/d) — mesma técnica do `shiftDayKey` do backend; ontem nunca depende de fuso na subtração. */
 function yesterdayKey(): string {
@@ -25,6 +26,7 @@ function yesterdayKey(): string {
 export function YesterdayMealsSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [meals, setMeals] = useState<NutritionIntakeMeal[]>([]);
   const [loading, setLoading] = useState(false);
+  const [planActive, setPlanActive] = useState(false);
   const [detailMeal, setDetailMeal] = useState<NutritionIntakeMeal | null>(null);
   const [editingMeal, setEditingMeal] = useState<NutritionIntakeMeal | null>(null);
   const [editOpen, setEditOpen] = useState(false);
@@ -32,7 +34,10 @@ export function YesterdayMealsSheet({ open, onClose }: { open: boolean; onClose:
   function load() {
     setLoading(true);
     getDayIntake(yesterdayKey())
-      .then((data) => setMeals(data.meals ?? []))
+      .then((data) => {
+        setMeals(data.meals ?? []);
+        setPlanActive(dayHasPlan(data));
+      })
       .catch(() => setMeals([]))
       .finally(() => setLoading(false));
   }
@@ -81,6 +86,7 @@ export function YesterdayMealsSheet({ open, onClose }: { open: boolean; onClose:
       </DrawerShell>
 
       <IntakeLogDetailSheet
+        showOffPlanTag={planActive}
         meal={detailMeal}
         open={detailMeal != null}
         onClose={() => setDetailMeal(null)}

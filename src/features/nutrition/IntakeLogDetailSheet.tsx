@@ -32,12 +32,15 @@ export function IntakeLogDetailSheet({
   onClose,
   onEdit,
   onDeleted,
+  showOffPlanTag = false,
 }: {
   meal: NutritionIntakeMeal | null;
   open: boolean;
   onClose: () => void;
   onEdit: () => void;
   onDeleted: () => void;
+  /** Etiqueta neutra "Fora do plano" — só faz sentido quando o aluno TEM plano (sem plano não há "fora de quê"). */
+  showOffPlanTag?: boolean;
 }) {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -67,7 +70,7 @@ export function IntakeLogDetailSheet({
               <div style={{ fontSize: 12, color: COLORS.muted }}>{formatLoggedTime(meal.loggedAt)}</div>
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                 <div style={{ fontSize: 16, fontWeight: 700, color: COLORS.text }}>{meal.label}</div>
-                {meal.isExtra && <span className="badge badge-neutral">Fora do plano</span>}
+                {meal.isExtra && showOffPlanTag && <span className="badge badge-neutral">Fora do plano</span>}
               </div>
             </div>
 

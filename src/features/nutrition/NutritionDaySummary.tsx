@@ -6,6 +6,7 @@ import { SkeletonPanelCard } from "../../components/feedback/Skeleton";
 import { EmptyState } from "../../components/EmptyState";
 import { IntakeLogSheet } from "./IntakeLogSheet";
 import { IntakeLogDetailSheet } from "./IntakeLogDetailSheet";
+import { dayHasPlan } from "./intakeWorking";
 import { YesterdayMealsSheet } from "./YesterdayMealsSheet";
 import { getDayIntake, type DayIntakeResponse, type NutritionIntakeMeal } from "../../services/nutritionIntakeApi";
 
@@ -78,6 +79,10 @@ export function NutritionDaySummary({ refreshToken = 0 }: { refreshToken?: numbe
   const meals = data.meals ?? [];
   const hasMeals = meals.length > 0;
   const isPlanTarget = target?.source === "plan_items";
+  const hasPlan = dayHasPlan(data);
+  // Divisão informativa (não é adesão): o que veio das refeições do plano e o que foi registrado fora dele.
+  const planKcal = meals.filter((m) => !m.isExtra).reduce((sum, m) => sum + m.energyKcal, 0);
+  const offPlanKcal = meals.filter((m) => m.isExtra).reduce((sum, m) => sum + m.energyKcal, 0);
 
   return (
     <div className="card cardPad" style={{ marginBottom: 20 }}>
@@ -108,7 +113,13 @@ export function NutritionDaySummary({ refreshToken = 0 }: { refreshToken?: numbe
         )}
       </div>
 
-      <MealsOfDayList meals={meals} onOpenDetail={setDetailMeal} />
+      {hasPlan && offPlanKcal > 0 && (
+        <div className="muted" style={{ fontSize: "var(--text-xs)", marginTop: 10 }} data-testid="plan-split">
+          Do plano {Math.round(planKcal)} kcal · Fora do plano {Math.round(offPlanKcal)} kcal
+        </div>
+      )}
+
+      <MealsOfDayList meals={meals} onOpenDetail={setDetailMeal} hasPlan={hasPlan} />
 
       <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
         <button
@@ -120,7 +131,7 @@ export function NutritionDaySummary({ refreshToken = 0 }: { refreshToken?: numbe
             setSheetOpen(true);
           }}
         >
-          <Plus size={14} /> Registrar refeição
+          <Plus size={14} /> Registrar alimento
         </button>
         <button type="button" className="btn btn-ghost btn-sm" onClick={() => setYesterdayOpen(true)}>
           Corrigir refeição de ontem
@@ -152,6 +163,7 @@ export function NutritionDaySummary({ refreshToken = 0 }: { refreshToken?: numbe
           setDetailMeal(null);
           load();
         }}
+        showOffPlanTag={hasPlan}
       />
       <IntakeLogSheet
         open={sheetOpen}
@@ -181,9 +193,11 @@ function summarizeItems(items: NutritionIntakeMeal["items"]): string {
 function MealsOfDayList({
   meals,
   onOpenDetail,
+  hasPlan,
 }: {
   meals: NutritionIntakeMeal[];
   onOpenDetail: (meal: NutritionIntakeMeal) => void;
+  hasPlan: boolean;
 }) {
   if (meals.length === 0) return null;
   return (
@@ -217,8 +231,8 @@ function MealsOfDayList({
             <span style={{ minWidth: 0, flex: 1 }}>
               <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
                 <span style={{ fontSize: 13, fontWeight: 600, color: COLORS.text }}>{meal.label}</span>
-                {/* "Extra" é neutro — a interface registra o que aconteceu, não julga (§12). */}
-                {meal.isExtra && <span className="badge badge-neutral" style={{ fontSize: 10 }}>Extra</span>}
+                {/* Neutro — a interface registra o que aconteceu, não julga; e só com plano (sem plano não há "fora de quê"). */}
+                {meal.isExtra && hasPlan && <span className="badge badge-neutral" style={{ fontSize: 10 }}>Fora do plano</span>}
               </span>
               {meal.items.length > 0 && (
                 <span className="muted" style={{ fontSize: 12, display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>

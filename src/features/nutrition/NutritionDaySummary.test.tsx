@@ -200,7 +200,7 @@ describe("NutritionDaySummary", () => {
     expect(screen.getByRole("button", { name: "Tentar de novo" })).toBeInTheDocument();
   });
 
-  it('"+ Registrar refeição" sempre visível — mesmo sem nenhuma refeição hoje', async () => {
+  it('"+ Registrar alimento" sempre visível — mesmo sem nenhuma refeição hoje e sem plano', async () => {
     getDayIntake.mockResolvedValue({
       date: "2026-09-17",
       logs: [],
@@ -211,7 +211,7 @@ describe("NutritionDaySummary", () => {
       plannedMeals: [],
     });
     render(<NutritionDaySummary />);
-    expect(await screen.findByRole("button", { name: /Registrar refeição/ })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: /Registrar alimento/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Corrigir refeição de ontem" })).toBeInTheDocument();
   });
 
@@ -240,8 +240,34 @@ describe("NutritionDaySummary", () => {
       expect((await screen.findAllByText("Ovo, de galinha, inteiro, cru")).length).toBeGreaterThan(0);
       expect(screen.getByRole("button", { name: "Editar" })).toBeInTheDocument();
       expect(screen.getByRole("button", { name: "Excluir" })).toBeInTheDocument();
-      // Log não tem mealId → é extra; o detalhe mostra "Fora do plano".
-      expect(screen.getByText("Fora do plano")).toBeInTheDocument();
+      // Log não tem mealId → é registro livre. SEM plano não há "fora de quê": nenhuma etiqueta (nem "Extra").
+      expect(screen.queryByText("Fora do plano")).not.toBeInTheDocument();
+      expect(screen.queryByText("Extra")).not.toBeInTheDocument();
+    });
+
+    it('COM plano estruturado o registro livre ganha a etiqueta neutra "Fora do plano" e a divisão do dia', async () => {
+      const planLog = { ...BASE_LOG, id: 2, mealId: 42, label: "Café da manhã", energyKcal: 300, items: [BASE_ITEM] };
+      const freeLog = { ...LOG_WITH_ITEMS, id: 3, label: "Lanche da tarde", energyKcal: 200 };
+      getDayIntake.mockResolvedValue({
+        ...DAY_RESPONSE,
+        logs: [planLog, freeLog],
+        meals: [toMeal(planLog), toMeal(freeLog)],
+        plannedMeals: [{ mealId: 42, name: "Café da manhã", orderIndex: 0, energyKcal: 400 }],
+      });
+      render(<NutritionDaySummary />);
+      expect(await screen.findByTestId("plan-split")).toHaveTextContent("Do plano 300 kcal · Fora do plano 200 kcal");
+      // na lista: só o registro livre leva a etiqueta
+      const tags = screen.getAllByText("Fora do plano").filter((el) => el.className.includes("badge"));
+      expect(tags).toHaveLength(1);
+      await userEvent.click(await screen.findByRole("button", { name: /Lanche da tarde/ }));
+      expect(screen.getAllByText("Fora do plano").length).toBeGreaterThan(1); // lista + detalhe
+    });
+
+    it("sem plano: nenhuma divisão 'Do plano / Fora do plano' (não há plano para comparar)", async () => {
+      getDayIntake.mockResolvedValue(DAY_RESPONSE);
+      render(<NutritionDaySummary />);
+      await screen.findByRole("button", { name: /Almoço/ });
+      expect(screen.queryByTestId("plan-split")).not.toBeInTheDocument();
     });
 
     it('"Editar" fecha o detalhe e abre o MESMO editor (espaço de trabalho) já com os itens salvos', async () => {

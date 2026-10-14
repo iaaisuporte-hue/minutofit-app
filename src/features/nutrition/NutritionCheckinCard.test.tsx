@@ -66,7 +66,7 @@ describe("NutritionCheckinCard — sem plano alimentar", () => {
 
   it("mostra o atalho de registro avulso e abre o sheet sem refeição do plano", async () => {
     renderCard();
-    const button = await screen.findByRole("button", { name: /registrar refeição/i });
+    const button = await screen.findByRole("button", { name: /registrar alimento/i });
     expect(screen.getByRole("link", { name: /ver dia/i })).toHaveAttribute("href", "/app/user/plano-alimentar");
 
     await userEvent.click(button);
@@ -83,6 +83,38 @@ describe("NutritionCheckinCard — sem plano alimentar", () => {
       await new Promise((r) => setTimeout(r, 0));
     });
     expect(container).toBeEmptyDOMElement();
-    expect(screen.queryByRole("button", { name: /registrar refeição/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /registrar (refeição|alimento)/i })).not.toBeInTheDocument();
+  });
+
+  describe("com plano alimentar — 'Registrar alimento' existe em todos os estados", () => {
+    const meal = (id: number, name: string, status: string) => ({
+      id, name, status, checkin: null, order_index: id, meal_time: "12:00", items: [], orientation: "x",
+    });
+    const timeline = (meals: ReturnType<typeof meal>[]) => ({
+      plan_id: 1, title: "Plano", objective: "maintenance", general_notes: null, nutri_name: "Nutri", today: "2026-10-14",
+      meals, workoutToday: null, streak: 0,
+    });
+
+    it("idle: a refeição do plano continua primária e 'Registrar alimento' (livre, sem mealId) vem ao lado", async () => {
+      fetchMealTimeline.mockResolvedValue(timeline([meal(11, "Almoço", "due_now")]));
+      renderCard();
+      const plan = await screen.findByRole("button", { name: /registrar refeição/i });
+      const free = screen.getByRole("button", { name: /registrar alimento/i });
+
+      await userEvent.click(free);
+      expect(sheetProps.at(-1)).toMatchObject({ open: true, defaultMealId: null });
+      expect(screen.getAllByTestId("intake-sheet")).toHaveLength(1);
+
+      await userEvent.click(plan);
+      // a folha da refeição prevista usa o id do plano; a livre não
+      expect(sheetProps.some((p) => p.open && p.defaultMealId === 11)).toBe(true);
+    });
+
+    it("all_done: 'Registrar alimento' abre o registro livre", async () => {
+      fetchMealTimeline.mockResolvedValue(timeline([meal(11, "Almoço", "done")]));
+      renderCard();
+      await userEvent.click(await screen.findByRole("button", { name: /registrar alimento/i }));
+      expect(sheetProps.at(-1)).toMatchObject({ open: true, defaultMealId: null });
+    });
   });
 });

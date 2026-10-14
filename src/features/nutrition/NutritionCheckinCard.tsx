@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Utensils } from "lucide-react";
+import { Plus, Utensils } from "lucide-react";
 import { COLORS } from "../../styles/colors";
 import {
   fetchMealTimeline,
@@ -83,6 +83,7 @@ export function NutritionCheckinCard() {
   const [submitting, setSubmitting] = useState<MealCheckinStatus | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [intakeSheetOpen, setIntakeSheetOpen] = useState(false);
+  const [freeSheetOpen, setFreeSheetOpen] = useState(false);
   const [dayIntake, setDayIntake] = useState<DayIntakeResponse | null>(null);
 
   useEffect(() => {
@@ -211,7 +212,7 @@ export function NutritionCheckinCard() {
         )}
         <button type="button" className="btn btn-sm hit-target-44" onClick={() => setIntakeSheetOpen(true)}>
           <Utensils size={13} style={{ marginRight: 6 }} />
-          Registrar refeição
+          Registrar alimento
         </button>
         <IntakeLogSheet
           open={intakeSheetOpen}
@@ -291,7 +292,7 @@ export function NutritionCheckinCard() {
             )}
             <button type="button" className="btn btn-sm hit-target-44" onClick={() => setIntakeSheetOpen(true)}>
               <Utensils size={13} style={{ marginRight: 6 }} />
-              Registrar refeição
+              Registrar alimento
             </button>
             <IntakeLogSheet
               open={intakeSheetOpen}
@@ -496,20 +497,39 @@ export function NutritionCheckinCard() {
               <IntakeDayStrip totals={dayIntake.totals} target={dayIntake.target} />
             </div>
           )}
-          <button
-            type="button"
-            className="btn btn-sm hit-target-44"
-            onClick={() => setIntakeSheetOpen(true)}
-          >
-            <Utensils size={13} style={{ marginRight: 6 }} />
-            Registrar refeição
-          </button>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <button
+              type="button"
+              className="btn btn-sm hit-target-44"
+              onClick={() => setIntakeSheetOpen(true)}
+            >
+              <Utensils size={13} style={{ marginRight: 6 }} />
+              Registrar refeição
+            </button>
+            {/* Registro livre: qualquer alimento, com ou sem plano — secundário aqui porque a ação principal do card é a refeição prevista. */}
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm hit-target-44"
+              onClick={() => setFreeSheetOpen(true)}
+            >
+              <Plus size={13} style={{ marginRight: 6 }} />
+              Registrar alimento
+            </button>
+          </div>
           <IntakeLogSheet
             open={intakeSheetOpen}
             onClose={() => setIntakeSheetOpen(false)}
             defaultMealId={nextMeal?.id ?? null}
             // Sem o rótulo a folha mostrava "Refeição" e gravava na próxima refeição do plano sem dizer qual.
             defaultMealLabel={nextMeal?.name ?? null}
+            onSaved={() => {
+              getDayIntake().then(setDayIntake).catch(() => {});
+            }}
+          />
+          <IntakeLogSheet
+            open={freeSheetOpen}
+            onClose={() => setFreeSheetOpen(false)}
+            defaultMealId={null}
             onSaved={() => {
               getDayIntake().then(setDayIntake).catch(() => {});
             }}

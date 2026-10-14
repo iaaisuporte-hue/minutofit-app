@@ -326,11 +326,17 @@ describe("IntakeLogSheet — espaço de trabalho da refeição", () => {
       expect(submitIntakeLog.mock.calls[0][0]).toMatchObject({ mealId: 10, label: "Café da manhã" });
     });
 
-    it("refeição extra: seletor de momento só antes do 1º item; 'Outro' usa o texto digitado; mealId nulo", async () => {
+    it("registro livre: sem pergunta obrigatória — momento e hora de agora numa linha; trocar é opcional; mealId nulo", async () => {
       parseIntakeText.mockResolvedValueOnce(parsed([highItem("Whey protein (30g)", 120)]));
       submitIntakeLog.mockResolvedValueOnce(logOf(1, [persisted("Whey protein (30g)", 120)], { label: "Pré-treino" }));
       render(<IntakeLogSheet open onClose={() => {}} onSaved={() => {}} />);
 
+      expect(screen.getByRole("dialog", { name: "Registrar alimento" })).toBeInTheDocument();
+      expect(screen.getByTestId("free-moment")).toHaveTextContent(/Agora, \d{2}:\d{2} · /);
+      // o seletor NÃO aparece até o aluno pedir
+      expect(screen.queryByLabelText("Refeição")).not.toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole("button", { name: "Trocar momento" }));
       await userEvent.selectOptions(screen.getByLabelText("Refeição"), "Outro");
       await userEvent.type(screen.getByPlaceholderText("Ex.: Pré-treino"), "Pré-treino");
       await typeAndAdd("30g de whey");
@@ -339,7 +345,41 @@ describe("IntakeLogSheet — espaço de trabalho da refeição", () => {
       const [call] = submitIntakeLog.mock.calls[0];
       expect(call.mealId).toBeNull();
       expect(call.label).toBe("Pré-treino");
-      expect(screen.queryByLabelText("Refeição")).not.toBeInTheDocument();
+      // depois do 1º item a linha some (o rótulo é o do servidor e não muda mais)
+      expect(screen.queryByTestId("free-moment")).not.toBeInTheDocument();
+    });
+
+    it("registro livre sem mexer em nada: grava com o momento sugerido pelo horário (nenhum rótulo digitado)", async () => {
+      parseIntakeText.mockResolvedValueOnce(parsed([highItem("Banana", 70)]));
+      submitIntakeLog.mockResolvedValueOnce(logOf(1, [persisted("Banana", 70)]));
+      render(<IntakeLogSheet open onClose={() => {}} onSaved={() => {}} />);
+      await typeAndAdd("1 banana");
+      await screen.findByText("1 alimento salvo");
+      const [call] = submitIntakeLog.mock.calls[0];
+      expect(call.mealId).toBeNull();
+      expect(["Café da manhã", "Lanche da manhã", "Almoço", "Lanche da tarde", "Jantar", "Ceia"]).toContain(call.label);
+    });
+
+    it("cada abertura da folha livre inicia um registro INDEPENDENTE (logId nulo); itens da mesma sessão usam o logId devolvido", async () => {
+      parseIntakeText.mockResolvedValue(parsed([highItem("Banana", 70)]));
+      submitIntakeLog
+        .mockResolvedValueOnce(logOf(1, [persisted("Banana", 70)]))
+        .mockResolvedValueOnce(logOf(1, [persisted("Banana", 70), persisted("Banana", 70)]))
+        .mockResolvedValueOnce(logOf(2, [persisted("Banana", 70)]));
+      const { rerender } = render(<IntakeLogSheet open onClose={() => {}} onSaved={() => {}} />);
+      await typeAndAdd("1 banana");
+      await screen.findByText("1 alimento salvo");
+      await typeAndAdd("1 banana");
+      await screen.findByText("2 alimentos salvos");
+      expect(submitIntakeLog.mock.calls[0][0].logId).toBeNull();
+      expect(submitIntakeLog.mock.calls[1][0].logId).toBe(1); // mesma sessão → mesmo registro
+
+      // fecha e abre de novo: NOVO registro, nunca funde por semelhança
+      rerender(<IntakeLogSheet open={false} onClose={() => {}} onSaved={() => {}} />);
+      rerender(<IntakeLogSheet open onClose={() => {}} onSaved={() => {}} />);
+      await typeAndAdd("1 banana");
+      await waitFor(() => expect(submitIntakeLog).toHaveBeenCalledTimes(3));
+      expect(submitIntakeLog.mock.calls[2][0].logId).toBeNull();
     });
   });
 

@@ -85,6 +85,7 @@ export function IntakeLogSheet({
   const [confirmRemoveAll, setConfirmRemoveAll] = useState(false);
   const [closeBlocked, setCloseBlocked] = useState(false);
   const [closing, setClosing] = useState(false);
+  const [momentOpen, setMomentOpen] = useState(false);
   const [confirmDiscardPending, setConfirmDiscardPending] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -106,6 +107,7 @@ export function IntakeLogSheet({
     setConfirmRemoveAll(false);
     setCloseBlocked(false);
     setClosing(false);
+    setMomentOpen(false);
     setConfirmDiscardPending(false);
     getIntakeShortcuts().then(setShortcuts).catch(() => setShortcuts(null));
   }, [open, editingMeal]);
@@ -124,6 +126,7 @@ export function IntakeLogSheet({
     ? customMealType.trim().slice(0, 80) || "Refeição"
     : mealType;
   const title = ws.label ?? firstLabel;
+  const nowLabel = new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
   const showMealTypePicker = isExtraFlow && !hasAnything && ws.logId == null && !shortcutLabel;
 
   const hasUnresolved = pending.some((i) => !i.resolved);
@@ -195,7 +198,7 @@ export function IntakeLogSheet({
   const showUndoAdd = ws.lastAdded != null && ws.pendingRemovalCount === 0;
 
   return (
-    <DrawerShell open={open} onClose={() => void requestClose()} ariaLabel={isEditing ? "Editar refeição" : "Registrar refeição"}>
+    <DrawerShell open={open} onClose={() => void requestClose()} ariaLabel={isEditing ? "Editar refeição" : isExtraFlow ? "Registrar alimento" : "Registrar refeição"}>
       <div style={{ display: "flex", flexDirection: "column", maxHeight: "80dvh" }}>
         {/* Cabeçalho + conteúdo rolável */}
         <div style={{ overflowY: "auto", display: "flex", flexDirection: "column", gap: 12, flex: "1 1 auto", minHeight: 0 }}>
@@ -343,18 +346,32 @@ export function IntakeLogSheet({
             </div>
           )}
 
+          {/* Registro livre: sem pergunta obrigatória. O momento vem do horário ("Lanche da tarde") e a hora é a de agora;
+              só quem quiser troca o momento. O rótulo nunca é pedido para um alimento simples. */}
           {showMealTypePicker && (
             <div>
-              <label className="muted" style={{ fontSize: 12, display: "block", marginBottom: 4 }} htmlFor="intake-meal-type">
-                Refeição
-              </label>
-              <select id="intake-meal-type" className="input" value={mealType} onChange={(e) => setMealType(e.target.value)}>
-                {MEAL_TYPE_OPTIONS.map((opt) => (
-                  <option key={opt} value={opt}>{opt}</option>
-                ))}
-              </select>
-              {mealType === "Outro" && (
-                <input type="text" className="input" style={{ marginTop: 6 }} placeholder="Ex.: Pré-treino" value={customMealType} onChange={(e) => setCustomMealType(e.target.value.slice(0, 80))} />
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                <span className="muted" style={{ fontSize: 12 }} data-testid="free-moment">
+                  Agora, {nowLabel} · {mealType === "Outro" ? customMealType.trim() || "Outro momento" : mealType}
+                </span>
+                <button type="button" className="btn btn-ghost btn-sm hit-target-44" onClick={() => setMomentOpen((v) => !v)} aria-expanded={momentOpen}>
+                  {momentOpen ? "Fechar" : "Trocar momento"}
+                </button>
+              </div>
+              {momentOpen && (
+                <div style={{ marginTop: 4 }}>
+                  <label className="muted" style={{ fontSize: 12, display: "block", marginBottom: 4 }} htmlFor="intake-meal-type">
+                    Refeição
+                  </label>
+                  <select id="intake-meal-type" className="input" value={mealType} onChange={(e) => setMealType(e.target.value)}>
+                    {MEAL_TYPE_OPTIONS.map((opt) => (
+                      <option key={opt} value={opt}>{opt}</option>
+                    ))}
+                  </select>
+                  {mealType === "Outro" && (
+                    <input type="text" className="input" style={{ marginTop: 6 }} placeholder="Ex.: Pré-treino" value={customMealType} onChange={(e) => setCustomMealType(e.target.value.slice(0, 80))} />
+                  )}
+                </div>
               )}
             </div>
           )}

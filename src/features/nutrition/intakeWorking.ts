@@ -88,6 +88,14 @@ export function previewToRequest(item: WorkingItem): IntakeItemRequest {
   };
 }
 
+/**
+ * O aluno tem plano do nutri com estrutura (refeições com itens) neste dia? Só então "fora do plano" faz sentido: sem plano
+ * não há "fora de quê" — o registro livre é simplesmente o diário, sem etiqueta.
+ */
+export function dayHasPlan(day: { plannedMeals?: unknown[] | null; target?: { source?: string } | null }): boolean {
+  return (day.plannedMeals?.length ?? 0) > 0 || day.target?.source === "plan_items";
+}
+
 export function sumTotals(items: WorkingItem[]) {
   return items
     .filter((i) => i.resolved)
