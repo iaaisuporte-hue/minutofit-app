@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { COLORS } from '../../styles/colors';
 import type { ConsentEntry, ConsentScope, ProfessionalRole } from './types';
-import { SCOPE_LABELS, MANAGEABLE_SCOPES_PERSONAL, MANAGEABLE_SCOPES_NUTRI } from './types';
+import { SCOPE_LABELS, SCOPE_HINTS, MANAGEABLE_SCOPES_PERSONAL, MANAGEABLE_SCOPES_NUTRI } from './types';
 import { listConsents, revokeConsent, grantConsent } from './api';
 import { Toast } from './Toast';
 
@@ -169,6 +169,9 @@ export function ConsentScopeManager({
                   <div style={{ fontSize: 11, color: COLORS.muted, marginTop: 1 }}>
                     {c.status === 'granted' ? 'Compartilhado' : 'Bloqueado'}
                   </div>
+                  {SCOPE_HINTS[c.scope] && (
+                    <div style={{ fontSize: 11, color: COLORS.muted, marginTop: 2, maxWidth: 320 }}>{SCOPE_HINTS[c.scope]}</div>
+                  )}
                 </div>
                 {/* Toggle visual (sem library — só um checkbox estilizado) */}
                 <button

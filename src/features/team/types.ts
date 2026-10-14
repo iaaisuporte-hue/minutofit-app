@@ -25,12 +25,17 @@ export const SCOPE_LABELS: Record<ConsentScope, string> = {
   sleep: 'Sono',
   body_metrics: 'Medidas corporais',
   body_photos: 'Fotos de evolução',
-  nutrition: 'Plano alimentar',
+  nutrition: 'Plano e diário alimentar',
   clinical_nutrition: 'Perfil clínico-nutricional',
   parq_anamnese: 'Anamnese e PAR-Q',
   activity_logs: 'Atividades físicas',
   chat_history: 'Histórico de mensagens',
   sports: 'Dados esportivos',
+};
+
+/** Explicação curta, em linguagem simples, de escopos cujo alcance não é óbvio só pelo nome. */
+export const SCOPE_HINTS: Partial<Record<ConsentScope, string>> = {
+  nutrition: 'O nutricionista vê o seu plano alimentar e o que você registrar no diário alimentar, inclusive o que comer fora do plano.',
 };
 
 export const DEFAULT_SCOPES_PERSONAL: ConsentScope[] = ['profile', 'workouts', 'daily_checkins'];

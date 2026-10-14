@@ -3,7 +3,7 @@ import { COLORS } from '../../styles/colors';
 import { isNativeApp } from '../../lib/platform';
 import { STUDENT_BILLING_ENABLED } from '../../config/features';
 import type { ConsentScope, NetworkProfessional, OfferingPeriod, ProfessionalRole, PublicOffering } from './types';
-import { DEFAULT_SCOPES_NUTRI, DEFAULT_SCOPES_PERSONAL, SCOPE_LABELS } from './types';
+import { DEFAULT_SCOPES_NUTRI, DEFAULT_SCOPES_PERSONAL, SCOPE_HINTS, SCOPE_LABELS } from './types';
 import {
   createConnectionRequest,
   listProfessionalNetwork,
@@ -380,7 +380,10 @@ export function AddProfessionalSheet({ onSuccess, onClose, initialRole = 'person
                     return (
                       <label key={s} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 6, border: `1px solid ${checked ? COLORS.primaryBorder : COLORS.border}`, background: checked ? COLORS.primarySoft : 'transparent', cursor: mandatory ? 'default' : 'pointer', opacity: mandatory ? 0.75 : 1 }}>
                         <input type="checkbox" checked={checked} disabled={mandatory} onChange={() => toggleScope(s)} style={{ accentColor: COLORS.primary }} />
-                        <span style={{ fontSize: 13, color: COLORS.text }}>{SCOPE_LABELS[s]}{mandatory && <span style={{ color: COLORS.muted, marginLeft: 4 }}>(obrigatório)</span>}</span>
+                        <span style={{ fontSize: 13, color: COLORS.text }}>
+                          {SCOPE_LABELS[s]}{mandatory && <span style={{ color: COLORS.muted, marginLeft: 4 }}>(obrigatório)</span>}
+                          {SCOPE_HINTS[s] && <span style={{ display: 'block', fontSize: 11, color: COLORS.muted, marginTop: 2 }}>{SCOPE_HINTS[s]}</span>}
+                        </span>
                       </label>
                     );
                   })}
