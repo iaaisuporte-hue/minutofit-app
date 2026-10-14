@@ -260,21 +260,22 @@ function RotaNoMapa({ pontos, isDark }: { pontos: Array<[number, number]>; isDar
  * Em aparelho de toque o mapa arrastável captura o gesto de rolagem: quem começa a
  * rolar a página com o dedo sobre o mapa fica preso nele e não alcança Pausar/Encerrar
  * (QA mobile A9). Por padrão o mapa fica "travado" e a página rola normalmente; o
- * botão "Mover mapa" liga arrastar/pinçar e "Fixar mapa" volta ao padrão. Os botões
+ * botão "Mover mapa" (alternância) liga o arrastar; zoom por pinça e +/− funcionam sempre. Os botões
  * de zoom (+/−) funcionam sempre. Com mouse (desktop) o mapa já nasce interativo.
  * Nada aqui toca em GPS, rota ou cálculo: é só a camada de gesto.
  */
-function MapaInteracao({ ativo }: { ativo: boolean }) {
+function MapaInteracao({ ativo, center }: { ativo: boolean; center: [number, number] }) {
   const map = useMap();
   useEffect(() => {
-    if (ativo) {
-      map.dragging.enable();
-      map.touchZoom.enable();
-    } else {
-      map.dragging.disable();
-      map.touchZoom.disable();
-    }
+    if (ativo) map.dragging.enable();
+    else map.dragging.disable();
   }, [map, ativo]);
+  // `center` só vale na criação do MapContainer: com o mapa travado (sem arrastar para recentrar) ele
+  // acompanha a posição atual, senão o marcador sairia do quadro em poucas centenas de metros.
+  const [lat, lng] = center;
+  useEffect(() => {
+    if (!ativo) map.panTo([lat, lng], { animate: false });
+  }, [map, ativo, lat, lng]);
   return null;
 }
 
@@ -289,18 +290,18 @@ function MapaFrame({
   center: [number, number];
   children: React.ReactNode;
 }) {
-  const porToque = typeof window !== "undefined" && typeof window.matchMedia === "function" && window.matchMedia("(pointer: coarse)").matches;
+  const porToque = typeof window !== "undefined" && typeof window.matchMedia === "function" && window.matchMedia("(any-pointer: coarse)").matches;
   const [mover, setMover] = useState(false);
   const ativo = !porToque || mover;
   return (
     <div className={className} data-map-ativo={ativo ? "true" : "false"}>
       <MapContainer center={center} zoom={15} style={{ width: "100%", height }}>
-        <MapaInteracao ativo={ativo} />
+        <MapaInteracao ativo={ativo} center={center} />
         {children}
       </MapContainer>
       {porToque ? (
-        <button type="button" className="tr-map-toggle" aria-pressed={mover} onClick={() => setMover((v) => !v)}>
-          {mover ? "Fixar mapa" : "Mover mapa"}
+        <button type="button" className="tr-map-gesture" aria-pressed={mover} onClick={() => setMover((v) => !v)}>
+          Mover mapa
         </button>
       ) : null}
     </div>
