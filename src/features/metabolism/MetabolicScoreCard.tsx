@@ -250,7 +250,7 @@ export function MetabolicScoreCard({ data, loading, error, derivedStatus, foreca
             style={{
               background: 'none', border: 'none', cursor: 'pointer',
               fontSize: 13, fontWeight: 600, color: 'var(--color-accent-hover)',
-              padding: 0, textAlign: 'left', display: 'inline-flex', alignItems: 'center', gap: 4,
+              padding: 0, minHeight: 44, textAlign: 'left', display: 'inline-flex', alignItems: 'center', gap: 4,
             }}
           >
             Ver leitura completa →

@@ -849,7 +849,7 @@
 .ws-ab-skip::before {
   content: "";
   position: absolute;
-  inset: -14px -10px;
+  inset: -15px -10px;
 }
 
 /* Estado de sincronização da sessão (SPEC P1 §49). Discreto de propósito:
@@ -1249,10 +1249,13 @@
 .ws-ab-repeat {
   position: relative;
 }
-.ws-ab-repeat::before {
-  content: "";
-  position: absolute;
-  inset: -6px 0;
+/* "Repetir" é o atalho de UMA série: alvo de 44px REAL. O pseudo-elemento não chega: `.ws-ab-prev` (mesma
+   classe) tem overflow:hidden e cortava a área estendida (medido: 32px efetivos). */
+.ws-ab-prev.ws-ab-repeat {
+  overflow: visible;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
 }
 button.ws-chip {
   position: relative;

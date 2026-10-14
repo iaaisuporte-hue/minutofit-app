@@ -174,7 +174,7 @@ export function MetabolicChart({ data, loading, forecast, markers, days = 14, on
             <button
               type="button"
               onClick={onSeeMore}
-              style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--color-primary)', fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap' }}
+              style={{ background: 'none', border: 'none', padding: 0, minHeight: 44, display: 'inline-flex', alignItems: 'center', cursor: 'pointer', color: 'var(--color-primary)', fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap' }}
             >
               Ver evolução →
             </button>
@@ -188,6 +188,9 @@ export function MetabolicChart({ data, loading, forecast, markers, days = 14, on
                 type="button"
                 onClick={() => onDaysChange(opt.days)}
                 style={{
+                  // 44px de alto: alvo de toque do seletor de janela (7d/14d/30d/90d) — era 21px.
+                  minHeight: 44,
+                  minWidth: 44,
                   padding: '4px 10px',
                   borderRadius: 6,
                   fontSize: 11,
