@@ -284,7 +284,7 @@ export function IntakeLogSheet({
               role={op.status === "failed" ? "alert" : "status"}
               style={{ padding: "8px 10px", border: `1px dashed ${op.status === "failed" ? "var(--color-danger)" : COLORS.border}`, borderRadius: 10, fontSize: 13 }}
             >
-              <div style={{ fontWeight: 600 }}>{op.items.map((i) => i.name || i.rawText).join(", ")}</div>
+              <div style={{ fontWeight: 600 }}>{op.items.map((i) => displayTitle(i.canonicalFood, i.name) || i.rawText).join(", ")}</div>
               {op.status === "saving" ? (
                 <span className="muted">Salvando…</span>
               ) : (

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Minus, Plus, Search, X } from "lucide-react";
 import { COLORS } from "../../styles/colors";
 import { searchNutritionFoods, type CanonicalFood, type CatalogFoodSummary, type IntakePreviewItem } from "../../services/nutritionIntakeApi";
@@ -26,6 +26,17 @@ function parseMacroInput(v: string): number {
 
 const GRAMS_STEP = 10;
 
+/**
+ * Gramas desconhecidos (item não resolvido: "150 ml de iogurte", "1 biscoito") — 100 g é só ponto de partida, NÃO o
+ * que o aluno disse. Nesse caso a unidade/quantidade originais saem do item: senão ficariam rotuladas como "150 ml"
+ * com os macros de 100 g (e seriam gravadas assim). Com gramas conhecidos (medida resolvida) tudo é preservado.
+ */
+function startingGrams(item: IntakePreviewItem): { grams: number; unitReset: boolean; unitPatch: Partial<IntakePreviewItem> } {
+  if (item.grams && item.grams > 0) return { grams: item.grams, unitReset: false, unitPatch: {} };
+  const hadUnit = Boolean(item.unitLabel && item.unitLabel !== "g");
+  return { grams: 100, unitReset: hadUnit, unitPatch: hadUnit ? { quantity: undefined, unitLabel: undefined } : {} };
+}
+
 function round1(n: number): number {
   return Math.round(n * 10) / 10;
 }
@@ -34,8 +45,12 @@ function round1(n: number): number {
 export function recomputeItemGrams(item: IntakePreviewItem, grams: number): IntakePreviewItem {
   if (!item.per100g) return item;
   const factor = grams / 100;
+  // Item em gramas: a quantidade EXIBIDA acompanha os gramas (senão a lista mostra "100 g" com as calorias de 120 g).
+  // Outras unidades (ml, unidade, scoop…) nunca passam por aqui — não têm stepper.
+  const inGrams = !item.unitLabel || item.unitLabel === "g";
   return {
     ...item,
+    ...(inGrams ? { quantity: grams, unitLabel: "g" } : {}),
     grams,
     energyKcal: round1(item.per100g.kcal * factor),
     proteinG: round1(item.per100g.p * factor),
@@ -64,6 +79,9 @@ export function IntakeItemRow({
   const [query, setQuery] = useState(item.foodQuery);
   const [results, setResults] = useState<CatalogFoodSummary[]>([]);
   const [searching, setSearching] = useState(false);
+  // "Nenhum resultado" só vale depois de uma busca de fato — o campo nasce pré-preenchido com a consulta do aluno.
+  const [searched, setSearched] = useState(false);
+  const [unitReset, setUnitReset] = useState(false);
   const [manualForm, setManualForm] = useState({ name: item.rawText, kcal: "", p: "", c: "", f: "" });
 
   /**
@@ -94,6 +112,7 @@ export function IntakeItemRow({
     setQuery(q);
     if (!q.trim()) {
       setResults([]);
+      setSearched(false);
       return;
     }
     setSearching(true);
@@ -103,14 +122,24 @@ export function IntakeItemRow({
       setResults([]);
     } finally {
       setSearching(false);
+      setSearched(true);
     }
   }
 
+  // Item não resolvido já abre com as opções do catálogo para a consulta do aluno (sem exigir reescrever o texto).
+  useEffect(() => {
+    if (!item.resolved && item.foodQuery.trim()) void runSearch(item.foodQuery);
+    // só na montagem: depois disso a busca é guiada pelo que o aluno digita
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   function pickFood(food: CatalogFoodSummary) {
-    const grams = item.grams && item.grams > 0 ? item.grams : 100;
+    const { grams, unitReset: reset, unitPatch } = startingGrams(item);
     const factor = grams / 100;
+    setUnitReset(reset);
     onChange({
       ...item,
+      ...unitPatch,
       resolved: true,
       foodId: food.id,
       name: food.name,
@@ -136,10 +165,12 @@ export function IntakeItemRow({
    * a mesma disciplina de "busca explícita" que `pickFood` já aplica.
    */
   function pickCandidate(candidate: NonNullable<IntakePreviewItem["candidates"]>[number]) {
-    const grams = item.grams && item.grams > 0 ? item.grams : 100;
+    const { grams, unitReset: reset, unitPatch } = startingGrams(item);
     const factor = grams / 100;
+    setUnitReset(reset);
     onChange({
       ...item,
+      ...unitPatch,
       resolved: true,
       foodId: candidate.foodId,
       name: candidate.canonicalFood.baseFood,
@@ -224,7 +255,7 @@ export function IntakeItemRow({
             ))}
           </div>
         )}
-        {!searching && query.trim() && results.length === 0 && (
+        {!searching && searched && query.trim() && results.length === 0 && (
           // Catálogo TACO não tem tudo (suplementos como whey nunca estarão
           // lá, §21) — nunca deixar o usuário travado sem saída.
           <div className="muted" style={{ fontSize: 12, marginTop: 6 }}>Nenhum resultado no catálogo.</div>
@@ -372,14 +403,20 @@ export function IntakeItemRow({
         )}
       </div>
 
+      {unitReset && (
+        <div className="muted" style={{ fontSize: 12, marginTop: 6 }}>
+          Sem peso conhecido para essa medida — ajuste a quantidade em gramas.
+        </div>
+      )}
+
       {isSuggestion && (
         <button
           type="button"
           className="btn btn-ghost btn-sm"
           style={{ marginTop: 8, width: "100%" }}
           onClick={() => {
-            setQuery(item.foodQuery);
             setSearchOpen(true);
+            void runSearch(item.foodQuery);
           }}
         >
           Buscar outro alimento
