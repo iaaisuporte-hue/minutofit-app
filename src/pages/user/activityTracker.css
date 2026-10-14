@@ -1281,3 +1281,40 @@ html[data-theme="dark"] .tr-live {
   font-weight: var(--font-bold);
   cursor: pointer;
 }
+
+/* ── Onda 2 (Aluno): mapa e rolagem (A9) ────────────────────────────────────
+   Com o arrastar desligado (padrão em aparelho de toque) o dedo sobre o mapa rola a página.
+   O Leaflet marca o contêiner com `touch-action: none`; aqui o vertical é devolvido ao navegador. */
+.tr-map-frame {
+  position: relative;
+}
+.tr-map-frame[data-map-ativo="false"] .leaflet-container {
+  touch-action: pan-y pinch-zoom !important;
+}
+.tr-map-toggle {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  z-index: 800;
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid var(--color-border-strong, var(--color-border));
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: var(--shadow-md, 0 2px 8px rgba(0, 0, 0, 0.18));
+}
+.tr-map-toggle[aria-pressed="true"] {
+  background: var(--color-primary-soft, var(--color-surface));
+  border-color: var(--color-primary);
+}
+/* Zoom +/−: 44px de área tocável (o padrão do Leaflet é 30px). */
+.tr-map-frame .leaflet-control-zoom a {
+  width: 44px;
+  height: 44px;
+  line-height: 44px;
+  font-size: 22px;
+}

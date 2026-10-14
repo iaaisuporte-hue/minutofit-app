@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ConfirmModal } from "../../features/team/ConfirmModal";
-import { MapContainer, Marker, Polyline, Popup, TileLayer } from "react-leaflet";
+import { MapContainer, Marker, Polyline, Popup, TileLayer, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { persistGamificationCheckin } from "../../services/gamificationApi";
@@ -256,6 +256,57 @@ function RotaNoMapa({ pontos, isDark }: { pontos: Array<[number, number]>; isDar
   );
 }
 
+/**
+ * Em aparelho de toque o mapa arrastável captura o gesto de rolagem: quem começa a
+ * rolar a página com o dedo sobre o mapa fica preso nele e não alcança Pausar/Encerrar
+ * (QA mobile A9). Por padrão o mapa fica "travado" e a página rola normalmente; o
+ * botão "Mover mapa" liga arrastar/pinçar e "Fixar mapa" volta ao padrão. Os botões
+ * de zoom (+/−) funcionam sempre. Com mouse (desktop) o mapa já nasce interativo.
+ * Nada aqui toca em GPS, rota ou cálculo: é só a camada de gesto.
+ */
+function MapaInteracao({ ativo }: { ativo: boolean }) {
+  const map = useMap();
+  useEffect(() => {
+    if (ativo) {
+      map.dragging.enable();
+      map.touchZoom.enable();
+    } else {
+      map.dragging.disable();
+      map.touchZoom.disable();
+    }
+  }, [map, ativo]);
+  return null;
+}
+
+function MapaFrame({
+  className,
+  height,
+  center,
+  children,
+}: {
+  className: string;
+  height: number;
+  center: [number, number];
+  children: React.ReactNode;
+}) {
+  const porToque = typeof window !== "undefined" && typeof window.matchMedia === "function" && window.matchMedia("(pointer: coarse)").matches;
+  const [mover, setMover] = useState(false);
+  const ativo = !porToque || mover;
+  return (
+    <div className={className} data-map-ativo={ativo ? "true" : "false"}>
+      <MapContainer center={center} zoom={15} style={{ width: "100%", height }}>
+        <MapaInteracao ativo={ativo} />
+        {children}
+      </MapContainer>
+      {porToque ? (
+        <button type="button" className="tr-map-toggle" aria-pressed={mover} onClick={() => setMover((v) => !v)}>
+          {mover ? "Fixar mapa" : "Mover mapa"}
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
 function MapViewer({ coordinates }: { coordinates: Array<{ lat: number; lng: number }> }) {
   const { isDark } = useTheme();
 
@@ -279,14 +330,12 @@ function MapViewer({ coordinates }: { coordinates: Array<{ lat: number; lng: num
   const startPoint: [number, number] = [coordinates[0].lat, coordinates[0].lng];
 
   return (
-    <div className="tr-map-frame tr-map-frame--live">
-      <MapContainer center={center} zoom={15} style={{ width: "100%", height: 300 }}>
-        <TileLayer url={TILE_URL} attribution={TILE_ATTR} />
-        <RotaNoMapa pontos={coordinates.map((c) => [c.lat, c.lng])} isDark={isDark} />
-        <Marker position={startPoint}><Popup>Início</Popup></Marker>
-        <Marker position={center}><Popup>Posição atual</Popup></Marker>
-      </MapContainer>
-    </div>
+    <MapaFrame className="tr-map-frame tr-map-frame--live" height={300} center={center}>
+      <TileLayer url={TILE_URL} attribution={TILE_ATTR} />
+      <RotaNoMapa pontos={coordinates.map((c) => [c.lat, c.lng])} isDark={isDark} />
+      <Marker position={startPoint}><Popup>Início</Popup></Marker>
+      <Marker position={center}><Popup>Posição atual</Popup></Marker>
+    </MapaFrame>
   );
 }
 
@@ -300,14 +349,12 @@ function HistoryMapViewer({ coordinates }: { coordinates: Array<{ lat: number; l
   ];
   const startPoint: [number, number] = [coordinates[0].lat, coordinates[0].lng];
   return (
-    <div className="tr-map-frame">
-      <MapContainer center={center} zoom={15} style={{ width: "100%", height: 210 }}>
-        <TileLayer url={TILE_URL} attribution={TILE_ATTR} />
-        <RotaNoMapa pontos={coordinates.map((c) => [c.lat, c.lng])} isDark={isDark} />
-        <Marker position={startPoint}><Popup>Início</Popup></Marker>
-        <Marker position={center}><Popup>Posição atual</Popup></Marker>
-      </MapContainer>
-    </div>
+    <MapaFrame className="tr-map-frame" height={210} center={center}>
+      <TileLayer url={TILE_URL} attribution={TILE_ATTR} />
+      <RotaNoMapa pontos={coordinates.map((c) => [c.lat, c.lng])} isDark={isDark} />
+      <Marker position={startPoint}><Popup>Início</Popup></Marker>
+      <Marker position={center}><Popup>Posição atual</Popup></Marker>
+    </MapaFrame>
   );
 }
 
