@@ -1249,13 +1249,14 @@
 .ws-ab-repeat {
   position: relative;
 }
-/* "Repetir" é o atalho de UMA série: alvo de 44px REAL. O pseudo-elemento não chega: `.ws-ab-prev` (mesma
-   classe) tem overflow:hidden e cortava a área estendida (medido: 32px efetivos). */
+/* "Repetir" é o atalho de UMA série: alvo de 44px REAL (o pseudo-elemento era cortado pelo overflow:hidden de
+   `.ws-ab-prev`: 32px efetivos medidos). O overflow hidden herdado fica — o botão pode encolher. */
 .ws-ab-prev.ws-ab-repeat {
-  overflow: visible;
   min-height: 44px;
   display: inline-flex;
   align-items: center;
+  min-width: 0; /* encolhe (corta) em vez de empurrar "Pular por agora" para fora da barra em 320px */
+  max-width: 100%;
 }
 button.ws-chip {
   position: relative;

@@ -1164,7 +1164,7 @@ export default function WorkoutBuilderPage() {
                 <div style={{ display: "grid", gap: 8 }}>
                   {items.map((it, idx) => (
                     <div
-                      key={`row-${selectedDayIdx}-${idx}`}
+                      key={`row-${selectedDayIdx}-${it.exerciseId}-${items.slice(0, idx).filter((x) => x.exerciseId === it.exerciseId).length}`}
                       draggable={dragEnabledIdx === idx}
                       onDragStart={(e) => {
                         e.dataTransfer.effectAllowed = "move";

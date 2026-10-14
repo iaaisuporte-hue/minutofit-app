@@ -29,6 +29,15 @@ export default function NutriApp() {
   }, [location.pathname]);
   // Voltar do Android / Escape fecham o menu antes de qualquer navegação.
   useDismissable(fecharMenu, menuOpen);
+  // <details> não tem "clicar fora para fechar": o painel ficava por cima do conteúdo até tocar num link.
+  useEffect(() => {
+    if (!menuOpen) return;
+    const fora = (e: PointerEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) fecharMenu();
+    };
+    document.addEventListener("pointerdown", fora);
+    return () => document.removeEventListener("pointerdown", fora);
+  }, [menuOpen]);
 
   const navLinkStyle = ({ isActive }: { isActive: boolean }) =>
     `navLink${isActive ? " navLinkActive" : ""}`;

@@ -859,7 +859,7 @@ export default function ReviewWorkoutsPage() {
               }}
             >
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                <button type="button" className="pp-btn pp-btn--ghost" onClick={close}>
+                <button type="button" className="pp-btn pp-btn--ghost rw-footer-close" onClick={close}>
                   Fechar
                 </button>
 

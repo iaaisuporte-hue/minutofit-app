@@ -52,6 +52,14 @@ describe("Nutri — menu mobile (N1)", () => {
     expect(fecharTopo()).toBe(false);
   });
 
+  it("fecha ao tocar fora do menu", async () => {
+    render(<MemoryRouter initialEntries={["/app/nutri"]}><NutriApp /></MemoryRouter>);
+    abrir();
+    await waitFor(() => expect(menu().open).toBe(true));
+    fireEvent.pointerDown(document.querySelector("main") as HTMLElement);
+    await waitFor(() => expect(menu().open).toBe(false));
+  });
+
   it("Sair da conta pede confirmação e só encerra a sessão ao confirmar", async () => {
     render(<MemoryRouter initialEntries={["/app/nutri"]}><NutriApp /></MemoryRouter>);
     abrir();
