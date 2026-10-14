@@ -1200,14 +1200,14 @@ export default function WorkoutBuilderPage() {
                       }}
                     >
                       {/* Row header */}
-                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <div className="wb-row-head" style={{ display: "flex", alignItems: "center", gap: 8 }}>
                         <span style={{ fontSize: 11, fontWeight: 700, color: WB.muted, minWidth: 18, flexShrink: 0 }}>
                           {idx + 1}.
                         </span>
-                        <span style={{ flex: 1, fontWeight: 650, fontSize: 13, lineHeight: 1.3 }}>
+                        <span className="wb-row-name" style={{ flex: 1, fontWeight: 650, fontSize: 13, lineHeight: 1.3, minWidth: 0 }}>
                           {it.name}
                         </span>
-                        <div style={{ display: "flex", gap: 3, flexShrink: 0 }}>
+                        <div className="wb-row-actions" style={{ display: "flex", gap: 3, flexShrink: 0 }}>
                           {/* Reordenar sem arrastar (toque, teclado e leitor de tela): o arrastar só era armado por
                               onMouseDown e não funciona com o dedo. `moveExercise` troca com o vizinho. */}
                           <button

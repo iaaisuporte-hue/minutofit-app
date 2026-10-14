@@ -60,6 +60,7 @@ export function QuickStartCard({
 
   return (
     <div
+      className="wb-quickstart"
       style={{
         borderRadius: 12,
         border: `1px solid ${WB.border}`,

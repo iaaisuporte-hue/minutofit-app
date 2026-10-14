@@ -2550,9 +2550,23 @@ html:not([data-theme="dark"]) .personal-app-canvas {
 /* ── Onda 3 (Personal): reordenar no builder sem arrastar ─────────────────────
    Botões ↑/↓ (e Remover) com alvo de 44px no shell mobile; o grip de arrastar só vale com mouse. */
 @media (max-width: 980px) {
-  .wb-reorder-btn {
+  .wb-reorder-btn,
+  .wb-grip {
     min-width: 44px;
     min-height: 44px;
+  }
+}
+/* ↑ ↓ ✕ (e o grip) em 44px não cabem ao lado do nome em 320px: em celular estreito o nome ocupa a linha de
+   cima e os controles vão para a de baixo, alinhados à direita (antes empurravam o painel para fora da tela). */
+@media (max-width: 480px) {
+  .wb-row-head {
+    flex-wrap: wrap;
+  }
+  .wb-row-name {
+    flex: 1 1 calc(100% - 30px) !important;
+  }
+  .wb-row-actions {
+    margin-left: auto;
   }
 }
 @media (pointer: coarse) {
@@ -2612,6 +2626,9 @@ html:not([data-theme="dark"]) .personal-app-canvas {
   .wb-split input:not([type="checkbox"]):not([type="radio"]),
   .wb-split select,
   .wb-split textarea,
+  .wb-quickstart input:not([type="checkbox"]):not([type="radio"]),
+  .wb-quickstart select,
+  .wb-quickstart textarea,
   .pp-quick-msg-modal input:not([type="checkbox"]):not([type="radio"]),
   .pp-quick-msg-modal select,
   .pp-quick-msg-modal textarea,
