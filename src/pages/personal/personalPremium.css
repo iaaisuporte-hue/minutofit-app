@@ -2546,3 +2546,17 @@ html:not([data-theme="dark"]) .personal-app-canvas {
   margin: 4px 6px;
   background: var(--color-border);
 }
+
+/* ── Onda 3 (Personal): reordenar no builder sem arrastar ─────────────────────
+   Botões ↑/↓ (e Remover) com alvo de 44px no shell mobile; o grip de arrastar só vale com mouse. */
+@media (max-width: 980px) {
+  .wb-reorder-btn {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
+@media (pointer: coarse) {
+  .wb-grip {
+    display: none;
+  }
+}

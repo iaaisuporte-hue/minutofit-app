@@ -455,6 +455,7 @@ export default function WorkoutBuilderPage() {
   const {
     addExercise,
     removeExercise,
+    moveExercise,
     reorderExercise,
     updateItem,
     setItemTechnique,
@@ -609,6 +610,18 @@ export default function WorkoutBuilderPage() {
   });
 
   const canSave = Object.values(daysItems).some((arr) => arr.length > 0);
+
+  // Depois de mover um exercício o item muda de posição e o React reaproveita os botões pela posição:
+  // devolve o foco ao botão equivalente na NOVA posição, para quem usa teclado/leitor continuar movendo.
+  const reorderFocusRef = useRef<string | null>(null);
+  useEffect(() => {
+    const alvo = reorderFocusRef.current;
+    if (!alvo) return;
+    reorderFocusRef.current = null;
+    const el = document.querySelector<HTMLButtonElement>(`[data-reorder="${alvo}"]`);
+    if (el && !el.disabled) el.focus();
+    else document.querySelector<HTMLButtonElement>(`[data-reorder="${alvo.startsWith("up") ? alvo.replace("up", "down") : alvo.replace("down", "up")}"]`)?.focus();
+  }, [daysItems]);
 
   return (
     <div className="pp-page" style={{ maxWidth: 1200 }}>
@@ -1195,8 +1208,35 @@ export default function WorkoutBuilderPage() {
                           {it.name}
                         </span>
                         <div style={{ display: "flex", gap: 3, flexShrink: 0 }}>
+                          {/* Reordenar sem arrastar (toque, teclado e leitor de tela): o arrastar só era armado por
+                              onMouseDown e não funciona com o dedo. `moveExercise` troca com o vizinho. */}
                           <button
                             type="button"
+                            className="wb-reorder-btn"
+                            data-reorder={`up-${idx}`}
+                            disabled={idx === 0}
+                            onClick={() => { reorderFocusRef.current = `up-${idx - 1}`; moveExercise(idx, -1); }}
+                            style={{ ...iconBtn(idx === 0), fontSize: 14 }}
+                            title="Mover para cima"
+                            aria-label={`Mover ${it.name} para cima`}
+                          >
+                            ↑
+                          </button>
+                          <button
+                            type="button"
+                            className="wb-reorder-btn"
+                            data-reorder={`down-${idx}`}
+                            disabled={idx === items.length - 1}
+                            onClick={() => { reorderFocusRef.current = `down-${idx + 1}`; moveExercise(idx, 1); }}
+                            style={{ ...iconBtn(idx === items.length - 1), fontSize: 14 }}
+                            title="Mover para baixo"
+                            aria-label={`Mover ${it.name} para baixo`}
+                          >
+                            ↓
+                          </button>
+                          <button
+                            type="button"
+                            className="wb-grip"
                             onMouseDown={() => setDragEnabledIdx(idx)}
                             onMouseUp={() => setDragEnabledIdx(null)}
                             style={{ ...iconBtn(false), cursor: "grab" }}
@@ -1207,9 +1247,11 @@ export default function WorkoutBuilderPage() {
                           </button>
                           <button
                             type="button"
+                            className="wb-reorder-btn"
                             onClick={() => removeExercise(idx)}
                             style={{ ...iconBtn(false), color: WB.muted, fontSize: 12 }}
                             title="Remover"
+                            aria-label={`Remover ${it.name}`}
                           >
                             ✕
                           </button>

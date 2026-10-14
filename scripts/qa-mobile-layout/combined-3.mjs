@@ -45,7 +45,50 @@ const freeAt = (page, sel) => page.evaluate((s) => {
   return !!h && (e === h || e.contains(h) || h.contains(e));
 }, sel);
 
+const SID = a.studentId ?? '11';
+async function openBuilder(page) {
+  await page.goto(`${BASE}/app/personal/students/${SID}/workouts/builder`, { waitUntil: 'domcontentloaded' });
+  await page.waitForTimeout(1800);
+  const adds = page.locator('button').filter({ hasText: /^\+$/ }).filter({ visible: true });
+  if ((await adds.count()) < 3) throw new Error('menos de 3 botões + no catálogo');
+  for (let i = 0; i < 3; i++) { await adds.nth(i).click(); await page.waitForTimeout(300); }
+  await page.waitForSelector('[data-reorder="down-0"]');
+}
+const names = (page) => page.evaluate(() => [...document.querySelectorAll('[data-reorder^="down-"]')].map((b) => b.getAttribute('aria-label')));
+const effArea = (page, sel) => page.evaluate((s) => { const e = document.querySelector(s); e.scrollIntoView({ block: 'center' }); const b = e.getBoundingClientRect(); let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9; for (let y = Math.floor(b.top - 24); y <= b.bottom + 24; y += 2) for (let x = Math.floor(b.left - 24); x <= b.right + 24; x += 2) { const h = document.elementFromPoint(x, y); if (h && (e === h || e.contains(h))) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); } } return [x1 - x0 + 2, y1 - y0 + 2]; }, sel);
+
 const SCEN = {
+  // ── P1 + builder em paisagem ───────────────────────────────────────────────
+  async p1(browser) {
+    for (const vp of VPS) {
+      const { ctx, page } = await mk(browser, vp, a.personal);
+      const S = 'P1 builder: reordenar sem arrastar';
+      try {
+        await openBuilder(page);
+        const before = await names(page);
+        const [w, h] = await effArea(page, '[data-reorder="down-0"]');
+        check(S, vp, 'botão ↓ com área tocável ≥ 44px', w >= 43 && h >= 43, `${w}x${h}`);
+        check(S, vp, 'primeiro item não sobe / último não desce (desabilitados)', await page.evaluate(() => document.querySelector('[data-reorder="up-0"]').disabled && document.querySelector('[data-reorder="down-2"]').disabled), '');
+        await page.locator('[data-reorder="down-0"]').tap();
+        await page.waitForTimeout(300);
+        const after = await names(page);
+        check(S, vp, 'toque em ↓ troca o primeiro com o segundo', before.length === 3 && after[0].replace(/^Mover | para baixo$/g, '') === before[1].replace(/^Mover | para baixo$/g, ''), JSON.stringify({ before: before.map((x) => x?.slice(6, 24)), after: after.map((x) => x?.slice(6, 24)) }));
+        check(S, vp, 'foco acompanha o item movido (teclado/leitor)', await page.evaluate(() => document.activeElement?.getAttribute('data-reorder') === 'down-1'), await page.evaluate(() => String(document.activeElement?.getAttribute('data-reorder'))));
+        // Séries do primeiro exercício: alcançável (não sob a nav) e com o teclado simulado
+        const sets = page.locator('label').filter({ hasText: /s[ée]ries/i }).locator('input').first();
+        await sets.scrollIntoViewIfNeeded();
+        const reach = async () => page.evaluate(() => { const inp = [...document.querySelectorAll('label')].filter((l) => /s[ée]ries/i.test(l.textContent || '')).map((l) => l.querySelector('input')).find(Boolean); inp.scrollIntoView({ block: 'center' }); const b = inp.getBoundingClientRect(); const nav = document.querySelector('.mobileBottomNav')?.getBoundingClientRect(); const h = document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2); return { free: !!h && (inp === h || inp.contains(h) || h.closest('label') === inp.closest('label')), aboveNav: !nav || b.bottom <= nav.top + 1, top: Math.round(b.top), bottom: Math.round(b.bottom), ih: innerHeight }; });
+        const r1 = await reach();
+        check(S, vp, 'campo "Séries" alcançável e acima da nav', r1.free && r1.aboveNav, JSON.stringify(r1));
+        await page.setViewportSize({ width: vp.w, height: Math.round(vp.h * 0.6) });
+        await page.waitForTimeout(300);
+        const r2 = await reach();
+        check(S, vp, 'com teclado simulado (viewport 60%) "Séries" segue alcançável', r2.free && r2.top >= 0 && r2.bottom <= r2.ih, JSON.stringify(r2));
+      } catch (e) { check(S, vp, 'cenário executável', false, String(e.message).split('\n')[0]); }
+      await ctx.close();
+    }
+  },
+
   // ── A7: composer do chat do aluno ──────────────────────────────────────────
   async a7(browser) {
     for (const vp of VPS) {
