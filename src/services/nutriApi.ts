@@ -634,6 +634,8 @@ export interface NutriIntakeLogItem {
 export interface NutriIntakeLog {
   id: number;
   loggedAt: string;
+  /** Refeição do plano a que o registro pertence; `null` = registro fora do plano (consumo livre). */
+  mealId?: number | null;
   label: string;
   energyKcal: number;
   proteinG: number;

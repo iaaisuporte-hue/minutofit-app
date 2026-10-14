@@ -156,15 +156,7 @@ export function IntakeSection({ patientId }: { patientId: number }) {
                 <div style={{ marginTop: "var(--space-2)", paddingLeft: "var(--space-5)", display: "flex", flexDirection: "column", gap: 6 }}>
                   {!dayLogs[d.dateKey] && <div className="muted" style={{ fontSize: "var(--text-xs)" }}>Carregando...</div>}
                   {dayLogs[d.dateKey]?.length === 0 && <div className="muted" style={{ fontSize: "var(--text-xs)" }}>Sem refeições registradas.</div>}
-                  {dayLogs[d.dateKey]?.map((log) => (
-                    <div key={log.id} style={{ fontSize: "var(--text-xs)" }}>
-                      <span style={{ fontWeight: 600, color: COLORS.text }}>{log.label}</span>
-                      <span className="muted"> · {Math.round(log.energyKcal)} kcal · P {Math.round(log.proteinG)}g</span>
-                      <div className="muted" style={{ marginTop: 2 }}>
-                        {log.items.map((it) => it.name).join(", ")}
-                      </div>
-                    </div>
-                  ))}
+                  {dayLogs[d.dateKey] && dayLogs[d.dateKey].length > 0 && <DayLogs logs={dayLogs[d.dateKey]} hasPlan={isPlanTarget} />}
                 </div>
               )}
             </div>
@@ -172,5 +164,50 @@ export function IntakeSection({ patientId }: { patientId: number }) {
         </div>
       </DrawerShell>
     </div>
+  );
+}
+
+function timeOf(log: NutriIntakeLog): string {
+  return new Date(log.loggedAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+}
+
+function LogRow({ log }: { log: NutriIntakeLog }) {
+  return (
+    <div style={{ fontSize: "var(--text-xs)" }}>
+      <span className="muted">{timeOf(log)} · </span>
+      <span style={{ fontWeight: 600, color: COLORS.text }}>{log.label}</span>
+      <span className="muted"> · {Math.round(log.energyKcal)} kcal · P {Math.round(log.proteinG)}g</span>
+      <div className="muted" style={{ marginTop: 2 }}>
+        {log.items.map((it) => it.name).join(", ")}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Registros de um dia. COM plano estruturado, separa "Do plano" (refeições prescritas) de "Fora do plano" (consumo livre,
+ * `mealId` nulo) — informação sobre o dia real, nunca julgamento nem adesão. SEM plano não há "fora de quê": lista única,
+ * cronológica, sem cabeçalhos. Grupos vazios não são renderizados; o horário vem do próprio registro (cronologia preservada).
+ */
+function DayLogs({ logs, hasPlan }: { logs: NutriIntakeLog[]; hasPlan: boolean }) {
+  const sorted = [...logs].sort((a, b) => new Date(a.loggedAt).getTime() - new Date(b.loggedAt).getTime());
+  if (!hasPlan) {
+    return <>{sorted.map((log) => <LogRow key={log.id} log={log} />)}</>;
+  }
+  const groups = [
+    { key: "plan", title: "Do plano", logs: sorted.filter((l) => l.mealId != null) },
+    { key: "free", title: "Fora do plano", logs: sorted.filter((l) => l.mealId == null) },
+  ].filter((g) => g.logs.length > 0);
+  return (
+    <>
+      {groups.map((g) => (
+        <div key={g.key} data-testid={`group-${g.key}`} style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em", color: COLORS.muted }}>
+            {g.title} · {Math.round(g.logs.reduce((sum, l) => sum + l.energyKcal, 0))} kcal
+          </div>
+          {g.logs.map((log) => <LogRow key={log.id} log={log} />)}
+        </div>
+      ))}
+    </>
   );
 }
