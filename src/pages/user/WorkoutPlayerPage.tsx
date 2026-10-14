@@ -380,7 +380,9 @@ export default function WorkoutPlayerPage() {
           position: "relative",
           width: "100%",
           maxWidth: "100%",
-          aspectRatio: "16 / 9",
+          // No fim do treino o painel de conclusão passa a ditar a altura: preso à caixa 16:9
+          // (~162px a 320px) os CTAs eram cortados pelo overflow:hidden.
+          aspectRatio: finished ? undefined : "16 / 9",
           borderRadius: 16,
           overflow: "hidden",
           border: `1px solid ${neon.stroke}`,
@@ -472,13 +474,13 @@ export default function WorkoutPlayerPage() {
         {finished ? (
           <div
             style={{
-              position: "absolute",
-              inset: 0,
+              position: "relative",
+              zIndex: 10,
+              minHeight: 220,
               display: "grid",
               placeItems: "center",
               padding: 16,
               background: "rgba(0,0,0,.72)",
-              zIndex: 10,
             }}
           >
             <div
