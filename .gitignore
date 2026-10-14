@@ -41,3 +41,6 @@ specs/
 .vercel
 .env*
 .gstack/
+
+# Sessões do runner de QA mobile (JWT das contas de fixture) — nunca commitar
+*.state.json
