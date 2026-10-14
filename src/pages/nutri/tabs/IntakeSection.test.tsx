@@ -124,12 +124,14 @@ describe("IntakeSection", () => {
       expect(screen.getAllByText("Lanche da tarde")).toHaveLength(1);
     });
 
-    it("com plano e SÓ consumo livre no dia: aparece só 'Fora do plano' — nada de seção 'Do plano' vazia", async () => {
+    it("com plano mas dia SEM refeição do plano (ex.: dia anterior à criação do plano): lista cronológica sem rótulo 'Fora do plano'", async () => {
       fetchPatientIntakeSummary.mockResolvedValue({ summary: summary("plan_items"), days: day });
       fetchPatientIntakeLogs.mockResolvedValue([log(1, "Lanche da tarde", null, 200, "18:00")]);
       await open();
-      expect(await screen.findByTestId("group-free")).toBeInTheDocument();
+      expect(await screen.findByText("Lanche da tarde")).toBeInTheDocument();
+      expect(screen.queryByTestId("group-free")).not.toBeInTheDocument();
       expect(screen.queryByTestId("group-plan")).not.toBeInTheDocument();
+      expect(screen.queryByText(/Fora do plano/)).not.toBeInTheDocument();
       expect(screen.queryByText(/Sem refeições registradas/)).not.toBeInTheDocument();
     });
 
@@ -149,12 +151,15 @@ describe("IntakeSection", () => {
       }
     });
 
-    it("o texto livre do aluno nunca é exibido (o payload nem o traz)", async () => {
+    it("o texto livre do aluno nunca é exibido, mesmo que um payload antigo ainda o traga", async () => {
       fetchPatientIntakeSummary.mockResolvedValue({ summary: summary("plan_items"), days: day });
-      fetchPatientIntakeLogs.mockResolvedValue([{ ...log(1, "Lanche", null, 200, "18:00") }]);
+      fetchPatientIntakeLogs.mockResolvedValue([
+        log(2, "Almoço", 11, 700, "15:00"),
+        { ...log(1, "Lanche", null, 200, "18:00"), rawText: "segredo-xyz comi escondido" },
+      ]);
       await open();
       await screen.findByTestId("group-free");
-      expect(document.body.textContent).not.toMatch(/rawText|texto livre/i);
+      expect(document.body.textContent).not.toContain("segredo-xyz");
     });
   });
 });

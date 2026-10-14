@@ -82,7 +82,7 @@ export function IntakeItemRow({
   // "Nenhum resultado" só vale depois de uma busca de fato — o campo nasce pré-preenchido com a consulta do aluno.
   const [searched, setSearched] = useState(false);
   const [unitReset, setUnitReset] = useState(false);
-  const [manualForm, setManualForm] = useState({ name: item.rawText, kcal: "", p: "", c: "", f: "" });
+  const [manualForm, setManualForm] = useState({ name: "", kcal: "", p: "", c: "", f: "" });
 
   /**
    * Fallback quando o catálogo TACO não tem correspondência confiável (PLAN

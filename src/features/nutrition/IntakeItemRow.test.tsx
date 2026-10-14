@@ -94,6 +94,16 @@ describe("IntakeItemRow — escolher alimento para item não resolvido", () => {
     expect(screen.getByRole("button", { name: "Adicionar manualmente" })).toBeInTheDocument();
   });
 
+  it("'Adicionar manualmente' NÃO pré-preenche o nome com o texto digitado (privacidade: o nome chega ao nutri)", async () => {
+    render(<Harness spy={vi.fn()} initial={{ resolved: false, rawText: "biscoito que peguei escondido da gaveta", foodQuery: "biscoito que peguei escondido da gaveta", quantity: 1, unitLabel: "unidade" }} />);
+    await userEvent.click(screen.getByRole("button", { name: "Adicionar manualmente" }));
+    const name = screen.getByPlaceholderText("Nome do alimento") as HTMLInputElement;
+    expect(name.value).toBe("");
+    expect(screen.getByRole("button", { name: "Usar estes valores" })).toBeDisabled();
+    await userEvent.type(name, "Biscoito");
+    expect(screen.getByRole("button", { name: "Usar estes valores" })).not.toBeDisabled();
+  });
+
   it("busca sem resultado de fato mostra 'Nenhum resultado no catálogo'", async () => {
     searchNutritionFoods.mockResolvedValue([]);
     render(<Harness spy={vi.fn()} initial={{ resolved: false, rawText: "1 xyzzy", foodQuery: "xyzzy", quantity: 1, unitLabel: "unidade" }} />);

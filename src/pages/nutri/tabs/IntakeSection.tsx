@@ -185,13 +185,16 @@ function LogRow({ log }: { log: NutriIntakeLog }) {
 }
 
 /**
- * Registros de um dia. COM plano estruturado, separa "Do plano" (refeições prescritas) de "Fora do plano" (consumo livre,
+ * Registros de um dia. COM plano estruturado E ao menos uma refeição do plano nesse dia, separa "Do plano" (refeições prescritas) de "Fora do plano" (consumo livre,
  * `mealId` nulo) — informação sobre o dia real, nunca julgamento nem adesão. SEM plano não há "fora de quê": lista única,
  * cronológica, sem cabeçalhos. Grupos vazios não são renderizados; o horário vem do próprio registro (cronologia preservada).
  */
 function DayLogs({ logs, hasPlan }: { logs: NutriIntakeLog[]; hasPlan: boolean }) {
   const sorted = [...logs].sort((a, b) => new Date(a.loggedAt).getTime() - new Date(b.loggedAt).getTime());
-  if (!hasPlan) {
+  // Só rotula o dia quando ele TEM refeição do plano: o plano de hoje não diz se havia plano naquele dia (plano criado
+  // depois, plano encerrado) — "fora do plano" para um dia sem nenhuma refeição prescrita seria enganoso.
+  const dayHasPlanLogs = sorted.some((l) => l.mealId != null);
+  if (!hasPlan || !dayHasPlanLogs) {
     return <>{sorted.map((log) => <LogRow key={log.id} log={log} />)}</>;
   }
   const groups = [
