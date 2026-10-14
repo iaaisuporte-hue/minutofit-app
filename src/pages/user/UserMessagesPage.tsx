@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "../../auth/AuthContext";
 import { useIsMobile } from "../../hooks/useIsMobile";
+import "./userMessages.css";
 import {
   ensureChatConversation,
   fetchChatConversations,
@@ -131,7 +132,7 @@ export default function UserMessagesPage() {
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }, [messages.length]);
 
   // Mobile: ao selecionar conversa, abre o chat; o back volta pra lista.
@@ -183,7 +184,7 @@ export default function UserMessagesPage() {
   // ── Subcomponentes inline (mantêm o arquivo coeso; pequenos o suficiente) ──
 
   const Hero = (
-    <div style={{ display: "grid", gap: 6 }}>
+    <div className="um-hero" style={{ display: "grid", gap: 6 }}>
       <span
         style={{
           fontSize: 11,
@@ -358,11 +359,13 @@ export default function UserMessagesPage() {
 
   const ChatPanel = (
     <div
+      className="um-chat-card"
       style={{
         ...cardStyle,
         display: "grid",
-        gridTemplateRows: "auto 1fr auto",
-        minHeight: isMobile ? "calc(100dvh - 220px)" : 480,
+        // minmax(0,1fr): a faixa das mensagens PODE encolher abaixo do conteúdo e rolar por dentro; com `1fr`
+        // puro o grid crescia com a conversa inteira e o compositor ia parar no fim do documento (QA A7).
+        gridTemplateRows: "auto minmax(0, 1fr) auto",
         overflow: "hidden",
       }}
     >
