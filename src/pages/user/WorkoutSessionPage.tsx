@@ -2384,17 +2384,17 @@ export default function WorkoutSessionPage() {
                 <div style={{ fontSize: 12, fontWeight: 600, color: "var(--color-text-muted)" }}>
                   Como foi o esforço? (opcional)
                 </div>
-                <div style={{ display: "flex", gap: 6 }}>
+                <div className="ws-sum-rpe">
                   {RPE_OPTIONS.map((o) => (
                     <button
                       key={o.rpe}
                       type="button"
                       onClick={() => setSessionRpe(sessionRpe === o.rpe ? null : o.rpe)}
-                      className="ws-rest-btn"
+                      className="ws-rest-btn ws-sum-rpe-btn"
                       style={
                         sessionRpe === o.rpe
-                          ? { flex: 1, background: "var(--color-primary-soft)", borderColor: "var(--color-primary)" }
-                          : { flex: 1 }
+                          ? { background: "var(--color-primary-soft)", borderColor: "var(--color-primary)" }
+                          : undefined
                       }
                     >
                       {o.label}

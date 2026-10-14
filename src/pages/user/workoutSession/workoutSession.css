@@ -1199,3 +1199,170 @@
 .ws-rsug-manual {
   min-height: 48px;
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   Onda 2 (Aluno) — execução do treino em telas pequenas e em paisagem.
+   Só layout: nenhum cálculo, registro, RPE ou ação foi alterado.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* A6 — RPE do resumo: 4 opções em grade que NUNCA estoura (min-width:0) e vira 2×2 em tela
+   estreita. Antes era uma linha flex de 4 botões com texto nowrap: 389px de conteúdo em 320. */
+.ws-sum-rpe {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+.ws-sum-rpe-btn {
+  min-width: 0;
+  min-height: 44px;
+  padding: 0 6px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.15;
+}
+@media (max-width: 380px) {
+  .ws-sum-rpe {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* A6 — o resumo não tem barra fixa embaixo: os 240px de reserva do `.ws-body` eram espaço morto. */
+.ws-body.ws-summary {
+  padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+}
+
+/* Toque (44px) sem engordar as linhas: RPE por série, "Ignorar", "Repetir" e o chip de histórico. */
+.ws-rest-rpe-btn {
+  min-width: 44px;
+  min-height: 44px;
+  flex-shrink: 0;
+}
+.ws-rest-rpe-skip {
+  position: relative;
+  min-height: 28px; /* + 8px de pseudo em cima e embaixo = 44px, sem invadir a linha vizinha */
+}
+.ws-rest-rpe-skip::before {
+  content: "";
+  position: absolute;
+  inset: -8px 0; /* só vertical: um pseudo mais largo que a linha viraria rolagem horizontal */
+}
+.ws-ab-repeat {
+  position: relative;
+}
+.ws-ab-repeat::before {
+  content: "";
+  position: absolute;
+  inset: -6px 0;
+}
+button.ws-chip {
+  position: relative;
+}
+button.ws-chip::before {
+  content: "";
+  position: absolute;
+  inset: -10px 0;
+}
+
+/* A12 — telas estreitas: o nome do exercício e as ações ficam; só o metadado secundário
+   (tempo · exercício · séries) vira uma linha com reticências, em vez de engordar o cabeçalho. */
+@media (max-width: 380px) {
+  .ws-sub {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  /* A pergunta e "Ignorar" dividem a primeira linha; as 5 opções ocupam a segunda, em larguras
+     iguais. `display: contents` põe os botões direto na linha flex do `.ws-rest-rpe` (o contêiner
+     das opções não tem papel nem estilo próprio). */
+  .ws-rest-rpe-options {
+    display: contents;
+  }
+  .ws-rest-rpe-label {
+    flex: 1 1 calc(100% - 76px);
+    min-width: 0;
+  }
+  .ws-rest-rpe-skip {
+    order: 1;
+    margin-left: auto;
+  }
+  .ws-rest-rpe-btn {
+    order: 2;
+    flex: 1 0 44px;
+  }
+}
+
+/* Telas baixas em retrato (320×568 / 375×667): a barra de descanso encolhe o respiro, não o conteúdo. */
+@media (max-height: 700px) and (orientation: portrait) {
+  .ws-rest {
+    padding-top: 8px;
+    gap: 6px;
+  }
+  .ws-rest-time {
+    font-size: 32px;
+  }
+}
+
+/* A5 — PAISAGEM (844×390, 932×430): header e barras ocupavam 250px de 390, sobrando ~140px para o
+   exercício. Aqui a barra de ação vira UMA faixa (séries e passos à esquerda, "Concluir" à direita), a
+   de descanso vira duas linhas curtas e o cabeçalho perde o respiro. Tudo o que existia continua
+   presente e tocável; o recuo lateral da safe-area (1C) é preservado. */
+@media (max-height: 500px) and (orientation: landscape) {
+  .ws-top {
+    padding-top: max(6px, env(safe-area-inset-top), calc(var(--offline-banner-h, 0px) + 6px));
+    padding-bottom: 6px;
+  }
+  .ws-top-row {
+    margin-bottom: 4px;
+  }
+  .ws-title {
+    font-size: 14px;
+  }
+
+  .ws-body {
+    padding-bottom: 132px;
+  }
+
+  .ws-action-bar {
+    grid-template-columns: minmax(0, 1fr) auto;
+    column-gap: 12px;
+    row-gap: 4px;
+    align-items: center;
+    padding-top: 6px;
+    padding-bottom: calc(6px + env(safe-area-inset-bottom, 0px));
+  }
+  .ws-action-bar .ws-ab-head {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .ws-action-bar .ws-ab-steppers {
+    grid-column: 1;
+    grid-row: 2;
+  }
+  .ws-action-bar .ws-ab-done {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    align-self: stretch;
+    width: clamp(150px, 24vw, 230px);
+    min-height: 56px;
+  }
+
+  .ws-rest {
+    padding-top: 8px;
+    padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+    gap: 4px;
+  }
+  .ws-rest-time {
+    font-size: 30px;
+    min-width: 76px;
+  }
+  .ws-rest-actions {
+    flex-wrap: nowrap;
+  }
+  .ws-rest-rpe {
+    flex-wrap: nowrap;
+  }
+  .ws-rest-rpe-label {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+}
