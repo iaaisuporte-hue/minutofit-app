@@ -1,8 +1,11 @@
-import { NavLink, Route, Routes } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { NavLink, Route, Routes, useLocation } from "react-router-dom";
 import { Menu } from "lucide-react";
 import { useAuth } from "../auth/AuthContext";
 import AppShell from "../layout/AppShell";
 import S2CoreLogo from "../components/S2CoreLogo";
+import { ConfirmDialog } from "../components/ConfirmDialog";
+import { useDismissable } from "../lib/overlayStack";
 import NutriTodayPage from "./nutri/NutriTodayPage";
 import NutritionPatientsPage from "./nutri/NutritionPatientsPage";
 import PatientDetailNutriPage from "./nutri/PatientDetailNutriPage";
@@ -12,6 +15,20 @@ import NetworkProfilePage from "./professional/NetworkProfilePage";
 
 export default function NutriApp() {
   const auth = useAuth();
+  const location = useLocation();
+  const menuRef = useRef<HTMLDetailsElement | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [confirmLogout, setConfirmLogout] = useState(false);
+
+  const fecharMenu = () => {
+    if (menuRef.current) menuRef.current.open = false;
+  };
+  // O <details> nativo não fecha sozinho ao navegar: o painel ficava aberto por cima do conteúdo da nova tela (N1).
+  useEffect(() => {
+    fecharMenu();
+  }, [location.pathname]);
+  // Voltar do Android / Escape fecham o menu antes de qualquer navegação.
+  useDismissable(fecharMenu, menuOpen);
 
   const navLinkStyle = ({ isActive }: { isActive: boolean }) =>
     `navLink${isActive ? " navLinkActive" : ""}`;
@@ -27,11 +44,17 @@ export default function NutriApp() {
               não ganha bottom nav (padrão do aluno). `<details>` nativo
               cobre a navegação secundária (Convites/Meu perfil/Sair) sem
               estado React nem overlay/click-outside para gerenciar. */}
-          <details className="navDisclosure">
+          <details className="navDisclosure" ref={menuRef} onToggle={(e) => setMenuOpen(e.currentTarget.open)}>
             <summary className="navDisclosure__trigger" aria-label="Menu">
               <Menu size={20} aria-hidden="true" />
             </summary>
-            <div className="navDisclosure__panel">
+            {/* clique em qualquer link fecha o menu, mesmo quando a rota não muda (já está na tela) */}
+            <div
+              className="navDisclosure__panel"
+              onClick={(e) => {
+                if ((e.target as HTMLElement).closest("a")) fecharMenu();
+              }}
+            >
               <NavLink to="/app/nutri" end className={navLinkStyle}>
                 Hoje
               </NavLink>
@@ -44,7 +67,15 @@ export default function NutriApp() {
               <NavLink to="/app/nutri/meu-perfil" className={navLinkStyle}>
                 Meu perfil
               </NavLink>
-              <button type="button" onClick={auth.logout} className="logoutButton" style={{ marginTop: "var(--space-2)" }}>
+              <button
+                type="button"
+                onClick={() => {
+                  fecharMenu();
+                  setConfirmLogout(true);
+                }}
+                className="logoutButton"
+                style={{ marginTop: "var(--space-2)" }}
+              >
                 Sair da conta
               </button>
             </div>
@@ -76,13 +107,25 @@ export default function NutriApp() {
           <div style={{ flex: 1 }} />
 
           <div className="sidebar-footer">
-            <button type="button" onClick={auth.logout} className="logoutButton">
+            <button type="button" onClick={() => setConfirmLogout(true)} className="logoutButton">
               Sair da conta
             </button>
           </div>
         </>
       }
     >
+      <ConfirmDialog
+        open={confirmLogout}
+        title="Sair da conta?"
+        message="Você precisará entrar novamente para acessar seus pacientes."
+        confirmLabel="Sair"
+        danger
+        onCancel={() => setConfirmLogout(false)}
+        onConfirm={() => {
+          setConfirmLogout(false);
+          auth.logout();
+        }}
+      />
       <Routes>
         <Route index element={<NutriTodayPage />} />
         <Route path="pacientes" element={<NutritionPatientsPage />} />
