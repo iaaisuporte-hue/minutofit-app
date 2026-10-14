@@ -2316,7 +2316,7 @@ export default function WorkoutSessionPage() {
       <div className="ws-root">
         <div className="ws-top">
           <div className="ws-top-row">
-            <div>
+            <div style={{ minWidth: 0 }}>
               <div className="ws-title">Treino concluído</div>
               <div className="ws-sub">{sessionTitle}</div>
             </div>
