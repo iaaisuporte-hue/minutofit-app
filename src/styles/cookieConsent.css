@@ -264,17 +264,18 @@ html.has-cookie-consent .auth-page {
    O banner vira UMA faixa (detalhes | caixa de aceite | botões). As duas opções de consentimento, o
    aviso e o link continuam visíveis e os botões voltam a 44px. Texto, regras e persistência (LGPD)
    não mudam. */
-@media (max-height: 500px) and (orientation: landscape) {
+/* low-landscape */
+@media (min-width: 600px) and (max-height: 500px) and (orientation: landscape) {
   .cookie-consent {
     padding-top: 6px;
   }
   .cookie-consent__inner {
-    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.2fr) auto;
     grid-template-areas: "text check actions";
     align-items: center;
     padding: 8px 14px;
     gap: 0 14px;
-    max-height: none;
+    overflow-y: auto; /* com os detalhes abertos o banner rola por dentro (teto herdado de 42vh) */
   }
   .cookie-consent__text,
   .cookie-consent__details {

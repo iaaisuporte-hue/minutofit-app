@@ -1306,7 +1306,8 @@ button.ws-chip::before {
    exercício. Aqui a barra de ação vira UMA faixa (séries e passos à esquerda, "Concluir" à direita), a
    de descanso vira duas linhas curtas e o cabeçalho perde o respiro. Tudo o que existia continua
    presente e tocável; o recuo lateral da safe-area (1C) é preservado. */
-@media (max-height: 500px) and (orientation: landscape) {
+/* low-landscape */
+@media (min-width: 600px) and (max-height: 500px) and (orientation: landscape) {
   .ws-top {
     padding-top: max(6px, env(safe-area-inset-top), calc(var(--offline-banner-h, 0px) + 6px));
     padding-bottom: 6px;
