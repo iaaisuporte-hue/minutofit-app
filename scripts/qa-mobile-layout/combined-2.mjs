@@ -121,11 +121,54 @@ async function scenarioShellStack(browser) {
   }
 }
 
+async function scenarioCookieRobust(browser) {
+  // Larguras onde a faixa única de 3 colunas já apertou (568×320, 640×360, 667×375) + a paisagem baixa de referência.
+  for (const vp of [{ name: '568x320', w: 568, h: 320 }, { name: '640x360', w: 640, h: 360 }, { name: '667x375', w: 667, h: 375 }, { name: '844x390', w: 844, h: 390 }]) {
+    const { ctx, page } = await mk(browser, vp, { consent: false });
+    const S = 'S3 cookie em paisagem sem sobreposição';
+    try {
+      await page.goto(`${BASE}/app/user/profile`, { waitUntil: 'domcontentloaded' });
+      await page.waitForSelector('.cookie-consent__inner', { timeout: 8000 });
+      await page.waitForTimeout(600);
+      const m = await page.evaluate(() => {
+        const r = (e) => { const b = e?.getBoundingClientRect(); return b ? { l: b.left, r: b.right, t: b.top, b: b.bottom } : null; };
+        const inner = document.querySelector('.cookie-consent__inner');
+        const chk = document.querySelector('.cookie-consent__check');
+        const act = document.querySelector('.cookie-consent__actions');
+        return { inner: r(inner), chk: r(chk), act: r(act), ih: innerHeight, overflowX: inner.scrollWidth - inner.clientWidth };
+      });
+      check(S, vp, 'rótulo de aceite não invade os botões', (m.chk.r <= m.act.l + 1 || m.chk.b <= m.act.t + 1) && m.chk.t >= m.inner.t - 1 && m.chk.b <= m.inner.b + 1, JSON.stringify(m));
+      check(S, vp, 'banner ≤ 50% da altura da tela', m.inner.b - m.inner.t <= 0.5 * m.ih, `h=${Math.round(m.inner.b - m.inner.t)} ih=${m.ih}`);
+      check(S, vp, 'sem overflow horizontal no banner', m.overflowX <= 1, `ox=${m.overflowX}`);
+    } catch (e) { check(S, vp, 'cenário executável', false, String(e.message).split('\n')[0]); }
+    await ctx.close();
+  }
+}
+
+async function scenarioKeyboardPortrait(browser) {
+  // Teclado do Android encolhe a viewport de layout: um celular em RETRATO vira 360×340 (largura > altura NÃO é verdade,
+  // mas a altura cai abaixo de 500). Não pode ligar a compactação de "paisagem baixa" (nav 52px, banner em 3 colunas).
+  for (const vp of [{ name: '360x340-retrato-teclado', w: 360, h: 340 }, { name: '412x400-retrato-teclado', w: 412, h: 400 }]) {
+    const { ctx, page } = await mk(browser, vp, { consent: false });
+    const S = 'S4 teclado em retrato não ativa paisagem baixa';
+    try {
+      await page.goto(`${BASE}/app/user/profile`, { waitUntil: 'domcontentloaded' });
+      await page.waitForSelector('.mobileBottomNav', { timeout: 8000 });
+      await page.waitForTimeout(500);
+      const m = await page.evaluate(() => ({ navH: document.querySelector('.mobileBottomNav').getBoundingClientRect().height, token: getComputedStyle(document.documentElement).getPropertyValue('--bottom-nav-h').trim(), cols: getComputedStyle(document.querySelector('.cookie-consent__inner')).gridTemplateColumns }));
+      check(S, vp, 'nav mantém 64px (token) e o banner não usa 3 colunas', m.navH >= 64 && m.token === '64px' && m.cols.split(' ').length < 3, JSON.stringify(m));
+    } catch (e) { check(S, vp, 'cenário executável', false, String(e.message).split('\n')[0]); }
+    await ctx.close();
+  }
+}
+
 const { mod } = await loadPlaywright();
 const browser = await mod.chromium.launch({ executablePath: findChrome() });
 try {
   await scenarioSession(browser);
   await scenarioShellStack(browser);
+  await scenarioCookieRobust(browser);
+  await scenarioKeyboardPortrait(browser);
 } finally {
   await browser.close();
 }
