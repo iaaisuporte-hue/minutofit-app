@@ -58,6 +58,24 @@ const names = (page) => page.evaluate(() => [...document.querySelectorAll('[data
 const effArea = (page, sel) => page.evaluate((s) => { const e = document.querySelector(s); e.scrollIntoView({ block: 'center' }); const b = e.getBoundingClientRect(); let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9; for (let y = Math.floor(b.top - 24); y <= b.bottom + 24; y += 2) for (let x = Math.floor(b.left - 24); x <= b.right + 24; x += 2) { const h = document.elementFromPoint(x, y); if (h && (e === h || e.contains(h))) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); } } return [x1 - x0 + 2, y1 - y0 + 2]; }, sel);
 
 const SCEN = {
+  // ── P9: campos com >= 16px em aparelho de toque (evita o zoom do iOS) ───────
+  async p9(browser) {
+    for (const vp of VPS.slice(0, 2)) {
+      const { ctx, page } = await mk(browser, vp, a.personal);
+      const S = 'P9 inputs do builder';
+      try {
+        await openBuilder(page);
+        const m = await page.evaluate(() => {
+          const fields = [...document.querySelectorAll('.wb-header input, .wb-header select, .wb-header textarea, .wb-split input, .wb-split select, .wb-split textarea')].filter((e) => !['checkbox', 'radio', 'hidden', 'range'].includes(e.type) && e.getBoundingClientRect().width > 0);
+          return { coarse: matchMedia('(pointer: coarse)').matches, n: fields.length, small: fields.filter((e) => parseFloat(getComputedStyle(e).fontSize) < 16).map((e) => `${e.tagName}:${getComputedStyle(e).fontSize}`).slice(0, 5) };
+        });
+        check(S, vp, 'ambiente emula toque (pointer: coarse)', m.coarse, JSON.stringify(m));
+        check(S, vp, 'nenhum campo editável do builder com fonte < 16px', m.n > 0 && m.small.length === 0, JSON.stringify(m));
+      } catch (e) { check(S, vp, 'cenário executável', false, String(e.message).split('\n')[0]); }
+      await ctx.close();
+    }
+  },
+
   // ── P6: abas de Programas com pista de rolagem ─────────────────────────────
   async p6(browser) {
     for (const vp of [{ name: '320x568', w: 320, h: 568 }, { name: '360x740', w: 360, h: 740 }, { name: '390x844', w: 390, h: 844, insets: { top: 47, bottom: 34, left: 0, right: 0 } }, { name: '844x390', w: 844, h: 390, insets: { top: 0, bottom: 21, left: 47, right: 47 } }]) {

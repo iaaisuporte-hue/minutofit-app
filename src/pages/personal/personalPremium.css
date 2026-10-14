@@ -2599,3 +2599,26 @@ html:not([data-theme="dark"]) .personal-app-canvas {
     display: none;
   }
 }
+
+/* ── P9: campos editáveis do Personal com 16px em aparelho de toque ───────────────────────────────
+   O Safari do iOS dá zoom na página ao focar um campo com fonte < 16px e deixa a tela deslocada. Só em
+   `pointer: coarse` e só nos campos do builder, das mensagens rápidas/observações, do formulário de exercício e
+   do compositor de mensagens (os que a revisão apontou); o restante da interface não muda. O `!important` é para
+   vencer o `fontSize` inline desses formulários. A ausência do zoom só se comprova em iOS real. */
+@media (pointer: coarse) {
+  .wb-header input,
+  .wb-header select,
+  .wb-header textarea,
+  .wb-split input:not([type="checkbox"]):not([type="radio"]),
+  .wb-split select,
+  .wb-split textarea,
+  .pp-quick-msg-modal input:not([type="checkbox"]):not([type="radio"]),
+  .pp-quick-msg-modal select,
+  .pp-quick-msg-modal textarea,
+  .pxf-panel input:not([type="checkbox"]):not([type="radio"]),
+  .pxf-panel select,
+  .pxf-panel textarea,
+  .mp-textarea {
+    font-size: 16px !important;
+  }
+}
