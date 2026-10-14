@@ -237,6 +237,8 @@ export interface PersistedIntakeItem {
   unitLabel?: string | null;
   /** Identidade de domínio (PLAN CANONICAL_FOOD_MODEL_SPIKE §6) — nome natural, snapshot do momento do registro. */
   canonicalFood?: CanonicalFood | null;
+  /** Chave de idempotência do cliente (itens adicionados pelo espaço de trabalho) — usada para reconhecer o item após cada resposta. */
+  clientKey?: string;
 }
 
 export interface IntakeLogRecord {
@@ -336,6 +338,9 @@ export interface NutritionIntakeMeal {
   fiberPartial: boolean;
   confidenceScore: number;
   sourceLogIds: number[];
+  /** Dia da refeição (`YYYY-MM-DD`) e `updated_at` da 1ª linha — o editor relê o dia certo e checa conflito. Opcionais por compatibilidade. */
+  dateKey?: string;
+  updatedAt?: string | null;
 }
 
 export interface DayIntakeResponse {

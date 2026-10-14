@@ -81,10 +81,12 @@ export function IntakeLogSheet({
   const [customMealType, setCustomMealType] = useState("");
   const [parsing, setParsing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [editIndex, setEditIndex] = useState<number | null>(null);
+  const [editUid, setEditUid] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState<WorkingItem | null>(null);
   const [confirmRemoveAll, setConfirmRemoveAll] = useState(false);
   const [closeBlocked, setCloseBlocked] = useState(false);
+  const [closing, setClosing] = useState(false);
+  const [confirmDiscardPending, setConfirmDiscardPending] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const isEditing = editingMeal != null;
@@ -101,10 +103,12 @@ export function IntakeLogSheet({
     setMealType(suggestMealType());
     setCustomMealType("");
     setError(null);
-    setEditIndex(null);
+    setEditUid(null);
     setEditDraft(null);
     setConfirmRemoveAll(false);
     setCloseBlocked(false);
+    setClosing(false);
+    setConfirmDiscardPending(false);
     getIntakeShortcuts().then(setShortcuts).catch(() => setShortcuts(null));
   }, [open, editingMeal]);
 
@@ -131,7 +135,7 @@ export function IntakeLogSheet({
 
   async function handleSubmitText() {
     const value = text.trim();
-    if (!value || parsing) return;
+    if (!value || parsing || closing) return;
     setParsing(true);
     setError(null);
     try {
@@ -155,7 +159,7 @@ export function IntakeLogSheet({
   }
 
   function addPending() {
-    if (!canAddPending) return;
+    if (!canAddPending || closing) return;
     ws.addItems(pending, { label: firstLabel, source: pendingSource, rawText: null });
     setPending([]);
     setShortcutLabel("");
@@ -169,18 +173,28 @@ export function IntakeLogSheet({
     setText("");
   }
 
-  async function requestClose() {
+  async function requestClose(force = false) {
+    if (closing) return;
+    // "Falta confirmar" nunca é gravado: sair com pendência exige um aviso, como já é para o que falhou ao salvar.
+    if (!force && pending.length > 0) {
+      setConfirmDiscardPending(true);
+      return;
+    }
+    setClosing(true); // enquanto grava o que falta, não aceita novos itens (evita a folha fechar com uma gravação em voo)
     const { ok } = await ws.flush();
     if (ok) onClose();
-    else setCloseBlocked(true);
+    else {
+      setClosing(false);
+      setCloseBlocked(true);
+    }
   }
 
-  function requestRemove(index: number) {
+  function requestRemove(uid: string) {
     if (ws.saved.length <= 1) setConfirmRemoveAll(true);
-    else ws.removeItem(index);
+    else ws.removeItem(uid);
   }
 
-  const showUndoAdd = ws.lastAdded != null && ws.pendingRemoval == null;
+  const showUndoAdd = ws.lastAdded != null && ws.pendingRemovalCount === 0;
 
   return (
     <DrawerShell open={open} onClose={() => void requestClose()} ariaLabel={isEditing ? "Editar refeição" : "Registrar refeição"}>
@@ -201,12 +215,12 @@ export function IntakeLogSheet({
           {/* Itens SALVOS (vêm do servidor) */}
           {ws.saved.length > 0 && (
             <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "grid", gap: 6 }} aria-label="Alimentos salvos">
-              {ws.saved.map(({ item, index }) =>
-                editIndex === index && editDraft ? (
-                  <li key={`edit-${index}`}>
-                    <IntakeItemRow item={editDraft} onChange={setEditDraft} onRemove={() => { setEditIndex(null); setEditDraft(null); }} />
+              {ws.saved.map(({ item, uid }) =>
+                editUid === uid && editDraft ? (
+                  <li key={uid}>
+                    <IntakeItemRow item={editDraft} onChange={setEditDraft} onRemove={() => { setEditUid(null); setEditDraft(null); }} />
                     <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
-                      <button type="button" className="btn btn-ghost btn-sm hit-target-44" onClick={() => { setEditIndex(null); setEditDraft(null); }}>
+                      <button type="button" className="btn btn-ghost btn-sm hit-target-44" onClick={() => { setEditUid(null); setEditDraft(null); }}>
                         Cancelar edição
                       </button>
                       <button
@@ -214,8 +228,8 @@ export function IntakeLogSheet({
                         className="btn btn-primary btn-sm hit-target-44"
                         disabled={!editDraft.resolved || (editDraft.confidence !== "high" && !editDraft.confirmed)}
                         onClick={() => {
-                          void ws.replaceItem(index, editDraft);
-                          setEditIndex(null);
+                          void ws.replaceItem(uid, editDraft);
+                          setEditUid(null);
                           setEditDraft(null);
                         }}
                       >
@@ -225,7 +239,7 @@ export function IntakeLogSheet({
                   </li>
                 ) : (
                   <li
-                    key={`saved-${index}`}
+                    key={uid}
                     style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", border: `1px solid ${COLORS.border}`, borderRadius: 10 }}
                   >
                     <div style={{ flex: 1, minWidth: 0 }}>
@@ -242,7 +256,7 @@ export function IntakeLogSheet({
                         className="btn btn-ghost btn-sm hit-target-44"
                         aria-label={`Editar ${item.name}`}
                         onClick={() => {
-                          setEditIndex(index);
+                          setEditUid(uid);
                           setEditDraft(persistedToWorking([item])[0]);
                         }}
                       >
@@ -253,7 +267,7 @@ export function IntakeLogSheet({
                       type="button"
                       className="btn btn-ghost btn-sm hit-target-44"
                       aria-label={`Remover ${item.name}`}
-                      onClick={() => requestRemove(index)}
+                      onClick={() => requestRemove(uid)}
                     >
                       Remover
                     </button>
@@ -366,10 +380,10 @@ export function IntakeLogSheet({
 
         {/* Rodapé fixo acima do teclado: campo + Adicionar + Pronto */}
         <div style={{ flex: "none", display: "grid", gap: 8, position: "sticky", bottom: "var(--kb-inset, 0)", background: "var(--color-surface)", paddingTop: 8 }}>
-          {(showUndoAdd || ws.pendingRemoval != null) && (
+          {(showUndoAdd || ws.pendingRemovalCount > 0) && (
             <div role="status" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, fontSize: 13, padding: "6px 10px", borderRadius: 10, background: "var(--color-surface-raised)" }}>
-              <span>{ws.pendingRemoval != null ? "Item removido" : "Adicionado"}</span>
-              <button type="button" className="btn btn-ghost btn-sm hit-target-44" onClick={() => (ws.pendingRemoval != null ? ws.undoRemoval() : ws.undoLastAdd())}>
+              <span>{ws.pendingRemovalCount > 1 ? `${ws.pendingRemovalCount} itens removidos` : ws.pendingRemovalCount === 1 ? "Item removido" : "Adicionado"}</span>
+              <button type="button" className="btn btn-ghost btn-sm hit-target-44" onClick={() => (ws.pendingRemovalCount > 0 ? ws.undoRemoval() : ws.undoLastAdd())}>
                 Desfazer
               </button>
             </div>
@@ -390,6 +404,7 @@ export function IntakeLogSheet({
               className="input"
               style={{ flex: 1, minWidth: 0 }}
               aria-label="Adicionar alimento"
+              disabled={closing}
               placeholder={hasAnything ? "Adicionar outro alimento…" : "Ex.: 1 pão francês, 2 ovos e 200 ml de leite"}
               value={text}
               onChange={(e) => setText(e.target.value)}
@@ -397,11 +412,11 @@ export function IntakeLogSheet({
                 if (e.key === "Enter") void handleSubmitText();
               }}
             />
-            <button type="button" className="btn btn-sm hit-target-44" disabled={!text.trim() || parsing} onClick={() => void handleSubmitText()}>
+            <button type="button" className="btn btn-sm hit-target-44" disabled={!text.trim() || parsing || closing} onClick={() => void handleSubmitText()}>
               {parsing ? "Lendo…" : "Adicionar"}
             </button>
           </div>
-          <button type="button" className={`btn hit-target-44 ${hasAnything ? "btn-primary" : "btn-ghost"}`} onClick={() => void requestClose()}>
+          <button type="button" className={`btn hit-target-44 ${hasAnything ? "btn-primary" : "btn-ghost"}`} disabled={closing} onClick={() => void requestClose()}>
             {hasAnything ? "Pronto" : "Cancelar"}
           </button>
           <div style={{ fontSize: 11, color: COLORS.muted, textAlign: "center" }}>
@@ -412,6 +427,21 @@ export function IntakeLogSheet({
       </div>
 
       <ConfirmDialog
+        open={confirmDiscardPending}
+        title="Sair sem adicionar?"
+        message={`${pending.length === 1 ? "Um alimento ainda não foi confirmado" : `${pending.length} alimentos ainda não foram confirmados`} e não ${pending.length === 1 ? "será salvo" : "serão salvos"}.`}
+        confirmLabel="Sair sem adicionar"
+        cancelLabel="Voltar"
+        danger
+        onCancel={() => setConfirmDiscardPending(false)}
+        onConfirm={() => {
+          setConfirmDiscardPending(false);
+          setPending([]);
+          void requestClose(true);
+        }}
+      />
+
+      <ConfirmDialog
         open={confirmRemoveAll}
         title="Remover a refeição inteira?"
         message="Este é o último alimento salvo: a refeição será removida."
@@ -420,7 +450,7 @@ export function IntakeLogSheet({
         onCancel={() => setConfirmRemoveAll(false)}
         onConfirm={() => {
           setConfirmRemoveAll(false);
-          ws.removeItem(ws.saved[0]?.index ?? 0);
+          if (ws.saved[0]) ws.removeItem(ws.saved[0].uid);
         }}
       />
     </DrawerShell>

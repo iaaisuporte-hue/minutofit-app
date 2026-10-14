@@ -101,11 +101,7 @@ export function YesterdayMealsSheet({ open, onClose }: { open: boolean; onClose:
           setEditOpen(false);
           setEditingMeal(null);
         }}
-        onSaved={() => {
-          setEditOpen(false);
-          setEditingMeal(null);
-          load();
-        }}
+        onSaved={() => load()}
       />
     </>
   );

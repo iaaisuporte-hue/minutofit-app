@@ -175,19 +175,18 @@ describe("IntakeLogSheet — espaço de trabalho da refeição", () => {
     expect(submitIntakeLog).not.toHaveBeenCalled();
   });
 
-  it("Desfazer logo após adicionar remove o item recém-gravado", async () => {
+  it("Desfazer logo após adicionar remove o item recém-gravado (pela clientKey, não pela posição)", async () => {
     parseIntakeText.mockResolvedValueOnce(parsed([highItem("Pão francês", 135)]));
-    submitIntakeLog.mockResolvedValueOnce(logOf(1, [persisted("Pão francês", 135)]));
-    updateIntakeLog.mockResolvedValue(logOf(1, [], {}));
-    deleteIntakeLog.mockResolvedValue(undefined);
+    submitIntakeLog.mockImplementationOnce(async (input: { items: { clientKey: string }[] }) =>
+      logOf(1, [persisted("Pão francês", 135, { clientKey: input.items[0].clientKey })]));
     render(<IntakeLogSheet open onClose={() => {}} onSaved={() => {}} />);
 
     await typeAndAdd("pão");
     await screen.findByText("1 alimento salvo");
     await userEvent.click(await screen.findByRole("button", { name: "Desfazer" }));
-    await waitFor(() => expect(screen.getByTestId("workspace-count")).toHaveTextContent("Nenhum alimento salvo ainda"));
     // sendo o único item, desfazer apaga a refeição
     await waitFor(() => expect(deleteIntakeLog).toHaveBeenCalledWith(1));
+    await waitFor(() => expect(screen.getByTestId("workspace-count")).toHaveTextContent("Nenhum alimento salvo ainda"));
   });
 
   it("média confiança não é gravada: fica em 'Falta confirmar' até 'Usar este' + 'Adicionar à refeição'", async () => {
@@ -392,6 +391,66 @@ describe("IntakeLogSheet — espaço de trabalho da refeição", () => {
       } finally {
         vi.useRealTimers();
       }
+    });
+
+    const THREE = {
+      date: "2026-10-14",
+      logs: [logOf(9, [persisted("Pão", 135), persisted("Ovo", 90), persisted("Leite", 120)], { mealId: 10 })],
+      meals: [{
+        groupKey: "p10", mealId: 10, label: "Café da manhã", loggedAt: "2026-10-14T10:00:00Z", isExtra: false,
+        items: [persisted("Pão", 135), persisted("Ovo", 90), persisted("Leite", 120)], energyKcal: 345, proteinG: 15, carbohydrateG: 60,
+        fatG: 3, fiberG: null, fiberPartial: false, confidenceScore: 1, sourceLogIds: [9],
+      }],
+      totals: {}, coverage: {}, target: null, plannedMeals: [],
+    };
+
+    it("duas remoções seguidas dentro da janela vão num PATCH só e apagam exatamente os itens tocados (índices não ficam velhos)", async () => {
+      getDayIntake.mockResolvedValue(THREE);
+      updateIntakeLog.mockResolvedValue(logOf(9, [persisted("Ovo", 90)], { mealId: 10 }));
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      try {
+        render(<IntakeLogSheet open onClose={() => {}} onSaved={() => {}} defaultMealId={10} defaultMealLabel="Café da manhã" />);
+        await screen.findByText("3 alimentos salvos");
+        await userEvent.click(screen.getByRole("button", { name: "Remover Pão" }));
+        await userEvent.click(screen.getByRole("button", { name: "Remover Leite" }));
+        expect(screen.getByText("2 itens removidos")).toBeInTheDocument();
+        await vi.advanceTimersByTimeAsync(5100);
+        await waitFor(() => expect(updateIntakeLog).toHaveBeenCalledTimes(1));
+        expect(updateIntakeLog.mock.calls[0][1].items).toEqual([{ kind: "existing", index: 1 }]);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it("remover um item e editar outro em seguida: um único PATCH, o editado é o certo (não o que ocupou o índice)", async () => {
+      getDayIntake.mockResolvedValue(THREE);
+      updateIntakeLog.mockResolvedValue(logOf(9, [persisted("Ovo", 90), persisted("Leite", 120)], { mealId: 10 }));
+      render(<IntakeLogSheet open onClose={() => {}} onSaved={() => {}} defaultMealId={10} defaultMealLabel="Café da manhã" />);
+      await screen.findByText("3 alimentos salvos");
+
+      await userEvent.click(screen.getByRole("button", { name: "Remover Pão" }));
+      await userEvent.click(screen.getByRole("button", { name: "Editar Ovo" }));
+      await userEvent.click(screen.getByRole("button", { name: "Salvar item" }));
+
+      await waitFor(() => expect(updateIntakeLog).toHaveBeenCalledTimes(1));
+      const items = updateIntakeLog.mock.calls[0][1].items;
+      expect(items).toHaveLength(2);
+      expect(items[0].kind).toBe("food"); // Ovo (editado) — saiu o Pão
+      expect(items[1]).toEqual({ kind: "existing", index: 2 }); // Leite intacto, com o índice ATUAL do servidor
+    });
+
+    it("sair com item em 'Falta confirmar' avisa antes de descartar", async () => {
+      parseIntakeText.mockResolvedValueOnce(parsed([highItem("Comida", 100, { confidence: "low", confirmed: false })]));
+      const onClose = vi.fn();
+      render(<IntakeLogSheet open onClose={onClose} onSaved={() => {}} />);
+      await typeAndAdd("comida");
+      await screen.findByRole("button", { name: "Adicionar à refeição" });
+
+      await userEvent.click(screen.getByRole("button", { name: "Cancelar" }));
+      expect(await screen.findByText("Sair sem adicionar?")).toBeInTheDocument();
+      expect(onClose).not.toHaveBeenCalled();
+      await userEvent.click(screen.getByRole("button", { name: "Sair sem adicionar" }));
+      await waitFor(() => expect(onClose).toHaveBeenCalled());
     });
 
     it("remover o último item pede confirmação 'Remover a refeição inteira?'", async () => {

@@ -58,6 +58,12 @@ interface Rec {
   label: string | null;
 }
 
+/** Resultado de montar um PATCH a partir do estado ATUAL (índices resolvidos na execução, nunca no toque). */
+interface PatchPlan {
+  requests: IntakeItemRequest[];
+  nextUids: string[];
+}
+
 function newKey(): string {
   const c = (globalThis as { crypto?: { randomUUID?: () => string } }).crypto;
   if (c?.randomUUID) return c.randomUUID();
@@ -71,6 +77,14 @@ function errorMessage(err: unknown): string {
     if (err.code === "intake_log_out_of_range") return "Essa refeição passou do limite de calorias permitido.";
   }
   return "Não foi possível salvar. Verifique a conexão e tente de novo.";
+}
+
+export interface SavedEntry {
+  item: PersistedIntakeItem;
+  /** Posição atual na lista do servidor — só para exibição; NUNCA usar para agir (use `uid`). */
+  index: number;
+  /** Identidade estável do item neste espaço de trabalho: sobrevive a remoções/edições de outros itens. */
+  uid: string;
 }
 
 export function useMealWorkspace({
@@ -87,19 +101,25 @@ export function useMealWorkspace({
   onChanged?: (log: IntakeLogRecord | null) => void;
 }) {
   const [saved, setSaved] = useState<PersistedIntakeItem[]>([]);
+  const [uids, setUids] = useState<string[]>([]);
   const [inflight, setInflight] = useState<InflightOp[]>([]);
   const [loading, setLoading] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
-  const [pendingRemoval, setPendingRemoval] = useState<number | null>(null);
-  const [lastAdded, setLastAdded] = useState<{ first: number; count: number } | null>(null);
+  const [pendingRemovals, setPendingRemovals] = useState<string[]>([]);
+  const [lastAdded, setLastAdded] = useState<string[] | null>(null);
   const [patching, setPatching] = useState(false);
 
   const rec = useRef<Rec>({ logId: null, updatedAt: undefined, legacy: false, dateKey: null, label: null });
   const savedRef = useRef<PersistedIntakeItem[]>([]);
+  const uidsRef = useRef<string[]>([]);
+  const uidByKey = useRef<Map<string, string>>(new Map());
+  const keyByUid = useRef<Map<string, string>>(new Map());
+  /** Geração da sessão: respostas de operações de uma sessão anterior (folha reaberta) são ignoradas. */
+  const gen = useRef(0);
   const chain = useRef<Promise<void>>(Promise.resolve());
   const ready = useRef<Promise<void>>(Promise.resolve());
   const removalTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const removalIdx = useRef<number | null>(null);
+  const removalUids = useRef<string[]>([]);
   /** Operações de adicionar que falharam e ainda não foram refeitas/descartadas — o "Pronto" não fecha sem resolver. */
   const failedKeys = useRef<Set<string>>(new Set());
   const addMetaRef = useRef<Map<string, AddMeta>>(new Map());
@@ -108,10 +128,42 @@ export function useMealWorkspace({
     onChangedRef.current = onChanged;
   });
 
-  const setSavedBoth = useCallback((items: PersistedIntakeItem[]) => {
+  const setSavedBoth = useCallback((items: PersistedIntakeItem[], nextUids: string[]) => {
     savedRef.current = items;
+    uidsRef.current = nextUids;
     setSaved(items);
+    setUids(nextUids);
   }, []);
+
+  const registerKey = useCallback((clientKey: string, uid: string) => {
+    uidByKey.current.set(clientKey, uid);
+    keyByUid.current.set(uid, clientKey);
+  }, []);
+
+  /**
+   * Atribui uids à lista devolvida pelo servidor: por `clientKey` (itens adicionados aqui) e, para itens sem chave
+   * (legado/plano), pela posição anterior — nunca reaproveitando um uid que pertence a outra chave.
+   */
+  const reconcileUids = useCallback(
+    (items: PersistedIntakeItem[], previous: string[]): string[] => {
+      const used = new Set<string>();
+      return items.map((it, p) => {
+        let u = it.clientKey ? uidByKey.current.get(it.clientKey) : undefined;
+        if (u && used.has(u)) u = undefined;
+        if (!u && !it.clientKey) {
+          const cand = previous[p];
+          if (cand && !used.has(cand) && !keyByUid.current.has(cand)) u = cand;
+        }
+        if (!u) {
+          u = newKey();
+          if (it.clientKey) registerKey(it.clientKey, u);
+        }
+        used.add(u);
+        return u;
+      });
+    },
+    [registerKey]
+  );
 
   const enqueue = useCallback((fn: () => Promise<void>) => {
     chain.current = chain.current.then(() => ready.current).then(fn).catch(() => undefined);
@@ -119,39 +171,46 @@ export function useMealWorkspace({
   }, []);
 
   const applyLog = useCallback(
-    (log: IntakeLogRecord) => {
+    (log: IntakeLogRecord, nextUids?: string[]) => {
       rec.current.logId = log.id;
       rec.current.updatedAt = log.updatedAt;
       rec.current.dateKey = log.dateKey;
       rec.current.label = log.label;
-      if (!rec.current.legacy) setSavedBoth(log.items);
+      if (rec.current.legacy) return;
+      const u = nextUids && nextUids.length === log.items.length ? nextUids : reconcileUids(log.items, uidsRef.current);
+      setSavedBoth(log.items, u);
     },
-    [setSavedBoth]
+    [reconcileUids, setSavedBoth]
   );
 
   /** Relê a refeição inteira (linhas legadas): a ordem dos itens é a que `existing.index` usa no servidor. */
   const reloadMeal = useCallback(async () => {
     const r = rec.current;
     if (r.logId == null) return;
+    const g = gen.current;
     const day = await getDayIntake(r.dateKey ?? undefined);
+    if (g !== gen.current) return;
     const meal = day.meals.find((m) => m.sourceLogIds.includes(r.logId!));
     if (!meal) {
-      setSavedBoth([]);
+      setSavedBoth([], []);
       r.logId = null;
       return;
     }
     r.logId = meal.sourceLogIds[0];
     r.legacy = meal.sourceLogIds.length > 1;
     r.updatedAt = day.logs.find((l) => l.id === r.logId)?.updatedAt ?? r.updatedAt;
-    setSavedBoth(meal.items);
-  }, [setSavedBoth]);
+    setSavedBoth(meal.items, reconcileUids(meal.items, uidsRef.current));
+  }, [reconcileUids, setSavedBoth]);
 
   // Abertura: limpa tudo e (re)carrega a refeição — edição vem pronta; refeição do plano com registro hoje é retomada.
   useEffect(() => {
     if (!open) return;
+    gen.current += 1;
     if (removalTimer.current) clearTimeout(removalTimer.current);
-    removalIdx.current = null;
-    setPendingRemoval(null);
+    removalUids.current = [];
+    uidByKey.current = new Map();
+    keyByUid.current = new Map();
+    setPendingRemovals([]);
     setLastAdded(null);
     setInflight([]);
     setNotice(null);
@@ -159,17 +218,17 @@ export function useMealWorkspace({
     addMetaRef.current.clear();
     chain.current = Promise.resolve();
     rec.current = { logId: null, updatedAt: undefined, legacy: false, dateKey: null, label: null };
-    setSavedBoth([]);
+    setSavedBoth([], []);
 
     if (editingMeal) {
       rec.current = {
         logId: editingMeal.sourceLogIds[0],
-        updatedAt: undefined,
+        updatedAt: editingMeal.updatedAt,
         legacy: editingMeal.sourceLogIds.length > 1,
-        dateKey: null,
+        dateKey: editingMeal.dateKey ?? null,
         label: editingMeal.label,
       };
-      setSavedBoth(editingMeal.items);
+      setSavedBoth(editingMeal.items, reconcileUids(editingMeal.items, []));
       ready.current = Promise.resolve();
       return;
     }
@@ -191,7 +250,7 @@ export function useMealWorkspace({
           dateKey: day.date,
           label: meal.label,
         };
-        setSavedBoth(meal.items);
+        setSavedBoth(meal.items, reconcileUids(meal.items, []));
       })
       .catch(() => undefined)
       .finally(() => {
@@ -214,9 +273,9 @@ export function useMealWorkspace({
   // ── adicionar ────────────────────────────────────────────────────────────
   const runAdd = useCallback(
     async (key: string, items: WorkingItem[], meta: AddMeta) => {
+      const g = gen.current;
       const requests: IntakeItemRequest[] = items.map((w) => ({ ...previewToRequest(w), clientKey: w.clientKey }));
       try {
-        const before = savedRef.current.length;
         const log = await submitIntakeLog({
           label: rec.current.label ?? meta.label,
           rawText: meta.rawText ?? null,
@@ -225,13 +284,18 @@ export function useMealWorkspace({
           items: requests,
           source: meta.source,
         });
+        if (g !== gen.current) return; // a folha foi reaberta (outra refeição): esta resposta não é mais desta sessão
         applyLog(log);
         if (rec.current.legacy) await reloadMeal();
+        if (g !== gen.current) return;
         failedKeys.current.delete(key);
         setInflight((prev) => prev.filter((o) => o.key !== key));
-        setLastAdded({ first: before, count: items.length });
+        const present = new Set(uidsRef.current);
+        const batch = items.map((w) => (w.clientKey ? uidByKey.current.get(w.clientKey) : undefined)).filter((u): u is string => !!u && present.has(u));
+        setLastAdded(batch.length > 0 ? batch : null);
         onChangedRef.current?.(log);
       } catch (err) {
+        if (g !== gen.current) return;
         failedKeys.current.add(key);
         setInflight((prev) => prev.map((o) => (o.key === key ? { ...o, status: "failed", error: errorMessage(err) } : o)));
       }
@@ -239,18 +303,22 @@ export function useMealWorkspace({
     [applyLog, mealId, reloadMeal]
   );
 
-  /** Grava já os itens confirmados. Devolve a chave da operação (para "Tentar de novo"). */
+  /** Grava já os itens confirmados (em fila). */
   const addItems = useCallback(
     (items: WorkingItem[], meta: AddMeta) => {
       if (items.length === 0) return;
-      const keyed = items.map((w) => ({ ...w, clientKey: w.clientKey ?? newKey() }));
+      const keyed = items.map((w) => {
+        const clientKey = w.clientKey ?? newKey();
+        if (!uidByKey.current.has(clientKey)) registerKey(clientKey, newKey());
+        return { ...w, clientKey };
+      });
       const key = newKey();
       addMetaRef.current.set(key, meta);
       setNotice(null);
       setInflight((prev) => [...prev, { key, items: keyed, status: "saving" }]);
       void enqueue(() => runAdd(key, keyed, meta));
     },
-    [enqueue, runAdd]
+    [enqueue, registerKey, runAdd]
   );
 
   const retry = useCallback(
@@ -258,7 +326,6 @@ export function useMealWorkspace({
       const op = inflight.find((o) => o.key === key);
       const meta = addMetaRef.current.get(key);
       if (!op || !meta) return;
-      failedKeys.current.delete(key);
       setInflight((prev) => prev.map((o) => (o.key === key ? { ...o, status: "saving", error: undefined } : o)));
       void enqueue(() => runAdd(key, op.items, meta));
     },
@@ -273,13 +340,14 @@ export function useMealWorkspace({
 
   // ── editar / remover (PATCH com itens `existing`) ────────────────────────
   const runPatch = useCallback(
-    async (build: (current: PersistedIntakeItem[]) => IntakeItemRequest[]) => {
+    async (build: (current: PersistedIntakeItem[], currentUids: string[]) => PatchPlan) => {
       const r = rec.current;
       if (r.logId == null) return;
+      const g = gen.current;
       setPatching(true);
       try {
-        const items = build(savedRef.current);
-        if (items.length === 0) {
+        const plan = build(savedRef.current, uidsRef.current);
+        if (plan.requests.length === 0) {
           await deleteIntakeLog(r.logId);
           // linhas legadas irmãs: o servidor consolida no PATCH, mas apagar tudo exige apagar todas
           if (r.legacy) {
@@ -287,21 +355,25 @@ export function useMealWorkspace({
             const meal = day.meals.find((m) => m.sourceLogIds.includes(r.logId!));
             if (meal) await Promise.all(meal.sourceLogIds.filter((id) => id !== r.logId).map((id) => deleteIntakeLog(id)));
           }
+          if (g !== gen.current) return;
           rec.current = { logId: null, updatedAt: undefined, legacy: false, dateKey: r.dateKey, label: null };
-          setSavedBoth([]);
+          setSavedBoth([], []);
+          setLastAdded(null);
           onChangedRef.current?.(null);
           return;
         }
         const log = await updateIntakeLog(r.logId, {
           label: r.label ?? "Refeição",
-          items,
+          items: plan.requests,
           source: "manual",
           ...(r.updatedAt !== undefined ? { baseUpdatedAt: r.updatedAt } : {}),
         });
+        if (g !== gen.current) return;
         rec.current.legacy = false; // o servidor consolidou as irmãs
-        applyLog(log);
+        applyLog(log, plan.nextUids);
         onChangedRef.current?.(log);
       } catch (err) {
+        if (g !== gen.current) return;
         if (err instanceof NutritionIntakeApiError && err.status === 409) await reloadMeal().catch(() => undefined);
         setNotice(errorMessage(err));
       } finally {
@@ -311,23 +383,51 @@ export function useMealWorkspace({
     [applyLog, reloadMeal, setSavedBoth]
   );
 
-  const keepAll = (current: PersistedIntakeItem[]): IntakeItemRequest[] => current.map((_, index) => ({ kind: "existing", index }));
+  /** Pega (e zera) as remoções pendentes — vão juntas no próximo PATCH, contra o MESMO estado. */
+  const takeRemovals = useCallback((): string[] => {
+    if (removalTimer.current) clearTimeout(removalTimer.current);
+    const taken = removalUids.current;
+    removalUids.current = [];
+    setPendingRemovals([]);
+    return taken;
+  }, []);
+
+  /**
+   * Enfileira UM patch: remove `remove` (+ as remoções pendentes) e, opcionalmente, troca um item. Tudo é resolvido
+   * por `uid` NA EXECUÇÃO, contra a lista que o servidor tem naquele momento — um índice capturado no toque ficaria
+   * obsoleto se outro PATCH da fila encolhesse a lista antes.
+   */
+  const queuePatch = useCallback(
+    (extra: { remove?: string[]; replace?: { uid: string; edited: WorkingItem } } = {}) => {
+      const drop = new Set<string>([...takeRemovals(), ...(extra.remove ?? [])]);
+      return enqueue(() =>
+        runPatch((current, currentUids) => {
+          const requests: IntakeItemRequest[] = [];
+          const nextUids: string[] = [];
+          current.forEach((_, i) => {
+            const u = currentUids[i];
+            if (drop.has(u)) return;
+            requests.push(extra.replace?.uid === u ? previewToRequest(extra.replace.edited) : { kind: "existing", index: i });
+            nextUids.push(u);
+          });
+          return { requests, nextUids };
+        })
+      );
+    },
+    [enqueue, runPatch, takeRemovals]
+  );
 
   const commitRemoval = useCallback(() => {
-    const idx = removalIdx.current;
-    if (idx == null) return Promise.resolve();
-    removalIdx.current = null;
-    if (removalTimer.current) clearTimeout(removalTimer.current);
-    setPendingRemoval(null);
-    return enqueue(() => runPatch((current) => keepAll(current).filter((_, i) => i !== idx)));
-  }, [enqueue, runPatch]);
+    if (removalUids.current.length === 0) return Promise.resolve();
+    return queuePatch();
+  }, [queuePatch]);
 
-  /** Remove o item `index` com janela de "Desfazer"; remover o último apaga a refeição (a UI confirma antes). */
+  /** Remove o item `uid` com janela de "Desfazer"; remover o último apaga a refeição (a UI confirma antes). */
   const removeItem = useCallback(
-    (index: number) => {
-      void commitRemoval();
-      removalIdx.current = index;
-      setPendingRemoval(index);
+    (uid: string) => {
+      if (removalUids.current.includes(uid)) return;
+      removalUids.current = [...removalUids.current, uid];
+      setPendingRemovals(removalUids.current);
       setLastAdded(null);
       if (removalTimer.current) clearTimeout(removalTimer.current);
       removalTimer.current = setTimeout(() => void commitRemoval(), UNDO_WINDOW_MS);
@@ -337,32 +437,26 @@ export function useMealWorkspace({
 
   const undoRemoval = useCallback(() => {
     if (removalTimer.current) clearTimeout(removalTimer.current);
-    removalIdx.current = null;
-    setPendingRemoval(null);
+    removalUids.current = [];
+    setPendingRemovals([]);
   }, []);
 
-  /** Troca o item salvo `index` por uma versão editada (re-resolvida no servidor); os demais ficam como estão. */
+  /** Troca o item salvo `uid` por uma versão editada (re-resolvida no servidor); os demais ficam como estão. */
   const replaceItem = useCallback(
-    (index: number, edited: WorkingItem) => {
-      void commitRemoval();
+    (uid: string, edited: WorkingItem) => {
       setLastAdded(null);
-      return enqueue(() =>
-        runPatch((current) => keepAll(current).map((req, i) => (i === index ? previewToRequest(edited) : req)))
-      );
+      return queuePatch({ replace: { uid, edited } });
     },
-    [commitRemoval, enqueue, runPatch]
+    [queuePatch]
   );
 
-  /** Desfaz o último lote adicionado (remove exatamente esses itens). */
+  /** Desfaz o último lote adicionado (remove exatamente esses itens, onde quer que estejam agora). */
   const undoLastAdd = useCallback(() => {
-    const info = lastAdded;
-    if (!info) return;
+    const batch = lastAdded;
+    if (!batch) return;
     setLastAdded(null);
-    void commitRemoval();
-    void enqueue(() =>
-      runPatch((current) => keepAll(current).filter((_, i) => i < info.first || i >= info.first + info.count))
-    );
-  }, [commitRemoval, enqueue, lastAdded, runPatch]);
+    void queuePatch({ remove: batch });
+  }, [lastAdded, queuePatch]);
 
   /** Espera tudo que está gravando. `ok` = nada falhou (nada ficou sem salvar). */
   const flush = useCallback(async () => {
@@ -371,9 +465,10 @@ export function useMealWorkspace({
     return { ok: failedKeys.current.size === 0 };
   }, [commitRemoval]);
 
-  const visibleSaved = saved
-    .map((item, index) => ({ item, index }))
-    .filter(({ index }) => index !== pendingRemoval);
+  const hidden = new Set(pendingRemovals);
+  const visibleSaved: SavedEntry[] = saved
+    .map((item, index) => ({ item, index, uid: uids[index] }))
+    .filter(({ uid }) => uid && !hidden.has(uid));
 
   const totals = visibleSaved.reduce(
     (acc, { item }) => ({
@@ -393,7 +488,7 @@ export function useMealWorkspace({
     notice,
     busy: patching || inflight.some((o) => o.status === "saving"),
     hasFailed: inflight.some((o) => o.status === "failed"),
-    pendingRemoval,
+    pendingRemovalCount: pendingRemovals.length,
     lastAdded,
     logId: rec.current.logId,
     label: rec.current.label,
