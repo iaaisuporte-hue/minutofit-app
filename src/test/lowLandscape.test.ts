@@ -47,6 +47,7 @@ describe("paisagem baixa — condição única", () => {
 const LOW_VIEWPORT = [
   "@media (max-width: 980px) and (max-height: 480px)",
   "@media (max-width: 980px) and (max-height: 700px)",
+  "@media (max-width: 980px) and (max-height: 400px) and (orientation: portrait)",
 ];
 describe("alturas baixas fora do low-landscape — só condições nomeadas", () => {
   for (const f of ["../pages/user/userMessages.css", "../pages/personal/messagesPersonal.css", "../pages/personal/personalPremium.css"]) {

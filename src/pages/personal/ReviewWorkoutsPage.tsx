@@ -657,6 +657,7 @@ export default function ReviewWorkoutsPage() {
         >
           <div
             role="dialog"
+            className="rw-modal"
             aria-modal="true"
             aria-label="Revisão de ficha"
             onClick={(e) => e.stopPropagation()}

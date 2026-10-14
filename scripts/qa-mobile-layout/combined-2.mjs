@@ -52,6 +52,9 @@ async function enterSession(page) {
   await page.locator('.wmp__body').click();
   await page.waitForSelector('.ws-root', { timeout: 8000 });
   await page.waitForTimeout(900);
+  // O estado de treino ativo pode nascer em descanso (série já concluída): pula para medir a barra de ação.
+  const skip = page.locator('.ws-rest-btn-skip');
+  if (await skip.count()) { await skip.first().click(); await page.waitForTimeout(500); }
 }
 
 const geom = (page) => page.evaluate(() => {
