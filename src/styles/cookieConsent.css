@@ -259,3 +259,36 @@ html.has-cookie-consent .auth-page {
   color: var(--color-text);
   border-color: var(--color-border);
 }
+
+/* Onda 2 (Aluno) — paisagem baixa (844x390): cookie + mini-player + nav deixavam ~60px de conteúdo.
+   O banner vira UMA faixa (detalhes | caixa de aceite | botões). As duas opções de consentimento, o
+   aviso e o link continuam visíveis e os botões voltam a 44px. Texto, regras e persistência (LGPD)
+   não mudam. */
+@media (max-height: 500px) and (orientation: landscape) {
+  .cookie-consent {
+    padding-top: 6px;
+  }
+  .cookie-consent__inner {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas: "text check actions";
+    align-items: center;
+    padding: 8px 14px;
+    gap: 0 14px;
+    max-height: none;
+  }
+  .cookie-consent__text,
+  .cookie-consent__details {
+    margin: 0;
+  }
+  .cookie-consent__check {
+    font-size: 12px;
+    line-height: 1.3;
+  }
+  .cookie-consent__actions {
+    align-self: center;
+    flex-wrap: nowrap;
+  }
+  .cookie-consent__btn {
+    min-height: 44px;
+  }
+}

@@ -34,6 +34,6 @@ describe("layout contract — bottom nav reserve", () => {
 
   it("a topbar mobile é sticky e respeita a safe-area do topo", () => {
     expect(components).toMatch(/\.mobileTopBar\b[\s\S]*?position:\s*sticky/);
-    expect(components).toMatch(/padding-top:\s*calc\([^)]*env\(safe-area-inset-top/);
+    expect(components).toMatch(/padding-top:\s*calc\((?:[^()]|\([^)]*\))*env\(safe-area-inset-top/);
   });
 });
