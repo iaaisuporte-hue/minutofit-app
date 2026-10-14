@@ -166,6 +166,10 @@
 
 /* ── Conversation card ── */
 .mp-conv-card {
+  /* Botão como bloco: o preview (nowrap + ellipsis) respeita a largura do cartão em vez de vazar pela direita. */
+  display: block;
+  min-width: 0;
+  overflow: hidden;
   width: 100%;
   text-align: left;
   padding: 12px 14px;
@@ -753,6 +757,11 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+  /* o telefone (contato do aluno) quebra de linha em vez de ser cortado pelo selo "Conversa ativa" */
+  .mp-thread-header-sub {
+    flex-wrap: wrap;
+    white-space: normal;
   }
   .mp-thread-header .mp-pill {
     flex: none;
