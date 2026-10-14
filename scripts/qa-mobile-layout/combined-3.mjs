@@ -58,6 +58,44 @@ const names = (page) => page.evaluate(() => [...document.querySelectorAll('[data
 const effArea = (page, sel) => page.evaluate((s) => { const e = document.querySelector(s); e.scrollIntoView({ block: 'center' }); const b = e.getBoundingClientRect(); let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9; for (let y = Math.floor(b.top - 24); y <= b.bottom + 24; y += 2) for (let x = Math.floor(b.left - 24); x <= b.right + 24; x += 2) { const h = document.elementFromPoint(x, y); if (h && (e === h || e.contains(h))) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); } } return [x1 - x0 + 2, y1 - y0 + 2]; }, sel);
 
 const SCEN = {
+  // ── P2: mensagens do Personal ──────────────────────────────────────────────
+  async p2(browser) {
+    for (const vp of VPS) {
+      const { ctx, page } = await mk(browser, vp, a.personal);
+      const S = 'P2 mensagens do Personal';
+      try {
+        await page.goto(`${BASE}/app/personal/messages`, { waitUntil: 'domcontentloaded' });
+        await page.waitForTimeout(2000);
+        const conv = page.locator('.mp-conv-card').first();
+        if (await conv.count()) { await conv.click().catch(() => {}); await page.waitForTimeout(1200); }
+        await page.waitForSelector('.mp-thread .mp-composer', { timeout: 6000 });
+        // Enviar nasce desabilitado (pointer-events:none) com o campo vazio: digita para medir o toque de verdade (nada é enviado).
+        await page.locator('.mp-composer textarea').fill('Olá').catch(() => {});
+        const geo = () => page.evaluate(() => {
+          const send = [...document.querySelectorAll('.mp-thread button')].find((b) => /Enviar/.test(b.textContent || ''));
+          const sb = send.getBoundingClientRect();
+          const nav = document.querySelector('.mobileBottomNav')?.getBoundingClientRect();
+          const msgs = document.querySelector('.mp-messages-area');
+          const ta = document.querySelector('.mp-composer textarea')?.getBoundingClientRect();
+          const chips = document.querySelector('.mp-chips-row');
+          const h = document.elementFromPoint(sb.left + sb.width / 2, sb.top + sb.height / 2);
+          return { ih: innerHeight, sendTop: sb.top, sendBottom: sb.bottom, taTop: ta?.top ?? null, navTop: nav?.top ?? innerHeight, msgsClient: msgs.clientHeight, msgsScrolls: msgs.scrollHeight > msgs.clientHeight, doc: document.documentElement.scrollHeight - innerHeight, chipsH: chips ? chips.getBoundingClientRect().height : 0, sendFree: !!h && (send === h || send.contains(h)), hit: h ? `${h.tagName}.${String(h.className).slice(0, 40)}` : null, sb: [Math.round(sb.left), Math.round(sb.top), Math.round(sb.right), Math.round(sb.bottom)], iw: innerWidth, disabled: send.disabled };
+        });
+        const g = await geo();
+        check(S, vp, 'campo e Enviar visíveis, acima da nav, sem rolar a página', g.sendTop >= 0 && g.sendBottom <= g.navTop + 1 && (g.taTop === null || g.taTop >= 0), JSON.stringify(g));
+        check(S, vp, 'Enviar recebe o toque (não coberto)', g.sendFree, `hit=${g.hit} disabled=${g.disabled} sb=${g.sb} iw=${g.iw} ih=${g.ih}`);
+        check(S, vp, 'a página não vira um documento longo (≤ 130px de rolagem)', g.doc <= 130, `doc-ih=${g.doc}`);
+        check(S, vp, 'sobra área de mensagens (≥ 60px) e ela rola por dentro', g.msgsClient >= 60 && g.msgsScrolls, `client=${g.msgsClient}`);
+        check(S, vp, 'modelos de resposta em uma faixa (≤ 56px)', g.chipsH <= 56, `chips=${Math.round(g.chipsH)}`);
+        await page.setViewportSize({ width: vp.w, height: Math.round(vp.h * 0.6) });
+        await page.waitForTimeout(400);
+        const k = await geo();
+        check(S, vp, 'com teclado simulado (viewport 60%) o Enviar continua visível', k.sendTop >= 0 && k.sendBottom <= k.ih + 1, JSON.stringify(k));
+      } catch (e) { check(S, vp, 'cenário executável', false, String(e.message).split('\n')[0]); }
+      await ctx.close();
+    }
+  },
+
   // ── P1 + builder em paisagem ───────────────────────────────────────────────
   async p1(browser) {
     for (const vp of VPS) {
