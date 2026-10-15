@@ -7,6 +7,7 @@ import { EmptyState } from "../../components/EmptyState";
 import { IntakeLogSheet } from "./IntakeLogSheet";
 import { IntakeLogDetailSheet } from "./IntakeLogDetailSheet";
 import { dayHasPlan } from "./intakeWorking";
+import { chartTooltipProps } from "../charts/chartTooltip";
 import { YesterdayMealsSheet } from "./YesterdayMealsSheet";
 import { getDayIntake, type DayIntakeResponse, type NutritionIntakeMeal } from "../../services/nutritionIntakeApi";
 
@@ -229,10 +230,10 @@ function MealsOfDayList({
               {new Date(meal.loggedAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
             </span>
             <span style={{ minWidth: 0, flex: 1 }}>
-              <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <span style={{ fontSize: 13, fontWeight: 600, color: COLORS.text }}>{meal.label}</span>
+              <span style={{ display: "flex", alignItems: "center", flexWrap: "wrap", columnGap: 6, rowGap: 2 }}>
+                <span style={{ fontSize: 13, fontWeight: 600, color: COLORS.text, overflowWrap: "anywhere" }}>{meal.label}</span>
                 {/* Neutro — a interface registra o que aconteceu, não julga; e só com plano (sem plano não há "fora de quê"). */}
-                {meal.isExtra && hasPlan && <span className="badge badge-neutral" style={{ fontSize: 10 }}>Fora do plano</span>}
+                {meal.isExtra && hasPlan && <span className="badge badge-neutral" style={{ fontSize: 10, whiteSpace: "nowrap", flex: "none" }}>Fora do plano</span>}
               </span>
               {meal.items.length > 0 && (
                 <span className="muted" style={{ fontSize: 12, display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
@@ -240,7 +241,7 @@ function MealsOfDayList({
                 </span>
               )}
             </span>
-            <span style={{ fontSize: 12, fontWeight: 700, color: COLORS.text, flexShrink: 0 }}>{Math.round(meal.energyKcal)} kcal</span>
+            <span style={{ fontSize: 12, fontWeight: 700, color: COLORS.text, flexShrink: 0, whiteSpace: "nowrap" }}>{Math.round(meal.energyKcal)} kcal</span>
             <ChevronRight size={16} className="muted" style={{ flexShrink: 0 }} />
           </button>
         ))}
@@ -420,13 +421,13 @@ function DayEvolutionChart({
       )}
       <div style={{ height: 160 }}>
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={rows} margin={{ top: 4, right: 8, bottom: 0, left: -20 }}>
+          <LineChart data={rows} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
             <XAxis dataKey="slot" tick={{ fontSize: 10, fill: "var(--color-text-muted)" }} tickLine={false} axisLine={false} />
-            <YAxis width={36} tick={{ fontSize: 10, fill: "var(--color-text-muted)" }} tickLine={false} axisLine={false} />
+            <YAxis width={40} tick={{ fontSize: 10, fill: "var(--color-text-muted)" }} tickLine={false} axisLine={false} />
             <Tooltip
               formatter={(value, name) => [`${value} kcal`, name === "planejado" ? "Planejado" : "Registrado"]}
-              contentStyle={{ fontSize: 12, borderRadius: 8 }}
+              {...chartTooltipProps}
             />
             <Line type="monotone" dataKey="planejado" name="planejado" stroke="var(--color-text-muted)" strokeWidth={2} strokeDasharray="4 3" dot={false} connectNulls />
             <Line type="monotone" dataKey="registrado" name="registrado" stroke="var(--color-primary)" strokeWidth={2} dot={{ r: 3 }} connectNulls />

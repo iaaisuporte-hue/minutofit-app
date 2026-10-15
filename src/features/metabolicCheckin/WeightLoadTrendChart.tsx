@@ -1,3 +1,4 @@
+import { chartTooltipProps } from '../charts/chartTooltip';
 import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import type { MetabolicCheckinRecord } from './types';
 import type { WorkoutStats } from '../../services/workoutSessionApi';
@@ -85,7 +86,7 @@ export function WeightLoadTrendChart({ records, stats, cutoff }: {
       </div>
       <div className="chart-slot" style={{ height: 240 }}>
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={rows} margin={{ top: 8, right: 8, bottom: 4, left: -12 }}>
+          <LineChart data={rows} margin={{ top: 8, right: 8, bottom: 4, left: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
             <XAxis
               dataKey="t"
@@ -106,7 +107,7 @@ export function WeightLoadTrendChart({ records, stats, cutoff }: {
             <Tooltip
               labelFormatter={(t) => fmtDay(Number(t))}
               formatter={(value, name) => (name === 'Peso' ? [`${value} kg`, 'Peso'] : [`${value} (base 100)`, 'Carga'])}
-              contentStyle={{ fontSize: 12, borderRadius: 8 }}
+              {...chartTooltipProps}
             />
             <Legend />
             {hasWeight && (
