@@ -929,7 +929,8 @@ html[data-color-mode="daltonic"] .navLinkActive {
     gap: var(--nav-item-gap, 4px);
     color: var(--color-text-subtle);
     text-decoration: none;
-    padding: var(--nav-item-py, 8px) 4px;
+    /* 2px: com 4px o rótulo "Alimentação" (≈72px a 10px) truncava em 390 (slot de 78px). */
+    padding: var(--nav-item-py, 8px) 2px;
     transition: color 0.15s ease;
   }
 
@@ -1017,11 +1018,20 @@ html[data-color-mode="daltonic"] .navLinkActive {
   .appShell--withBottomNav .main {
     /* A topbar sticky já cobre a safe-area do topo — zera aqui pra não duplicar. */
     padding-top: 0;
-    padding-left: max(var(--space-3), env(safe-area-inset-left, 0px));
-    padding-right: max(var(--space-3), env(safe-area-inset-right, 0px));
+    --main-px-l: max(var(--space-3), env(safe-area-inset-left, 0px));
+    --main-px-r: max(var(--space-3), env(safe-area-inset-right, 0px));
+    padding-left: var(--main-px-l);
+    padding-right: var(--main-px-r);
     /* Reserva = altura da nav + folga de 32px + área segura. Mesmo token da nav
        (evita regressão de conteúdo escondido). Antes: 80px fixo → folga real de 16px. */
     padding-bottom: calc(var(--bottom-nav-h) + 32px + env(safe-area-inset-bottom) + var(--mini-player-h, 0px) + var(--cookie-consent-h, 0px));
+  }
+
+  /* A topbar sticky é filha do .main: sem isto herdava o recuo lateral (12px) e deixava faixas por onde o conteúdo
+     rolando aparecia ao lado dela. Sangra até a borda; o padding PRÓPRIO dela já trata a safe-area lateral. */
+  .appShell--withBottomNav .mobileTopBar {
+    margin-left: calc(-1 * var(--main-px-l));
+    margin-right: calc(-1 * var(--main-px-r));
   }
 
 }
