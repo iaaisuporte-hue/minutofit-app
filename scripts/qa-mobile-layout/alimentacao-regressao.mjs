@@ -31,7 +31,7 @@ const check = (id, name, ok, detail) => { results.push({ id, name, ok, detail })
 
 const browser = await chromium.launch({ executablePath: CHROME, args: ['--no-sandbox'] });
 async function open(w, h, { scheme = 'light', scale = 1 } = {}) {
-  const ctx = await browser.newContext({ viewport: { width: w, height: h }, hasTouch: true, isMobile: true, deviceScaleFactor: 2, locale: 'pt-BR', colorScheme: scheme });
+  const ctx = await browser.newContext({ viewport: { width: w, height: h }, hasTouch: true, isMobile: false, deviceScaleFactor: 2, locale: 'pt-BR', colorScheme: scheme });
   await ctx.route((u) => !['localhost', '127.0.0.1'].includes(new URL(u).hostname), (r) => r.abort());
   await ctx.addInitScript(({ a, r }) => {
     localStorage.setItem('corefit_cookie_consent_v1', JSON.stringify({ version: 1, decidedAt: new Date().toISOString(), essential: true, analytics: false }));
@@ -94,15 +94,15 @@ for (const [w, h] of [[390, 844], [320, 568]]) {
     const last = document.querySelector('.pageBottomSafe').lastElementChild.getBoundingClientRect().bottom;
     return { gap: Math.round(nav.top - last) };
   });
-  check('R5', `vazio no fim da página ≤ 120px (${w}x${h})`, m.gap >= 0 && m.gap <= 120, JSON.stringify(m));
+  check('R5', `vazio visível no fim da página entre 0 e 72px (${w}x${h})`, m.gap >= 0 && m.gap <= 72, JSON.stringify(m));
   await ctx.close();
 }
 
-// R6 — rótulo da aba Alimentação em 390
-{
-  const { ctx, page } = await open(390, 844);
+// R6 — rótulo da aba Alimentação completo em 360 e 390 (320: reticências aceitas e documentadas)
+for (const [w, h] of [[390, 844], [360, 740]]) {
+  const { ctx, page } = await open(w, h);
   const m = await page.evaluate(() => { const l = [...document.querySelectorAll('.mobileBottomNav__label')].find((e) => /Aliment/.test(e.textContent)); return { sw: l.scrollWidth, cw: l.clientWidth }; });
-  check('R6', 'rótulo "Alimentação" completo em 390', m.sw <= m.cw, JSON.stringify(m));
+  check('R6', `rótulo "Alimentação" completo em ${w}`, m.sw <= m.cw, JSON.stringify(m));
   await ctx.close();
 }
 

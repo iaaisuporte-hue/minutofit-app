@@ -1,0 +1,78 @@
+[
+ {
+  "vp": "390x844",
+  "pos": {
+   "top": {
+    "scrollY": 0,
+    "tb": [
+     0,
+     0,
+     390,
+     61
+    ],
+    "nav": [
+     0,
+     780,
+     390,
+     844
+    ],
+    "belowTb": "div.",
+    "aboveNav": "svg.[object",
+    "docScrollH": 1887,
+    "bodyScrollTop": 0
+   },
+   "mid": {
+    "scrollY": 522,
+    "tb": [
+     0,
+     0,
+     390,
+     61
+    ],
+    "nav": [
+     0,
+     780,
+     390,
+     844
+    ],
+    "belowTb": "div.",
+    "aboveNav": "div.",
+    "docScrollH": 1887,
+    "bodyScrollTop": 0
+   },
+   "bottom": {
+    "scrollY": 1043,
+    "tb": [
+     0,
+     0,
+     390,
+     61
+    ],
+    "nav": [
+     0,
+     780,
+     390,
+     844
+    ],
+    "belowTb": "div.",
+    "aboveNav": "main.main",
+    "docScrollH": 1887,
+    "bodyScrollTop": 0
+   }
+  },
+  "misc": {
+   "over": [],
+   "trunc": [
+    "Pão francês integral com 2 ovos mexidos no azeite,"
+   ],
+   "hscroll": false,
+   "topbarW": [
+    0,
+    390
+   ],
+   "mainPadTop": "0px",
+   "mainPadBot": "96px",
+   "bottomSafePad": "88px"
+  }
+ }
+]

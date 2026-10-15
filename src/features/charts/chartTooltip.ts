@@ -12,7 +12,7 @@ export const chartTooltipProps: {
   itemStyle: CSSProperties;
 } = {
   contentStyle: {
-    background: "var(--color-surface)",
+    backgroundColor: "var(--color-surface)",
     border: "1px solid var(--color-border)",
     borderRadius: 8,
     fontSize: 12,

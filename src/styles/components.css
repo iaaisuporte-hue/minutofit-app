@@ -532,11 +532,6 @@ html[data-color-mode="daltonic"] .navLinkActive {
 .pageBottomSafe {
   padding: 0 16px 40px;
 }
-@media (max-width: 719px) {
-  .pageBottomSafe {
-    padding-bottom: calc(var(--bottom-nav-h, 64px) + 24px + env(safe-area-inset-bottom, 0px));
-  }
-}
 
 .nutritionPageGrid {
   display: block;
@@ -955,7 +950,8 @@ html[data-color-mode="daltonic"] .navLinkActive {
   }
 
   .mobileBottomNav__label {
-    font-size: 10px;
+    /* Fluido (sem breakpoint novo): 10px a partir de ~385px; 9,4px em 360 — o rótulo "Alimentação" (≈72px a 10px) cabe no slot de 72px. */
+    font-size: clamp(9px, 2.6vw, 10px);
     font-weight: 600;
     letter-spacing: 0.02em;
     line-height: 1;
@@ -1025,6 +1021,12 @@ html[data-color-mode="daltonic"] .navLinkActive {
     /* Reserva = altura da nav + folga de 32px + área segura. Mesmo token da nav
        (evita regressão de conteúdo escondido). Antes: 80px fixo → folga real de 16px. */
     padding-bottom: calc(var(--bottom-nav-h) + 32px + env(safe-area-inset-bottom) + var(--mini-player-h, 0px) + var(--cookie-consent-h, 0px));
+  }
+
+  /* A reserva da bottom nav já está no padding-bottom do .main (nav + 32px + safe-area). O .pageBottomSafe somava OUTRA
+     (nav + 24px) por cima: ~120px de vazio acima da nav em vez de 32px. */
+  .appShell--withBottomNav .pageBottomSafe {
+    padding-bottom: 0;
   }
 
   /* A topbar sticky é filha do .main: sem isto herdava o recuo lateral (12px) e deixava faixas por onde o conteúdo
