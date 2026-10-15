@@ -189,6 +189,16 @@ public class WorkoutForegroundService extends Service {
         String acao = intent == null ? ACTION_START : intent.getAction();
         if (acao == null) acao = ACTION_START;
 
+        // Contrato do `startForegroundService`: quem chegou por ele PRECISA chamar `startForeground()`, mesmo para parar.
+        // Ações que só fazem sentido com o serviço ativo (parar, atualizar, ligar/desligar voz, wake word) chegando com
+        // `ativo == false` (processo reiniciado, serviço já encerrado) antes só davam `break`/`encerrar()` sem nunca subir
+        // para o primeiro plano → `ForegroundServiceDidNotStartInTimeException`, que mata o app. Cumpre o contrato e encerra.
+        if (!ativo && exigeServicoAtivo(acao)) {
+            cumprirContratoDeForeground();
+            encerrar();
+            return START_NOT_STICKY;
+        }
+
         switch (acao) {
             case ACTION_UPDATE: {
                 String titulo = intent != null ? intent.getStringExtra(EXTRA_TITLE) : null;
@@ -421,6 +431,31 @@ public class WorkoutForegroundService extends Service {
         textoAtual = texto;
         NotificationManager nm = getSystemService(NotificationManager.class);
         if (nm != null) nm.notify(NOTIFICACAO_ID, construirNotificacao(titulo, texto));
+    }
+
+    /** Ações que não criam o serviço: só têm efeito com ele já em primeiro plano. */
+    private static boolean exigeServicoAtivo(String acao) {
+        return ACTION_STOP.equals(acao)
+                || ACTION_UPDATE.equals(acao)
+                || ACTION_ENABLE_VOICE.equals(acao)
+                || ACTION_DISABLE_VOICE.equals(acao)
+                || ACTION_WAKE_STOP.equals(acao)
+                || ACTION_WAKE_SUSPEND.equals(acao)
+                || ACTION_WAKE_RESUME.equals(acao);
+    }
+
+    /** Sobe um instante para o primeiro plano só para cumprir o contrato do `startForegroundService`; `encerrar()` remove em seguida. */
+    private void cumprirContratoDeForeground() {
+        try {
+            Notification n = construirNotificacao(tituloAtual, textoAtual);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                startForeground(NOTIFICACAO_ID, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC);
+            } else {
+                startForeground(NOTIFICACAO_ID, n);
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "startForeground (contrato) negado: " + e.getMessage());
+        }
     }
 
     private void encerrar() {

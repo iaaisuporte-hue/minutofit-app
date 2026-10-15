@@ -44,8 +44,26 @@ public class WorkoutLivePlugin extends Plugin {
         call.resolve();
     }
 
+    /**
+     * Parar um serviço que NÃO está em primeiro plano não pode passar por `startForegroundService`.
+     *
+     * Desde o Android 8 todo `startForegroundService` obriga o serviço a chamar `startForeground()` em segundos; senão o
+     * sistema lança `ForegroundServiceDidNotStartInTimeException` e derruba o PROCESSO inteiro (o app "fecha sozinho").
+     * O "Encerrar treino" do card de treino pendente chama `stop` justamente quando o processo já morreu e o serviço não
+     * existe mais (`estaAtivo()` é falso) — o caminho em que o `ACTION_STOP` nunca subia o serviço para o primeiro plano.
+     * Sem serviço ativo, basta `stopService` (não cria nada, não tem contrato de `startForeground`).
+     */
     @PluginMethod
     public void stop(PluginCall call) {
+        if (!WorkoutForegroundService.estaAtivo()) {
+            try {
+                getContext().stopService(new Intent(getContext(), WorkoutForegroundService.class));
+            } catch (Exception ignorado) {
+                // Parar o que não existe nunca pode derrubar o app nem falhar o fluxo de abandono.
+            }
+            call.resolve();
+            return;
+        }
         enviarAcao(WorkoutForegroundService.ACTION_STOP, null, null);
         call.resolve();
     }

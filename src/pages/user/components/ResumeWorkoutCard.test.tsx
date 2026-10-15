@@ -11,7 +11,8 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { saveDraft, type DraftExercise } from "../workoutSession/sessionDraft";
+import { saveDraft, loadDraft, type DraftExercise } from "../workoutSession/sessionDraft";
+import { fecharTopo, overlaysAbertos, __limparOverlays } from "../../../lib/overlayStack";
 
 const parar = vi.fn();
 const cancelarLembretesTreino = vi.fn();
@@ -56,6 +57,7 @@ function semearTreinoAberto() {
 }
 
 beforeEach(() => {
+  __limparOverlays();
   localStorage.clear();
   vi.clearAllMocks();
   cancelarLembretesTreino.mockResolvedValue(undefined);
@@ -102,5 +104,80 @@ describe("ResumeWorkoutCard — encerrar sem nunca abrir a tela do treino", () =
     await user.click(screen.getByRole("button", { name: "Continuar treino" }));
 
     expect(parar).not.toHaveBeenCalled();
+  });
+});
+
+describe("ResumeWorkoutCard — abandonar treino pendente (Android: o app não pode fechar)", () => {
+  const abrirConfirmacao = async (user: ReturnType<typeof userEvent.setup>) => {
+    semearTreinoAberto();
+    render(<MemoryRouter><ResumeWorkoutCard /></MemoryRouter>);
+    await screen.findByText(/treino em andamento/i);
+    await user.click(screen.getByRole("button", { name: "Encerrar treino" }));
+  };
+
+  it("abre a confirmação e NÃO toca em nada até decidir", async () => {
+    const user = userEvent.setup();
+    await abrirConfirmacao(user);
+    expect(screen.getByText("Encerrar o treino em andamento?")).toBeInTheDocument();
+    expect(parar).not.toHaveBeenCalled();
+    expect(loadDraft(7, 2)).not.toBeNull();
+  });
+
+  it('"Voltar" cancela: o treino segue pendente, rascunho intacto, superfície nativa não é tocada', async () => {
+    const user = userEvent.setup();
+    await abrirConfirmacao(user);
+    await user.click(screen.getByRole("button", { name: "Voltar" }));
+    expect(screen.queryByText("Encerrar o treino em andamento?")).not.toBeInTheDocument();
+    expect(screen.getByText(/treino em andamento/i)).toBeInTheDocument();
+    expect(loadDraft(7, 2)).not.toBeNull();
+    expect(parar).not.toHaveBeenCalled();
+    expect(cancelarLembretesTreino).not.toHaveBeenCalled();
+  });
+
+  it("confirmar descarta o rascunho e executa a operação UMA vez; o card some e a tela continua funcional", async () => {
+    const user = userEvent.setup();
+    await abrirConfirmacao(user);
+    await user.click(screen.getByRole("button", { name: "Encerrar" }));
+    await waitFor(() => expect(screen.queryByText(/treino em andamento/i)).not.toBeInTheDocument());
+    expect(loadDraft(7, 2)).toBeNull();
+    expect(parar).toHaveBeenCalledTimes(1);
+    expect(cancelarLembretesTreino).toHaveBeenCalledTimes(1);
+  });
+
+  it("duplo toque em confirmar (mesma tarefa, antes do re-render) NÃO duplica a operação", async () => {
+    const user = userEvent.setup();
+    await abrirConfirmacao(user);
+    const btn = screen.getByRole("button", { name: "Encerrar" });
+    (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = false;
+    try {
+      btn.click();
+      btn.click();
+    } finally {
+      (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+    }
+    await waitFor(() => expect(parar).toHaveBeenCalled());
+    expect(parar).toHaveBeenCalledTimes(1);
+    expect(cancelarLembretesTreino).toHaveBeenCalledTimes(1);
+  });
+
+  it("botão voltar do Android com a confirmação aberta fecha SÓ a confirmação (pilha de overlays)", async () => {
+    const user = userEvent.setup();
+    await abrirConfirmacao(user);
+    expect(overlaysAbertos()).toBe(1);
+    expect(fecharTopo()).toBe(true); // é o que a NativeAppBridge chama no evento backButton
+    await waitFor(() => expect(screen.queryByText("Encerrar o treino em andamento?")).not.toBeInTheDocument());
+    expect(overlaysAbertos()).toBe(0);
+    expect(screen.getByText(/treino em andamento/i)).toBeInTheDocument();
+    expect(loadDraft(7, 2)).not.toBeNull();
+    expect(fecharTopo()).toBe(false); // sem confirmação, o back segue a navegação prevista (a bridge decide)
+  });
+
+  it("falha ao desligar a superfície nativa NÃO impede o abandono nem derruba a tela", async () => {
+    parar.mockImplementationOnce(() => { throw new Error("plugin indisponível"); });
+    const user = userEvent.setup();
+    await abrirConfirmacao(user);
+    await user.click(screen.getByRole("button", { name: "Encerrar" }));
+    await waitFor(() => expect(screen.queryByText(/treino em andamento/i)).not.toBeInTheDocument());
+    expect(loadDraft(7, 2)).toBeNull();
   });
 });

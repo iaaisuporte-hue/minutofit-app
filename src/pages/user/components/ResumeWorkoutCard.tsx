@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { ConfirmDialog } from "../../../components/ConfirmDialog";
 import {
@@ -28,6 +28,8 @@ export function ResumeWorkoutCard() {
   const location = useLocation();
   const [session, setSession] = useState<InProgressSession | null>(null);
   const [confirmEnd, setConfirmEnd] = useState(false);
+  // Dois toques na MESMA tarefa passam os dois antes do re-render que esconde o botão: o ref fecha a porta na hora.
+  const encerrando = useRef(false);
 
   const refresh = useCallback(() => setSession(findInProgressSession()), []);
 
@@ -82,7 +84,10 @@ export function ResumeWorkoutCard() {
           <button
             type="button"
             className="resume-workout__btn resume-workout__btn--ghost"
-            onClick={() => setConfirmEnd(true)}
+            onClick={() => {
+              encerrando.current = false;
+              setConfirmEnd(true);
+            }}
           >
             Encerrar treino
           </button>
@@ -101,6 +106,8 @@ export function ResumeWorkoutCard() {
         cancelLabel="Voltar"
         danger
         onConfirm={() => {
+          if (encerrando.current) return;
+          encerrando.current = true;
           discardInProgressSession(session);
           // Encerrar aqui é fechar o treino: os lembretes pendentes daquela
           // sessão perdem o objeto e não podem tocar depois.
@@ -112,7 +119,11 @@ export function ResumeWorkoutCard() {
           // NENHUM efeito React vivo para desligá-lo; sem esta chamada a
           // notificação do treino ficaria órfã. Mesmo raciocínio do descarte
           // de rascunho do Tracker outdoor (P1B).
-          createWorkoutLiveSurface().parar();
+          try {
+            createWorkoutLiveSurface().parar();
+          } catch {
+            // Desligar a superfície nativa é melhor-esforço: nunca pode impedir o abandono nem derrubar a tela.
+          }
           setConfirmEnd(false);
           refresh();
         }}
