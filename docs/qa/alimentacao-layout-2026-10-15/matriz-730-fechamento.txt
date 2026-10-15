@@ -1,0 +1,33 @@
+ID   Sev  Status        Exec/Esp  Hits  Viewports afetados
+G1   P1   REFUTADO      9/9       0     
+G2   P1   REFUTADO      24/24     0     
+G3   P1   REFUTADO      36/36     0     
+G4   P2   REFUTADO      9/9       0     
+G5   P2   REFUTADO      6/6       0     
+G6   P2   REFUTADO      24/24     0     
+G7   P2   PARCIAL       32/32     5     320x568,360x740,375x667,844x390,932x430
+G8   P2   NÃO TESTADO   4/16      0     
+A1   P1   REFUTADO      6/6       0     
+A2   P1   REFUTADO      9/9       0     
+A3   P1   BLOQUEADO     0/9       0       [bloq: câmera e MediaPipe (CDN) indisponíveis no ambiente isolado; ]
+A4   P1   REFUTADO      10/10     0     
+A5   P1   REFUTADO      2/2       0     
+A6   P2   REFUTADO      3/3       0     
+A7   P2   REFUTADO      8/8       0     
+A8   P2   REFUTADO      6/6       0     
+A9   P2   REFUTADO      9/9       0     
+A10  P2   REFUTADO      2/2       0     
+A11  P2   REFUTADO      9/9       0     
+A12  P2   BLOQUEADO     2/11      0       [bloq: câmera indisponível: o canvas só renderiza com o stream]
+P1   P1   REFUTADO      3/3       0     
+P2   P1   REFUTADO      14/14     0     
+P3   P1   REFUTADO      5/5       0     
+P4   P1   REFUTADO      6/6       0     
+P5   P2   REFUTADO      6/6       0     
+P6   P2   REFUTADO      4/4       0     
+P7   P2   REFUTADO      6/6       0     
+P8   P2   REFUTADO      12/12     0     
+P9   P2   REFUTADO      18/18     0     
+N1   P2   REFUTADO      6/6       0     
+
+NEW: 71 agrupamentos (P1: 2, P2: 69)

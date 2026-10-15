@@ -925,7 +925,8 @@ html[data-color-mode="daltonic"] .navLinkActive {
     color: var(--color-text-subtle);
     text-decoration: none;
     /* 2px: com 4px o rótulo "Alimentação" (≈72px a 10px) truncava em 390 (slot de 78px). */
-    padding: var(--nav-item-py, 8px) 2px;
+    /* Fluido: 0 em 320px → 2px a partir de 360px (o rótulo "Alimentação" precisa de ~64px no slot de 64px). */
+    padding: var(--nav-item-py, 8px) clamp(0px, calc((100vw - 320px) / 20), 2px);
     transition: color 0.15s ease;
   }
 
@@ -953,7 +954,7 @@ html[data-color-mode="daltonic"] .navLinkActive {
     /* Fluido (sem breakpoint novo): 10px a partir de ~385px; 9,4px em 360 — o rótulo "Alimentação" (≈72px a 10px) cabe no slot de 72px. */
     font-size: clamp(9px, 2.6vw, 10px);
     font-weight: 600;
-    letter-spacing: 0.02em;
+    letter-spacing: clamp(0em, calc((100vw - 320px) / 2000), 0.02em);
     line-height: 1;
     max-width: 100%;
     white-space: nowrap;
@@ -1009,6 +1010,14 @@ html[data-color-mode="daltonic"] .navLinkActive {
 
   .appShell--withMobileHeader:not(.appShell--withBottomNav) .main {
     padding-top: 0;
+    /* Mesmo recuo lateral do `.main` genérico (space-4), exposto em variável para a topbar sangrar até a borda. */
+    --main-px-l: max(var(--space-4), env(safe-area-inset-left, 0px));
+    --main-px-r: max(var(--space-4), env(safe-area-inset-right, 0px));
+  }
+
+  .appShell--withMobileHeader:not(.appShell--withBottomNav) .mobileTopBar {
+    margin-left: calc(-1 * var(--main-px-l));
+    margin-right: calc(-1 * var(--main-px-r));
   }
 
   .appShell--withBottomNav .main {

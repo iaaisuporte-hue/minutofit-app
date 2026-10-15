@@ -1,3 +1,4 @@
+import { chartTooltipProps } from "../charts/chartTooltip";
 import { useEffect, useMemo, useState } from "react";
 import {
   CartesianGrid,
@@ -86,7 +87,7 @@ function ScoreHistoryChart() {
           <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
           <XAxis dataKey="day" tick={{ fontSize: 10, fill: "var(--color-text-muted)" }} stroke="var(--color-border)" />
           <YAxis domain={[0, 100]} width={30} tick={{ fontSize: 10, fill: "var(--color-text-muted)" }} stroke="var(--color-border)" />
-          <Tooltip
+          <Tooltip labelStyle={chartTooltipProps.labelStyle} itemStyle={chartTooltipProps.itemStyle}
             contentStyle={{
               background: "var(--color-surface)",
               border: "1px solid var(--color-border)",

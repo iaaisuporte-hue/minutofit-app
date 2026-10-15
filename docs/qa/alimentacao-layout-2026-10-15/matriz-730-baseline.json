@@ -1,0 +1,7332 @@
+{
+ "meta": {
+  "startedAt": "2026-10-15T13:59:38.018Z",
+  "browser": "151.0.7922.34",
+  "playwrightCore": "1.64.1",
+  "base": "http://localhost:5174",
+  "api": "http://localhost:3101/api",
+  "chrome": "/home/feverton/.cache/ms-playwright/chromium-1234/chrome-linux64/chrome",
+  "touchDragControl": false,
+  "authErrors": {},
+  "finishedAt": "2026-10-15T14:11:13.958Z",
+  "blockedExternalHosts": {
+   "accounts.google.com": 735,
+   "appleid.cdn-apple.com": 735,
+   "raw.githubusercontent.com": 1790,
+   "cdnjs.cloudflare.com": 18,
+   "c.tile.openstreetmap.org": 18,
+   "a.tile.openstreetmap.org": 19,
+   "b.tile.openstreetmap.org": 17,
+   "www.youtube-nocookie.com": 18
+  },
+  "stubbedWrites": {
+   "POST /api/user/nutrition-target/estimate": 36,
+   "POST /api/user/events": 341,
+   "POST /api/messages/conversations/1/read": 41,
+   "POST /api/training/sessions": 9,
+   "POST /api/gamification/checkins": 9
+  }
+ },
+ "issues": [
+  {
+   "id": "G1",
+   "area": "global",
+   "severity": "P1",
+   "title": "Faixa 721–980px e paisagem sem navegação: a sidebar inteira empilha acima do conteúdo",
+   "status": "REFUTADO",
+   "expectedCells": 9,
+   "executedCells": 9,
+   "blockedCells": 0,
+   "notApplicableCells": 0,
+   "hitCells": 0,
+   "viewportsAffected": [],
+   "viewportsClear": [
+    "844x390",
+    "932x430",
+    "768x1024"
+   ],
+   "blockedReasons": [],
+   "controls": {
+    "ran": 1,
+    "alsoHit": []
+   },
+   "limitation": null,
+   "evidence": [],
+   "clearExample": [
+    {
+     "cell": "student.today|844x390|default",
+     "detail": {
+      "sidebarHeight": null,
+      "mainTop": 0,
+      "viewportHeight": 390,
+      "bottomNav": true,
+      "topBar": true
+     }
+    },
+    {
+     "cell": "student.today|932x430|default",
+     "detail": {
+      "sidebarHeight": null,
+      "mainTop": 0,
+      "viewportHeight": 430,
+      "bottomNav": true,
+      "topBar": true
+     }
+    }
+   ],
+   "notReproducedIn": [
+    "student.today|844x390|default",
+    "student.today|932x430|default",
+    "student.today|768x1024|default",
+    "personal.dashboard|844x390|default",
+    "personal.dashboard|932x430|default",
+    "personal.dashboard|768x1024|default",
+    "nutri.home|844x390|default",
+    "nutri.home|932x430|default",
+    "nutri.home|768x1024|default"
+   ],
+   "allCells": 9
+  },
+  {
+   "id": "G2",
+   "area": "global",
+   "severity": "P1",
+   "title": "Cookie banner sem reserva dentro do app: cobre o fim do conteúdo e os controles",
+   "status": "REFUTADO",
+   "expectedCells": 24,
+   "executedCells": 24,
+   "blockedCells": 0,
+   "notApplicableCells": 0,
+   "hitCells": 0,
+   "viewportsAffected": [],
+   "viewportsClear": [
+    "320x568",
+    "360x740",
+    "375x667",
+    "390x844",
+    "412x915",
+    "430x932"
+   ],
+   "blockedReasons": [],
+   "controls": {
+    "ran": 6,
+    "alsoHit": []
+   },
+   "limitation": null,
+   "evidence": [],
+   "clearExample": [
+    {
+     "cell": "student.today|320x568|cookie",
+     "detail": {
+      "bannerHeight": 172.8,
+      "bannerFractionOfViewport": 0.3,
+      "gapAtBottom": 49.5,
+      "coveredContentControls": [],
+      "pageScrolls": true
+     }
+    },
+    {
+     "cell": "student.today|360x740|cookie",
+     "detail": {
+      "bannerHeight": 308.6,
+      "bannerFractionOfViewport": 0.42,
+      "gapAtBottom": 49.1,
+      "coveredContentControls": [],
+      "pageScrolls": true
+     }
+    }
+   ],
+   "notReproducedIn": [
+    "student.today|320x568|cookie",
+    "student.today|360x740|cookie",
+    "student.today|375x667|cookie",
+    "student.today|390x844|cookie",
+    "student.today|412x915|cookie",
+    "student.today|430x932|cookie",
+    "student.profile|320x568|cookie",
+    "student.profile|360x740|cookie",
+    "student.profile|375x667|cookie",
+    "student.profile|390x844|cookie",
+    "student.profile|412x915|cookie",
+    "student.profile|430x932|cookie",
+    "personal.dashboard|320x568|cookie",
+    "personal.dashboard|360x740|cookie"
+   ],
+   "allCells": 24
+  },
+  {
+   "id": "G3",
+   "area": "global",
+   "severity": "P1",
+   "title": "Mini-player do treino cobre o fim de toda página (--mini-player-h inexistente)",
+   "status": "REFUTADO",
+   "expectedCells": 36,
+   "executedCells": 36,
+   "blockedCells": 0,
+   "notApplicableCells": 0,
+   "hitCells": 0,
+   "viewportsAffected": [],
+   "viewportsClear": [
+    "320x568",
+    "360x740",
+    "375x667",
+    "390x844",
+    "412x915",
+    "430x932"
+   ],
+   "blockedReasons": [],
+   "controls": {
+    "ran": 6,
+    "alsoHit": []
+   },
+   "limitation": null,
+   "evidence": [],
+   "clearExample": [
+    {
+     "cell": "student.today|320x568|workout-active",
+     "detail": {
+      "miniPlayerHeight": 64,
+      "gapAtBottom": 49.2,
+      "lastContent": "Registrar alimento",
+      "coveredControls": []
+     }
+    },
+    {
+     "cell": "student.today|360x740|workout-active",
+     "detail": {
+      "miniPlayerHeight": 64,
+      "gapAtBottom": 48.7,
+      "lastContent": "Registrar alimento",
+      "coveredControls": []
+     }
+    }
+   ],
+   "notReproducedIn": [
+    "student.today|320x568|workout-active",
+    "student.today|360x740|workout-active",
+    "student.today|375x667|workout-active",
+    "student.today|390x844|workout-active",
+    "student.today|412x915|workout-active",
+    "student.today|430x932|workout-active",
+    "student.profile|320x568|workout-active",
+    "student.profile|360x740|workout-active",
+    "student.profile|375x667|workout-active",
+    "student.profile|390x844|workout-active",
+    "student.profile|412x915|workout-active",
+    "student.profile|430x932|workout-active",
+    "student.ficha|320x568|workout-active",
+    "student.ficha|360x740|workout-active"
+   ],
+   "allCells": 36
+  },
+  {
+   "id": "G4",
+   "area": "global",
+   "severity": "P2",
+   "title": "Toast global (z 300) fica abaixo dos modais (z 1000+)",
+   "status": "REFUTADO",
+   "expectedCells": 9,
+   "executedCells": 9,
+   "blockedCells": 0,
+   "notApplicableCells": 0,
+   "hitCells": 0,
+   "viewportsAffected": [],
+   "viewportsClear": [
+    "320x568",
+    "360x740",
+    "375x667",
+    "390x844",
+    "412x915",
+    "430x932",
+    "844x390",
+    "932x430",
+    "768x1024"
+   ],
+   "blockedReasons": [],
+   "limitation": null,
+   "evidence": [],
+   "clearExample": [
+    {
+     "cell": "student.profile|320x568|overlay:essential-modal",
+     "detail": {
+      "toastZ": 10000,
+      "modalBackdropZ": 1000,
+      "toastOnTop": true,
+      "coveredBy": null
+     }
+    },
+    {
+     "cell": "student.profile|360x740|overlay:essential-modal",
+     "detail": {
+      "toastZ": 10000,
+      "modalBackdropZ": 1000,
+      "toastOnTop": true,
+      "coveredBy": null
+     }
+    }
+   ],
+   "notReproducedIn": [
+    "student.profile|320x568|overlay:essential-modal",
+    "student.profile|360x740|overlay:essential-modal",
+    "student.profile|375x667|overlay:essential-modal",
+    "student.profile|390x844|overlay:essential-modal",
+    "student.profile|412x915|overlay:essential-modal",
+    "student.profile|430x932|overlay:essential-modal",
+    "student.profile|844x390|overlay:essential-modal",
+    "student.profile|932x430|overlay:essential-modal",
+    "student.profile|768x1024|overlay:essential-modal"
+   ],
+   "allCells": 9
+  },
+  {
+   "id": "G5",
+   "area": "global",
+   "severity": "P2",
+   "title": "OfflineBanner com fundo a 8% de opacidade e sobre a top bar",
+   "status": "REFUTADO",
+   "expectedCells": 6,
+   "executedCells": 6,
+   "blockedCells": 0,
+   "notApplicableCells": 0,
+   "hitCells": 0,
+   "viewportsAffected": [],
+   "viewportsClear": [
+    "320x568",
+    "360x740",
+    "375x667",
+    "390x844",
+    "412x915",
+    "430x932"
+   ],
+   "blockedReasons": [],
+   "limitation": "O que as capturas sustentam é o banner COBRINDO a top bar (logo e ícone Mensagens). A ilegibilidade pelo fundo a 8% só se demonstra sobre conteúdo/tema escuro.",
+   "evidence": [],
+   "clearExample": [
+    {
+     "cell": "student.today|320x568|offline",
+     "detail": {
+      "note": "banner sem fundo translúcido detectado"
+     }
+    },
+    {
+     "cell": "student.today|360x740|offline",
+     "detail": {
+      "note": "banner sem fundo translúcido detectado"
+     }
+    }
+   ],
+   "notReproducedIn": [
+    "student.today|320x568|offline",
+    "student.today|360x740|offline",
+    "student.today|375x667|offline",
+    "student.today|390x844|offline",
+    "student.today|412x915|offline",
+    "student.today|430x932|offline"
+   ],
+   "allCells": 6
+  },
+  {
+   "id": "G6",
+   "area": "global",
+   "severity": "P2",
+   "title": "Sheets e modais com altura em vh (sem dvh)",
+   "status": "REFUTADO",
+   "expectedCells": 24,
+   "executedCells": 24,
+   "blockedCells": 0,
+   "notApplicableCells": 0,
+   "hitCells": 0,
+   "viewportsAffected": [],
+   "viewportsClear": [
+    "320x568",
+    "360x740",
+    "375x667",
+    "390x844",
+    "412x915",
+    "430x932"
+   ],
+   "blockedReasons": [],
+   "limitation": "O efeito (topo do sheet cortado) depende da barra de endereço dinâmica do Chrome Android/iOS. Aqui se comprova a REGRA CSS em uso (vh sem dvh), não o corte; a confirmação visual exige aparelho real.",
+   "evidence": [],
+   "clearExample": [
+    {
+     "cell": "student.session|320x568|overlay:exercises-sheet",
+     "detail": {
+      "rules": []
+     }
+    },
+    {
+     "cell": "student.session|360x740|overlay:exercises-sheet",
+     "detail": {
+      "rules": []
+     }
+    }
+   ],
+   "notReproducedIn": [
+    "student.session|320x568|overlay:exercises-sheet",
+    "student.session|360x740|overlay:exercises-sheet",
+    "student.session|375x667|overlay:exercises-sheet",
+    "student.session|390x844|overlay:exercises-sheet",
+    "student.session|412x915|overlay:exercises-sheet",
+    "student.session|430x932|overlay:exercises-sheet",
+    "student.session|320x568|overlay:substitute-sheet",
+    "student.session|360x740|overlay:substitute-sheet",
+    "student.session|375x667|overlay:substitute-sheet",
+    "student.session|390x844|overlay:substitute-sheet",
+    "student.session|412x915|overlay:substitute-sheet",
+    "student.session|430x932|overlay:substitute-sheet",
+    "student.free-setup|320x568|overlay:exercise-picker",
+    "student.free-setup|360x740|overlay:exercise-picker"
+   ],
+   "allCells": 24
+  },
+  {
+   "id": "G7",
+   "area": "global",
+   "severity": "P2",
+   "title": "Controles sob o notch / home indicator (safe-area ausente)",
+   "status": "PARCIAL",
+   "expectedCells": 32,
+   "executedCells": 32,
+   "blockedCells": 0,
+   "notApplicableCells": 0,
+   "hitCells": 5,
+   "viewportsAffected": [
+    "320x568",
+    "360x740",
+    "375x667",
+    "844x390",
+    "932x430"
+   ],
+   "viewportsClear": [
+    "390x844",
+    "412x915",
+    "430x932"
+   ],
+   "blockedReasons": [],
+   "limitation": "Emulation.setSafeAreaInsetsOverride modela o env(safe-area-inset-*) do iOS. No Android WebView o env() é 0 e quem resolve é adjustMarginsForEdgeToEdge (CLAUDE.md); aqui se comprova a CAUSA CSS no iOS, não o efeito no Android.",
+   "evidence": [
+    {
+     "cell": "student.session|320x568|safe-area",
+     "detail": {
+      "count": 3,
+      "examples": [
+       {
+        "el": "Carga série 3",
+        "overlaps": [
+         "base 28px"
+        ],
+        "anchored": "div > div > div.ws-root"
+       },
+       {
+        "el": "Repetições série 3",
+        "overlaps": [
+         "base 28px"
+        ],
+        "anchored": "div > div > div.ws-root"
+       },
+       {
+        "el": "Concluir série 3",
+        "overlaps": [
+         "base 19.5px"
+        ],
+        "anchored": "div > div > div.ws-root"
+       }
+      ]
+     },
+     "screenshot": "shots/student.session_320x568_safe-area.jpg",
+     "evidenceFiles": [
+      "evidence/student.session_320x568_safe-area.png"
+     ]
+    },
+    {
+     "cell": "student.session|360x740|safe-area",
+     "detail": {
+      "count": 1,
+      "examples": [
+       {
+        "el": "Finalizar treino",
+        "overlaps": [
+         "base 32.5px"
+        ],
+        "anchored": "div > div > div.ws-root"
+       }
+      ]
+     },
+     "screenshot": "shots/student.session_360x740_safe-area.jpg",
+     "evidenceFiles": [
+      "evidence/student.session_360x740_safe-area.png"
+     ]
+    },
+    {
+     "cell": "student.session|375x667|safe-area",
+     "detail": {
+      "count": 1,
+      "examples": [
+       {
+        "el": "Próximo exercício →",
+        "overlaps": [
+         "base 34px"
+        ],
+        "anchored": "div > div > div.ws-root"
+       }
+      ]
+     },
+     "screenshot": "shots/student.session_375x667_safe-area.jpg",
+     "evidenceFiles": [
+      "evidence/student.session_375x667_safe-area.png"
+     ]
+    },
+    {
+     "cell": "student.session|844x390|safe-area",
+     "detail": {
+      "count": 2,
+      "examples": [
+       {
+        "el": "Carga série 2",
+        "overlaps": [
+         "base 5px"
+        ],
+        "anchored": "div > div > div.ws-root"
+       },
+       {
+        "el": "Repetições série 2",
+        "overlaps": [
+         "base 5px"
+        ],
+        "anchored": "div > div > div.ws-root"
+       }
+      ]
+     },
+     "screenshot": "shots/student.session_844x390_safe-area.jpg",
+     "evidenceFiles": [
+      "evidence/student.session_844x390_safe-area.png"
+     ]
+    },
+    {
+     "cell": "student.session|932x430|safe-area",
+     "detail": {
+      "count": 3,
+      "examples": [
+       {
+        "el": "Carga série 3",
+        "overlaps": [
+         "base 21px"
+        ],
+        "anchored": "div > div > div.ws-root"
+       },
+       {
+        "el": "Repetições série 3",
+        "overlaps": [
+         "base 21px"
+        ],
+        "anchored": "div > div > div.ws-root"
+       },
+       {
+        "el": "Concluir série 3",
+        "overlaps": [
+         "base 21px"
+        ],
+        "anchored": "div > div > div.ws-root"
+       }
+      ]
+     },
+     "screenshot": "shots/student.session_932x430_safe-area.jpg",
+     "evidenceFiles": [
+      "evidence/student.session_932x430_safe-area.png"
+     ]
+    }
+   ],
+   "notReproducedIn": [
+    "auth.login|320x568|safe-area",
+    "auth.login|360x740|safe-area",
+    "auth.login|375x667|safe-area",
+    "auth.login|390x844|safe-area",
+    "auth.login|412x915|safe-area",
+    "auth.login|430x932|safe-area",
+    "auth.login|844x390|safe-area",
+    "auth.login|932x430|safe-area",
+    "student.today|320x568|safe-area",
+    "student.today|360x740|safe-area",
+    "student.today|375x667|safe-area",
+    "student.today|390x844|safe-area",
+    "student.today|412x915|safe-area",
+    "student.today|430x932|safe-area"
+   ],
+   "allCells": 32
+  },
+  {
+   "id": "G8",
+   "area": "global",
+   "severity": "P2",
+   "title": "Overlays fora da pilha do botão voltar do Android e sem trava de rolagem do fundo",
+   "status": "NÃO TESTADO",
+   "parts": [
+    {
+     "part": "não fecha com Escape ⇒ fora da pilha do botão voltar",
+     "status": "NÃO TESTADO",
+     "expected": 8,
+     "executed": 0,
+     "blocked": 0,
+     "notApplicable": 8,
+     "hits": 0,
+     "blockedReasons": []
+    },
+    {
+     "part": "o fundo rola por trás do overlay (sem trava de rolagem)",
+     "status": "REFUTADO",
+     "expected": 8,
+     "executed": 4,
+     "blocked": 0,
+     "notApplicable": 4,
+     "hits": 0,
+     "blockedReasons": []
+    }
+   ],
+   "expectedCells": 16,
+   "executedCells": 4,
+   "blockedCells": 0,
+   "notApplicableCells": 12,
+   "hitCells": 0,
+   "viewportsAffected": [],
+   "viewportsClear": [
+    "390x844"
+   ],
+   "blockedReasons": [],
+   "limitation": "O botão físico do Android só existe em aparelho. O app o trata via Capacitor → fecharCamadaAberta() (overlayStack/useDismissable), não popstate; aqui o proxy é o Escape, escutado pelo mesmo hook. Quem NÃO fecha com Escape comprovadamente não está na pilha; quem fecha fica \"não se aplica\" (pode ter handler próprio).",
+   "evidence": [],
+   "notReproducedIn": [
+    "student.profile|390x844|overlay:essential-modal",
+    "personal.review|390x844|overlay:review-modal",
+    "personal.students|390x844|overlay:invite-drawer",
+    "personal.students|390x844|overlay:register-drawer"
+   ],
+   "allCells": 4
+  },
+  {
+   "id": "A1",
+   "area": "student",
+   "severity": "P1",
+   "title": "Mapa Leaflet pinta por cima da bottom nav / top bar",
+   "status": "REFUTADO",
+   "expectedCells": 6,
+   "executedCells": 6,
+   "blockedCells": 0,
+   "notApplicableCells": 0,
+   "hitCells": 0,
+   "viewportsAffected": [],
+   "viewportsClear": [
+    "320x568",
+    "360x740",
+    "375x667",
+    "390x844",
+    "412x915",
+    "430x932"
+   ],
+   "blockedReasons": [],
+   "limitation": null,
+   "evidence": [],
+   "clearExample": [
+    {
+     "cell": "student.tracker-live|320x568|default",
+     "detail": {
+      "bottomNavOverlap": true,
+      "bottomNavCoveredByLeaflet": false,
+      "topBarOverlap": true,
+      "topBarCoveredByLeaflet": false,
+      "coveredBy": []
+     }
+    },
+    {
+     "cell": "student.tracker-live|360x740|default",
+     "detail": {
+      "bottomNavOverlap": false,
+      "bottomNavCoveredByLeaflet": false,
+      "topBarOverlap": true,
+      "topBarCoveredByLeaflet": false,
+      "coveredBy": []
+     }
+    }
+   ],
+   "notReproducedIn": [
+    "student.tracker-live|320x568|default",
+    "student.tracker-live|360x740|default",
+    "student.tracker-live|375x667|default",
+    "student.tracker-live|390x844|default",
+    "student.tracker-live|412x915|default",
+    "student.tracker-live|430x932|default"
+   ],
+   "allCells": 6
+  },
+  {
+   "id": "A2",
+   "area": "student",
+   "severity": "P1",
+   "title": "Overlay de fim de vídeo preso na caixa 16:9: CTAs cortados",
+   "status": "REFUTADO",
+   "expectedCells": 9,
+   "executedCells": 9,
+   "blockedCells": 0,
+   "notApplicableCells": 0,
+   "hitCells": 0,
+   "viewportsAffected": [],
+   "viewportsClear": [
+    "320x568",
+    "360x740",
+    "375x667",
+    "390x844",
+    "412x915",
+    "430x932",
+    "844x390",
+    "932x430",
+    "768x1024"
+   ],
+   "blockedReasons": [],
+   "limitation": null,
+   "evidence": [],
+   "clearExample": [
+    {
+     "cell": "student.player-end|320x568|default",
+     "detail": {
+      "cut": []
+     }
+    },
+    {
+     "cell": "student.player-end|360x740|default",
+     "detail": {
+      "cut": []
+     }
+    }
+   ],
+   "notReproducedIn": [
+    "student.player-end|320x568|default",
+    "student.player-end|360x740|default",
+    "student.player-end|375x667|default",
+    "student.player-end|390x844|default",
+    "student.player-end|412x915|default",
+    "student.player-end|430x932|default",
+    "student.player-end|844x390|default",
+    "student.player-end|932x430|default",
+    "student.player-end|768x1024|default"
+   ],
+   "allCells": 9
+  },
+  {
+   "id": "A3",
+   "area": "student",
+   "severity": "P1",
+   "title": "Modais de resumo/descanso do Lab sem max-height/scroll",
+   "status": "BLOQUEADO",
+   "expectedCells": 9,
+   "executedCells": 0,
+   "blockedCells": 9,
+   "notApplicableCells": 0,
+   "hitCells": 0,
+   "viewportsAffected": [],
+   "viewportsClear": [],
+   "blockedReasons": [
+    "câmera e MediaPipe (CDN) indisponíveis no ambiente isolado; os modais de resumo/descanso só abrem após uma análise real"
+   ],
+   "limitation": null,
+   "evidence": [],
+   "notReproducedIn": [],
+   "allCells": 0
+  },
+  {
+   "id": "A4",
+   "area": "student",
+   "severity": "P1",
+   "title": "Diálogos de saída/descarte do treino sem max-height/scroll",
+   "status": "REFUTADO",
+   "expectedCells": 10,
+   "executedCells": 10,
+   "blockedCells": 0,
+   "notApplicableCells": 0,
+   "hitCells": 0,
+   "viewportsAffected": [],
+   "viewportsClear": [
+    "320x568",
+    "360x740",
+    "375x667",
+    "844x390",
+    "932x430"
+   ],
+   "blockedReasons": [],
+   "controls": {
+    "ran": 1,
+    "alsoHit": []
+   },
+   "limitation": "Refutação vale para o diálogo \"Sair do treino?\" (prescrito e livre). A variante exibida após \"Descartar treino\" NÃO tem cenário: essa metade está NÃO TESTADA.",
+   "evidence": [],
+   "clearExample": [
+    {
+     "cell": "student.session|320x568|overlay:exit-dialog",
+     "detail": {
+      "panelHeight": 294,
+      "viewportHeight": 568,
+      "internalScroll": false,
+      "findings": []
+     }
+    },
+    {
+     "cell": "student.session|360x740|overlay:exit-dialog",
+     "detail": {
+      "panelHeight": 274.5,
+      "viewportHeight": 740,
+      "internalScroll": false,
+      "findings": []
+     }
+    }
+   ],
+   "notReproducedIn": [
+    "student.session|320x568|overlay:exit-dialog",
+    "student.session|360x740|overlay:exit-dialog",
+    "student.session|375x667|overlay:exit-dialog",
+    "student.session|844x390|overlay:exit-dialog",
+    "student.session|932x430|overlay:exit-dialog",
+    "student.free-session|320x568|overlay:exit-dialog",
+    "student.free-session|360x740|overlay:exit-dialog",
+    "student.free-session|375x667|overlay:exit-dialog",
+    "student.free-session|844x390|overlay:exit-dialog",
+    "student.free-session|932x430|overlay:exit-dialog"
+   ],
+   "allCells": 10
+  },
+  {
+   "id": "A5",
+   "area": "student",
+   "severity": "P1",
+   "title": "Modo treino em paisagem: header + barra de ação deixam ~125px para o conteúdo",
+   "status": "REFUTADO",
+   "expectedCells": 2,
+   "executedCells": 2,
+   "blockedCells": 0,
+   "notApplicableCells": 0,
+   "hitCells": 0,
+   "viewportsAffected": [],
+   "viewportsClear": [
+    "844x390",
+    "932x430"
+   ],
+   "blockedReasons": [],
+   "controls": {
+    "ran": 1,
+    "alsoHit": []
+   },
+   "limitation": null,
+   "evidence": [],
+   "clearExample": [
+    {
+     "cell": "student.session|844x390|default",
+     "detail": {
+      "contentHeightPx": 208,
+      "headerHeight": 67,
+      "actionBarHeight": 115,
+      "viewportHeight": 390,
+      "contentFraction": 0.53
+     }
+    },
+    {
+     "cell": "student.session|932x430|default",
+     "detail": {
+      "contentHeightPx": 248,
+      "headerHeight": 67,
+      "actionBarHeight": 115,
+      "viewportHeight": 430,
+      "contentFraction": 0.58
+     }
+    }
+   ],
+   "notReproducedIn": [
+    "student.session|844x390|default",
+    "student.session|932x430|default"
+   ],
+   "allCells": 2
+  },
+  {
+   "id": "A6",
+   "area": "student",
+   "severity": "P2",
+   "title": "Resumo do treino: linha de esforço (RPE) estoura em 320–360px",
+   "status": "REFUTADO",
+   "expectedCells": 3,
+   "executedCells": 3,
+   "blockedCells": 0,
+   "notApplicableCells": 0,
+   "hitCells": 0,
+   "viewportsAffected": [],
+   "viewportsClear": [
+    "320x568",
+    "360x740",
+    "375x667"
+   ],
+   "blockedReasons": [],
+   "limitation": null,
+   "evidence": [],
+   "clearExample": [
+    {
+     "cell": "student.session|320x568|overlay:summary",
+     "detail": {
+      "scrollers": [],
+      "clipped": []
+     }
+    },
+    {
+     "cell": "student.session|360x740|overlay:summary",
+     "detail": {
+      "scrollers": [],
+      "clipped": []
+     }
+    }
+   ],
+   "notReproducedIn": [
+    "student.session|320x568|overlay:summary",
+    "student.session|360x740|overlay:summary",
+    "student.session|375x667|overlay:summary"
+   ],
+   "allCells": 3
+  },
+  {
+   "id": "A7",
+   "area": "student",
+   "severity": "P2",
+   "title": "Chat do aluno: o compositor deriva para o fim do documento",
+   "status": "REFUTADO",
+   "expectedCells": 8,
+   "executedCells": 8,
+   "blockedCells": 0,
+   "notApplicableCells": 0,
+   "hitCells": 0,
+   "viewportsAffected": [],
+   "viewportsClear": [
+    "320x568",
+    "360x740",
+    "375x667",
+    "390x844",
+    "412x915",
+    "430x932",
+    "844x390",
+    "932x430"
+   ],
+   "blockedReasons": [],
+   "limitation": "Medido sem teclado. O teclado virtual real (iOS ignora interactive-widget; --kb-inset do app) só se valida em aparelho.",
+   "evidence": [],
+   "clearExample": [
+    {
+     "cell": "student.messages-thread|320x568|default",
+     "detail": {
+      "applicable": true,
+      "element": "Enviar",
+      "top": 435,
+      "bottom": 479,
+      "viewportHeight": 568,
+      "fullyVisible": true,
+      "belowFold": false,
+      "docScrolls": true,
+      "docHeight": 588
+     }
+    },
+    {
+     "cell": "student.messages-thread|360x740|default",
+     "detail": {
+      "applicable": true,
+      "element": "Enviar",
+      "top": 607,
+      "bottom": 651,
+      "viewportHeight": 740,
+      "fullyVisible": true,
+      "belowFold": false,
+      "docScrolls": true,
+      "docHeight": 760
+     }
+    }
+   ],
+   "notReproducedIn": [
+    "student.messages-thread|320x568|default",
+    "student.messages-thread|360x740|default",
+    "student.messages-thread|375x667|default",
+    "student.messages-thread|390x844|default",
+    "student.messages-thread|412x915|default",
+    "student.messages-thread|430x932|default",
+    "student.messages-thread|844x390|default",
+    "student.messages-thread|932x430|default"
+   ],
+   "allCells": 8
+  },
+  {
+   "id": "A8",
+   "area": "student",
+   "severity": "P2",
+   "title": "Histórico: pill \"Registrado retroativamente\" estoura a coluna",
+   "status": "REFUTADO",
+   "expectedCells": 6,
+   "executedCells": 6,
+   "blockedCells": 0,
+   "notApplicableCells": 0,
+   "hitCells": 0,
+   "viewportsAffected": [],
+   "viewportsClear": [
+    "320x568",
+    "360x740",
+    "375x667",
+    "390x844",
+    "412x915",
+    "430x932"
+   ],
+   "blockedReasons": [],
+   "limitation": null,
+   "evidence": [],
+   "clearExample": [
+    {
+     "cell": "student.evolucao-history|320x568|default",
+     "detail": {
+      "applicable": true,
+      "pillRect": [
+       46,
+       281,
+       191,
+       17
+      ],
+      "clipped": null,
+      "beyondViewport": false,
+      "viewportWidth": 320,
+      "historyItems": 1,
+      "historyItemsBeyondViewport": 0
+     }
+    },
+    {
+     "cell": "student.evolucao-history|360x740|default",
+     "detail": {
+      "applicable": true,
+      "pillRect": [
+       46,
+       483,
+       191,
+       17
+      ],
+      "clipped": null,
+      "beyondViewport": false,
+      "viewportWidth": 360,
+      "historyItems": 1,
+      "historyItemsBeyondViewport": 0
+     }
+    }
+   ],
+   "notReproducedIn": [
+    "student.evolucao-history|320x568|default",
+    "student.evolucao-history|360x740|default",
+    "student.evolucao-history|375x667|default",
+    "student.evolucao-history|390x844|default",
+    "student.evolucao-history|412x915|default",
+    "student.evolucao-history|430x932|default"
+   ],
+   "allCells": 6
+  },
+  {
+   "id": "A9",
+   "area": "student",
+   "severity": "P2",
+   "title": "Mapa ao vivo prende o gesto de rolagem",
+   "status": "REFUTADO",
+   "expectedCells": 9,
+   "executedCells": 9,
+   "blockedCells": 0,
+   "notApplicableCells": 0,
+   "hitCells": 0,
+   "viewportsAffected": [],
+   "viewportsClear": [
+    "320x568",
+    "360x740",
+    "375x667",
+    "390x844",
+    "412x915",
+    "430x932",
+    "844x390",
+    "932x430",
+    "768x1024"
+   ],
+   "blockedReasons": [],
+   "limitation": null,
+   "evidence": [],
+   "clearExample": [
+    {
+     "cell": "student.tracker-live|320x568|default",
+     "detail": {
+      "mapHeightFraction": 0.53,
+      "startedOnMap": {
+       "before": 119,
+       "after": 289,
+       "pageScrolled": true
+      },
+      "startedOffMap": {
+       "before": 119,
+       "after": 291,
+       "pageScrolled": true
+      }
+     }
+    },
+    {
+     "cell": "student.tracker-live|360x740|default",
+     "detail": {
+      "mapHeightFraction": 0.41,
+      "startedOnMap": {
+       "before": 33,
+       "after": 204,
+       "pageScrolled": true
+      },
+      "startedOffMap": {
+       "before": 33,
+       "after": 203,
+       "pageScrolled": true
+      }
+     }
+    }
+   ],
+   "notReproducedIn": [
+    "student.tracker-live|320x568|default",
+    "student.tracker-live|360x740|default",
+    "student.tracker-live|375x667|default",
+    "student.tracker-live|390x844|default",
+    "student.tracker-live|412x915|default",
+    "student.tracker-live|430x932|default",
+    "student.tracker-live|844x390|default",
+    "student.tracker-live|932x430|default",
+    "student.tracker-live|768x1024|default"
+   ],
+   "allCells": 9
+  },
+  {
+   "id": "A10",
+   "area": "student",
+   "severity": "P2",
+   "title": "Paisagem sem safe-area lateral: conteúdo sob o notch",
+   "status": "REFUTADO",
+   "expectedCells": 2,
+   "executedCells": 2,
+   "blockedCells": 0,
+   "notApplicableCells": 0,
+   "hitCells": 0,
+   "viewportsAffected": [],
+   "viewportsClear": [
+    "844x390",
+    "932x430"
+   ],
+   "blockedReasons": [],
+   "limitation": "Mesma limitação do G7: o override de safe-area modela o iOS; no Android WebView o inset lateral é tratado fora do CSS.",
+   "evidence": [],
+   "clearExample": [
+    {
+     "cell": "student.session|844x390|safe-area",
+     "detail": {
+      "count": 0,
+      "examples": []
+     }
+    },
+    {
+     "cell": "student.session|932x430|safe-area",
+     "detail": {
+      "count": 0,
+      "examples": []
+     }
+    }
+   ],
+   "notReproducedIn": [
+    "student.session|844x390|safe-area",
+    "student.session|932x430|safe-area"
+   ],
+   "allCells": 2
+  },
+  {
+   "id": "A11",
+   "area": "student",
+   "severity": "P2",
+   "title": "ExerciseDemoModal sem max-height e com botão Fechar de 32px",
+   "status": "REFUTADO",
+   "expectedCells": 9,
+   "executedCells": 9,
+   "blockedCells": 0,
+   "notApplicableCells": 0,
+   "hitCells": 0,
+   "viewportsAffected": [],
+   "viewportsClear": [
+    "320x568",
+    "360x740",
+    "375x667",
+    "390x844",
+    "412x915",
+    "430x932",
+    "844x390",
+    "932x430",
+    "768x1024"
+   ],
+   "blockedReasons": [],
+   "limitation": "Só o ExerciseDemoModal foi executado; o ExerciseGifModal (Meus treinos) não tem cenário.",
+   "evidence": [],
+   "clearExample": [
+    {
+     "cell": "student.session|320x568|overlay:demo-modal",
+     "detail": {
+      "closeButton": null,
+      "panelRect": [
+       100,
+       468
+      ],
+      "viewportHeight": 568,
+      "panelCutNoInternalScroll": false,
+      "noInternalScroll": true
+     }
+    },
+    {
+     "cell": "student.session|360x740|overlay:demo-modal",
+     "detail": {
+      "closeButton": null,
+      "panelRect": [
+       166,
+       574
+      ],
+      "viewportHeight": 740,
+      "panelCutNoInternalScroll": false,
+      "noInternalScroll": true
+     }
+    }
+   ],
+   "notReproducedIn": [
+    "student.session|320x568|overlay:demo-modal",
+    "student.session|360x740|overlay:demo-modal",
+    "student.session|375x667|overlay:demo-modal",
+    "student.session|390x844|overlay:demo-modal",
+    "student.session|412x915|overlay:demo-modal",
+    "student.session|430x932|overlay:demo-modal",
+    "student.session|844x390|overlay:demo-modal",
+    "student.session|932x430|overlay:demo-modal",
+    "student.session|768x1024|overlay:demo-modal"
+   ],
+   "allCells": 9
+  },
+  {
+   "id": "A12",
+   "area": "student",
+   "severity": "P2",
+   "title": "Header do treino em 320px engorda; canvas do Lab corta laterais",
+   "status": "BLOQUEADO",
+   "parts": [
+    {
+     "part": "header do treino em 320px",
+     "status": "REFUTADO",
+     "expected": 2,
+     "executed": 2,
+     "blocked": 0,
+     "notApplicable": 0,
+     "hits": 0,
+     "blockedReasons": []
+    },
+    {
+     "part": "canvas do Lab",
+     "status": "BLOQUEADO",
+     "expected": 9,
+     "executed": 0,
+     "blocked": 9,
+     "notApplicable": 0,
+     "hits": 0,
+     "blockedReasons": [
+      "câmera indisponível: o canvas só renderiza com o stream"
+     ]
+    }
+   ],
+   "expectedCells": 11,
+   "executedCells": 2,
+   "blockedCells": 9,
+   "notApplicableCells": 0,
+   "hitCells": 0,
+   "viewportsAffected": [],
+   "viewportsClear": [
+    "320x568",
+    "360x740"
+   ],
+   "blockedReasons": [
+    "câmera indisponível: o canvas só renderiza com o stream"
+   ],
+   "controls": {
+    "ran": 1,
+    "alsoHit": []
+   },
+   "limitation": null,
+   "evidence": [],
+   "notReproducedIn": [
+    "student.session|320x568|default",
+    "student.session|360x740|default"
+   ],
+   "allCells": 2
+  },
+  {
+   "id": "P1",
+   "area": "personal",
+   "severity": "P1",
+   "title": "Builder: reordenar exercício é impossível no toque",
+   "status": "REFUTADO",
+   "expectedCells": 3,
+   "executedCells": 3,
+   "blockedCells": 0,
+   "notApplicableCells": 0,
+   "hitCells": 0,
+   "viewportsAffected": [],
+   "viewportsClear": [
+    "320x568",
+    "390x844",
+    "844x390"
+   ],
+   "blockedReasons": [],
+   "limitation": null,
+   "evidence": [],
+   "clearExample": [
+    {
+     "cell": "personal.builder|320x568|default",
+     "detail": {
+      "touchReordered": false,
+      "mouseReordered": true,
+      "alternativeControls": 9,
+      "gripSize": {
+       "w": 44,
+       "h": 44
+      }
+     }
+    },
+    {
+     "cell": "personal.builder|390x844|default",
+     "detail": {
+      "touchReordered": false,
+      "mouseReordered": true,
+      "alternativeControls": 9,
+      "gripSize": {
+       "w": 44,
+       "h": 44
+      }
+     }
+    }
+   ],
+   "notReproducedIn": [
+    "personal.builder|320x568|default",
+    "personal.builder|390x844|default",
+    "personal.builder|844x390|default"
+   ],
+   "allCells": 3
+  },
+  {
+   "id": "P2",
+   "area": "personal",
+   "severity": "P1",
+   "title": "Mensagens: o fim do compositor é cortado (altura fixa + overflow hidden)",
+   "status": "REFUTADO",
+   "expectedCells": 14,
+   "executedCells": 14,
+   "blockedCells": 0,
+   "notApplicableCells": 0,
+   "hitCells": 0,
+   "viewportsAffected": [],
+   "viewportsClear": [
+    "320x568",
+    "360x740",
+    "375x667",
+    "390x844",
+    "412x915",
+    "430x932",
+    "844x390",
+    "932x430"
+   ],
+   "blockedReasons": [],
+   "limitation": "O estado \"keyboard\" é SIMULADO (viewport reduzida ≈ Android resizes-content); não exercita iOS nem o --kb-inset do app. Confirmar no WebView.",
+   "evidence": [],
+   "clearExample": [
+    {
+     "cell": "personal.messages|320x568|default",
+     "detail": {
+      "applicable": true,
+      "element": "Enviar",
+      "top": 445,
+      "bottom": 489,
+      "viewportHeight": 568,
+      "fullyVisible": true,
+      "belowFold": false,
+      "docScrolls": true,
+      "docHeight": 612,
+      "cutControls": []
+     }
+    },
+    {
+     "cell": "personal.messages|360x740|default",
+     "detail": {
+      "applicable": true,
+      "element": "Enviar",
+      "top": 574,
+      "bottom": 618,
+      "viewportHeight": 740,
+      "fullyVisible": true,
+      "belowFold": false,
+      "docScrolls": true,
+      "docHeight": 784,
+      "cutControls": []
+     }
+    }
+   ],
+   "notReproducedIn": [
+    "personal.messages|320x568|default",
+    "personal.messages|360x740|default",
+    "personal.messages|375x667|default",
+    "personal.messages|390x844|default",
+    "personal.messages|412x915|default",
+    "personal.messages|430x932|default",
+    "personal.messages|844x390|default",
+    "personal.messages|932x430|default",
+    "personal.messages|320x568|keyboard",
+    "personal.messages|360x740|keyboard",
+    "personal.messages|375x667|keyboard",
+    "personal.messages|390x844|keyboard",
+    "personal.messages|412x915|keyboard",
+    "personal.messages|430x932|keyboard"
+   ],
+   "allCells": 14
+  },
+  {
+   "id": "P3",
+   "area": "personal",
+   "severity": "P1",
+   "title": "Revisão: sem fechar no cabeçalho e ações em rodapé não-sticky",
+   "status": "REFUTADO",
+   "expectedCells": 5,
+   "executedCells": 5,
+   "blockedCells": 0,
+   "notApplicableCells": 0,
+   "hitCells": 0,
+   "viewportsAffected": [],
+   "viewportsClear": [
+    "320x568",
+    "375x667",
+    "390x844",
+    "844x390",
+    "932x430"
+   ],
+   "blockedReasons": [],
+   "limitation": null,
+   "evidence": [],
+   "clearExample": [
+    {
+     "cell": "personal.review|320x568|overlay:review-modal",
+     "detail": {
+      "applicable": true,
+      "approveTop": 489,
+      "approveBottom": 533,
+      "viewportHeight": 568,
+      "actionsVisibleWithoutScroll": true,
+      "headerCloseButton": true,
+      "footerCloseButton": false
+     }
+    },
+    {
+     "cell": "personal.review|375x667|overlay:review-modal",
+     "detail": {
+      "applicable": true,
+      "approveTop": 588,
+      "approveBottom": 632,
+      "viewportHeight": 667,
+      "actionsVisibleWithoutScroll": true,
+      "headerCloseButton": true,
+      "footerCloseButton": false
+     }
+    }
+   ],
+   "notReproducedIn": [
+    "personal.review|320x568|overlay:review-modal",
+    "personal.review|375x667|overlay:review-modal",
+    "personal.review|390x844|overlay:review-modal",
+    "personal.review|844x390|overlay:review-modal",
+    "personal.review|932x430|overlay:review-modal"
+   ],
+   "allCells": 5
+  },
+  {
+   "id": "P4",
+   "area": "personal",
+   "severity": "P1",
+   "title": ".pxf-panel (criar exercício) com max-height em vh",
+   "status": "REFUTADO",
+   "expectedCells": 6,
+   "executedCells": 6,
+   "blockedCells": 0,
+   "notApplicableCells": 0,
+   "hitCells": 0,
+   "viewportsAffected": [],
+   "viewportsClear": [
+    "320x568",
+    "360x740",
+    "375x667",
+    "390x844",
+    "412x915",
+    "430x932"
+   ],
+   "blockedReasons": [],
+   "limitation": "Mesmo caso do G6: comprova-se a regra CSS (vh), não o corte do topo, que depende da barra de endereço dinâmica.",
+   "evidence": [],
+   "clearExample": [
+    {
+     "cell": "personal.exercises|320x568|overlay:create-exercise",
+     "detail": {
+      "rules": []
+     }
+    },
+    {
+     "cell": "personal.exercises|360x740|overlay:create-exercise",
+     "detail": {
+      "rules": []
+     }
+    }
+   ],
+   "notReproducedIn": [
+    "personal.exercises|320x568|overlay:create-exercise",
+    "personal.exercises|360x740|overlay:create-exercise",
+    "personal.exercises|375x667|overlay:create-exercise",
+    "personal.exercises|390x844|overlay:create-exercise",
+    "personal.exercises|412x915|overlay:create-exercise",
+    "personal.exercises|430x932|overlay:create-exercise"
+   ],
+   "allCells": 6
+  },
+  {
+   "id": "P5",
+   "area": "personal",
+   "severity": "P2",
+   "title": "Cockpit inline vira caixa de 92dvh com rolagem aninhada",
+   "status": "REFUTADO",
+   "expectedCells": 6,
+   "executedCells": 6,
+   "blockedCells": 0,
+   "notApplicableCells": 0,
+   "hitCells": 0,
+   "viewportsAffected": [],
+   "viewportsClear": [
+    "320x568",
+    "360x740",
+    "375x667",
+    "390x844",
+    "412x915",
+    "430x932"
+   ],
+   "blockedReasons": [],
+   "limitation": null,
+   "evidence": [],
+   "clearExample": [
+    {
+     "cell": "personal.cockpit|320x568|default",
+     "detail": {}
+    },
+    {
+     "cell": "personal.cockpit|360x740|default",
+     "detail": {}
+    }
+   ],
+   "notReproducedIn": [
+    "personal.cockpit|320x568|default",
+    "personal.cockpit|360x740|default",
+    "personal.cockpit|375x667|default",
+    "personal.cockpit|390x844|default",
+    "personal.cockpit|412x915|default",
+    "personal.cockpit|430x932|default"
+   ],
+   "allCells": 6
+  },
+  {
+   "id": "P6",
+   "area": "personal",
+   "severity": "P2",
+   "title": "Abas de Programas sem pista de rolagem: \"Meus Exercícios\" fica cortado",
+   "status": "REFUTADO",
+   "expectedCells": 4,
+   "executedCells": 4,
+   "blockedCells": 0,
+   "notApplicableCells": 0,
+   "hitCells": 0,
+   "viewportsAffected": [],
+   "viewportsClear": [
+    "320x568",
+    "360x740",
+    "375x667",
+    "390x844"
+   ],
+   "blockedReasons": [],
+   "limitation": "Sem fade/mask/gradiente: a única pista é o último chip cortado na borda. Se o chip espiando valer como pista suficiente, o achado se refuta; aqui conta como ausência de affordance explícito.",
+   "evidence": [],
+   "clearExample": [
+    {
+     "cell": "personal.library|320x568|default",
+     "detail": {
+      "cueKind": "mask/gradiente",
+      "hiddenChildren": 0,
+      "scrollWidth": 383,
+      "clientWidth": 280
+     }
+    },
+    {
+     "cell": "personal.library|360x740|default",
+     "detail": {
+      "cueKind": "mask/gradiente",
+      "hiddenChildren": 0,
+      "scrollWidth": 383,
+      "clientWidth": 320
+     }
+    }
+   ],
+   "notReproducedIn": [
+    "personal.library|320x568|default",
+    "personal.library|360x740|default",
+    "personal.library|375x667|default",
+    "personal.library|390x844|default"
+   ],
+   "allCells": 4
+  },
+  {
+   "id": "P7",
+   "area": "personal",
+   "severity": "P2",
+   "title": "Timeline: o resumo (observações) fica escondido (cortado em 1 linha ou estourando a linha)",
+   "status": "REFUTADO",
+   "expectedCells": 6,
+   "executedCells": 6,
+   "blockedCells": 0,
+   "notApplicableCells": 0,
+   "hitCells": 0,
+   "viewportsAffected": [],
+   "viewportsClear": [
+    "320x568",
+    "360x740",
+    "375x667",
+    "390x844",
+    "412x915",
+    "430x932"
+   ],
+   "blockedReasons": [],
+   "limitation": null,
+   "evidence": [],
+   "clearExample": [
+    {
+     "cell": "personal.cockpit-relationship|320x568|default",
+     "detail": {
+      "expand": {
+       "touchExpands": true,
+       "keyboardToggles": true
+      },
+      "items": 28,
+      "truncated": 0,
+      "wideInScroller": 0,
+      "maxTextLen": 140,
+      "widestPx": 159,
+      "viewportWidth": 320,
+      "sample": [
+       {
+        "text": "Retorno gradual após viagem: reduzir vol",
+        "clientWidth": 159,
+        "scrollWidth": 159
+       },
+       {
+        "text": "Aluno relatou dificuldade em manter a fr",
+        "clientWidth": 159,
+        "scrollWidth": 159
+       }
+      ]
+     }
+    },
+    {
+     "cell": "personal.cockpit-relationship|360x740|default",
+     "detail": {
+      "expand": {
+       "touchExpands": true,
+       "keyboardToggles": true
+      },
+      "items": 28,
+      "truncated": 0,
+      "wideInScroller": 0,
+      "maxTextLen": 140,
+      "widestPx": 199,
+      "viewportWidth": 360,
+      "sample": [
+       {
+        "text": "Retorno gradual após viagem: reduzir vol",
+        "clientWidth": 199,
+        "scrollWidth": 199
+       },
+       {
+        "text": "Aluno relatou dificuldade em manter a fr",
+        "clientWidth": 199,
+        "scrollWidth": 199
+       }
+      ]
+     }
+    }
+   ],
+   "notReproducedIn": [
+    "personal.cockpit-relationship|320x568|default",
+    "personal.cockpit-relationship|360x740|default",
+    "personal.cockpit-relationship|375x667|default",
+    "personal.cockpit-relationship|390x844|default",
+    "personal.cockpit-relationship|412x915|default",
+    "personal.cockpit-relationship|430x932|default"
+   ],
+   "allCells": 6
+  },
+  {
+   "id": "P8",
+   "area": "personal",
+   "severity": "P2",
+   "title": "Lista de alunos: 4 ações quebram em linhas; e-mail longo de convite é cortado",
+   "status": "REFUTADO",
+   "parts": [
+    {
+     "part": "ações por aluno quebram em 2+ linhas",
+     "status": "REFUTADO",
+     "expected": 6,
+     "executed": 6,
+     "blocked": 0,
+     "notApplicable": 0,
+     "hits": 0,
+     "blockedReasons": []
+    },
+    {
+     "part": "e-mail longo do convite pendente",
+     "status": "REFUTADO",
+     "expected": 6,
+     "executed": 6,
+     "blocked": 0,
+     "notApplicable": 0,
+     "hits": 0,
+     "blockedReasons": []
+    }
+   ],
+   "expectedCells": 12,
+   "executedCells": 12,
+   "blockedCells": 0,
+   "notApplicableCells": 0,
+   "hitCells": 0,
+   "viewportsAffected": [],
+   "viewportsClear": [
+    "320x568",
+    "360x740",
+    "375x667",
+    "390x844",
+    "412x915",
+    "430x932"
+   ],
+   "blockedReasons": [],
+   "limitation": null,
+   "evidence": [],
+   "clearExample": [
+    {
+     "cell": "personal.students|320x568|default",
+     "detail": {
+      "distinctRows": 1,
+      "visibleControls": [
+       "Ver aluno",
+       "Mais ações para QA Demo Aluno"
+      ],
+      "menuItems": [
+       "Ver ficha(s)",
+       "Criar treino",
+       "Retirar"
+      ],
+      "missingActions": [],
+      "menuAllInViewport": true,
+      "menuMinItemHeight": 44
+     }
+    },
+    {
+     "cell": "personal.students|360x740|default",
+     "detail": {
+      "distinctRows": 1,
+      "visibleControls": [
+       "Ver aluno",
+       "Mais ações para QA Demo Aluno"
+      ],
+      "menuItems": [
+       "Ver ficha(s)",
+       "Criar treino",
+       "Retirar"
+      ],
+      "missingActions": [],
+      "menuAllInViewport": true,
+      "menuMinItemHeight": 44
+     }
+    }
+   ],
+   "notReproducedIn": [
+    "personal.students|320x568|default",
+    "personal.students|360x740|default",
+    "personal.students|375x667|default",
+    "personal.students|390x844|default",
+    "personal.students|412x915|default",
+    "personal.students|430x932|default",
+    "personal.students-invites|320x568|default",
+    "personal.students-invites|360x740|default",
+    "personal.students-invites|375x667|default",
+    "personal.students-invites|390x844|default",
+    "personal.students-invites|412x915|default",
+    "personal.students-invites|430x932|default"
+   ],
+   "allCells": 12
+  },
+  {
+   "id": "P9",
+   "area": "personal",
+   "severity": "P2",
+   "title": "Inputs com fonte < 16px (zoom no foco do iOS)",
+   "status": "REFUTADO",
+   "expectedCells": 18,
+   "executedCells": 18,
+   "blockedCells": 0,
+   "notApplicableCells": 0,
+   "hitCells": 0,
+   "viewportsAffected": [],
+   "viewportsClear": [
+    "320x568",
+    "360x740",
+    "375x667",
+    "390x844",
+    "412x915",
+    "430x932"
+   ],
+   "blockedReasons": [],
+   "limitation": "O zoom automático só acontece no iOS (Safari/WKWebView). Aqui se comprova o tamanho de fonte computado (< 16px), não o zoom.",
+   "evidence": [],
+   "clearExample": [
+    {
+     "cell": "personal.builder|320x568|default",
+     "detail": {
+      "count": 0,
+      "sizes": [],
+      "examples": []
+     }
+    },
+    {
+     "cell": "personal.builder|360x740|default",
+     "detail": {
+      "count": 0,
+      "sizes": [],
+      "examples": []
+     }
+    }
+   ],
+   "notReproducedIn": [
+    "personal.builder|320x568|default",
+    "personal.builder|360x740|default",
+    "personal.builder|375x667|default",
+    "personal.builder|390x844|default",
+    "personal.builder|412x915|default",
+    "personal.builder|430x932|default",
+    "personal.messages|320x568|default",
+    "personal.messages|360x740|default",
+    "personal.messages|375x667|default",
+    "personal.messages|390x844|default",
+    "personal.messages|412x915|default",
+    "personal.messages|430x932|default",
+    "personal.review|320x568|overlay:review-modal",
+    "personal.review|360x740|overlay:review-modal"
+   ],
+   "allCells": 18
+  },
+  {
+   "id": "N1",
+   "area": "nutri",
+   "severity": "P2",
+   "title": "Menu do Nutri não fecha ao navegar; \"Sair da conta\" sem confirmação",
+   "status": "REFUTADO",
+   "parts": [
+    {
+     "part": "menu continua aberto depois de navegar",
+     "status": "REFUTADO",
+     "expected": 3,
+     "executed": 3,
+     "blocked": 0,
+     "notApplicable": 0,
+     "hits": 0,
+     "blockedReasons": []
+    },
+    {
+     "part": "\"Sair da conta\" desloga sem confirmação",
+     "status": "REFUTADO",
+     "expected": 3,
+     "executed": 3,
+     "blocked": 0,
+     "notApplicable": 0,
+     "hits": 0,
+     "blockedReasons": []
+    }
+   ],
+   "expectedCells": 6,
+   "executedCells": 6,
+   "blockedCells": 0,
+   "notApplicableCells": 0,
+   "hitCells": 0,
+   "viewportsAffected": [],
+   "viewportsClear": [
+    "320x568",
+    "375x667",
+    "390x844"
+   ],
+   "blockedReasons": [],
+   "limitation": null,
+   "evidence": [],
+   "clearExample": [
+    {
+     "cell": "nutri.home|320x568|default",
+     "detail": {
+      "navigatedTo": "/app/nutri/pacientes",
+      "menuStillOpenAfterNavigate": false
+     }
+    },
+    {
+     "cell": "nutri.home|375x667|default",
+     "detail": {
+      "navigatedTo": "/app/nutri/pacientes",
+      "menuStillOpenAfterNavigate": false
+     }
+    }
+   ],
+   "notReproducedIn": [
+    "nutri.home|320x568|default",
+    "nutri.home|375x667|default",
+    "nutri.home|390x844|default",
+    "nutri.home|320x568|default",
+    "nutri.home|375x667|default",
+    "nutri.home|390x844|default"
+   ],
+   "allCells": 6
+  }
+ ],
+ "newFindings": [
+  {
+   "id": "NEW-001",
+   "type": "covered",
+   "severity": "P1",
+   "selector": "p > a",
+   "sample": "section > p > a",
+   "text": "s2core.com.br/excluir-conta",
+   "scenarios": [
+    "public.privacy"
+   ],
+   "viewports": [
+    "320x568"
+   ],
+   "states": [
+    "default",
+    "cookie"
+   ],
+   "cells": [
+    {
+     "cell": "public.privacy|320x568|default",
+     "screenshot": "shots/public.privacy_320x568_default.jpg",
+     "evidence": [
+      "evidence/public.privacy_320x568_default.cov1.png"
+     ]
+    },
+    {
+     "cell": "public.privacy|320x568|cookie",
+     "screenshot": "shots/public.privacy_320x568_cookie.jpg",
+     "evidence": [
+      "evidence/public.privacy_320x568_cookie.png",
+      "evidence/public.privacy_320x568_cookie.cov1.png"
+     ]
+    }
+   ],
+   "detail": {
+    "coveredBy": "main.auth-page > section > p"
+   },
+   "occurrences": 2
+  },
+  {
+   "id": "NEW-002",
+   "type": "clipped-x",
+   "severity": "P1",
+   "selector": "div > button.pp-btn.pp-btn--ghost",
+   "sample": "div > div > button.pp-btn.pp-btn--ghost",
+   "text": "Pedir check-in",
+   "scenarios": [
+    "personal.dashboard"
+   ],
+   "viewports": [
+    "320x568"
+   ],
+   "states": [
+    "default",
+    "cookie"
+   ],
+   "cells": [
+    {
+     "cell": "personal.dashboard|320x568|default",
+     "screenshot": "shots/personal.dashboard_320x568_default.jpg",
+     "evidence": [
+      "evidence/personal.dashboard_320x568_default.png"
+     ]
+    },
+    {
+     "cell": "personal.dashboard|320x568|cookie",
+     "screenshot": "shots/personal.dashboard_320x568_cookie.jpg",
+     "evidence": [
+      "evidence/personal.dashboard_320x568_cookie.png"
+     ]
+    }
+   ],
+   "detail": {
+    "hiddenPx": 40.1
+   },
+   "occurrences": 2
+  },
+  {
+   "id": "NEW-003",
+   "type": "small-target",
+   "severity": "P2",
+   "selector": "div > button",
+   "sample": "div > div > button",
+   "text": "Dia AFull body",
+   "scenarios": [
+    "student.ficha",
+    "student.plano",
+    "student.profile",
+    "student.messages-thread",
+    "student.evolucao-history",
+    "student.suggested",
+    "student.player",
+    "nutri.profile"
+   ],
+   "viewports": [
+    "320x568",
+    "360x740",
+    "375x667",
+    "390x844",
+    "412x915",
+    "430x932",
+    "844x390",
+    "932x430",
+    "768x1024"
+   ],
+   "states": [
+    "default",
+    "workout-active",
+    "cookie",
+    "safe-area",
+    "keyboard"
+   ],
+   "cells": [
+    {
+     "cell": "student.ficha|320x568|default",
+     "screenshot": "shots/student.ficha_320x568_default.jpg",
+     "evidence": [
+      "evidence/student.ficha_320x568_default.png"
+     ]
+    },
+    {
+     "cell": "student.ficha|320x568|default",
+     "screenshot": "shots/student.ficha_320x568_default.jpg",
+     "evidence": [
+      "evidence/student.ficha_320x568_default.png"
+     ]
+    },
+    {
+     "cell": "student.ficha|360x740|default",
+     "screenshot": "shots/student.ficha_360x740_default.jpg",
+     "evidence": [
+      "evidence/student.ficha_360x740_default.png"
+     ]
+    },
+    {
+     "cell": "student.ficha|360x740|default",
+     "screenshot": "shots/student.ficha_360x740_default.jpg",
+     "evidence": [
+      "evidence/student.ficha_360x740_default.png"
+     ]
+    }
+   ],
+   "detail": {
+    "w": 144.8,
+    "h": 15,
+    "kind": "primary"
+   },
+   "texts": [
+    "Dia AFull body",
+    "Dia BInferiores e core",
+    "definir",
+    "informar",
+    "Excluir minha conta",
+    "Voltar para a lista"
+   ],
+   "occurrences": 4
+  },
+  {
+   "id": "NEW-004",
+   "type": "small-target",
+   "severity": "P2",
+   "selector": "div > a",
+   "sample": "div > div > a",
+   "text": "Política de Privacidade",
+   "scenarios": [
+    "student.profile",
+    "student.equipe",
+    "student.player",
+    "student.player-end",
+    "personal.profile",
+    "nutri.profile"
+   ],
+   "viewports": [
+    "320x568",
+    "360x740",
+    "375x667",
+    "390x844",
+    "412x915",
+    "430x932",
+    "844x390",
+    "932x430",
+    "768x1024"
+   ],
+   "states": [
+    "default",
+    "cookie",
+    "workout-active",
+    "safe-area"
+   ],
+   "cells": [
+    {
+     "cell": "student.profile|320x568|default",
+     "screenshot": "shots/student.profile_320x568_default.jpg",
+     "evidence": null
+    },
+    {
+     "cell": "student.profile|320x568|default",
+     "screenshot": "shots/student.profile_320x568_default.jpg",
+     "evidence": null
+    },
+    {
+     "cell": "student.profile|360x740|default",
+     "screenshot": "shots/student.profile_360x740_default.jpg",
+     "evidence": null
+    },
+    {
+     "cell": "student.profile|360x740|default",
+     "screenshot": "shots/student.profile_360x740_default.jpg",
+     "evidence": null
+    }
+   ],
+   "detail": {
+    "w": 80.4,
+    "h": 16.5,
+    "kind": "secondary"
+   },
+   "texts": [
+    "Política de Privacidade",
+    "Termos de Uso",
+    "Suas escolhas de privacidade são registradas em ",
+    "← Treinos"
+   ],
+   "occurrences": 4
+  },
+  {
+   "id": "NEW-005",
+   "type": "small-target",
+   "severity": "P2",
+   "selector": "div.pp-tabs > button.pp-tab",
+   "sample": "div.pp-tabs-wrap > div.pp-tabs > button.pp-tab",
+   "text": "IA",
+   "scenarios": [
+    "personal.cockpit",
+    "personal.cockpit-relationship",
+    "personal.cockpit-technical"
+   ],
+   "viewports": [
+    "320x568",
+    "360x740",
+    "375x667",
+    "390x844",
+    "412x915",
+    "430x932",
+    "844x390",
+    "932x430",
+    "768x1024"
+   ],
+   "states": [
+    "default"
+   ],
+   "cells": [
+    {
+     "cell": "personal.cockpit|320x568|default",
+     "screenshot": "shots/personal.cockpit_320x568_default.jpg",
+     "evidence": [
+      "evidence/personal.cockpit_320x568_default.cov1.png",
+      "evidence/personal.cockpit_320x568_default.cov2.png"
+     ]
+    },
+    {
+     "cell": "personal.cockpit|360x740|default",
+     "screenshot": "shots/personal.cockpit_360x740_default.jpg",
+     "evidence": null
+    },
+    {
+     "cell": "personal.cockpit|375x667|default",
+     "screenshot": "shots/personal.cockpit_375x667_default.jpg",
+     "evidence": null
+    },
+    {
+     "cell": "personal.cockpit|390x844|default",
+     "screenshot": "shots/personal.cockpit_390x844_default.jpg",
+     "evidence": [
+      "evidence/personal.cockpit_390x844_default.png"
+     ]
+    }
+   ],
+   "detail": {
+    "w": 40.9,
+    "h": 44,
+    "kind": "primary"
+   },
+   "texts": [
+    "IA"
+   ],
+   "occurrences": 4
+  },
+  {
+   "id": "NEW-006",
+   "type": "small-target",
+   "severity": "P2",
+   "selector": "label > input",
+   "sample": "div.field > label > input",
+   "text": "on",
+   "scenarios": [
+    "auth.register-personal",
+    "personal.cockpit-technical"
+   ],
+   "viewports": [
+    "320x568",
+    "360x740",
+    "375x667",
+    "390x844",
+    "412x915",
+    "430x932",
+    "844x390",
+    "932x430",
+    "768x1024"
+   ],
+   "states": [
+    "default"
+   ],
+   "cells": [
+    {
+     "cell": "auth.register-personal|320x568|default",
+     "screenshot": "shots/auth.register-personal_320x568_default.jpg",
+     "evidence": null
+    },
+    {
+     "cell": "auth.register-personal|360x740|default",
+     "screenshot": "shots/auth.register-personal_360x740_default.jpg",
+     "evidence": null
+    },
+    {
+     "cell": "auth.register-personal|375x667|default",
+     "screenshot": "shots/auth.register-personal_375x667_default.jpg",
+     "evidence": null
+    },
+    {
+     "cell": "auth.register-personal|390x844|default",
+     "screenshot": "shots/auth.register-personal_390x844_default.jpg",
+     "evidence": null
+    }
+   ],
+   "detail": {
+    "w": 728,
+    "h": 22,
+    "kind": "primary"
+   },
+   "texts": [
+    "on"
+   ],
+   "occurrences": 4
+  },
+  {
+   "id": "NEW-007",
+   "type": "small-target",
+   "severity": "P2",
+   "selector": "div > button.btn.btn-sm",
+   "sample": "div > div > button.btn.btn-sm",
+   "text": "3",
+   "scenarios": [
+    "student.alimentacao",
+    "nutri.patients"
+   ],
+   "viewports": [
+    "320x568",
+    "360x740",
+    "375x667",
+    "390x844",
+    "412x915",
+    "430x932",
+    "844x390",
+    "932x430",
+    "768x1024"
+   ],
+   "states": [
+    "default",
+    "workout-active"
+   ],
+   "cells": [
+    {
+     "cell": "student.alimentacao|320x568|default",
+     "screenshot": "shots/student.alimentacao_320x568_default.jpg",
+     "evidence": null
+    },
+    {
+     "cell": "student.alimentacao|360x740|default",
+     "screenshot": "shots/student.alimentacao_360x740_default.jpg",
+     "evidence": null
+    },
+    {
+     "cell": "student.alimentacao|375x667|default",
+     "screenshot": "shots/student.alimentacao_375x667_default.jpg",
+     "evidence": null
+    },
+    {
+     "cell": "student.alimentacao|390x844|default",
+     "screenshot": "shots/student.alimentacao_390x844_default.jpg",
+     "evidence": null
+    }
+   ],
+   "detail": {
+    "w": 95.1,
+    "h": 29,
+    "kind": "primary"
+   },
+   "texts": [
+    "3",
+    "Todos 1",
+    "Atenção",
+    "Em queda",
+    "Calibrando 1",
+    "Estáveis"
+   ],
+   "occurrences": 4
+  },
+  {
+   "id": "NEW-008",
+   "type": "nested-scroll",
+   "severity": "P2",
+   "selector": "div.um-chat-card > div",
+   "sample": "div > div.um-chat-card > div",
+   "text": null,
+   "scenarios": [
+    "student.messages",
+    "student.messages-thread"
+   ],
+   "viewports": [
+    "844x390",
+    "932x430",
+    "768x1024",
+    "320x568",
+    "360x740",
+    "375x667",
+    "390x844",
+    "412x915",
+    "430x932"
+   ],
+   "states": [
+    "default",
+    "keyboard"
+   ],
+   "cells": [
+    {
+     "cell": "student.messages|844x390|default",
+     "screenshot": "shots/student.messages_844x390_default.jpg",
+     "evidence": [
+      "evidence/student.messages_844x390_default.png"
+     ]
+    },
+    {
+     "cell": "student.messages|932x430|default",
+     "screenshot": "shots/student.messages_932x430_default.jpg",
+     "evidence": [
+      "evidence/student.messages_932x430_default.png"
+     ]
+    },
+    {
+     "cell": "student.messages|768x1024|default",
+     "screenshot": "shots/student.messages_768x1024_default.jpg",
+     "evidence": [
+      "evidence/student.messages_768x1024_default.png"
+     ]
+    },
+    {
+     "cell": "student.messages-thread|320x568|default",
+     "screenshot": "shots/student.messages-thread_320x568_default.jpg",
+     "evidence": [
+      "evidence/student.messages-thread_320x568_default.png"
+     ]
+    }
+   ],
+   "detail": {},
+   "occurrences": 4
+  },
+  {
+   "id": "NEW-009",
+   "type": "small-target",
+   "severity": "P2",
+   "selector": "div.ml-error-msg > button.ml-retry-btn",
+   "sample": "div.ml-page > div.ml-error-msg > button.ml-retry-btn",
+   "text": "Tentar novamente",
+   "scenarios": [
+    "student.lab"
+   ],
+   "viewports": [
+    "320x568",
+    "360x740",
+    "375x667",
+    "390x844",
+    "412x915",
+    "430x932",
+    "844x390",
+    "932x430",
+    "768x1024"
+   ],
+   "states": [
+    "default"
+   ],
+   "cells": [
+    {
+     "cell": "student.lab|320x568|default",
+     "screenshot": "shots/student.lab_320x568_default.jpg",
+     "evidence": null
+    },
+    {
+     "cell": "student.lab|360x740|default",
+     "screenshot": "shots/student.lab_360x740_default.jpg",
+     "evidence": null
+    },
+    {
+     "cell": "student.lab|375x667|default",
+     "screenshot": "shots/student.lab_375x667_default.jpg",
+     "evidence": null
+    },
+    {
+     "cell": "student.lab|390x844|default",
+     "screenshot": "shots/student.lab_390x844_default.jpg",
+     "evidence": null
+    }
+   ],
+   "detail": {
+    "w": 163.2,
+    "h": 33,
+    "kind": "primary"
+   },
+   "texts": [
+    "Tentar novamente"
+   ],
+   "occurrences": 4
+  },
+  {
+   "id": "NEW-010",
+   "type": "small-target",
+   "severity": "P2",
+   "selector": "label.pxf-checkbox-option > input.checkbox",
+   "sample": "div.pxf-checkbox-grid > label.pxf-checkbox-option > input.checkbox",
+   "text": "on",
+   "scenarios": [
+    "personal.exercises"
+   ],
+   "viewports": [
+    "320x568",
+    "360x740",
+    "375x667",
+    "390x844",
+    "412x915",
+    "430x932",
+    "844x390",
+    "932x430",
+    "768x1024"
+   ],
+   "states": [
+    "overlay:create-exercise"
+   ],
+   "cells": [
+    {
+     "cell": "personal.exercises|320x568|overlay:create-exercise",
+     "screenshot": "shots/personal.exercises_320x568_overlay_create-exercise.jpg",
+     "evidence": [
+      "evidence/personal.exercises_320x568_overlay_create-exercise.png"
+     ]
+    },
+    {
+     "cell": "personal.exercises|320x568|overlay:create-exercise",
+     "screenshot": "shots/personal.exercises_320x568_overlay_create-exercise.jpg",
+     "evidence": [
+      "evidence/personal.exercises_320x568_overlay_create-exercise.png"
+     ]
+    },
+    {
+     "cell": "personal.exercises|320x568|overlay:create-exercise",
+     "screenshot": "shots/personal.exercises_320x568_overlay_create-exercise.jpg",
+     "evidence": [
+      "evidence/personal.exercises_320x568_overlay_create-exercise.png"
+     ]
+    },
+    {
+     "cell": "personal.exercises|320x568|overlay:create-exercise",
+     "screenshot": "shots/personal.exercises_320x568_overlay_create-exercise.jpg",
+     "evidence": [
+      "evidence/personal.exercises_320x568_overlay_create-exercise.png"
+     ]
+    }
+   ],
+   "detail": {
+    "w": 109.9,
+    "h": 19.5,
+    "kind": "primary"
+   },
+   "texts": [
+    "on"
+   ],
+   "occurrences": 4
+  },
+  {
+   "id": "NEW-011",
+   "type": "small-target",
+   "severity": "P2",
+   "selector": "div > label",
+   "sample": "div > div > label",
+   "text": "Reduzir volume (séries / reps)",
+   "scenarios": [
+    "personal.cockpit-technical"
+   ],
+   "viewports": [
+    "320x568",
+    "360x740",
+    "375x667",
+    "390x844",
+    "412x915",
+    "430x932",
+    "844x390",
+    "932x430",
+    "768x1024"
+   ],
+   "states": [
+    "default"
+   ],
+   "cells": [
+    {
+     "cell": "personal.cockpit-technical|320x568|default",
+     "screenshot": "shots/personal.cockpit-technical_320x568_default.jpg",
+     "evidence": [
+      "evidence/personal.cockpit-technical_320x568_default.cov1.png",
+      "evidence/personal.cockpit-technical_320x568_default.cov2.png"
+     ]
+    },
+    {
+     "cell": "personal.cockpit-technical|320x568|default",
+     "screenshot": "shots/personal.cockpit-technical_320x568_default.jpg",
+     "evidence": [
+      "evidence/personal.cockpit-technical_320x568_default.cov1.png",
+      "evidence/personal.cockpit-technical_320x568_default.cov2.png"
+     ]
+    },
+    {
+     "cell": "personal.cockpit-technical|320x568|default",
+     "screenshot": "shots/personal.cockpit-technical_320x568_default.jpg",
+     "evidence": [
+      "evidence/personal.cockpit-technical_320x568_default.cov1.png",
+      "evidence/personal.cockpit-technical_320x568_default.cov2.png"
+     ]
+    },
+    {
+     "cell": "personal.cockpit-technical|320x568|default",
+     "screenshot": "shots/personal.cockpit-technical_320x568_default.jpg",
+     "evidence": [
+      "evidence/personal.cockpit-technical_320x568_default.cov1.png",
+      "evidence/personal.cockpit-technical_320x568_default.cov2.png"
+     ]
+    }
+   ],
+   "detail": {
+    "w": 728,
+    "h": 22,
+    "kind": "primary"
+   },
+   "texts": [
+    "Reduzir volume (séries / reps)",
+    "Aumentar descanso entre séries",
+    "Reduzir intensidade (RPE)",
+    "Sugerir mobilidade como complemento",
+    "Sugerir recuperação ativa (para estado vermelho)"
+   ],
+   "occurrences": 4
+  },
+  {
+   "id": "NEW-012",
+   "type": "small-target",
+   "severity": "P2",
+   "selector": "details > summary",
+   "sample": "div > details > summary",
+   "text": "Técnico",
+   "scenarios": [
+    "personal.builder"
+   ],
+   "viewports": [
+    "320x568",
+    "360x740",
+    "375x667",
+    "390x844",
+    "412x915",
+    "430x932",
+    "844x390",
+    "932x430",
+    "768x1024"
+   ],
+   "states": [
+    "default",
+    "keyboard"
+   ],
+   "cells": [
+    {
+     "cell": "personal.builder|320x568|default",
+     "screenshot": "shots/personal.builder_320x568_default.jpg",
+     "evidence": null
+    },
+    {
+     "cell": "personal.builder|320x568|default",
+     "screenshot": "shots/personal.builder_320x568_default.jpg",
+     "evidence": null
+    },
+    {
+     "cell": "personal.builder|320x568|default",
+     "screenshot": "shots/personal.builder_320x568_default.jpg",
+     "evidence": null
+    },
+    {
+     "cell": "personal.builder|360x740|default",
+     "screenshot": "shots/personal.builder_360x740_default.jpg",
+     "evidence": null
+    }
+   ],
+   "detail": {
+    "w": 670,
+    "h": 20.5,
+    "kind": "primary"
+   },
+   "texts": [
+    "Técnico"
+   ],
+   "occurrences": 4
+  },
+  {
+   "id": "NEW-013",
+   "type": "small-target",
+   "severity": "P2",
+   "selector": "div > button.btn.btn-icon",
+   "sample": "div > div > button.btn.btn-icon",
+   "text": "Voltar",
+   "scenarios": [
+    "nutri.patient"
+   ],
+   "viewports": [
+    "320x568",
+    "360x740",
+    "375x667",
+    "390x844",
+    "412x915",
+    "430x932",
+    "844x390",
+    "932x430",
+    "768x1024"
+   ],
+   "states": [
+    "default"
+   ],
+   "cells": [
+    {
+     "cell": "nutri.patient|320x568|default",
+     "screenshot": "shots/nutri.patient_320x568_default.jpg",
+     "evidence": [
+      "evidence/nutri.patient_320x568_default.png"
+     ]
+    },
+    {
+     "cell": "nutri.patient|360x740|default",
+     "screenshot": "shots/nutri.patient_360x740_default.jpg",
+     "evidence": [
+      "evidence/nutri.patient_360x740_default.png"
+     ]
+    },
+    {
+     "cell": "nutri.patient|375x667|default",
+     "screenshot": "shots/nutri.patient_375x667_default.jpg",
+     "evidence": [
+      "evidence/nutri.patient_375x667_default.png"
+     ]
+    },
+    {
+     "cell": "nutri.patient|390x844|default",
+     "screenshot": "shots/nutri.patient_390x844_default.jpg",
+     "evidence": [
+      "evidence/nutri.patient_390x844_default.png"
+     ]
+    }
+   ],
+   "detail": {
+    "w": 40,
+    "h": 40,
+    "kind": "primary"
+   },
+   "texts": [
+    "Voltar"
+   ],
+   "occurrences": 4
+  },
+  {
+   "id": "NEW-014",
+   "type": "small-target",
+   "severity": "P2",
+   "selector": "div.card.cardPad > button",
+   "sample": "div > div.card.cardPad > button",
+   "text": "Publicar perfil",
+   "scenarios": [
+    "nutri.profile"
+   ],
+   "viewports": [
+    "320x568",
+    "360x740",
+    "375x667",
+    "390x844",
+    "412x915",
+    "430x932",
+    "844x390",
+    "932x430",
+    "768x1024"
+   ],
+   "states": [
+    "default"
+   ],
+   "cells": [
+    {
+     "cell": "nutri.profile|320x568|default",
+     "screenshot": "shots/nutri.profile_320x568_default.jpg",
+     "evidence": null
+    },
+    {
+     "cell": "nutri.profile|360x740|default",
+     "screenshot": "shots/nutri.profile_360x740_default.jpg",
+     "evidence": [
+      "evidence/nutri.profile_360x740_default.png"
+     ]
+    },
+    {
+     "cell": "nutri.profile|375x667|default",
+     "screenshot": "shots/nutri.profile_375x667_default.jpg",
+     "evidence": [
+      "evidence/nutri.profile_375x667_default.png"
+     ]
+    },
+    {
+     "cell": "nutri.profile|390x844|default",
+     "screenshot": "shots/nutri.profile_390x844_default.jpg",
+     "evidence": [
+      "evidence/nutri.profile_390x844_default.png"
+     ]
+    }
+   ],
+   "detail": {
+    "w": 143,
+    "h": 31,
+    "kind": "primary"
+   },
+   "texts": [
+    "Publicar perfil"
+   ],
+   "occurrences": 4
+  },
+  {
+   "id": "NEW-015",
+   "type": "small-target",
+   "severity": "P2",
+   "selector": "label.cookie-consent__check > input",
+   "sample": "div.cookie-consent__inner > label.cookie-consent__check > input",
+   "text": "on",
+   "scenarios": [
+    "auth.login",
+    "auth.register",
+    "public.privacy",
+    "student.today",
+    "student.profile",
+    "personal.dashboard",
+    "nutri.home"
+   ],
+   "viewports": [
+    "320x568",
+    "360x740",
+    "375x667",
+    "390x844",
+    "412x915",
+    "430x932",
+    "932x430",
+    "768x1024"
+   ],
+   "states": [
+    "cookie"
+   ],
+   "cells": [
+    {
+     "cell": "auth.login|320x568|cookie",
+     "screenshot": "shots/auth.login_320x568_cookie.jpg",
+     "evidence": [
+      "evidence/auth.login_320x568_cookie.png"
+     ]
+    },
+    {
+     "cell": "auth.login|360x740|cookie",
+     "screenshot": "shots/auth.login_360x740_cookie.jpg",
+     "evidence": [
+      "evidence/auth.login_360x740_cookie.png"
+     ]
+    },
+    {
+     "cell": "auth.login|375x667|cookie",
+     "screenshot": "shots/auth.login_375x667_cookie.jpg",
+     "evidence": [
+      "evidence/auth.login_375x667_cookie.png"
+     ]
+    },
+    {
+     "cell": "auth.login|390x844|cookie",
+     "screenshot": "shots/auth.login_390x844_cookie.jpg",
+     "evidence": [
+      "evidence/auth.login_390x844_cookie.png"
+     ]
+    }
+   ],
+   "detail": {
+    "w": 348.3,
+    "h": 39,
+    "kind": "primary"
+   },
+   "texts": [
+    "on"
+   ],
+   "occurrences": 4
+  },
+  {
+   "id": "NEW-016",
+   "type": "small-target",
+   "severity": "P2",
+   "selector": "div.cookie-consent__actions > button.cookie-consent__btn.cookie-consent__btn--secondary",
+   "sample": "div.cookie-consent__inner > div.cookie-consent__actions > button.cookie-consent__btn.cookie-consent__btn--secondary",
+   "text": "Recusar opcionais",
+   "scenarios": [
+    "auth.login",
+    "auth.register",
+    "public.privacy",
+    "student.today",
+    "student.profile",
+    "personal.dashboard",
+    "nutri.home"
+   ],
+   "viewports": [
+    "320x568",
+    "360x740",
+    "375x667",
+    "390x844",
+    "412x915",
+    "430x932",
+    "768x1024"
+   ],
+   "states": [
+    "cookie"
+   ],
+   "cells": [
+    {
+     "cell": "auth.login|320x568|cookie",
+     "screenshot": "shots/auth.login_320x568_cookie.jpg",
+     "evidence": [
+      "evidence/auth.login_320x568_cookie.png"
+     ]
+    },
+    {
+     "cell": "auth.login|360x740|cookie",
+     "screenshot": "shots/auth.login_360x740_cookie.jpg",
+     "evidence": [
+      "evidence/auth.login_360x740_cookie.png"
+     ]
+    },
+    {
+     "cell": "auth.login|375x667|cookie",
+     "screenshot": "shots/auth.login_375x667_cookie.jpg",
+     "evidence": [
+      "evidence/auth.login_375x667_cookie.png"
+     ]
+    },
+    {
+     "cell": "auth.login|390x844|cookie",
+     "screenshot": "shots/auth.login_390x844_cookie.jpg",
+     "evidence": [
+      "evidence/auth.login_390x844_cookie.png"
+     ]
+    }
+   ],
+   "detail": {
+    "w": 162.8,
+    "h": 40,
+    "kind": "primary"
+   },
+   "texts": [
+    "Recusar opcionais"
+   ],
+   "occurrences": 4
+  },
+  {
+   "id": "NEW-017",
+   "type": "small-target",
+   "severity": "P2",
+   "selector": "div.cookie-consent__actions > button.cookie-consent__btn.cookie-consent__btn--primary",
+   "sample": "div.cookie-consent__inner > div.cookie-consent__actions > button.cookie-consent__btn.cookie-consent__btn--primary",
+   "text": "Salvar preferências",
+   "scenarios": [
+    "auth.login",
+    "auth.register",
+    "public.privacy",
+    "student.today",
+    "student.profile",
+    "personal.dashboard",
+    "nutri.home"
+   ],
+   "viewports": [
+    "320x568",
+    "360x740",
+    "375x667",
+    "390x844",
+    "412x915",
+    "430x932",
+    "768x1024"
+   ],
+   "states": [
+    "cookie"
+   ],
+   "cells": [
+    {
+     "cell": "auth.login|320x568|cookie",
+     "screenshot": "shots/auth.login_320x568_cookie.jpg",
+     "evidence": [
+      "evidence/auth.login_320x568_cookie.png"
+     ]
+    },
+    {
+     "cell": "auth.login|360x740|cookie",
+     "screenshot": "shots/auth.login_360x740_cookie.jpg",
+     "evidence": [
+      "evidence/auth.login_360x740_cookie.png"
+     ]
+    },
+    {
+     "cell": "auth.login|375x667|cookie",
+     "screenshot": "shots/auth.login_375x667_cookie.jpg",
+     "evidence": [
+      "evidence/auth.login_375x667_cookie.png"
+     ]
+    },
+    {
+     "cell": "auth.login|390x844|cookie",
+     "screenshot": "shots/auth.login_390x844_cookie.jpg",
+     "evidence": [
+      "evidence/auth.login_390x844_cookie.png"
+     ]
+    }
+   ],
+   "detail": {
+    "w": 172.9,
+    "h": 40,
+    "kind": "primary"
+   },
+   "texts": [
+    "Salvar preferências"
+   ],
+   "occurrences": 4
+  },
+  {
+   "id": "NEW-018",
+   "type": "small-target",
+   "severity": "P2",
+   "selector": "div > div.mp-context-strip",
+   "sample": "div.mp-thread > div > div.mp-context-strip",
+   "text": "Resumo do aluno",
+   "scenarios": [
+    "personal.messages"
+   ],
+   "viewports": [
+    "320x568",
+    "360x740",
+    "375x667",
+    "390x844",
+    "412x915",
+    "430x932",
+    "768x1024"
+   ],
+   "states": [
+    "default",
+    "keyboard"
+   ],
+   "cells": [
+    {
+     "cell": "personal.messages|320x568|default",
+     "screenshot": "shots/personal.messages_320x568_default.jpg",
+     "evidence": [
+      "evidence/personal.messages_320x568_default.png"
+     ]
+    },
+    {
+     "cell": "personal.messages|360x740|default",
+     "screenshot": "shots/personal.messages_360x740_default.jpg",
+     "evidence": [
+      "evidence/personal.messages_360x740_default.png"
+     ]
+    },
+    {
+     "cell": "personal.messages|375x667|default",
+     "screenshot": "shots/personal.messages_375x667_default.jpg",
+     "evidence": [
+      "evidence/personal.messages_375x667_default.png"
+     ]
+    },
+    {
+     "cell": "personal.messages|390x844|default",
+     "screenshot": "shots/personal.messages_390x844_default.jpg",
+     "evidence": [
+      "evidence/personal.messages_390x844_default.png"
+     ]
+    }
+   ],
+   "detail": {
+    "w": 394,
+    "h": 31,
+    "kind": "primary"
+   },
+   "texts": [
+    "Resumo do aluno"
+   ],
+   "occurrences": 4
+  },
+  {
+   "id": "NEW-019",
+   "type": "nested-scroll",
+   "severity": "P2",
+   "selector": "div.mp-thread > div.mp-messages-area",
+   "sample": "div.mp-card > div.mp-thread > div.mp-messages-area",
+   "text": null,
+   "scenarios": [
+    "personal.messages"
+   ],
+   "viewports": [
+    "360x740",
+    "375x667",
+    "390x844",
+    "412x915",
+    "430x932",
+    "932x430",
+    "768x1024"
+   ],
+   "states": [
+    "default"
+   ],
+   "cells": [
+    {
+     "cell": "personal.messages|360x740|default",
+     "screenshot": "shots/personal.messages_360x740_default.jpg",
+     "evidence": [
+      "evidence/personal.messages_360x740_default.png"
+     ]
+    },
+    {
+     "cell": "personal.messages|375x667|default",
+     "screenshot": "shots/personal.messages_375x667_default.jpg",
+     "evidence": [
+      "evidence/personal.messages_375x667_default.png"
+     ]
+    },
+    {
+     "cell": "personal.messages|390x844|default",
+     "screenshot": "shots/personal.messages_390x844_default.jpg",
+     "evidence": [
+      "evidence/personal.messages_390x844_default.png"
+     ]
+    },
+    {
+     "cell": "personal.messages|412x915|default",
+     "screenshot": "shots/personal.messages_412x915_default.jpg",
+     "evidence": [
+      "evidence/personal.messages_412x915_default.png"
+     ]
+    }
+   ],
+   "detail": {},
+   "occurrences": 4
+  },
+  {
+   "id": "NEW-020",
+   "type": "small-target",
+   "severity": "P2",
+   "selector": "div.tr-hero > button.tr-gps-status.tr-gps-status--denied",
+   "sample": "div.tr-card > div.tr-hero > button.tr-gps-status.tr-gps-status--denied",
+   "text": "Localização desativada — toque para rever",
+   "scenarios": [
+    "student.tracker"
+   ],
+   "viewports": [
+    "430x932",
+    "844x390",
+    "932x430",
+    "768x1024"
+   ],
+   "states": [
+    "default",
+    "workout-active"
+   ],
+   "cells": [
+    {
+     "cell": "student.tracker|430x932|default",
+     "screenshot": "shots/student.tracker_430x932_default.jpg",
+     "evidence": null
+    },
+    {
+     "cell": "student.tracker|844x390|default",
+     "screenshot": "shots/student.tracker_844x390_default.jpg",
+     "evidence": null
+    },
+    {
+     "cell": "student.tracker|932x430|default",
+     "screenshot": "shots/student.tracker_932x430_default.jpg",
+     "evidence": null
+    },
+    {
+     "cell": "student.tracker|768x1024|default",
+     "screenshot": "shots/student.tracker_768x1024_default.jpg",
+     "evidence": null
+    }
+   ],
+   "detail": {
+    "w": 670,
+    "h": 31,
+    "kind": "primary"
+   },
+   "texts": [
+    "Localização desativada — toque para rever"
+   ],
+   "occurrences": 4
+  },
+  {
+   "id": "NEW-021",
+   "type": "small-target",
+   "severity": "P2",
+   "selector": "div > button.btn.btn-ghost",
+   "sample": "div.card.cardPad > div > button.btn.btn-ghost",
+   "text": "Corrigir refeição de ontem",
+   "scenarios": [
+    "student.alimentacao",
+    "student.profile",
+    "personal.profile",
+    "nutri.profile",
+    "nutri.new-plan"
+   ],
+   "viewports": [
+    "844x390",
+    "932x430",
+    "768x1024"
+   ],
+   "states": [
+    "default",
+    "workout-active",
+    "cookie",
+    "safe-area",
+    "overlay:essential-modal",
+    "keyboard"
+   ],
+   "cells": [
+    {
+     "cell": "student.alimentacao|844x390|default",
+     "screenshot": "shots/student.alimentacao_844x390_default.jpg",
+     "evidence": null
+    },
+    {
+     "cell": "student.alimentacao|932x430|default",
+     "screenshot": "shots/student.alimentacao_932x430_default.jpg",
+     "evidence": null
+    },
+    {
+     "cell": "student.alimentacao|768x1024|default",
+     "screenshot": "shots/student.alimentacao_768x1024_default.jpg",
+     "evidence": [
+      "evidence/student.alimentacao_768x1024_default.png"
+     ]
+    },
+    {
+     "cell": "student.alimentacao|844x390|workout-active",
+     "screenshot": "shots/student.alimentacao_844x390_workout-active.jpg",
+     "evidence": null
+    }
+   ],
+   "detail": {
+    "w": 95.8,
+    "h": 36,
+    "kind": "primary"
+   },
+   "texts": [
+    "Corrigir refeição de ontem",
+    "Editar perfil",
+    "Compartilhar resumo",
+    "Editar",
+    "Exportar meus dados",
+    "Sair da conta"
+   ],
+   "occurrences": 4
+  },
+  {
+   "id": "NEW-022",
+   "type": "small-target",
+   "severity": "P2",
+   "selector": "div > button.btn.btn-primary",
+   "sample": "div > div > button.btn.btn-primary",
+   "text": "Ativar Fight Intelligence",
+   "scenarios": [
+    "student.profile",
+    "nutri.patients",
+    "nutri.invites",
+    "nutri.profile"
+   ],
+   "viewports": [
+    "844x390",
+    "932x430",
+    "768x1024"
+   ],
+   "states": [
+    "default",
+    "cookie",
+    "workout-active",
+    "safe-area",
+    "overlay:essential-modal"
+   ],
+   "cells": [
+    {
+     "cell": "student.profile|844x390|default",
+     "screenshot": "shots/student.profile_844x390_default.jpg",
+     "evidence": [
+      "evidence/student.profile_844x390_default.png"
+     ]
+    },
+    {
+     "cell": "student.profile|932x430|default",
+     "screenshot": "shots/student.profile_932x430_default.jpg",
+     "evidence": [
+      "evidence/student.profile_932x430_default.png"
+     ]
+    },
+    {
+     "cell": "student.profile|768x1024|default",
+     "screenshot": "shots/student.profile_768x1024_default.jpg",
+     "evidence": [
+      "evidence/student.profile_768x1024_default.png"
+     ]
+    },
+    {
+     "cell": "student.profile|844x390|cookie",
+     "screenshot": "shots/student.profile_844x390_cookie.jpg",
+     "evidence": [
+      "evidence/student.profile_844x390_cookie.png"
+     ]
+    }
+   ],
+   "detail": {
+    "w": 171.2,
+    "h": 36,
+    "kind": "primary"
+   },
+   "texts": [
+    "Ativar Fight Intelligence",
+    "Salvar",
+    "Convidar paciente",
+    "Salvar alterações"
+   ],
+   "occurrences": 4
+  },
+  {
+   "id": "NEW-023",
+   "type": "small-target",
+   "severity": "P2",
+   "selector": "form.auth-card > button.btn.btn-primary",
+   "sample": "main.auth-page > form.auth-card > button.btn.btn-primary",
+   "text": "Entrar",
+   "scenarios": [
+    "auth.login",
+    "auth.register",
+    "auth.register-personal"
+   ],
+   "viewports": [
+    "844x390",
+    "932x430",
+    "768x1024"
+   ],
+   "states": [
+    "default",
+    "cookie",
+    "safe-area",
+    "keyboard"
+   ],
+   "cells": [
+    {
+     "cell": "auth.login|844x390|default",
+     "screenshot": "shots/auth.login_844x390_default.jpg",
+     "evidence": null
+    },
+    {
+     "cell": "auth.login|932x430|default",
+     "screenshot": "shots/auth.login_932x430_default.jpg",
+     "evidence": null
+    },
+    {
+     "cell": "auth.login|768x1024|default",
+     "screenshot": "shots/auth.login_768x1024_default.jpg",
+     "evidence": [
+      "evidence/auth.login_768x1024_default.png"
+     ]
+    },
+    {
+     "cell": "auth.login|844x390|cookie",
+     "screenshot": "shots/auth.login_844x390_cookie.jpg",
+     "evidence": null
+    }
+   ],
+   "detail": {
+    "w": 430,
+    "h": 36,
+    "kind": "primary"
+   },
+   "texts": [
+    "Entrar",
+    "Criar conta e continuar",
+    "Criar conta grátis"
+   ],
+   "occurrences": 4
+  },
+  {
+   "id": "NEW-024",
+   "type": "small-target",
+   "severity": "P2",
+   "selector": "div > input.input",
+   "sample": "div > div > input.input",
+   "text": "Especialidade 1",
+   "scenarios": [
+    "personal.profile",
+    "nutri.patients",
+    "nutri.profile"
+   ],
+   "viewports": [
+    "844x390",
+    "932x430",
+    "768x1024"
+   ],
+   "states": [
+    "default"
+   ],
+   "cells": [
+    {
+     "cell": "personal.profile|844x390|default",
+     "screenshot": "shots/personal.profile_844x390_default.jpg",
+     "evidence": null
+    },
+    {
+     "cell": "personal.profile|932x430|default",
+     "screenshot": "shots/personal.profile_932x430_default.jpg",
+     "evidence": null
+    },
+    {
+     "cell": "personal.profile|768x1024|default",
+     "screenshot": "shots/personal.profile_768x1024_default.jpg",
+     "evidence": [
+      "evidence/personal.profile_768x1024_default.png"
+     ]
+    },
+    {
+     "cell": "nutri.patients|844x390|default",
+     "screenshot": "shots/nutri.patients_844x390_default.jpg",
+     "evidence": [
+      "evidence/nutri.patients_844x390_default.png"
+     ]
+    }
+   ],
+   "detail": {
+    "w": 598,
+    "h": 38,
+    "kind": "primary"
+   },
+   "texts": [
+    "Especialidade 1",
+    "Buscar paciente"
+   ],
+   "occurrences": 4
+  },
+  {
+   "id": "NEW-025",
+   "type": "small-target",
+   "severity": "P2",
+   "selector": "input#credentialCode",
+   "sample": "input#credentialCode",
+   "text": "Ex: CREF 012345-G/SP",
+   "scenarios": [
+    "personal.profile",
+    "nutri.profile"
+   ],
+   "viewports": [
+    "844x390",
+    "932x430",
+    "768x1024"
+   ],
+   "states": [
+    "default"
+   ],
+   "cells": [
+    {
+     "cell": "personal.profile|844x390|default",
+     "screenshot": "shots/personal.profile_844x390_default.jpg",
+     "evidence": null
+    },
+    {
+     "cell": "personal.profile|932x430|default",
+     "screenshot": "shots/personal.profile_932x430_default.jpg",
+     "evidence": null
+    },
+    {
+     "cell": "personal.profile|768x1024|default",
+     "screenshot": "shots/personal.profile_768x1024_default.jpg",
+     "evidence": [
+      "evidence/personal.profile_768x1024_default.png"
+     ]
+    },
+    {
+     "cell": "nutri.profile|844x390|default",
+     "screenshot": "shots/nutri.profile_844x390_default.jpg",
+     "evidence": null
+    }
+   ],
+   "detail": {
+    "w": 598,
+    "h": 38,
+    "kind": "primary"
+   },
+   "texts": [
+    "Ex: CREF 012345-G/SP"
+   ],
+   "occurrences": 4
+  },
+  {
+   "id": "NEW-026",
+   "type": "small-target",
+   "severity": "P2",
+   "selector": "input#displayName",
+   "sample": "input#displayName",
+   "text": "Como você quer ser chamado(a) pelos alunos",
+   "scenarios": [
+    "personal.profile",
+    "nutri.profile"
+   ],
+   "viewports": [
+    "844x390",
+    "932x430",
+    "768x1024"
+   ],
+   "states": [
+    "default"
+   ],
+   "cells": [
+    {
+     "cell": "personal.profile|844x390|default",
+     "screenshot": "shots/personal.profile_844x390_default.jpg",
+     "evidence": null
+    },
+    {
+     "cell": "personal.profile|932x430|default",
+     "screenshot": "shots/personal.profile_932x430_default.jpg",
+     "evidence": null
+    },
+    {
+     "cell": "personal.profile|768x1024|default",
+     "screenshot": "shots/personal.profile_768x1024_default.jpg",
+     "evidence": [
+      "evidence/personal.profile_768x1024_default.png"
+     ]
+    },
+    {
+     "cell": "nutri.profile|844x390|default",
+     "screenshot": "shots/nutri.profile_844x390_default.jpg",
+     "evidence": null
+    }
+   ],
+   "detail": {
+    "w": 598,
+    "h": 38,
+    "kind": "primary"
+   },
+   "texts": [
+    "Como você quer ser chamado(a) pelos alunos"
+   ],
+   "occurrences": 4
+  },
+  {
+   "id": "NEW-027",
+   "type": "small-target",
+   "severity": "P2",
+   "selector": "div.field > button.btn.btn-ghost",
+   "sample": "div.card.cardPad > div.field > button.btn.btn-ghost",
+   "text": "+ Adicionar especialidade",
+   "scenarios": [
+    "personal.profile",
+    "nutri.profile"
+   ],
+   "viewports": [
+    "844x390",
+    "932x430",
+    "768x1024"
+   ],
+   "states": [
+    "default"
+   ],
+   "cells": [
+    {
+     "cell": "personal.profile|844x390|default",
+     "screenshot": "shots/personal.profile_844x390_default.jpg",
+     "evidence": null
+    },
+    {
+     "cell": "personal.profile|932x430|default",
+     "screenshot": "shots/personal.profile_932x430_default.jpg",
+     "evidence": null
+    },
+    {
+     "cell": "personal.profile|768x1024|default",
+     "screenshot": "shots/personal.profile_768x1024_default.jpg",
+     "evidence": [
+      "evidence/personal.profile_768x1024_default.png"
+     ]
+    },
+    {
+     "cell": "nutri.profile|844x390|default",
+     "screenshot": "shots/nutri.profile_844x390_default.jpg",
+     "evidence": null
+    }
+   ],
+   "detail": {
+    "w": 598,
+    "h": 29,
+    "kind": "primary"
+   },
+   "texts": [
+    "+ Adicionar especialidade"
+   ],
+   "occurrences": 4
+  },
+  {
+   "id": "NEW-028",
+   "type": "small-target",
+   "severity": "P2",
+   "selector": "select#modality",
+   "sample": "select#modality",
+   "text": "SelecionePresencialOnlineHíbrido",
+   "scenarios": [
+    "personal.profile",
+    "nutri.profile"
+   ],
+   "viewports": [
+    "844x390",
+    "932x430",
+    "768x1024"
+   ],
+   "states": [
+    "default"
+   ],
+   "cells": [
+    {
+     "cell": "personal.profile|844x390|default",
+     "screenshot": "shots/personal.profile_844x390_default.jpg",
+     "evidence": null
+    },
+    {
+     "cell": "personal.profile|932x430|default",
+     "screenshot": "shots/personal.profile_932x430_default.jpg",
+     "evidence": null
+    },
+    {
+     "cell": "personal.profile|768x1024|default",
+     "screenshot": "shots/personal.profile_768x1024_default.jpg",
+     "evidence": [
+      "evidence/personal.profile_768x1024_default.png"
+     ]
+    },
+    {
+     "cell": "nutri.profile|844x390|default",
+     "screenshot": "shots/nutri.profile_844x390_default.jpg",
+     "evidence": null
+    }
+   ],
+   "detail": {
+    "w": 598,
+    "h": 40,
+    "kind": "primary"
+   },
+   "texts": [
+    "SelecionePresencialOnlineHíbrido"
+   ],
+   "occurrences": 4
+  },
+  {
+   "id": "NEW-029",
+   "type": "small-target",
+   "severity": "P2",
+   "selector": "input#city",
+   "sample": "input#city",
+   "text": "Ex: Belo Horizonte",
+   "scenarios": [
+    "personal.profile",
+    "nutri.profile"
+   ],
+   "viewports": [
+    "844x390",
+    "932x430",
+    "768x1024"
+   ],
+   "states": [
+    "default"
+   ],
+   "cells": [
+    {
+     "cell": "personal.profile|844x390|default",
+     "screenshot": "shots/personal.profile_844x390_default.jpg",
+     "evidence": null
+    },
+    {
+     "cell": "personal.profile|932x430|default",
+     "screenshot": "shots/personal.profile_932x430_default.jpg",
+     "evidence": null
+    },
+    {
+     "cell": "personal.profile|768x1024|default",
+     "screenshot": "shots/personal.profile_768x1024_default.jpg",
+     "evidence": [
+      "evidence/personal.profile_768x1024_default.png"
+     ]
+    },
+    {
+     "cell": "nutri.profile|844x390|default",
+     "screenshot": "shots/nutri.profile_844x390_default.jpg",
+     "evidence": null
+    }
+   ],
+   "detail": {
+    "w": 526,
+    "h": 38,
+    "kind": "primary"
+   },
+   "texts": [
+    "Ex: Belo Horizonte"
+   ],
+   "occurrences": 4
+  },
+  {
+   "id": "NEW-030",
+   "type": "small-target",
+   "severity": "P2",
+   "selector": "input#stateUf",
+   "sample": "input#stateUf",
+   "text": "MG",
+   "scenarios": [
+    "personal.profile",
+    "nutri.profile"
+   ],
+   "viewports": [
+    "844x390",
+    "932x430",
+    "768x1024"
+   ],
+   "states": [
+    "default"
+   ],
+   "cells": [
+    {
+     "cell": "personal.profile|844x390|default",
+     "screenshot": "shots/personal.profile_844x390_default.jpg",
+     "evidence": null
+    },
+    {
+     "cell": "personal.profile|932x430|default",
+     "screenshot": "shots/personal.profile_932x430_default.jpg",
+     "evidence": null
+    },
+    {
+     "cell": "personal.profile|768x1024|default",
+     "screenshot": "shots/personal.profile_768x1024_default.jpg",
+     "evidence": [
+      "evidence/personal.profile_768x1024_default.png"
+     ]
+    },
+    {
+     "cell": "nutri.profile|844x390|default",
+     "screenshot": "shots/nutri.profile_844x390_default.jpg",
+     "evidence": null
+    }
+   ],
+   "detail": {
+    "w": 64,
+    "h": 38,
+    "kind": "primary"
+   },
+   "texts": [
+    "MG"
+   ],
+   "occurrences": 4
+  },
+  {
+   "id": "NEW-031",
+   "type": "small-target",
+   "severity": "P2",
+   "selector": "input#metabolicFocus",
+   "sample": "input#metabolicFocus",
+   "text": "Ex: Perda de peso com preservação muscular, qual",
+   "scenarios": [
+    "personal.profile",
+    "nutri.profile"
+   ],
+   "viewports": [
+    "844x390",
+    "932x430",
+    "768x1024"
+   ],
+   "states": [
+    "default"
+   ],
+   "cells": [
+    {
+     "cell": "personal.profile|844x390|default",
+     "screenshot": "shots/personal.profile_844x390_default.jpg",
+     "evidence": null
+    },
+    {
+     "cell": "personal.profile|932x430|default",
+     "screenshot": "shots/personal.profile_932x430_default.jpg",
+     "evidence": null
+    },
+    {
+     "cell": "personal.profile|768x1024|default",
+     "screenshot": "shots/personal.profile_768x1024_default.jpg",
+     "evidence": [
+      "evidence/personal.profile_768x1024_default.png"
+     ]
+    },
+    {
+     "cell": "nutri.profile|844x390|default",
+     "screenshot": "shots/nutri.profile_844x390_default.jpg",
+     "evidence": null
+    }
+   ],
+   "detail": {
+    "w": 598,
+    "h": 38,
+    "kind": "primary"
+   },
+   "texts": [
+    "Ex: Perda de peso com preservação muscular, qual"
+   ],
+   "occurrences": 4
+  },
+  {
+   "id": "NEW-032",
+   "type": "small-target",
+   "severity": "P2",
+   "selector": "select#availabilityStatus",
+   "sample": "select#availabilityStatus",
+   "text": "Disponível para novos pacientesVagas limitadasSe",
+   "scenarios": [
+    "personal.profile",
+    "nutri.profile"
+   ],
+   "viewports": [
+    "844x390",
+    "932x430",
+    "768x1024"
+   ],
+   "states": [
+    "default"
+   ],
+   "cells": [
+    {
+     "cell": "personal.profile|844x390|default",
+     "screenshot": "shots/personal.profile_844x390_default.jpg",
+     "evidence": null
+    },
+    {
+     "cell": "personal.profile|932x430|default",
+     "screenshot": "shots/personal.profile_932x430_default.jpg",
+     "evidence": null
+    },
+    {
+     "cell": "personal.profile|768x1024|default",
+     "screenshot": "shots/personal.profile_768x1024_default.jpg",
+     "evidence": [
+      "evidence/personal.profile_768x1024_default.png"
+     ]
+    },
+    {
+     "cell": "nutri.profile|844x390|default",
+     "screenshot": "shots/nutri.profile_844x390_default.jpg",
+     "evidence": null
+    }
+   ],
+   "detail": {
+    "w": 598,
+    "h": 40,
+    "kind": "primary"
+   },
+   "texts": [
+    "Disponível para novos pacientesVagas limitadasSe"
+   ],
+   "occurrences": 4
+  },
+  {
+   "id": "NEW-033",
+   "type": "small-target",
+   "severity": "P2",
+   "selector": "div.card.cardPad > button.btn.btn-ghost",
+   "sample": "div.stack > div.card.cardPad > button.btn.btn-ghost",
+   "text": "Adicionar observação",
+   "scenarios": [
+    "nutri.patient",
+    "nutri.new-plan"
+   ],
+   "viewports": [
+    "844x390",
+    "932x430",
+    "768x1024"
+   ],
+   "states": [
+    "default",
+    "keyboard"
+   ],
+   "cells": [
+    {
+     "cell": "nutri.patient|844x390|default",
+     "screenshot": "shots/nutri.patient_844x390_default.jpg",
+     "evidence": [
+      "evidence/nutri.patient_844x390_default.png"
+     ]
+    },
+    {
+     "cell": "nutri.patient|844x390|default",
+     "screenshot": "shots/nutri.patient_844x390_default.jpg",
+     "evidence": [
+      "evidence/nutri.patient_844x390_default.png"
+     ]
+    },
+    {
+     "cell": "nutri.patient|844x390|default",
+     "screenshot": "shots/nutri.patient_844x390_default.jpg",
+     "evidence": [
+      "evidence/nutri.patient_844x390_default.png"
+     ]
+    },
+    {
+     "cell": "nutri.patient|844x390|default",
+     "screenshot": "shots/nutri.patient_844x390_default.jpg",
+     "evidence": [
+      "evidence/nutri.patient_844x390_default.png"
+     ]
+    }
+   ],
+   "detail": {
+    "w": 344.4,
+    "h": 26,
+    "kind": "primary"
+   },
+   "texts": [
+    "Adicionar observação",
+    "Ver acompanhamento completo",
+    "Abrir plano",
+    "Ver todos os insights",
+    "Opções avançadas (janela, objetivo, substituiçõe"
+   ],
+   "occurrences": 4
+  },
+  {
+   "id": "NEW-034",
+   "type": "small-target",
+   "severity": "P2",
+   "selector": "input#email",
+   "sample": "input#email",
+   "text": "ex: usuario@exemplo.com",
+   "scenarios": [
+    "auth.login"
+   ],
+   "viewports": [
+    "844x390",
+    "932x430",
+    "768x1024"
+   ],
+   "states": [
+    "default",
+    "cookie",
+    "safe-area",
+    "keyboard"
+   ],
+   "cells": [
+    {
+     "cell": "auth.login|844x390|default",
+     "screenshot": "shots/auth.login_844x390_default.jpg",
+     "evidence": null
+    },
+    {
+     "cell": "auth.login|932x430|default",
+     "screenshot": "shots/auth.login_932x430_default.jpg",
+     "evidence": null
+    },
+    {
+     "cell": "auth.login|768x1024|default",
+     "screenshot": "shots/auth.login_768x1024_default.jpg",
+     "evidence": [
+      "evidence/auth.login_768x1024_default.png"
+     ]
+    },
+    {
+     "cell": "auth.login|844x390|cookie",
+     "screenshot": "shots/auth.login_844x390_cookie.jpg",
+     "evidence": null
+    }
+   ],
+   "detail": {
+    "w": 350,
+    "h": 38,
+    "kind": "primary"
+   },
+   "texts": [
+    "ex: usuario@exemplo.com"
+   ],
+   "occurrences": 4
+  },
+  {
+   "id": "NEW-035",
+   "type": "small-target",
+   "severity": "P2",
+   "selector": "input#password",
+   "sample": "input#password",
+   "text": "••••••",
+   "scenarios": [
+    "auth.login"
+   ],
+   "viewports": [
+    "844x390",
+    "932x430",
+    "768x1024"
+   ],
+   "states": [
+    "default",
+    "cookie",
+    "safe-area",
+    "keyboard"
+   ],
+   "cells": [
+    {
+     "cell": "auth.login|844x390|default",
+     "screenshot": "shots/auth.login_844x390_default.jpg",
+     "evidence": null
+    },
+    {
+     "cell": "auth.login|932x430|default",
+     "screenshot": "shots/auth.login_932x430_default.jpg",
+     "evidence": null
+    },
+    {
+     "cell": "auth.login|768x1024|default",
+     "screenshot": "shots/auth.login_768x1024_default.jpg",
+     "evidence": [
+      "evidence/auth.login_768x1024_default.png"
+     ]
+    },
+    {
+     "cell": "auth.login|844x390|cookie",
+     "screenshot": "shots/auth.login_844x390_cookie.jpg",
+     "evidence": null
+    }
+   ],
+   "detail": {
+    "w": 350,
+    "h": 38,
+    "kind": "primary"
+   },
+   "texts": [
+    "••••••"
+   ],
+   "occurrences": 4
+  },
+  {
+   "id": "NEW-036",
+   "type": "small-target",
+   "severity": "P2",
+   "selector": "input#reg-name",
+   "sample": "input#reg-name",
+   "text": "Seu nome",
+   "scenarios": [
+    "auth.register"
+   ],
+   "viewports": [
+    "844x390",
+    "932x430",
+    "768x1024"
+   ],
+   "states": [
+    "default",
+    "cookie",
+    "keyboard"
+   ],
+   "cells": [
+    {
+     "cell": "auth.register|844x390|default",
+     "screenshot": "shots/auth.register_844x390_default.jpg",
+     "evidence": null
+    },
+    {
+     "cell": "auth.register|932x430|default",
+     "screenshot": "shots/auth.register_932x430_default.jpg",
+     "evidence": null
+    },
+    {
+     "cell": "auth.register|768x1024|default",
+     "screenshot": "shots/auth.register_768x1024_default.jpg",
+     "evidence": [
+      "evidence/auth.register_768x1024_default.png"
+     ]
+    },
+    {
+     "cell": "auth.register|844x390|cookie",
+     "screenshot": "shots/auth.register_844x390_cookie.jpg",
+     "evidence": null
+    }
+   ],
+   "detail": {
+    "w": 430,
+    "h": 38,
+    "kind": "primary"
+   },
+   "texts": [
+    "Seu nome"
+   ],
+   "occurrences": 4
+  },
+  {
+   "id": "NEW-037",
+   "type": "small-target",
+   "severity": "P2",
+   "selector": "input#reg-cpf",
+   "sample": "input#reg-cpf",
+   "text": "000.000.000-00",
+   "scenarios": [
+    "auth.register"
+   ],
+   "viewports": [
+    "844x390",
+    "932x430",
+    "768x1024"
+   ],
+   "states": [
+    "default",
+    "cookie",
+    "keyboard"
+   ],
+   "cells": [
+    {
+     "cell": "auth.register|844x390|default",
+     "screenshot": "shots/auth.register_844x390_default.jpg",
+     "evidence": null
+    },
+    {
+     "cell": "auth.register|932x430|default",
+     "screenshot": "shots/auth.register_932x430_default.jpg",
+     "evidence": null
+    },
+    {
+     "cell": "auth.register|768x1024|default",
+     "screenshot": "shots/auth.register_768x1024_default.jpg",
+     "evidence": [
+      "evidence/auth.register_768x1024_default.png"
+     ]
+    },
+    {
+     "cell": "auth.register|844x390|cookie",
+     "screenshot": "shots/auth.register_844x390_cookie.jpg",
+     "evidence": null
+    }
+   ],
+   "detail": {
+    "w": 209,
+    "h": 38,
+    "kind": "primary"
+   },
+   "texts": [
+    "000.000.000-00"
+   ],
+   "occurrences": 4
+  },
+  {
+   "id": "NEW-038",
+   "type": "small-target",
+   "severity": "P2",
+   "selector": "input#reg-phone",
+   "sample": "input#reg-phone",
+   "text": "(85) 99999-9999",
+   "scenarios": [
+    "auth.register"
+   ],
+   "viewports": [
+    "844x390",
+    "932x430",
+    "768x1024"
+   ],
+   "states": [
+    "default",
+    "cookie",
+    "keyboard"
+   ],
+   "cells": [
+    {
+     "cell": "auth.register|844x390|default",
+     "screenshot": "shots/auth.register_844x390_default.jpg",
+     "evidence": null
+    },
+    {
+     "cell": "auth.register|932x430|default",
+     "screenshot": "shots/auth.register_932x430_default.jpg",
+     "evidence": null
+    },
+    {
+     "cell": "auth.register|768x1024|default",
+     "screenshot": "shots/auth.register_768x1024_default.jpg",
+     "evidence": [
+      "evidence/auth.register_768x1024_default.png"
+     ]
+    },
+    {
+     "cell": "auth.register|844x390|cookie",
+     "screenshot": "shots/auth.register_844x390_cookie.jpg",
+     "evidence": null
+    }
+   ],
+   "detail": {
+    "w": 209,
+    "h": 38,
+    "kind": "primary"
+   },
+   "texts": [
+    "(85) 99999-9999"
+   ],
+   "occurrences": 4
+  },
+  {
+   "id": "NEW-039",
+   "type": "small-target",
+   "severity": "P2",
+   "selector": "input#reg-birth",
+   "sample": "input#reg-birth",
+   "text": "",
+   "scenarios": [
+    "auth.register"
+   ],
+   "viewports": [
+    "844x390",
+    "932x430",
+    "768x1024"
+   ],
+   "states": [
+    "default",
+    "cookie",
+    "keyboard"
+   ],
+   "cells": [
+    {
+     "cell": "auth.register|844x390|default",
+     "screenshot": "shots/auth.register_844x390_default.jpg",
+     "evidence": null
+    },
+    {
+     "cell": "auth.register|932x430|default",
+     "screenshot": "shots/auth.register_932x430_default.jpg",
+     "evidence": null
+    },
+    {
+     "cell": "auth.register|768x1024|default",
+     "screenshot": "shots/auth.register_768x1024_default.jpg",
+     "evidence": [
+      "evidence/auth.register_768x1024_default.png"
+     ]
+    },
+    {
+     "cell": "auth.register|844x390|cookie",
+     "screenshot": "shots/auth.register_844x390_cookie.jpg",
+     "evidence": null
+    }
+   ],
+   "detail": {
+    "w": 430,
+    "h": 40,
+    "kind": "primary"
+   },
+   "texts": [
+    ""
+   ],
+   "occurrences": 4
+  },
+  {
+   "id": "NEW-040",
+   "type": "small-target",
+   "severity": "P2",
+   "selector": "input#reg-email",
+   "sample": "input#reg-email",
+   "text": "ex: usuario@exemplo.com",
+   "scenarios": [
+    "auth.register"
+   ],
+   "viewports": [
+    "844x390",
+    "932x430",
+    "768x1024"
+   ],
+   "states": [
+    "default",
+    "cookie",
+    "keyboard"
+   ],
+   "cells": [
+    {
+     "cell": "auth.register|844x390|default",
+     "screenshot": "shots/auth.register_844x390_default.jpg",
+     "evidence": null
+    },
+    {
+     "cell": "auth.register|932x430|default",
+     "screenshot": "shots/auth.register_932x430_default.jpg",
+     "evidence": null
+    },
+    {
+     "cell": "auth.register|768x1024|default",
+     "screenshot": "shots/auth.register_768x1024_default.jpg",
+     "evidence": [
+      "evidence/auth.register_768x1024_default.png"
+     ]
+    },
+    {
+     "cell": "auth.register|844x390|cookie",
+     "screenshot": "shots/auth.register_844x390_cookie.jpg",
+     "evidence": null
+    }
+   ],
+   "detail": {
+    "w": 430,
+    "h": 38,
+    "kind": "primary"
+   },
+   "texts": [
+    "ex: usuario@exemplo.com"
+   ],
+   "occurrences": 4
+  },
+  {
+   "id": "NEW-041",
+   "type": "small-target",
+   "severity": "P2",
+   "selector": "input#reg-password",
+   "sample": "input#reg-password",
+   "text": "",
+   "scenarios": [
+    "auth.register"
+   ],
+   "viewports": [
+    "844x390",
+    "932x430",
+    "768x1024"
+   ],
+   "states": [
+    "default",
+    "cookie",
+    "keyboard"
+   ],
+   "cells": [
+    {
+     "cell": "auth.register|844x390|default",
+     "screenshot": "shots/auth.register_844x390_default.jpg",
+     "evidence": null
+    },
+    {
+     "cell": "auth.register|932x430|default",
+     "screenshot": "shots/auth.register_932x430_default.jpg",
+     "evidence": null
+    },
+    {
+     "cell": "auth.register|768x1024|default",
+     "screenshot": "shots/auth.register_768x1024_default.jpg",
+     "evidence": [
+      "evidence/auth.register_768x1024_default.png"
+     ]
+    },
+    {
+     "cell": "auth.register|844x390|cookie",
+     "screenshot": "shots/auth.register_844x390_cookie.jpg",
+     "evidence": null
+    }
+   ],
+   "detail": {
+    "w": 209,
+    "h": 38,
+    "kind": "primary"
+   },
+   "texts": [
+    ""
+   ],
+   "occurrences": 4
+  },
+  {
+   "id": "NEW-042",
+   "type": "small-target",
+   "severity": "P2",
+   "selector": "input#reg-confirm",
+   "sample": "input#reg-confirm",
+   "text": "",
+   "scenarios": [
+    "auth.register"
+   ],
+   "viewports": [
+    "844x390",
+    "932x430",
+    "768x1024"
+   ],
+   "states": [
+    "default",
+    "cookie",
+    "keyboard"
+   ],
+   "cells": [
+    {
+     "cell": "auth.register|844x390|default",
+     "screenshot": "shots/auth.register_844x390_default.jpg",
+     "evidence": null
+    },
+    {
+     "cell": "auth.register|932x430|default",
+     "screenshot": "shots/auth.register_932x430_default.jpg",
+     "evidence": null
+    },
+    {
+     "cell": "auth.register|768x1024|default",
+     "screenshot": "shots/auth.register_768x1024_default.jpg",
+     "evidence": [
+      "evidence/auth.register_768x1024_default.png"
+     ]
+    },
+    {
+     "cell": "auth.register|844x390|cookie",
+     "screenshot": "shots/auth.register_844x390_cookie.jpg",
+     "evidence": null
+    }
+   ],
+   "detail": {
+    "w": 209,
+    "h": 38,
+    "kind": "primary"
+   },
+   "texts": [
+    ""
+   ],
+   "occurrences": 4
+  },
+  {
+   "id": "NEW-043",
+   "type": "small-target",
+   "severity": "P2",
+   "selector": "input#rp-name",
+   "sample": "input#rp-name",
+   "text": "Seu nome",
+   "scenarios": [
+    "auth.register-personal"
+   ],
+   "viewports": [
+    "844x390",
+    "932x430",
+    "768x1024"
+   ],
+   "states": [
+    "default"
+   ],
+   "cells": [
+    {
+     "cell": "auth.register-personal|844x390|default",
+     "screenshot": "shots/auth.register-personal_844x390_default.jpg",
+     "evidence": null
+    },
+    {
+     "cell": "auth.register-personal|932x430|default",
+     "screenshot": "shots/auth.register-personal_932x430_default.jpg",
+     "evidence": null
+    },
+    {
+     "cell": "auth.register-personal|768x1024|default",
+     "screenshot": "shots/auth.register-personal_768x1024_default.jpg",
+     "evidence": [
+      "evidence/auth.register-personal_768x1024_default.png"
+     ]
+    }
+   ],
+   "detail": {
+    "w": 430,
+    "h": 38,
+    "kind": "primary"
+   },
+   "texts": [
+    "Seu nome"
+   ],
+   "occurrences": 3
+  },
+  {
+   "id": "NEW-044",
+   "type": "small-target",
+   "severity": "P2",
+   "selector": "input#rp-cpf",
+   "sample": "input#rp-cpf",
+   "text": "000.000.000-00",
+   "scenarios": [
+    "auth.register-personal"
+   ],
+   "viewports": [
+    "844x390",
+    "932x430",
+    "768x1024"
+   ],
+   "states": [
+    "default"
+   ],
+   "cells": [
+    {
+     "cell": "auth.register-personal|844x390|default",
+     "screenshot": "shots/auth.register-personal_844x390_default.jpg",
+     "evidence": null
+    },
+    {
+     "cell": "auth.register-personal|932x430|default",
+     "screenshot": "shots/auth.register-personal_932x430_default.jpg",
+     "evidence": null
+    },
+    {
+     "cell": "auth.register-personal|768x1024|default",
+     "screenshot": "shots/auth.register-personal_768x1024_default.jpg",
+     "evidence": [
+      "evidence/auth.register-personal_768x1024_default.png"
+     ]
+    }
+   ],
+   "detail": {
+    "w": 209,
+    "h": 38,
+    "kind": "primary"
+   },
+   "texts": [
+    "000.000.000-00"
+   ],
+   "occurrences": 3
+  },
+  {
+   "id": "NEW-045",
+   "type": "small-target",
+   "severity": "P2",
+   "selector": "input#rp-phone",
+   "sample": "input#rp-phone",
+   "text": "(85) 99999-9999",
+   "scenarios": [
+    "auth.register-personal"
+   ],
+   "viewports": [
+    "844x390",
+    "932x430",
+    "768x1024"
+   ],
+   "states": [
+    "default"
+   ],
+   "cells": [
+    {
+     "cell": "auth.register-personal|844x390|default",
+     "screenshot": "shots/auth.register-personal_844x390_default.jpg",
+     "evidence": null
+    },
+    {
+     "cell": "auth.register-personal|932x430|default",
+     "screenshot": "shots/auth.register-personal_932x430_default.jpg",
+     "evidence": null
+    },
+    {
+     "cell": "auth.register-personal|768x1024|default",
+     "screenshot": "shots/auth.register-personal_768x1024_default.jpg",
+     "evidence": [
+      "evidence/auth.register-personal_768x1024_default.png"
+     ]
+    }
+   ],
+   "detail": {
+    "w": 209,
+    "h": 38,
+    "kind": "primary"
+   },
+   "texts": [
+    "(85) 99999-9999"
+   ],
+   "occurrences": 3
+  },
+  {
+   "id": "NEW-046",
+   "type": "small-target",
+   "severity": "P2",
+   "selector": "input#rp-birth",
+   "sample": "input#rp-birth",
+   "text": "",
+   "scenarios": [
+    "auth.register-personal"
+   ],
+   "viewports": [
+    "844x390",
+    "932x430",
+    "768x1024"
+   ],
+   "states": [
+    "default"
+   ],
+   "cells": [
+    {
+     "cell": "auth.register-personal|844x390|default",
+     "screenshot": "shots/auth.register-personal_844x390_default.jpg",
+     "evidence": null
+    },
+    {
+     "cell": "auth.register-personal|932x430|default",
+     "screenshot": "shots/auth.register-personal_932x430_default.jpg",
+     "evidence": null
+    },
+    {
+     "cell": "auth.register-personal|768x1024|default",
+     "screenshot": "shots/auth.register-personal_768x1024_default.jpg",
+     "evidence": [
+      "evidence/auth.register-personal_768x1024_default.png"
+     ]
+    }
+   ],
+   "detail": {
+    "w": 430,
+    "h": 40,
+    "kind": "primary"
+   },
+   "texts": [
+    ""
+   ],
+   "occurrences": 3
+  },
+  {
+   "id": "NEW-047",
+   "type": "small-target",
+   "severity": "P2",
+   "selector": "input#rp-email",
+   "sample": "input#rp-email",
+   "text": "ex: voce@exemplo.com",
+   "scenarios": [
+    "auth.register-personal"
+   ],
+   "viewports": [
+    "844x390",
+    "932x430",
+    "768x1024"
+   ],
+   "states": [
+    "default"
+   ],
+   "cells": [
+    {
+     "cell": "auth.register-personal|844x390|default",
+     "screenshot": "shots/auth.register-personal_844x390_default.jpg",
+     "evidence": null
+    },
+    {
+     "cell": "auth.register-personal|932x430|default",
+     "screenshot": "shots/auth.register-personal_932x430_default.jpg",
+     "evidence": null
+    },
+    {
+     "cell": "auth.register-personal|768x1024|default",
+     "screenshot": "shots/auth.register-personal_768x1024_default.jpg",
+     "evidence": [
+      "evidence/auth.register-personal_768x1024_default.png"
+     ]
+    }
+   ],
+   "detail": {
+    "w": 430,
+    "h": 38,
+    "kind": "primary"
+   },
+   "texts": [
+    "ex: voce@exemplo.com"
+   ],
+   "occurrences": 3
+  },
+  {
+   "id": "NEW-048",
+   "type": "small-target",
+   "severity": "P2",
+   "selector": "input#rp-registry",
+   "sample": "input#rp-registry",
+   "text": "ex: 012345-G/CE",
+   "scenarios": [
+    "auth.register-personal"
+   ],
+   "viewports": [
+    "844x390",
+    "932x430",
+    "768x1024"
+   ],
+   "states": [
+    "default"
+   ],
+   "cells": [
+    {
+     "cell": "auth.register-personal|844x390|default",
+     "screenshot": "shots/auth.register-personal_844x390_default.jpg",
+     "evidence": null
+    },
+    {
+     "cell": "auth.register-personal|932x430|default",
+     "screenshot": "shots/auth.register-personal_932x430_default.jpg",
+     "evidence": null
+    },
+    {
+     "cell": "auth.register-personal|768x1024|default",
+     "screenshot": "shots/auth.register-personal_768x1024_default.jpg",
+     "evidence": [
+      "evidence/auth.register-personal_768x1024_default.png"
+     ]
+    }
+   ],
+   "detail": {
+    "w": 430,
+    "h": 38,
+    "kind": "primary"
+   },
+   "texts": [
+    "ex: 012345-G/CE"
+   ],
+   "occurrences": 3
+  },
+  {
+   "id": "NEW-049",
+   "type": "small-target",
+   "severity": "P2",
+   "selector": "input#rp-password",
+   "sample": "input#rp-password",
+   "text": "",
+   "scenarios": [
+    "auth.register-personal"
+   ],
+   "viewports": [
+    "844x390",
+    "932x430",
+    "768x1024"
+   ],
+   "states": [
+    "default"
+   ],
+   "cells": [
+    {
+     "cell": "auth.register-personal|844x390|default",
+     "screenshot": "shots/auth.register-personal_844x390_default.jpg",
+     "evidence": null
+    },
+    {
+     "cell": "auth.register-personal|932x430|default",
+     "screenshot": "shots/auth.register-personal_932x430_default.jpg",
+     "evidence": null
+    },
+    {
+     "cell": "auth.register-personal|768x1024|default",
+     "screenshot": "shots/auth.register-personal_768x1024_default.jpg",
+     "evidence": [
+      "evidence/auth.register-personal_768x1024_default.png"
+     ]
+    }
+   ],
+   "detail": {
+    "w": 209,
+    "h": 38,
+    "kind": "primary"
+   },
+   "texts": [
+    ""
+   ],
+   "occurrences": 3
+  },
+  {
+   "id": "NEW-050",
+   "type": "small-target",
+   "severity": "P2",
+   "selector": "input#rp-confirm",
+   "sample": "input#rp-confirm",
+   "text": "",
+   "scenarios": [
+    "auth.register-personal"
+   ],
+   "viewports": [
+    "844x390",
+    "932x430",
+    "768x1024"
+   ],
+   "states": [
+    "default"
+   ],
+   "cells": [
+    {
+     "cell": "auth.register-personal|844x390|default",
+     "screenshot": "shots/auth.register-personal_844x390_default.jpg",
+     "evidence": null
+    },
+    {
+     "cell": "auth.register-personal|932x430|default",
+     "screenshot": "shots/auth.register-personal_932x430_default.jpg",
+     "evidence": null
+    },
+    {
+     "cell": "auth.register-personal|768x1024|default",
+     "screenshot": "shots/auth.register-personal_768x1024_default.jpg",
+     "evidence": [
+      "evidence/auth.register-personal_768x1024_default.png"
+     ]
+    }
+   ],
+   "detail": {
+    "w": 209,
+    "h": 38,
+    "kind": "primary"
+   },
+   "texts": [
+    ""
+   ],
+   "occurrences": 3
+  },
+  {
+   "id": "NEW-051",
+   "type": "small-target",
+   "severity": "P2",
+   "selector": "div.field > label",
+   "sample": "form.auth-card > div.field > label",
+   "text": "Li e aceito os Termos de Uso e a Política de Pri",
+   "scenarios": [
+    "auth.register-personal"
+   ],
+   "viewports": [
+    "844x390",
+    "932x430",
+    "768x1024"
+   ],
+   "states": [
+    "default"
+   ],
+   "cells": [
+    {
+     "cell": "auth.register-personal|844x390|default",
+     "screenshot": "shots/auth.register-personal_844x390_default.jpg",
+     "evidence": null
+    },
+    {
+     "cell": "auth.register-personal|932x430|default",
+     "screenshot": "shots/auth.register-personal_932x430_default.jpg",
+     "evidence": null
+    },
+    {
+     "cell": "auth.register-personal|768x1024|default",
+     "screenshot": "shots/auth.register-personal_768x1024_default.jpg",
+     "evidence": [
+      "evidence/auth.register-personal_768x1024_default.png"
+     ]
+    }
+   ],
+   "detail": {
+    "w": 430,
+    "h": 19.5,
+    "kind": "secondary"
+   },
+   "texts": [
+    "Li e aceito os Termos de Uso e a Política de Pri"
+   ],
+   "occurrences": 3
+  },
+  {
+   "id": "NEW-052",
+   "type": "small-target",
+   "severity": "P2",
+   "selector": "div > button.btn.btn-accent",
+   "sample": "section.metabolic-history-page > div > button.btn.btn-accent",
+   "text": "Registrar evolução",
+   "scenarios": [
+    "student.evolucao"
+   ],
+   "viewports": [
+    "844x390",
+    "932x430",
+    "768x1024"
+   ],
+   "states": [
+    "default",
+    "workout-active"
+   ],
+   "cells": [
+    {
+     "cell": "student.evolucao|844x390|default",
+     "screenshot": "shots/student.evolucao_844x390_default.jpg",
+     "evidence": null
+    },
+    {
+     "cell": "student.evolucao|932x430|default",
+     "screenshot": "shots/student.evolucao_932x430_default.jpg",
+     "evidence": null
+    },
+    {
+     "cell": "student.evolucao|768x1024|default",
+     "screenshot": "shots/student.evolucao_768x1024_default.jpg",
+     "evidence": [
+      "evidence/student.evolucao_768x1024_default.png"
+     ]
+    },
+    {
+     "cell": "student.evolucao|844x390|workout-active",
+     "screenshot": "shots/student.evolucao_844x390_workout-active.jpg",
+     "evidence": null
+    }
+   ],
+   "detail": {
+    "w": 182.6,
+    "h": 36,
+    "kind": "primary"
+   },
+   "texts": [
+    "Registrar evolução"
+   ],
+   "occurrences": 4
+  },
+  {
+   "id": "NEW-053",
+   "type": "small-target",
+   "severity": "P2",
+   "selector": "div.metabolic-empty > button.btn.btn-accent",
+   "sample": "section.metabolic-history-page > div.metabolic-empty > button.btn.btn-accent",
+   "text": "Registrar meu primeiro sinal",
+   "scenarios": [
+    "student.evolucao"
+   ],
+   "viewports": [
+    "844x390",
+    "932x430",
+    "768x1024"
+   ],
+   "states": [
+    "default",
+    "workout-active"
+   ],
+   "cells": [
+    {
+     "cell": "student.evolucao|844x390|default",
+     "screenshot": "shots/student.evolucao_844x390_default.jpg",
+     "evidence": null
+    },
+    {
+     "cell": "student.evolucao|932x430|default",
+     "screenshot": "shots/student.evolucao_932x430_default.jpg",
+     "evidence": null
+    },
+    {
+     "cell": "student.evolucao|768x1024|default",
+     "screenshot": "shots/student.evolucao_768x1024_default.jpg",
+     "evidence": [
+      "evidence/student.evolucao_768x1024_default.png"
+     ]
+    },
+    {
+     "cell": "student.evolucao|844x390|workout-active",
+     "screenshot": "shots/student.evolucao_844x390_workout-active.jpg",
+     "evidence": null
+    }
+   ],
+   "detail": {
+    "w": 260.5,
+    "h": 36,
+    "kind": "primary"
+   },
+   "texts": [
+    "Registrar meu primeiro sinal"
+   ],
+   "occurrences": 4
+  },
+  {
+   "id": "NEW-054",
+   "type": "small-target",
+   "severity": "P2",
+   "selector": "div.pxl-filters > input.input.pxl-search",
+   "sample": "div.pp-page > div.pxl-filters > input.input.pxl-search",
+   "text": "Buscar nos meus exercícios",
+   "scenarios": [
+    "personal.exercises"
+   ],
+   "viewports": [
+    "844x390",
+    "932x430",
+    "768x1024"
+   ],
+   "states": [
+    "default"
+   ],
+   "cells": [
+    {
+     "cell": "personal.exercises|844x390|default",
+     "screenshot": "shots/personal.exercises_844x390_default.jpg",
+     "evidence": null
+    },
+    {
+     "cell": "personal.exercises|932x430|default",
+     "screenshot": "shots/personal.exercises_932x430_default.jpg",
+     "evidence": [
+      "evidence/personal.exercises_932x430_default.png"
+     ]
+    },
+    {
+     "cell": "personal.exercises|768x1024|default",
+     "screenshot": "shots/personal.exercises_768x1024_default.jpg",
+     "evidence": [
+      "evidence/personal.exercises_768x1024_default.png"
+     ]
+    }
+   ],
+   "detail": {
+    "w": 485.6,
+    "h": 38,
+    "kind": "primary"
+   },
+   "texts": [
+    "Buscar nos meus exercícios"
+   ],
+   "occurrences": 3
+  },
+  {
+   "id": "NEW-055",
+   "type": "small-target",
+   "severity": "P2",
+   "selector": "div.mp-inbox > input.mp-search",
+   "sample": "div.mp-card > div.mp-inbox > input.mp-search",
+   "text": "Buscar aluno…",
+   "scenarios": [
+    "personal.messages"
+   ],
+   "viewports": [
+    "844x390",
+    "932x430",
+    "768x1024"
+   ],
+   "states": [
+    "default",
+    "keyboard"
+   ],
+   "cells": [
+    {
+     "cell": "personal.messages|844x390|default",
+     "screenshot": "shots/personal.messages_844x390_default.jpg",
+     "evidence": [
+      "evidence/personal.messages_844x390_default.png"
+     ]
+    },
+    {
+     "cell": "personal.messages|932x430|default",
+     "screenshot": "shots/personal.messages_932x430_default.jpg",
+     "evidence": [
+      "evidence/personal.messages_932x430_default.png"
+     ]
+    },
+    {
+     "cell": "personal.messages|768x1024|default",
+     "screenshot": "shots/personal.messages_768x1024_default.jpg",
+     "evidence": [
+      "evidence/personal.messages_768x1024_default.png"
+     ]
+    },
+    {
+     "cell": "personal.messages|768x1024|keyboard",
+     "screenshot": "shots/personal.messages_768x1024_keyboard.jpg",
+     "evidence": [
+      "evidence/personal.messages_768x1024_keyboard.png"
+     ]
+    }
+   ],
+   "detail": {
+    "w": 290,
+    "h": 40,
+    "kind": "primary"
+   },
+   "texts": [
+    "Buscar aluno…"
+   ],
+   "occurrences": 4
+  },
+  {
+   "id": "NEW-056",
+   "type": "small-target",
+   "severity": "P2",
+   "selector": "div > select.input",
+   "sample": "div > div > select.input",
+   "text": "Ordenar por",
+   "scenarios": [
+    "nutri.patients"
+   ],
+   "viewports": [
+    "844x390",
+    "932x430",
+    "768x1024"
+   ],
+   "states": [
+    "default"
+   ],
+   "cells": [
+    {
+     "cell": "nutri.patients|844x390|default",
+     "screenshot": "shots/nutri.patients_844x390_default.jpg",
+     "evidence": [
+      "evidence/nutri.patients_844x390_default.png"
+     ]
+    },
+    {
+     "cell": "nutri.patients|932x430|default",
+     "screenshot": "shots/nutri.patients_932x430_default.jpg",
+     "evidence": [
+      "evidence/nutri.patients_932x430_default.png"
+     ]
+    },
+    {
+     "cell": "nutri.patients|768x1024|default",
+     "screenshot": "shots/nutri.patients_768x1024_default.jpg",
+     "evidence": [
+      "evidence/nutri.patients_768x1024_default.png"
+     ]
+    }
+   ],
+   "detail": {
+    "w": 232,
+    "h": 40,
+    "kind": "primary"
+   },
+   "texts": [
+    "Ordenar por"
+   ],
+   "occurrences": 3
+  },
+  {
+   "id": "NEW-057",
+   "type": "small-target",
+   "severity": "P2",
+   "selector": "input#plan-title",
+   "sample": "input#plan-title",
+   "text": "Ex: Protocolo Emagrecimento Junho",
+   "scenarios": [
+    "nutri.new-plan"
+   ],
+   "viewports": [
+    "844x390",
+    "932x430",
+    "768x1024"
+   ],
+   "states": [
+    "default",
+    "keyboard"
+   ],
+   "cells": [
+    {
+     "cell": "nutri.new-plan|844x390|default",
+     "screenshot": "shots/nutri.new-plan_844x390_default.jpg",
+     "evidence": [
+      "evidence/nutri.new-plan_844x390_default.png"
+     ]
+    },
+    {
+     "cell": "nutri.new-plan|932x430|default",
+     "screenshot": "shots/nutri.new-plan_932x430_default.jpg",
+     "evidence": [
+      "evidence/nutri.new-plan_932x430_default.png"
+     ]
+    },
+    {
+     "cell": "nutri.new-plan|768x1024|default",
+     "screenshot": "shots/nutri.new-plan_768x1024_default.jpg",
+     "evidence": [
+      "evidence/nutri.new-plan_768x1024_default.png"
+     ]
+    },
+    {
+     "cell": "nutri.new-plan|768x1024|keyboard",
+     "screenshot": "shots/nutri.new-plan_768x1024_keyboard.jpg",
+     "evidence": [
+      "evidence/nutri.new-plan_768x1024_keyboard.png"
+     ]
+    }
+   ],
+   "detail": {
+    "w": 680,
+    "h": 38,
+    "kind": "primary"
+   },
+   "texts": [
+    "Ex: Protocolo Emagrecimento Junho"
+   ],
+   "occurrences": 4
+  },
+  {
+   "id": "NEW-058",
+   "type": "small-target",
+   "severity": "P2",
+   "selector": "select#plan-objective",
+   "sample": "select#plan-objective",
+   "text": "Selecionar objetivo...EmagrecimentoGanho de mass",
+   "scenarios": [
+    "nutri.new-plan"
+   ],
+   "viewports": [
+    "844x390",
+    "932x430",
+    "768x1024"
+   ],
+   "states": [
+    "default",
+    "keyboard"
+   ],
+   "cells": [
+    {
+     "cell": "nutri.new-plan|844x390|default",
+     "screenshot": "shots/nutri.new-plan_844x390_default.jpg",
+     "evidence": [
+      "evidence/nutri.new-plan_844x390_default.png"
+     ]
+    },
+    {
+     "cell": "nutri.new-plan|932x430|default",
+     "screenshot": "shots/nutri.new-plan_932x430_default.jpg",
+     "evidence": [
+      "evidence/nutri.new-plan_932x430_default.png"
+     ]
+    },
+    {
+     "cell": "nutri.new-plan|768x1024|default",
+     "screenshot": "shots/nutri.new-plan_768x1024_default.jpg",
+     "evidence": [
+      "evidence/nutri.new-plan_768x1024_default.png"
+     ]
+    },
+    {
+     "cell": "nutri.new-plan|768x1024|keyboard",
+     "screenshot": "shots/nutri.new-plan_768x1024_keyboard.jpg",
+     "evidence": [
+      "evidence/nutri.new-plan_768x1024_keyboard.png"
+     ]
+    }
+   ],
+   "detail": {
+    "w": 680,
+    "h": 40,
+    "kind": "primary"
+   },
+   "texts": [
+    "Selecionar objetivo...EmagrecimentoGanho de mass"
+   ],
+   "occurrences": 4
+  },
+  {
+   "id": "NEW-059",
+   "type": "small-target",
+   "severity": "P2",
+   "selector": "input#meal-#-name",
+   "sample": "input#meal-0-name",
+   "text": "",
+   "scenarios": [
+    "nutri.new-plan"
+   ],
+   "viewports": [
+    "844x390",
+    "932x430",
+    "768x1024"
+   ],
+   "states": [
+    "default",
+    "keyboard"
+   ],
+   "cells": [
+    {
+     "cell": "nutri.new-plan|844x390|default",
+     "screenshot": "shots/nutri.new-plan_844x390_default.jpg",
+     "evidence": [
+      "evidence/nutri.new-plan_844x390_default.png"
+     ]
+    },
+    {
+     "cell": "nutri.new-plan|932x430|default",
+     "screenshot": "shots/nutri.new-plan_932x430_default.jpg",
+     "evidence": [
+      "evidence/nutri.new-plan_932x430_default.png"
+     ]
+    },
+    {
+     "cell": "nutri.new-plan|768x1024|default",
+     "screenshot": "shots/nutri.new-plan_768x1024_default.jpg",
+     "evidence": [
+      "evidence/nutri.new-plan_768x1024_default.png"
+     ]
+    },
+    {
+     "cell": "nutri.new-plan|768x1024|keyboard",
+     "screenshot": "shots/nutri.new-plan_768x1024_keyboard.jpg",
+     "evidence": [
+      "evidence/nutri.new-plan_768x1024_keyboard.png"
+     ]
+    }
+   ],
+   "detail": {
+    "w": 468,
+    "h": 38,
+    "kind": "primary"
+   },
+   "texts": [
+    ""
+   ],
+   "occurrences": 4
+  },
+  {
+   "id": "NEW-060",
+   "type": "small-target",
+   "severity": "P2",
+   "selector": "div.stack > button.btn.btn-ghost",
+   "sample": "div.card.cardPad > div.stack > button.btn.btn-ghost",
+   "text": "Adicionar alimento",
+   "scenarios": [
+    "nutri.new-plan"
+   ],
+   "viewports": [
+    "844x390",
+    "932x430",
+    "768x1024"
+   ],
+   "states": [
+    "default",
+    "keyboard"
+   ],
+   "cells": [
+    {
+     "cell": "nutri.new-plan|844x390|default",
+     "screenshot": "shots/nutri.new-plan_844x390_default.jpg",
+     "evidence": [
+      "evidence/nutri.new-plan_844x390_default.png"
+     ]
+    },
+    {
+     "cell": "nutri.new-plan|932x430|default",
+     "screenshot": "shots/nutri.new-plan_932x430_default.jpg",
+     "evidence": [
+      "evidence/nutri.new-plan_932x430_default.png"
+     ]
+    },
+    {
+     "cell": "nutri.new-plan|768x1024|default",
+     "screenshot": "shots/nutri.new-plan_768x1024_default.jpg",
+     "evidence": [
+      "evidence/nutri.new-plan_768x1024_default.png"
+     ]
+    },
+    {
+     "cell": "nutri.new-plan|768x1024|keyboard",
+     "screenshot": "shots/nutri.new-plan_768x1024_keyboard.jpg",
+     "evidence": [
+      "evidence/nutri.new-plan_768x1024_keyboard.png"
+     ]
+    }
+   ],
+   "detail": {
+    "w": 638,
+    "h": 32,
+    "kind": "primary"
+   },
+   "texts": [
+    "Adicionar alimento"
+   ],
+   "occurrences": 4
+  },
+  {
+   "id": "NEW-061",
+   "type": "partly-covered",
+   "severity": "P2",
+   "selector": "div.pp-tabs > button.pp-tab",
+   "sample": "div.pp-tabs-wrap > div.pp-tabs > button.pp-tab",
+   "text": "Semana",
+   "scenarios": [
+    "personal.cockpit",
+    "personal.cockpit-relationship",
+    "personal.cockpit-technical"
+   ],
+   "viewports": [
+    "320x568",
+    "430x932"
+   ],
+   "states": [
+    "default"
+   ],
+   "cells": [
+    {
+     "cell": "personal.cockpit|320x568|default",
+     "screenshot": "shots/personal.cockpit_320x568_default.jpg",
+     "evidence": [
+      "evidence/personal.cockpit_320x568_default.cov1.png",
+      "evidence/personal.cockpit_320x568_default.cov2.png"
+     ]
+    },
+    {
+     "cell": "personal.cockpit|320x568|default",
+     "screenshot": "shots/personal.cockpit_320x568_default.jpg",
+     "evidence": [
+      "evidence/personal.cockpit_320x568_default.cov1.png",
+      "evidence/personal.cockpit_320x568_default.cov2.png"
+     ]
+    },
+    {
+     "cell": "personal.cockpit|430x932|default",
+     "screenshot": "shots/personal.cockpit_430x932_default.jpg",
+     "evidence": [
+      "evidence/personal.cockpit_430x932_default.png",
+      "evidence/personal.cockpit_430x932_default.cov1.png"
+     ]
+    },
+    {
+     "cell": "personal.cockpit-relationship|320x568|default",
+     "screenshot": "shots/personal.cockpit-relationship_320x568_default.jpg",
+     "evidence": [
+      "evidence/personal.cockpit-relationship_320x568_default.cov1.png",
+      "evidence/personal.cockpit-relationship_320x568_default.cov2.png"
+     ]
+    }
+   ],
+   "detail": {
+    "coveredBy": "main"
+   },
+   "occurrences": 4
+  },
+  {
+   "id": "NEW-062",
+   "type": "small-target",
+   "severity": "P2",
+   "selector": "div > a.hit-target-#",
+   "sample": "div.today-card > div > a.hit-target-44",
+   "text": "Ver dia →",
+   "scenarios": [
+    "student.today",
+    "student.profile"
+   ],
+   "viewports": [
+    "360x740",
+    "375x667"
+   ],
+   "states": [
+    "cookie"
+   ],
+   "cells": [
+    {
+     "cell": "student.today|360x740|cookie",
+     "screenshot": "shots/student.today_360x740_cookie.jpg",
+     "evidence": [
+      "evidence/student.today_360x740_cookie.png"
+     ]
+    },
+    {
+     "cell": "student.today|375x667|cookie",
+     "screenshot": "shots/student.today_375x667_cookie.jpg",
+     "evidence": [
+      "evidence/student.today_375x667_cookie.png"
+     ]
+    },
+    {
+     "cell": "student.profile|360x740|cookie",
+     "screenshot": "shots/student.profile_360x740_cookie.jpg",
+     "evidence": [
+      "evidence/student.profile_360x740_cookie.png"
+     ]
+    },
+    {
+     "cell": "student.profile|375x667|cookie",
+     "screenshot": "shots/student.profile_375x667_cookie.jpg",
+     "evidence": [
+      "evidence/student.profile_375x667_cookie.png"
+     ]
+    }
+   ],
+   "detail": {
+    "w": 109.9,
+    "h": 19.5,
+    "kind": "primary"
+   },
+   "texts": [
+    "Ver dia →",
+    "Ver evolução →"
+   ],
+   "occurrences": 4
+  },
+  {
+   "id": "NEW-063",
+   "type": "clipped-x",
+   "severity": "P2",
+   "selector": "div > span",
+   "sample": "div > div > span",
+   "text": "Ficha QA Demo",
+   "scenarios": [
+    "student.ficha",
+    "student.plano"
+   ],
+   "viewports": [
+    "320x568",
+    "360x740"
+   ],
+   "states": [
+    "default",
+    "workout-active"
+   ],
+   "cells": [
+    {
+     "cell": "student.ficha|320x568|default",
+     "screenshot": "shots/student.ficha_320x568_default.jpg",
+     "evidence": [
+      "evidence/student.ficha_320x568_default.png"
+     ]
+    },
+    {
+     "cell": "student.ficha|360x740|default",
+     "screenshot": "shots/student.ficha_360x740_default.jpg",
+     "evidence": [
+      "evidence/student.ficha_360x740_default.png"
+     ]
+    },
+    {
+     "cell": "student.ficha|320x568|workout-active",
+     "screenshot": "shots/student.ficha_320x568_workout-active.jpg",
+     "evidence": [
+      "evidence/student.ficha_320x568_workout-active.png"
+     ]
+    },
+    {
+     "cell": "student.ficha|360x740|workout-active",
+     "screenshot": "shots/student.ficha_360x740_workout-active.jpg",
+     "evidence": [
+      "evidence/student.ficha_360x740_workout-active.png"
+     ]
+    }
+   ],
+   "detail": {
+    "hiddenPx": 12.8
+   },
+   "occurrences": 4
+  },
+  {
+   "id": "NEW-064",
+   "type": "small-target",
+   "severity": "P2",
+   "selector": "div > button.hit-target-#",
+   "sample": "div > div > button.hit-target-44",
+   "text": "Configurar agora",
+   "scenarios": [
+    "student.today"
+   ],
+   "viewports": [
+    "360x740",
+    "375x667"
+   ],
+   "states": [
+    "cookie"
+   ],
+   "cells": [
+    {
+     "cell": "student.today|360x740|cookie",
+     "screenshot": "shots/student.today_360x740_cookie.jpg",
+     "evidence": [
+      "evidence/student.today_360x740_cookie.png"
+     ]
+    },
+    {
+     "cell": "student.today|360x740|cookie",
+     "screenshot": "shots/student.today_360x740_cookie.jpg",
+     "evidence": [
+      "evidence/student.today_360x740_cookie.png"
+     ]
+    },
+    {
+     "cell": "student.today|375x667|cookie",
+     "screenshot": "shots/student.today_375x667_cookie.jpg",
+     "evidence": [
+      "evidence/student.today_375x667_cookie.png"
+     ]
+    },
+    {
+     "cell": "student.today|375x667|cookie",
+     "screenshot": "shots/student.today_375x667_cookie.jpg",
+     "evidence": [
+      "evidence/student.today_375x667_cookie.png"
+     ]
+    }
+   ],
+   "detail": {
+    "w": 313,
+    "h": 33,
+    "kind": "primary"
+   },
+   "texts": [
+    "Configurar agora",
+    "Abrir conversa →"
+   ],
+   "occurrences": 4
+  },
+  {
+   "id": "NEW-065",
+   "type": "small-target",
+   "severity": "P2",
+   "selector": "span > button.hit-target-#",
+   "sample": "div > span > button.hit-target-44",
+   "text": "O que é Estado metabólico?",
+   "scenarios": [
+    "student.today"
+   ],
+   "viewports": [
+    "360x740",
+    "375x667"
+   ],
+   "states": [
+    "cookie"
+   ],
+   "cells": [
+    {
+     "cell": "student.today|360x740|cookie",
+     "screenshot": "shots/student.today_360x740_cookie.jpg",
+     "evidence": [
+      "evidence/student.today_360x740_cookie.png"
+     ]
+    },
+    {
+     "cell": "student.today|375x667|cookie",
+     "screenshot": "shots/student.today_375x667_cookie.jpg",
+     "evidence": [
+      "evidence/student.today_375x667_cookie.png"
+     ]
+    }
+   ],
+   "detail": {
+    "w": 45,
+    "h": 16,
+    "kind": "primary"
+   },
+   "texts": [
+    "O que é Estado metabólico?"
+   ],
+   "occurrences": 2
+  },
+  {
+   "id": "NEW-066",
+   "type": "partly-covered",
+   "severity": "P2",
+   "selector": "button#evolution-tab-marcos",
+   "sample": "button#evolution-tab-marcos",
+   "text": "Marcos",
+   "scenarios": [
+    "student.evolucao"
+   ],
+   "viewports": [
+    "320x568",
+    "412x915"
+   ],
+   "states": [
+    "default",
+    "workout-active"
+   ],
+   "cells": [
+    {
+     "cell": "student.evolucao|320x568|default",
+     "screenshot": "shots/student.evolucao_320x568_default.jpg",
+     "evidence": [
+      "evidence/student.evolucao_320x568_default.cov1.png"
+     ]
+    },
+    {
+     "cell": "student.evolucao|412x915|default",
+     "screenshot": "shots/student.evolucao_412x915_default.jpg",
+     "evidence": [
+      "evidence/student.evolucao_412x915_default.cov1.png"
+     ]
+    },
+    {
+     "cell": "student.evolucao|320x568|workout-active",
+     "screenshot": "shots/student.evolucao_320x568_workout-active.jpg",
+     "evidence": [
+      "evidence/student.evolucao_320x568_workout-active.cov1.png"
+     ]
+    },
+    {
+     "cell": "student.evolucao|412x915|workout-active",
+     "screenshot": "shots/student.evolucao_412x915_workout-active.jpg",
+     "evidence": [
+      "evidence/student.evolucao_412x915_workout-active.cov1.png"
+     ]
+    }
+   ],
+   "detail": {
+    "coveredBy": "main"
+   },
+   "occurrences": 4
+  },
+  {
+   "id": "NEW-067",
+   "type": "small-target",
+   "severity": "P2",
+   "selector": "label.ws-step-val > input.ws-step-input",
+   "sample": "div.ws-stepper > label.ws-step-val > input.ws-step-input",
+   "text": "Carga da série 1",
+   "scenarios": [
+    "student.free-session",
+    "student.session"
+   ],
+   "viewports": [
+    "320x568"
+   ],
+   "states": [
+    "default",
+    "safe-area",
+    "keyboard"
+   ],
+   "cells": [
+    {
+     "cell": "student.free-session|320x568|default",
+     "screenshot": "shots/student.free-session_320x568_default.jpg",
+     "evidence": [
+      "evidence/student.free-session_320x568_default.png"
+     ]
+    },
+    {
+     "cell": "student.free-session|320x568|default",
+     "screenshot": "shots/student.free-session_320x568_default.jpg",
+     "evidence": [
+      "evidence/student.free-session_320x568_default.png"
+     ]
+    },
+    {
+     "cell": "student.session|320x568|default",
+     "screenshot": "shots/student.session_320x568_default.jpg",
+     "evidence": [
+      "evidence/student.session_320x568_default.png"
+     ]
+    },
+    {
+     "cell": "student.session|320x568|default",
+     "screenshot": "shots/student.session_320x568_default.jpg",
+     "evidence": [
+      "evidence/student.session_320x568_default.png"
+     ]
+    }
+   ],
+   "detail": {
+    "w": 37,
+    "h": 44,
+    "kind": "primary"
+   },
+   "texts": [
+    "Carga da série 1",
+    "Repetições da série 1"
+   ],
+   "occurrences": 4
+  },
+  {
+   "id": "NEW-068",
+   "type": "small-target",
+   "severity": "P2",
+   "selector": "section > button.btn.btn-secondary",
+   "sample": "main.auth-page > section > button.btn.btn-secondary",
+   "text": "Redefinir preferências de cookies",
+   "scenarios": [
+    "public.privacy"
+   ],
+   "viewports": [
+    "844x390"
+   ],
+   "states": [
+    "default",
+    "cookie"
+   ],
+   "cells": [
+    {
+     "cell": "public.privacy|844x390|default",
+     "screenshot": "shots/public.privacy_844x390_default.jpg",
+     "evidence": null
+    },
+    {
+     "cell": "public.privacy|844x390|cookie",
+     "screenshot": "shots/public.privacy_844x390_cookie.jpg",
+     "evidence": null
+    }
+   ],
+   "detail": {
+    "w": 688,
+    "h": 36,
+    "kind": "primary"
+   },
+   "texts": [
+    "Redefinir preferências de cookies"
+   ],
+   "occurrences": 2
+  },
+  {
+   "id": "NEW-069",
+   "type": "h-scroller",
+   "severity": "P2",
+   "selector": "div.drawer-panel.fw-sheet > div.fw-chips",
+   "sample": "div.drawer-overlay > div.drawer-panel.fw-sheet > div.fw-chips",
+   "text": "Todos | Peito | Costas | Perna",
+   "scenarios": [
+    "student.free-setup"
+   ],
+   "viewports": [
+    "360x740"
+   ],
+   "states": [
+    "overlay:exercise-picker"
+   ],
+   "cells": [
+    {
+     "cell": "student.free-setup|360x740|overlay:exercise-picker",
+     "screenshot": "shots/student.free-setup_360x740_overlay_exercise-picker.jpg",
+     "evidence": [
+      "evidence/student.free-setup_360x740_overlay_exercise-picker.png"
+     ]
+    }
+   ],
+   "detail": {},
+   "occurrences": 1
+  },
+  {
+   "id": "NEW-070",
+   "type": "small-target",
+   "severity": "P2",
+   "selector": "div.ws-chips > button.ws-chip.ws-chip-hist",
+   "sample": "div > div.ws-chips > button.ws-chip.ws-chip-hist",
+   "text": "histórico",
+   "scenarios": [
+    "student.session"
+   ],
+   "viewports": [
+    "320x568"
+   ],
+   "states": [
+    "keyboard"
+   ],
+   "cells": [
+    {
+     "cell": "student.session|320x568|keyboard",
+     "screenshot": "shots/student.session_320x568_keyboard.jpg",
+     "evidence": [
+      "evidence/student.session_320x568_keyboard.png"
+     ]
+    }
+   ],
+   "detail": {
+    "w": 90.6,
+    "h": 32,
+    "kind": "primary"
+   },
+   "texts": [
+    "histórico"
+   ],
+   "occurrences": 1
+  },
+  {
+   "id": "NEW-071",
+   "type": "h-scroller",
+   "severity": "P2",
+   "selector": "div.wb-library > div",
+   "sample": "div > div.wb-library > div",
+   "text": "Todos | Perna | Peito | Costas",
+   "scenarios": [
+    "personal.builder"
+   ],
+   "viewports": [
+    "412x915"
+   ],
+   "states": [
+    "default",
+    "keyboard"
+   ],
+   "cells": [
+    {
+     "cell": "personal.builder|412x915|default",
+     "screenshot": "shots/personal.builder_412x915_default.jpg",
+     "evidence": null
+    },
+    {
+     "cell": "personal.builder|412x915|keyboard",
+     "screenshot": "shots/personal.builder_412x915_keyboard.jpg",
+     "evidence": [
+      "evidence/personal.builder_412x915_keyboard.png"
+     ]
+    }
+   ],
+   "detail": {},
+   "occurrences": 2
+  }
+ ],
+ "coverage": [
+  {
+   "role": "public",
+   "viewport": "320x568",
+   "state": "default",
+   "ok": 4,
+   "blocked": 0,
+   "error": 0,
+   "p1": 1,
+   "p2": 1
+  },
+  {
+   "role": "public",
+   "viewport": "360x740",
+   "state": "default",
+   "ok": 3,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 1
+  },
+  {
+   "role": "public",
+   "viewport": "375x667",
+   "state": "default",
+   "ok": 3,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 1
+  },
+  {
+   "role": "public",
+   "viewport": "390x844",
+   "state": "default",
+   "ok": 4,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 1
+  },
+  {
+   "role": "public",
+   "viewport": "412x915",
+   "state": "default",
+   "ok": 3,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 1
+  },
+  {
+   "role": "public",
+   "viewport": "430x932",
+   "state": "default",
+   "ok": 3,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 1
+  },
+  {
+   "role": "public",
+   "viewport": "844x390",
+   "state": "default",
+   "ok": 4,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 23
+  },
+  {
+   "role": "public",
+   "viewport": "932x430",
+   "state": "default",
+   "ok": 3,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 22
+  },
+  {
+   "role": "public",
+   "viewport": "768x1024",
+   "state": "default",
+   "ok": 3,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 22
+  },
+  {
+   "role": "public",
+   "viewport": "320x568",
+   "state": "cookie",
+   "ok": 3,
+   "blocked": 0,
+   "error": 0,
+   "p1": 1,
+   "p2": 9
+  },
+  {
+   "role": "public",
+   "viewport": "360x740",
+   "state": "cookie",
+   "ok": 2,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 6
+  },
+  {
+   "role": "public",
+   "viewport": "375x667",
+   "state": "cookie",
+   "ok": 2,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 6
+  },
+  {
+   "role": "public",
+   "viewport": "390x844",
+   "state": "cookie",
+   "ok": 3,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 9
+  },
+  {
+   "role": "public",
+   "viewport": "412x915",
+   "state": "cookie",
+   "ok": 2,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 6
+  },
+  {
+   "role": "public",
+   "viewport": "430x932",
+   "state": "cookie",
+   "ok": 2,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 6
+  },
+  {
+   "role": "public",
+   "viewport": "844x390",
+   "state": "cookie",
+   "ok": 3,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 12
+  },
+  {
+   "role": "public",
+   "viewport": "932x430",
+   "state": "cookie",
+   "ok": 2,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 13
+  },
+  {
+   "role": "public",
+   "viewport": "768x1024",
+   "state": "cookie",
+   "ok": 2,
+   "blocked": 0,
+   "error": 0,
+   "p1": 2,
+   "p2": 17
+  },
+  {
+   "role": "public",
+   "viewport": "320x568",
+   "state": "safe-area",
+   "ok": 1,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 0
+  },
+  {
+   "role": "public",
+   "viewport": "360x740",
+   "state": "safe-area",
+   "ok": 1,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 0
+  },
+  {
+   "role": "public",
+   "viewport": "375x667",
+   "state": "safe-area",
+   "ok": 1,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 0
+  },
+  {
+   "role": "public",
+   "viewport": "390x844",
+   "state": "safe-area",
+   "ok": 1,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 0
+  },
+  {
+   "role": "public",
+   "viewport": "412x915",
+   "state": "safe-area",
+   "ok": 1,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 0
+  },
+  {
+   "role": "public",
+   "viewport": "430x932",
+   "state": "safe-area",
+   "ok": 1,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 0
+  },
+  {
+   "role": "public",
+   "viewport": "844x390",
+   "state": "safe-area",
+   "ok": 1,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 3
+  },
+  {
+   "role": "public",
+   "viewport": "932x430",
+   "state": "safe-area",
+   "ok": 1,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 3
+  },
+  {
+   "role": "public",
+   "viewport": "768x1024",
+   "state": "safe-area",
+   "ok": 1,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 3
+  },
+  {
+   "role": "public",
+   "viewport": "320x568",
+   "state": "keyboard",
+   "ok": 2,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 0
+  },
+  {
+   "role": "public",
+   "viewport": "360x740",
+   "state": "keyboard",
+   "ok": 2,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 0
+  },
+  {
+   "role": "public",
+   "viewport": "375x667",
+   "state": "keyboard",
+   "ok": 2,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 0
+  },
+  {
+   "role": "public",
+   "viewport": "390x844",
+   "state": "keyboard",
+   "ok": 2,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 0
+  },
+  {
+   "role": "public",
+   "viewport": "412x915",
+   "state": "keyboard",
+   "ok": 2,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 0
+  },
+  {
+   "role": "public",
+   "viewport": "430x932",
+   "state": "keyboard",
+   "ok": 2,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 0
+  },
+  {
+   "role": "public",
+   "viewport": "768x1024",
+   "state": "keyboard",
+   "ok": 2,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 11
+  },
+  {
+   "role": "student",
+   "viewport": "320x568",
+   "state": "default",
+   "ok": 21,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 33
+  },
+  {
+   "role": "student",
+   "viewport": "360x740",
+   "state": "default",
+   "ok": 21,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 27
+  },
+  {
+   "role": "student",
+   "viewport": "375x667",
+   "state": "default",
+   "ok": 21,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 24
+  },
+  {
+   "role": "student",
+   "viewport": "390x844",
+   "state": "default",
+   "ok": 21,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 24
+  },
+  {
+   "role": "student",
+   "viewport": "412x915",
+   "state": "default",
+   "ok": 21,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 24
+  },
+  {
+   "role": "student",
+   "viewport": "430x932",
+   "state": "default",
+   "ok": 21,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 25
+  },
+  {
+   "role": "student",
+   "viewport": "844x390",
+   "state": "default",
+   "ok": 21,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 36
+  },
+  {
+   "role": "student",
+   "viewport": "932x430",
+   "state": "default",
+   "ok": 21,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 34
+  },
+  {
+   "role": "student",
+   "viewport": "768x1024",
+   "state": "default",
+   "ok": 21,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 36
+  },
+  {
+   "role": "student",
+   "viewport": "320x568",
+   "state": "cookie",
+   "ok": 2,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 13
+  },
+  {
+   "role": "student",
+   "viewport": "360x740",
+   "state": "cookie",
+   "ok": 2,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 18
+  },
+  {
+   "role": "student",
+   "viewport": "375x667",
+   "state": "cookie",
+   "ok": 2,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 18
+  },
+  {
+   "role": "student",
+   "viewport": "390x844",
+   "state": "cookie",
+   "ok": 2,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 13
+  },
+  {
+   "role": "student",
+   "viewport": "412x915",
+   "state": "cookie",
+   "ok": 2,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 13
+  },
+  {
+   "role": "student",
+   "viewport": "430x932",
+   "state": "cookie",
+   "ok": 2,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 13
+  },
+  {
+   "role": "student",
+   "viewport": "844x390",
+   "state": "cookie",
+   "ok": 2,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 13
+  },
+  {
+   "role": "student",
+   "viewport": "932x430",
+   "state": "cookie",
+   "ok": 2,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 15
+  },
+  {
+   "role": "student",
+   "viewport": "768x1024",
+   "state": "cookie",
+   "ok": 2,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 19
+  },
+  {
+   "role": "student",
+   "viewport": "320x568",
+   "state": "workout-active",
+   "ok": 7,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 15
+  },
+  {
+   "role": "student",
+   "viewport": "360x740",
+   "state": "workout-active",
+   "ok": 7,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 14
+  },
+  {
+   "role": "student",
+   "viewport": "375x667",
+   "state": "workout-active",
+   "ok": 7,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 12
+  },
+  {
+   "role": "student",
+   "viewport": "390x844",
+   "state": "workout-active",
+   "ok": 7,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 12
+  },
+  {
+   "role": "student",
+   "viewport": "412x915",
+   "state": "workout-active",
+   "ok": 7,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 13
+  },
+  {
+   "role": "student",
+   "viewport": "430x932",
+   "state": "workout-active",
+   "ok": 7,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 13
+  },
+  {
+   "role": "student",
+   "viewport": "844x390",
+   "state": "workout-active",
+   "ok": 7,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 22
+  },
+  {
+   "role": "student",
+   "viewport": "932x430",
+   "state": "workout-active",
+   "ok": 7,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 22
+  },
+  {
+   "role": "student",
+   "viewport": "768x1024",
+   "state": "workout-active",
+   "ok": 7,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 22
+  },
+  {
+   "role": "student",
+   "viewport": "320x568",
+   "state": "offline",
+   "ok": 1,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 0
+  },
+  {
+   "role": "student",
+   "viewport": "360x740",
+   "state": "offline",
+   "ok": 1,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 0
+  },
+  {
+   "role": "student",
+   "viewport": "375x667",
+   "state": "offline",
+   "ok": 1,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 0
+  },
+  {
+   "role": "student",
+   "viewport": "390x844",
+   "state": "offline",
+   "ok": 1,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 0
+  },
+  {
+   "role": "student",
+   "viewport": "412x915",
+   "state": "offline",
+   "ok": 1,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 0
+  },
+  {
+   "role": "student",
+   "viewport": "430x932",
+   "state": "offline",
+   "ok": 1,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 0
+  },
+  {
+   "role": "student",
+   "viewport": "844x390",
+   "state": "offline",
+   "ok": 1,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 0
+  },
+  {
+   "role": "student",
+   "viewport": "932x430",
+   "state": "offline",
+   "ok": 1,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 0
+  },
+  {
+   "role": "student",
+   "viewport": "768x1024",
+   "state": "offline",
+   "ok": 1,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 0
+  },
+  {
+   "role": "student",
+   "viewport": "320x568",
+   "state": "safe-area",
+   "ok": 3,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 13
+  },
+  {
+   "role": "student",
+   "viewport": "360x740",
+   "state": "safe-area",
+   "ok": 3,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 9
+  },
+  {
+   "role": "student",
+   "viewport": "375x667",
+   "state": "safe-area",
+   "ok": 3,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 8
+  },
+  {
+   "role": "student",
+   "viewport": "390x844",
+   "state": "safe-area",
+   "ok": 3,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 7
+  },
+  {
+   "role": "student",
+   "viewport": "412x915",
+   "state": "safe-area",
+   "ok": 3,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 7
+  },
+  {
+   "role": "student",
+   "viewport": "430x932",
+   "state": "safe-area",
+   "ok": 3,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 7
+  },
+  {
+   "role": "student",
+   "viewport": "844x390",
+   "state": "safe-area",
+   "ok": 3,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 15
+  },
+  {
+   "role": "student",
+   "viewport": "932x430",
+   "state": "safe-area",
+   "ok": 3,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 16
+  },
+  {
+   "role": "student",
+   "viewport": "768x1024",
+   "state": "safe-area",
+   "ok": 3,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 13
+  },
+  {
+   "role": "student",
+   "viewport": "320x568",
+   "state": "overlay",
+   "ok": 10,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 0
+  },
+  {
+   "role": "student",
+   "viewport": "360x740",
+   "state": "overlay",
+   "ok": 10,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 1
+  },
+  {
+   "role": "student",
+   "viewport": "375x667",
+   "state": "overlay",
+   "ok": 10,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 0
+  },
+  {
+   "role": "student",
+   "viewport": "390x844",
+   "state": "overlay",
+   "ok": 10,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 0
+  },
+  {
+   "role": "student",
+   "viewport": "412x915",
+   "state": "overlay",
+   "ok": 10,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 0
+  },
+  {
+   "role": "student",
+   "viewport": "430x932",
+   "state": "overlay",
+   "ok": 10,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 0
+  },
+  {
+   "role": "student",
+   "viewport": "844x390",
+   "state": "overlay",
+   "ok": 10,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 2
+  },
+  {
+   "role": "student",
+   "viewport": "932x430",
+   "state": "overlay",
+   "ok": 10,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 2
+  },
+  {
+   "role": "student",
+   "viewport": "768x1024",
+   "state": "overlay",
+   "ok": 10,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 2
+  },
+  {
+   "role": "student",
+   "viewport": "320x568",
+   "state": "keyboard",
+   "ok": 2,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 5
+  },
+  {
+   "role": "student",
+   "viewport": "360x740",
+   "state": "keyboard",
+   "ok": 2,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 3
+  },
+  {
+   "role": "student",
+   "viewport": "375x667",
+   "state": "keyboard",
+   "ok": 2,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 1
+  },
+  {
+   "role": "student",
+   "viewport": "390x844",
+   "state": "keyboard",
+   "ok": 2,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 2
+  },
+  {
+   "role": "student",
+   "viewport": "412x915",
+   "state": "keyboard",
+   "ok": 2,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 2
+  },
+  {
+   "role": "student",
+   "viewport": "430x932",
+   "state": "keyboard",
+   "ok": 2,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 2
+  },
+  {
+   "role": "student",
+   "viewport": "768x1024",
+   "state": "keyboard",
+   "ok": 2,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 1
+  },
+  {
+   "role": "personal",
+   "viewport": "320x568",
+   "state": "default",
+   "ok": 13,
+   "blocked": 0,
+   "error": 0,
+   "p1": 1,
+   "p2": 25
+  },
+  {
+   "role": "personal",
+   "viewport": "360x740",
+   "state": "default",
+   "ok": 13,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 20
+  },
+  {
+   "role": "personal",
+   "viewport": "375x667",
+   "state": "default",
+   "ok": 13,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 20
+  },
+  {
+   "role": "personal",
+   "viewport": "390x844",
+   "state": "default",
+   "ok": 13,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 20
+  },
+  {
+   "role": "personal",
+   "viewport": "412x915",
+   "state": "default",
+   "ok": 13,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 21
+  },
+  {
+   "role": "personal",
+   "viewport": "430x932",
+   "state": "default",
+   "ok": 13,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 23
+  },
+  {
+   "role": "personal",
+   "viewport": "844x390",
+   "state": "default",
+   "ok": 13,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 31
+  },
+  {
+   "role": "personal",
+   "viewport": "932x430",
+   "state": "default",
+   "ok": 13,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 32
+  },
+  {
+   "role": "personal",
+   "viewport": "768x1024",
+   "state": "default",
+   "ok": 13,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 33
+  },
+  {
+   "role": "personal",
+   "viewport": "320x568",
+   "state": "cookie",
+   "ok": 1,
+   "blocked": 0,
+   "error": 0,
+   "p1": 1,
+   "p2": 3
+  },
+  {
+   "role": "personal",
+   "viewport": "360x740",
+   "state": "cookie",
+   "ok": 1,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 3
+  },
+  {
+   "role": "personal",
+   "viewport": "375x667",
+   "state": "cookie",
+   "ok": 1,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 3
+  },
+  {
+   "role": "personal",
+   "viewport": "390x844",
+   "state": "cookie",
+   "ok": 1,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 3
+  },
+  {
+   "role": "personal",
+   "viewport": "412x915",
+   "state": "cookie",
+   "ok": 1,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 3
+  },
+  {
+   "role": "personal",
+   "viewport": "430x932",
+   "state": "cookie",
+   "ok": 1,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 3
+  },
+  {
+   "role": "personal",
+   "viewport": "844x390",
+   "state": "cookie",
+   "ok": 1,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 0
+  },
+  {
+   "role": "personal",
+   "viewport": "932x430",
+   "state": "cookie",
+   "ok": 1,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 1
+  },
+  {
+   "role": "personal",
+   "viewport": "768x1024",
+   "state": "cookie",
+   "ok": 1,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 3
+  },
+  {
+   "role": "personal",
+   "viewport": "320x568",
+   "state": "overlay",
+   "ok": 4,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 12
+  },
+  {
+   "role": "personal",
+   "viewport": "360x740",
+   "state": "overlay",
+   "ok": 4,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 12
+  },
+  {
+   "role": "personal",
+   "viewport": "375x667",
+   "state": "overlay",
+   "ok": 4,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 12
+  },
+  {
+   "role": "personal",
+   "viewport": "390x844",
+   "state": "overlay",
+   "ok": 4,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 12
+  },
+  {
+   "role": "personal",
+   "viewport": "412x915",
+   "state": "overlay",
+   "ok": 4,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 12
+  },
+  {
+   "role": "personal",
+   "viewport": "430x932",
+   "state": "overlay",
+   "ok": 4,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 12
+  },
+  {
+   "role": "personal",
+   "viewport": "844x390",
+   "state": "overlay",
+   "ok": 4,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 12
+  },
+  {
+   "role": "personal",
+   "viewport": "932x430",
+   "state": "overlay",
+   "ok": 4,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 12
+  },
+  {
+   "role": "personal",
+   "viewport": "768x1024",
+   "state": "overlay",
+   "ok": 4,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 12
+  },
+  {
+   "role": "personal",
+   "viewport": "320x568",
+   "state": "keyboard",
+   "ok": 2,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 3
+  },
+  {
+   "role": "personal",
+   "viewport": "360x740",
+   "state": "keyboard",
+   "ok": 2,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 3
+  },
+  {
+   "role": "personal",
+   "viewport": "375x667",
+   "state": "keyboard",
+   "ok": 2,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 3
+  },
+  {
+   "role": "personal",
+   "viewport": "390x844",
+   "state": "keyboard",
+   "ok": 2,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 4
+  },
+  {
+   "role": "personal",
+   "viewport": "412x915",
+   "state": "keyboard",
+   "ok": 2,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 5
+  },
+  {
+   "role": "personal",
+   "viewport": "430x932",
+   "state": "keyboard",
+   "ok": 2,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 4
+  },
+  {
+   "role": "personal",
+   "viewport": "768x1024",
+   "state": "keyboard",
+   "ok": 2,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 5
+  },
+  {
+   "role": "nutri",
+   "viewport": "320x568",
+   "state": "default",
+   "ok": 6,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 6
+  },
+  {
+   "role": "nutri",
+   "viewport": "360x740",
+   "state": "default",
+   "ok": 6,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 6
+  },
+  {
+   "role": "nutri",
+   "viewport": "375x667",
+   "state": "default",
+   "ok": 6,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 6
+  },
+  {
+   "role": "nutri",
+   "viewport": "390x844",
+   "state": "default",
+   "ok": 6,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 6
+  },
+  {
+   "role": "nutri",
+   "viewport": "412x915",
+   "state": "default",
+   "ok": 6,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 6
+  },
+  {
+   "role": "nutri",
+   "viewport": "430x932",
+   "state": "default",
+   "ok": 6,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 5
+  },
+  {
+   "role": "nutri",
+   "viewport": "844x390",
+   "state": "default",
+   "ok": 6,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 40
+  },
+  {
+   "role": "nutri",
+   "viewport": "932x430",
+   "state": "default",
+   "ok": 6,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 40
+  },
+  {
+   "role": "nutri",
+   "viewport": "768x1024",
+   "state": "default",
+   "ok": 6,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 40
+  },
+  {
+   "role": "nutri",
+   "viewport": "320x568",
+   "state": "cookie",
+   "ok": 1,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 3
+  },
+  {
+   "role": "nutri",
+   "viewport": "360x740",
+   "state": "cookie",
+   "ok": 1,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 3
+  },
+  {
+   "role": "nutri",
+   "viewport": "375x667",
+   "state": "cookie",
+   "ok": 1,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 3
+  },
+  {
+   "role": "nutri",
+   "viewport": "390x844",
+   "state": "cookie",
+   "ok": 1,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 3
+  },
+  {
+   "role": "nutri",
+   "viewport": "412x915",
+   "state": "cookie",
+   "ok": 1,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 3
+  },
+  {
+   "role": "nutri",
+   "viewport": "430x932",
+   "state": "cookie",
+   "ok": 1,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 3
+  },
+  {
+   "role": "nutri",
+   "viewport": "844x390",
+   "state": "cookie",
+   "ok": 1,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 0
+  },
+  {
+   "role": "nutri",
+   "viewport": "932x430",
+   "state": "cookie",
+   "ok": 1,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 1
+  },
+  {
+   "role": "nutri",
+   "viewport": "768x1024",
+   "state": "cookie",
+   "ok": 1,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 3
+  },
+  {
+   "role": "nutri",
+   "viewport": "320x568",
+   "state": "keyboard",
+   "ok": 1,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 0
+  },
+  {
+   "role": "nutri",
+   "viewport": "360x740",
+   "state": "keyboard",
+   "ok": 1,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 0
+  },
+  {
+   "role": "nutri",
+   "viewport": "375x667",
+   "state": "keyboard",
+   "ok": 1,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 0
+  },
+  {
+   "role": "nutri",
+   "viewport": "390x844",
+   "state": "keyboard",
+   "ok": 1,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 0
+  },
+  {
+   "role": "nutri",
+   "viewport": "412x915",
+   "state": "keyboard",
+   "ok": 1,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 0
+  },
+  {
+   "role": "nutri",
+   "viewport": "430x932",
+   "state": "keyboard",
+   "ok": 1,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 0
+  },
+  {
+   "role": "nutri",
+   "viewport": "768x1024",
+   "state": "keyboard",
+   "ok": 1,
+   "blocked": 0,
+   "error": 0,
+   "p1": 0,
+   "p2": 7
+  }
+ ]
+}

@@ -1,3 +1,4 @@
+import { chartTooltipProps } from "../charts/chartTooltip";
 import { useEffect, useMemo, useState } from "react";
 import {
   CartesianGrid,
@@ -227,7 +228,7 @@ export function ProgressionPanel() {
                     width={44}
                     unit={` ${metricMeta.unit}`}
                   />
-                  <Tooltip
+                  <Tooltip labelStyle={chartTooltipProps.labelStyle} itemStyle={chartTooltipProps.itemStyle}
                     contentStyle={{
                       background: "var(--color-surface)",
                       border: "1px solid var(--color-border)",

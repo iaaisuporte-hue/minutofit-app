@@ -1,3 +1,4 @@
+import { chartTooltipProps } from '../charts/chartTooltip';
 import React from 'react';
 import {
   CartesianGrid,
@@ -214,7 +215,7 @@ export function MetabolicChart({ data, loading, forecast, markers, days = 14, on
         <Skeleton />
       ) : (
         <ResponsiveContainer width="100%" height={220}>
-          <LineChart data={chartData} margin={{ top: 8, right: 16, bottom: 0, left: -20 }}>
+          <LineChart data={chartData} margin={{ top: 8, right: 16, bottom: 0, left: 0 }}>
             <CartesianGrid
               horizontal
               vertical={false}
@@ -234,9 +235,9 @@ export function MetabolicChart({ data, loading, forecast, markers, days = 14, on
               tickLine={false}
               axisLine={false}
               tick={{ fontSize: 11, fill: 'var(--color-text-muted)' }}
-              width={28}
+              width={32}
             />
-            <Tooltip
+            <Tooltip labelStyle={chartTooltipProps.labelStyle} itemStyle={chartTooltipProps.itemStyle}
               contentStyle={tooltipStyle}
               cursor={{ stroke: '#8E8E8E', strokeWidth: 1, strokeDasharray: '4 2' }}
               formatter={(value, name, item) => {

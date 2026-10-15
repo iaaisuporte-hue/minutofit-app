@@ -262,7 +262,7 @@ export default function PersonalApp() {
         </>
       }
     >
-      <div className="personal-app-canvas" style={{ display: "grid", gap: 16 }}>
+      <div className="personal-app-canvas" style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr)", gap: 16 }}>
         <div style={{ maxWidth: 1180, margin: "0 auto", width: "100%" }}>
           <Routes>
             <Route index element={<RedirectToDashboard />} />

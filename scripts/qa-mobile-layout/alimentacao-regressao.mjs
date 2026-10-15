@@ -30,15 +30,15 @@ const results = [];
 const check = (id, name, ok, detail) => { results.push({ id, name, ok, detail }); console.log(`${ok ? 'PASSOU ' : 'FALHOU '} ${id} ${name}${ok ? '' : '  → ' + detail}`); };
 
 const browser = await chromium.launch({ executablePath: CHROME, args: ['--no-sandbox'] });
-async function open(w, h, { scheme = 'light', scale = 1 } = {}) {
+async function open(w, h, { scheme = 'light', scale = 1, path = '/app/user/plano-alimentar', tokens = { a: TOKEN, r: REFRESH } } = {}) {
   const ctx = await browser.newContext({ viewport: { width: w, height: h }, hasTouch: true, isMobile: false, deviceScaleFactor: 2, locale: 'pt-BR', colorScheme: scheme });
   await ctx.route((u) => !['localhost', '127.0.0.1'].includes(new URL(u).hostname), (r) => r.abort());
   await ctx.addInitScript(({ a, r }) => {
     localStorage.setItem('corefit_cookie_consent_v1', JSON.stringify({ version: 1, decidedAt: new Date().toISOString(), essential: true, analytics: false }));
     localStorage.setItem('corefit_token', a); localStorage.setItem('token', a); localStorage.setItem('corefit_refresh_token', r);
-  }, { a: TOKEN, r: REFRESH });
+  }, tokens);
   const page = await ctx.newPage();
-  await page.goto(BASE + '/app/user/plano-alimentar', { waitUntil: 'networkidle' }); await page.waitForTimeout(1200);
+  await page.goto(BASE + path, { waitUntil: 'networkidle' }); await page.waitForTimeout(1200);
   if (scheme === 'dark') await page.evaluate(() => document.documentElement.setAttribute('data-theme', 'dark'));
   if (scale !== 1) await page.evaluate((k) => { for (const e of document.querySelectorAll('body *')) e.style.fontSize = parseFloat(getComputedStyle(e).fontSize) * k + 'px'; }, scale);
   await page.waitForTimeout(300);
@@ -98,13 +98,30 @@ for (const [w, h] of [[390, 844], [320, 568]]) {
   await ctx.close();
 }
 
-// R6 — rótulo da aba Alimentação completo em 360 e 390 (320: reticências aceitas e documentadas)
-for (const [w, h] of [[390, 844], [360, 740]]) {
+// R6 — rótulo da aba Alimentação completo em 320, 360 e 390
+for (const [w, h] of [[390, 844], [360, 740], [320, 568]]) {
   const { ctx, page } = await open(w, h);
   const m = await page.evaluate(() => { const l = [...document.querySelectorAll('.mobileBottomNav__label')].find((e) => /Aliment/.test(e.textContent)); return { sw: l.scrollWidth, cw: l.clientWidth }; });
   check('R6', `rótulo "Alimentação" completo em ${w}`, m.sw <= m.cw, JSON.stringify(m));
   await ctx.close();
 }
+
+// R7 — Personal: o wrapper de rotas não cresce além do container (fonte ×1,3 em 320 reproduz o blowout na rota 'review')
+// R8 — Nutri: barra superior de ponta a ponta. Tokens opcionais (PERSONAL_TOKEN/PERSONAL_REFRESH, NUTRI_TOKEN/NUTRI_REFRESH).
+if (process.env.PERSONAL_TOKEN) {
+  const { ctx, page } = await open(320, 568, { scale: 1.3, path: '/app/personal/review', tokens: { a: process.env.PERSONAL_TOKEN, r: process.env.PERSONAL_REFRESH || process.env.PERSONAL_TOKEN } });
+  const m = await page.evaluate(() => { const c = document.querySelector('.personal-app-canvas'); return { col: Math.round(parseFloat(getComputedStyle(c).gridTemplateColumns)), container: Math.round(document.querySelector('.container').getBoundingClientRect().width) }; });
+  check('R7', 'Personal review 320 fonte×1,3: coluna do canvas ≤ container', m.col <= m.container + 1, JSON.stringify(m));
+  await ctx.close();
+} else console.log('NÃO EXECUTADO R7 (sem PERSONAL_TOKEN)');
+if (process.env.NUTRI_TOKEN) {
+  for (const [w, h] of [[390, 844], [320, 568]]) {
+    const { ctx, page } = await open(w, h, { path: '/app/nutri', tokens: { a: process.env.NUTRI_TOKEN, r: process.env.NUTRI_REFRESH || process.env.NUTRI_TOKEN } });
+    const m = await page.evaluate(() => { const r = document.querySelector('.mobileTopBar').getBoundingClientRect(); return { left: Math.round(r.left), right: Math.round(innerWidth - r.right) }; });
+    check('R8', `Nutri barra superior full-bleed ${w}x${h}`, m.left === 0 && m.right === 0, JSON.stringify(m));
+    await ctx.close();
+  }
+} else console.log('NÃO EXECUTADO R8 (sem NUTRI_TOKEN)');
 
 await browser.close();
 const failed = results.filter((r) => !r.ok);
