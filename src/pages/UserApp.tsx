@@ -297,6 +297,10 @@ export default function UserApp() {
         <div
           style={{
             display: "grid",
+            // Coluna única que PODE encolher: sem isto a coluna implícita `auto` cresce até o min-content de qualquer
+            // descendente e a página inteira fica mais larga que a tela (margens assimétricas; com fonte ampliada o
+            // conteúdo é cortado pelo overflow-x do shell).
+            gridTemplateColumns: "minmax(0, 1fr)",
             gap: 16,
             minWidth: 0,
             width: "100%",
