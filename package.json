@@ -11,6 +11,8 @@
     "dev": "vite",
     "prebuild": "node scripts/copy-mediapipe.js",
     "build": "tsc -b && vite build",
+    "build:native:ios": "node scripts/build-native.mjs ios",
+    "build:native:android": "node scripts/build-native.mjs android",
     "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest",

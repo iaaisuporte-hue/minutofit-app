@@ -38,6 +38,9 @@ Padrão em `src/features/tracker/ports/`, `features/voiceWorkout/ports/`.
 **Comandos:** `npm run lint` · `npm run build` (o `tsc -b` é a análise estática) ·
 `npm test` · `npx cap sync` **obrigatório** após mudar `src/`, `public/` ou
 `capacitor.config.ts` — sem ele o app nativo empacota código velho (falha silenciosa).
+Build de **distribuição** nativa: `VITE_API_URL=https://<api>/api npm run build:native:ios -- --sync`
+(ou `:android`). Recusa variável ausente/não-https/host local e varre o bundle atrás de API
+local. O `.env` versionado **não** define `VITE_API_URL` — ele vazava `localhost` em todo build.
 
 **Armadilhas já pagas:**
 - `versionCode` **nunca** commitado — só `-PversionCode=N`. Queima a cada upload na Play,
