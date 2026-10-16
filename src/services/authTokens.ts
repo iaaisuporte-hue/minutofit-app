@@ -1,27 +1,16 @@
-export const TOKEN_KEY = "corefit_token";
-export const REFRESH_TOKEN_KEY = "corefit_refresh_token";
-export const LEGACY_TOKEN_KEY = "token";
-
-export function getAccessToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return localStorage.getItem(TOKEN_KEY) || localStorage.getItem(LEGACY_TOKEN_KEY);
-}
-
-export function getRefreshToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return localStorage.getItem(REFRESH_TOKEN_KEY);
-}
-
-export function setTokens(accessToken: string, refreshToken?: string) {
-  localStorage.setItem(TOKEN_KEY, accessToken);
-  localStorage.setItem(LEGACY_TOKEN_KEY, accessToken);
-  if (refreshToken) {
-    localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
-  }
-}
-
-export function clearTokens() {
-  localStorage.removeItem(TOKEN_KEY);
-  localStorage.removeItem(LEGACY_TOKEN_KEY);
-  localStorage.removeItem(REFRESH_TOKEN_KEY);
-}
+/**
+ * Ponto de entrada histórico da sessão. A implementação vive em
+ * `lib/tokenStorage.ts` desde que o app empacotado passou a guardar o token
+ * fora do `localStorage` da WebView — este arquivo continua existindo porque é
+ * o que a dúzia de chamadores importa, e trocá-los todos não acrescentaria
+ * nada.
+ */
+export {
+  TOKEN_KEY,
+  REFRESH_TOKEN_KEY,
+  LEGACY_TOKEN_KEY,
+  getAccessToken,
+  getRefreshToken,
+  setTokens,
+  clearTokens,
+} from "../lib/tokenStorage";

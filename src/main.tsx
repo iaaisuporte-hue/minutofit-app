@@ -14,36 +14,43 @@ import "@fontsource/exo-2/600.css";
 import "@fontsource/exo-2/700.css";
 import "./styles/globals.css";
 import "./styles/components.css";
+import { setupSentryConsentGate } from "./lib/sentryConsent";
+import { hydrateTokenStorage } from "./lib/tokenStorage";
+import { isNativeApp } from "./lib/platform";
 
-if (import.meta.env.VITE_SENTRY_DSN) {
-  Sentry.init({
-    dsn: import.meta.env.VITE_SENTRY_DSN,
-    environment: import.meta.env.MODE,
-    tracesSampleRate: import.meta.env.PROD ? 0.1 : 0,
-    replaysSessionSampleRate: 0,
-    replaysOnErrorSampleRate: 0,
-  });
+setupSentryConsentGate();
+
+function montar() {
+  ReactDOM.createRoot(document.getElementById("root")!).render(
+    <React.StrictMode>
+      <BrowserRouter>
+        <Sentry.ErrorBoundary
+          fallback={
+            <div style={{ padding: 24, fontFamily: "Inter, sans-serif", textAlign: "center", maxWidth: 420, margin: "64px auto" }}>
+              <h2 style={{ marginBottom: 8 }}>Algo saiu do esperado</h2>
+              <p style={{ color: "var(--color-text-muted)", marginBottom: 16 }}>Recarregue a página para continuar — já fomos avisados.</p>
+              <button type="button" onClick={() => window.location.reload()} style={{ padding: "10px 16px", borderRadius: 10, border: "1px solid var(--color-border)", cursor: "pointer", fontWeight: 600 }}>
+                Recarregar
+              </button>
+            </div>
+          }
+        >
+          <App />
+        </Sentry.ErrorBoundary>
+      </BrowserRouter>
+    </React.StrictMode>,
+  );
 }
 
-ReactDOM.createRoot(document.getElementById("root")!).render(
-  <React.StrictMode>
-    <BrowserRouter>
-      <Sentry.ErrorBoundary
-        fallback={
-          <div style={{ padding: 24, fontFamily: "Inter, sans-serif", textAlign: "center", maxWidth: 420, margin: "64px auto" }}>
-            <h2 style={{ marginBottom: 8 }}>Algo saiu do esperado</h2>
-            <p style={{ color: "var(--color-text-muted)", marginBottom: 16 }}>Recarregue a página para continuar — já fomos avisados.</p>
-            <button type="button" onClick={() => window.location.reload()} style={{ padding: "10px 16px", borderRadius: 10, border: "1px solid var(--color-border)", cursor: "pointer", fontWeight: 600 }}>
-              Recarregar
-            </button>
-          </div>
-        }
-      >
-        <App />
-      </Sentry.ErrorBoundary>
-    </BrowserRouter>
-  </React.StrictMode>,
-);
+// No app empacotado a sessão vem de um storage nativo assíncrono, e o
+// `AuthProvider` lê o token de forma síncrona já no primeiro render — montar
+// antes da hidratação mandaria para o login quem tem sessão válida. Na web a
+// leitura é síncrona (`localStorage`), então nada muda: monta na hora.
+if (isNativeApp()) {
+  void hydrateTokenStorage().then(montar, montar);
+} else {
+  montar();
+}
 
 // O registro do service worker vive em features/pwa/AppUpdateBanner (montado no
 // App): registrar e detectar atualização são o mesmo fluxo, e separá-los deixava

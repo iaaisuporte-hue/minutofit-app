@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
+  COOKIE_CONSENT_CHANGED_EVENT,
   readCookieConsent,
   writeCookieConsent,
 } from "../lib/cookieConsent";
@@ -37,10 +38,10 @@ export default function CookieConsentBanner() {
   useEffect(() => {
     sync();
     const onChange = () => sync();
-    window.addEventListener("corefit:cookie-consent-changed", onChange);
+    window.addEventListener(COOKIE_CONSENT_CHANGED_EVENT, onChange);
     window.addEventListener("storage", onChange);
     return () => {
-      window.removeEventListener("corefit:cookie-consent-changed", onChange);
+      window.removeEventListener(COOKIE_CONSENT_CHANGED_EVENT, onChange);
       window.removeEventListener("storage", onChange);
     };
   }, [sync]);

@@ -3,6 +3,9 @@ export const COOKIE_CONSENT_STORAGE_KEY = "corefit_cookie_consent_v1";
 
 export const COOKIE_CONSENT_VERSION = 1 as const;
 
+/** Emitido a cada decisão do titular — inclusive revogação. */
+export const COOKIE_CONSENT_CHANGED_EVENT = "corefit:cookie-consent-changed";
+
 export type CookieConsentRecord = {
   version: typeof COOKIE_CONSENT_VERSION;
   decidedAt: string;
@@ -38,13 +41,13 @@ export function writeCookieConsent(analytics: boolean): CookieConsentRecord {
     analytics,
   };
   localStorage.setItem(COOKIE_CONSENT_STORAGE_KEY, JSON.stringify(record));
-  window.dispatchEvent(new CustomEvent("corefit:cookie-consent-changed", { detail: record }));
+  window.dispatchEvent(new CustomEvent(COOKIE_CONSENT_CHANGED_EVENT, { detail: record }));
   return record;
 }
 
 export function clearCookieConsent(): void {
   localStorage.removeItem(COOKIE_CONSENT_STORAGE_KEY);
-  window.dispatchEvent(new CustomEvent("corefit:cookie-consent-changed"));
+  window.dispatchEvent(new CustomEvent(COOKIE_CONSENT_CHANGED_EVENT));
 }
 
 /** Para futuros scripts de analytics — só carregar se o titular aceitou. */
