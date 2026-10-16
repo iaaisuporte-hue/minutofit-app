@@ -5,6 +5,7 @@ import { SCOPE_LABELS } from './types';
 import { listIncomingRequests, acceptRequest, rejectRequest } from './api';
 import { ConfirmModal } from './ConfirmModal';
 import { Toast } from './Toast';
+import { isNativeApp } from '../../lib/platform';
 
 interface Props {
   role: ProfessionalRole;
@@ -45,7 +46,9 @@ export function IncomingRequestsPanel({ role, onCountChange }: Props) {
       const limitReached = err instanceof Error && err.message === 'student_limit_reached';
       setToast({
         message: limitReached
-          ? 'Você atingiu o limite de 3 alunos do plano gratuito. Faça upgrade para o Pro e aceite a solicitação — ela continua aguardando.'
+          ? isNativeApp()
+            ? 'Você atingiu o limite de alunos do seu plano atual. A solicitação continua aguardando.'
+            : 'Você atingiu o limite de 3 alunos do plano gratuito. Faça upgrade para o Pro e aceite a solicitação — ela continua aguardando.'
           : 'Não foi possível aceitar a solicitação.',
         kind: 'error',
       });

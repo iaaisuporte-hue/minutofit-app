@@ -122,10 +122,10 @@ export function PlanSection() {
 
       {isPaid && !cancelled && (
         isNativeApp() ? (
-          // No app empacotado não há caminho de compra nem de gestão de cobrança
-          // (política das lojas) — o mesmo padrão de MySubscriptionsSection.
+          // No app empacotado não há gestão de cobrança nem indicação de onde fazê-la
+          // (Apple 3.1.1). O plano atual continua visível acima — é o estado da conta.
           <div style={{ fontSize: 12, color: "var(--color-text-muted)", lineHeight: 1.5 }}>
-            Para alterar ou cancelar seu plano, acesse sua conta pela versão web do S2Core.
+            Alterações no plano não estão disponíveis no app.
           </div>
         ) : (
           <div>

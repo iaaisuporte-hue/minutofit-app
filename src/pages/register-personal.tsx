@@ -14,6 +14,7 @@ import {
   getBirthDateError,
 } from "../utils/validators";
 import S2CoreLogo from "../components/S2CoreLogo";
+import { isNativeApp } from "../lib/platform";
 
 type RegisterPersonalForm = {
   name: string;
@@ -169,7 +170,9 @@ export default function RegisterPersonalPage() {
 
         <h1 className="auth-title">Criar conta de personal</h1>
         <p className="auth-subtitle">
-          Comece grátis com até 3 alunos. Faça upgrade quando sua carteira crescer.
+          {isNativeApp()
+            ? "Comece grátis com até 3 alunos."
+            : "Comece grátis com até 3 alunos. Faça upgrade quando sua carteira crescer."}
         </p>
 
         {error && (

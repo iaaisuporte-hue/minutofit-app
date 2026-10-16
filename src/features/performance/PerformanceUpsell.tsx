@@ -11,8 +11,9 @@ import { isNativeApp } from "../../lib/platform";
  * número — o aluno descobre o valor real ao ver a própria curva, não uma
  * amostra fabricada aqui.
  *
- * Em app nativo o botão de assinatura some (política de loja): o texto explica
- * onde concluir, sem link de pagamento.
+ * Em app nativo não há convite nenhum (Apple 3.1.1/3.1.3(b): conteúdo digital
+ * comprado fora pode ser ACESSADO no app, mas o app não pode vender nem apontar
+ * para onde comprar). Fica só o estado da área, sem plano, preço nem "assinar".
  */
 export function PerformanceUpsell({ area }: { area: "progressao" | "recordes" | "evolucao" | "metas" }) {
   useEffect(() => {
@@ -28,6 +29,18 @@ export function PerformanceUpsell({ area }: { area: "progressao" | "recordes" | 
           ? "Definir metas e acompanhar quanto falta para cada uma faz parte do plano Premium."
           : "A leitura da sua evolução — como você está em relação a você mesmo, e o que mudou — faz parte do plano Premium.";
 
+  if (isNativeApp()) {
+    return (
+      <div className="perf-soon">
+        <LineChart size={22} aria-hidden="true" style={{ justifySelf: "center", color: "var(--color-accent)" }} />
+        <span className="perf-soon-title">Não disponível nesta conta</span>
+        <p className="perf-soon-copy">
+          Seus treinos continuam sendo registrados normalmente — o histórico fica guardado inteiro.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="perf-soon">
       <LineChart size={22} aria-hidden="true" style={{ justifySelf: "center", color: "var(--color-accent)" }} />
@@ -36,16 +49,14 @@ export function PerformanceUpsell({ area }: { area: "progressao" | "recordes" | 
         {copy} Seus treinos continuam sendo registrados normalmente — quando você assinar, o
         histórico que já existe aparece inteiro, sem recomeçar do zero.
       </p>
-      {!isNativeApp() && (
-        <a
-          className="btn btn-accent"
-          href="/app/user/upgrade"
-          style={{ justifySelf: "center", minHeight: 44, display: "inline-flex", alignItems: "center" }}
-          onClick={() => postPerformanceEvent("performance.upgrade_cta_clicked", { area, clicked: true })}
-        >
-          Ver o plano Premium
-        </a>
-      )}
+      <a
+        className="btn btn-accent"
+        href="/app/user/upgrade"
+        style={{ justifySelf: "center", minHeight: 44, display: "inline-flex", alignItems: "center" }}
+        onClick={() => postPerformanceEvent("performance.upgrade_cta_clicked", { area, clicked: true })}
+      >
+        Ver o plano Premium
+      </a>
     </div>
   );
 }

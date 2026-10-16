@@ -17,16 +17,11 @@ export function UpgradeToProButton({ variant = "solid", label = "Assinar Pro", p
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // App empacotado (Capacitor): nenhum caminho de compra, preço ou link externo.
-  // Bem digital consumido no app exige o billing da loja (Play Billing / Apple 3.1.1);
-  // levar o usuário ao Mercado Pago daqui é motivo de reprovação.
-  if (isNativeApp()) {
-    return (
-      <span style={{ fontSize: 12, color: "var(--color-text-muted)", lineHeight: 1.5 }}>
-        Gerencie seu plano na versão web do S2Core.
-      </span>
-    );
-  }
+  // App empacotado: nenhum caminho de compra, preço ou chamada para comprar fora
+  // — nem "vá para a versão web" (Apple 3.1.1: fora da storefront dos EUA, nada
+  // de botão, link ou CTA para outro meio de pagamento). Quem chama decide o que
+  // dizer sobre o estado do plano; o botão simplesmente não existe aqui.
+  if (isNativeApp()) return null;
 
   async function handleClick() {
     setLoading(true);

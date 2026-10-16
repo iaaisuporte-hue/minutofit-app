@@ -10,6 +10,7 @@ import {
 } from "../../../services/personalPerformanceApi";
 import { postPerformanceEvent } from "../../../features/performance/performanceEvents";
 import { CockpitAdherenceInsights } from "./CockpitAdherenceInsights";
+import { isNativeApp } from "../../../lib/platform";
 
 /**
  * Aba Performance do cockpit (Spec 033, Onda P5).
@@ -289,7 +290,9 @@ export function CockpitTabPerformance({ studentId }: { studentId: string }) {
             </p>
           </div>
         ) : summaryState === "blocked" ? (
-          <p className="ppf-muted">O resumo escrito faz parte do plano Pro.</p>
+          <p className="ppf-muted">
+            {isNativeApp() ? "O resumo escrito não está disponível nesta conta." : "O resumo escrito faz parte do plano Pro."}
+          </p>
         ) : (
           <button
             type="button"

@@ -1,10 +1,13 @@
 import { AcademyUpgradeButton } from "./AcademyUpgradeButton";
+import { isNativeApp } from "../../lib/platform";
 
 /**
  * Card de upsell exibido no lugar do bloco de inteligência quando a academia
  * está no Free. Free=operação · Pro=inteligência (Spec 015).
  */
 export function IntelligenceUpsellCard() {
+  // Card puramente comercial (vende o Pro): no app empacotado não existe (Apple 3.1.1).
+  if (isNativeApp()) return null;
   return (
     <div className="dash-section" style={{ marginTop: "var(--space-6)" }}>
       <div

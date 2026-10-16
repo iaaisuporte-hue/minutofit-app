@@ -1,5 +1,6 @@
 import { usePlan } from "./usePlan";
 import { UpgradeToProButton } from "./UpgradeToProButton";
+import { isNativeApp } from "../../lib/platform";
 
 interface Props {
   studentCount: number;
@@ -14,6 +15,9 @@ export function StudentLimitBanner({ studentCount }: Props) {
   if (ratio < 0.8) return null;
 
   const atLimit = studentCount >= plan.studentLimit;
+  // No app empacotado o aviso continua (explica por que o convite não sai), mas
+  // sem nome de plano pago nem botão de compra (Apple 3.1.1).
+  const nomePlano = isNativeApp() ? "do seu plano atual" : `no plano ${plan.plan === "free" ? "Free" : "Starter"}`;
 
   return (
     <div
@@ -33,8 +37,8 @@ export function StudentLimitBanner({ studentCount }: Props) {
     >
       <span>
         {atLimit
-          ? `Limite atingido: ${studentCount} de ${plan.studentLimit} alunos no plano ${plan.plan === "free" ? "Free" : "Starter"}.`
-          : `Você está usando ${studentCount} de ${plan.studentLimit} alunos no plano ${plan.plan === "free" ? "Free" : "Starter"}.`}
+          ? `Limite atingido: ${studentCount} de ${plan.studentLimit} alunos ${nomePlano}.`
+          : `Você está usando ${studentCount} de ${plan.studentLimit} alunos ${nomePlano}.`}
       </span>
       <UpgradeToProButton variant="link" label="Assinar Pro · R$ 89/mês" />
     </div>

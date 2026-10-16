@@ -8,8 +8,15 @@ export function AiUpgradeCTA() {
 
   if (plan.aiEnabled) return null;
 
-  // No app empacotado o preço sai junto com o botão de compra (política das lojas).
-  const native = isNativeApp();
+  // App empacotado: sem vitrine do Pro (Apple 3.1.1). Fica só o estado — o
+  // recurso não está nesta conta —, sem nome de plano, preço nem convite.
+  if (isNativeApp()) {
+    return (
+      <div style={{ fontSize: 13, color: "var(--color-text-muted)", lineHeight: 1.5, textAlign: "center", padding: "16px 12px" }}>
+        O resumo com IA não está disponível nesta conta.
+      </div>
+    );
+  }
 
   return (
     <div
@@ -48,8 +55,7 @@ export function AiUpgradeCTA() {
       </div>
       <div style={{ fontSize: 12, color: "var(--color-text-muted)", lineHeight: 1.5 }}>
         A IA lê aderência, metabolismo e treinos e te entrega a síntese — a conduta é sua.
-        Pro: alunos ilimitados, resumo IA e adaptação automática
-        {native ? "." : <> por <b>R$ 89/mês</b> (recorrente).</>}
+        Pro: alunos ilimitados, resumo IA e adaptação automática por <b>R$ 89/mês</b> (recorrente).
       </div>
       <UpgradeToProButton label="Assinar Pro · R$ 89/mês" />
     </div>

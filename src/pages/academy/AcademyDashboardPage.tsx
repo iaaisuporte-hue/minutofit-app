@@ -15,6 +15,7 @@ import { AcademyPlanBadge } from "../../features/academyPlan/AcademyPlanBadge";
 import { IntelligenceUpsellCard } from "../../features/academyPlan/IntelligenceUpsellCard";
 import { AcademyUpgradeButton } from "../../features/academyPlan/AcademyUpgradeButton";
 import { useAcademyPlan } from "../../features/academyPlan/useAcademyPlan";
+import { isNativeApp } from "../../lib/platform";
 
 function dayLabel(n: number) {
   return n === 1 ? "1 dia" : `${n} dias`;
@@ -443,7 +444,9 @@ export default function AcademyDashboardPage() {
               {academyPlan.currentPeriodEnd
                 ? `Venceu em ${new Date(academyPlan.currentPeriodEnd).toLocaleDateString("pt-BR")}. `
                 : ""}
-              Regularize para manter a inteligência da academia. O acesso dos alunos não é afetado.
+              {isNativeApp()
+                ? "A inteligência da academia fica suspensa até a regularização. O acesso dos alunos não é afetado."
+                : "Regularize para manter a inteligência da academia. O acesso dos alunos não é afetado."}
             </p>
           </div>
           <AcademyUpgradeButton label="Regularizar Pro" />

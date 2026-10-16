@@ -4,6 +4,7 @@ import { DrawerShell } from "../../../components/overlay/DrawerShell";
 import { createDirectInvite } from "../../../services/personalDirectInvitesApi";
 import { UpgradeToProButton } from "../../../features/personalPlan/UpgradeToProButton";
 import { COLORS } from "../../../styles/colors";
+import { isNativeApp } from "../../../lib/platform";
 
 type Props = {
   open: boolean;
@@ -43,8 +44,15 @@ export function StudentInviteDrawer({ open, onClose, onInviteCreated }: Props) {
       onInviteCreated?.();
     } catch (e) {
       const err = e as Error & { code?: string };
-      setInviteLimitReached(err?.code === "STUDENT_LIMIT_REACHED");
-      setInviteError(e instanceof Error ? e.message : "Não foi possível criar o convite.");
+      const limite = err?.code === "STUDENT_LIMIT_REACHED";
+      setInviteLimitReached(limite);
+      // A mensagem do servidor termina em "Faça upgrade para o Pro…"; no app
+      // empacotado isso é chamada para comprar fora (Apple 3.1.1). Mesmo fato, sem convite.
+      setInviteError(
+        limite && isNativeApp()
+          ? "Você atingiu o limite de alunos do seu plano atual."
+          : e instanceof Error ? e.message : "Não foi possível criar o convite.",
+      );
     } finally {
       setInviteLoading(false);
     }

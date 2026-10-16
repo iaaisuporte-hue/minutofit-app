@@ -13,14 +13,8 @@ export function AcademyUpgradeButton({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // App empacotado (Capacitor): sem checkout externo — ver comentário em UpgradeToProButton.
-  if (isNativeApp()) {
-    return (
-      <span style={{ fontSize: 12, color: "var(--color-text-muted)", lineHeight: 1.5 }}>
-        Gerencie o plano da academia na versão web do S2Core.
-      </span>
-    );
-  }
+  // App empacotado: o botão não existe — ver comentário em UpgradeToProButton.
+  if (isNativeApp()) return null;
 
   async function handleClick() {
     setLoading(true);

@@ -38,7 +38,7 @@ describe("Financeiro da academia", () => {
     plataforma.nativo = true;
     render(<AcademyFinancePage />);
 
-    expect(screen.getByText(/versão web do S2Core/i)).toBeInTheDocument();
+    expect(screen.getByText(/não está disponível no app/i)).toBeInTheDocument();
     expect(screen.queryByText(/Receita do mês/i)).not.toBeInTheDocument();
     expect(api.fetchAcademyPayments).not.toHaveBeenCalled();
   });
@@ -46,7 +46,7 @@ describe("Financeiro da academia", () => {
   it("na web continua carregando os pagamentos", async () => {
     render(<AcademyFinancePage />);
     await waitFor(() => expect(api.fetchAcademyPayments).toHaveBeenCalled());
-    expect(screen.queryByText(/versão web do S2Core/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/não está disponível no app/i)).not.toBeInTheDocument();
   });
 });
 
@@ -55,7 +55,7 @@ describe("Planos da academia", () => {
     plataforma.nativo = true;
     render(<AcademyPlansPage />);
 
-    expect(screen.getByText(/versão web do S2Core/i)).toBeInTheDocument();
+    expect(screen.getByText(/não está disponível no app/i)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /novo plano/i })).not.toBeInTheDocument();
     expect(api.fetchPlans).not.toHaveBeenCalled();
   });
