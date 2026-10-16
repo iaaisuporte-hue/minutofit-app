@@ -15,6 +15,7 @@ import {
 } from "../utils/validators";
 import S2CoreLogo from "../components/S2CoreLogo";
 import { isNativeApp } from "../lib/platform";
+import { LegalLink } from "../components/LegalLink";
 
 type RegisterPersonalForm = {
   name: string;
@@ -358,9 +359,9 @@ export default function RegisterPersonalPage() {
             />
             <span style={{ color: "var(--color-text)" }}>
               Li e aceito os{" "}
-              <Link to="/termos" target="_blank" rel="noopener noreferrer">Termos de Uso</Link>{" "}
+              <LegalLink doc="termos">Termos de Uso</LegalLink>{" "}
               e a{" "}
-              <Link to="/privacidade" target="_blank" rel="noopener noreferrer">Política de Privacidade</Link>.
+              <LegalLink doc="privacidade">Política de Privacidade</LegalLink>.
             </span>
           </label>
           {submitAttempted && errors.terms && <span className="field-error">{errors.terms}</span>}

@@ -163,7 +163,7 @@ export default function ProfileCompletionPage() {
         color: neon.text,
         display: "grid",
         placeItems: "start center",
-        padding: "32px 16px 48px",
+        padding: "max(32px, env(safe-area-inset-top, 0px)) 16px max(48px, env(safe-area-inset-bottom, 0px))",
         boxSizing: "border-box",
         fontFamily:
           'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
@@ -171,7 +171,7 @@ export default function ProfileCompletionPage() {
     >
       <style>{`
         @media (max-width: 520px) {
-          .profile-completion-page { padding: 20px 14px 36px !important; }
+          .profile-completion-page { padding: max(20px, env(safe-area-inset-top, 0px)) 14px max(36px, env(safe-area-inset-bottom, 0px)) !important; }
           .pc-card { padding: 18px 16px 18px !important; border-radius: 12px !important; }
           .pc-header { margin-bottom: 18px !important; }
           .pc-title { font-size: 22px !important; }

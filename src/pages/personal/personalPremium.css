@@ -739,6 +739,9 @@ html:not([data-theme="dark"]) .personal-app-canvas {
   align-content: start;
   gap: 12px;
   padding: 16px;
+  /* Drawer lateral de altura total: o topo encosta na status bar. No celular
+     ele vira bottom sheet (regra abaixo) e esta linha é sobrescrita. */
+  padding-top: max(16px, env(safe-area-inset-top, 0px));
 }
 
 .pp-avatar {

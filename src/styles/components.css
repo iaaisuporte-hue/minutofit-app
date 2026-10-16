@@ -604,7 +604,17 @@ html[data-color-mode="daltonic"] .navLinkActive {
   min-height: 100vh;
   display: grid;
   place-items: center;
-  padding: var(--space-5);
+  /* Fora de qualquer shell (login, cadastro, convite, senha, páginas legais):
+     ninguém mais desconta a status bar / Dynamic Island, o home indicator nem
+     o notch em paisagem. `max()` mantém o respiro de sempre onde o inset é 0
+     (web, Android com adjustMarginsForEdgeToEdge) e só cresce no iPhone.
+     Os breakpoints trocam --auth-pad, nunca o padding. */
+  --auth-pad: var(--space-5);
+  padding:
+    max(var(--auth-pad), env(safe-area-inset-top, 0px))
+    max(var(--auth-pad), env(safe-area-inset-right, 0px))
+    max(var(--auth-pad), env(safe-area-inset-bottom, 0px))
+    max(var(--auth-pad), env(safe-area-inset-left, 0px));
   background: var(--color-bg-main);
 }
 
@@ -1086,6 +1096,9 @@ html[data-color-mode="daltonic"] .navLinkActive {
     position: static;
     height: auto;
     padding: var(--space-4);
+    /* Sem topbar nem bottom nav (academia, admin), a sidebar vira o topo da
+       página — sob a status bar no iPhone. Nos shells que têm topbar ela some. */
+    padding-top: max(var(--space-4), env(safe-area-inset-top, 0px));
     border-right: none;
     border-bottom: 1px solid var(--color-border);
     overflow-y: visible;
@@ -1107,7 +1120,7 @@ html[data-color-mode="daltonic"] .navLinkActive {
   .authHeroTitle { font-size: clamp(32px, 8vw, 48px); }
   .authHeroText { font-size: var(--text-lg); }
 
-  .auth-page { padding: var(--space-4); place-items: start center; }
+  .auth-page { --auth-pad: var(--space-4); place-items: start center; }
   .auth-card { padding: var(--space-6); }
 
   .container { max-width: 100%; }
@@ -1134,7 +1147,7 @@ html[data-color-mode="daltonic"] .navLinkActive {
   .authFormScrollable { max-height: none; overflow: visible; padding-right: 0; }
   .authTwoCol { grid-template-columns: 1fr; }
 
-  .auth-page { padding: var(--space-3); }
+  .auth-page { --auth-pad: var(--space-3); }
   .auth-card { padding: var(--space-5); border-radius: 18px; }
   .auth-two-col { grid-template-columns: 1fr; }
 }

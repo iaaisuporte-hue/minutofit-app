@@ -15,6 +15,7 @@ import {
   getBirthDateError,
 } from "../utils/validators";
 import S2CoreLogo from "../components/S2CoreLogo";
+import { LegalLink } from "../components/LegalLink";
 
 type RegisterForm = {
   name: string;
@@ -346,9 +347,9 @@ export default function RegisterPage() {
             />
             <span style={{ color: "var(--color-text)" }}>
               Li e aceito os{" "}
-              <Link to="/termos" target="_blank" rel="noopener noreferrer">Termos de Uso</Link>{" "}
+              <LegalLink doc="termos">Termos de Uso</LegalLink>{" "}
               e a{" "}
-              <Link to="/privacidade" target="_blank" rel="noopener noreferrer">Política de Privacidade</Link>,
+              <LegalLink doc="privacidade">Política de Privacidade</LegalLink>,
               incluindo o tratamento dos meus dados de saúde para personalizar meu acompanhamento.
             </span>
           </label>

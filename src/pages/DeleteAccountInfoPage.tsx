@@ -28,7 +28,7 @@ const LIST_STYLE: React.CSSProperties = { ...P_STYLE, paddingLeft: 20, display: 
 
 export default function DeleteAccountInfoPage() {
   return (
-    <main className="auth-page" style={{ maxWidth: 720, margin: "0 auto", padding: "24px 16px calc(80px + var(--cookie-consent-h, 0px))" }}>
+    <main className="auth-page" style={{ maxWidth: 720, margin: "0 auto", padding: "max(24px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) calc(80px + var(--cookie-consent-h, 0px)) max(16px, env(safe-area-inset-left, 0px))" }}>
       <h1 className="auth-title" style={{ textAlign: "left" }}>
         Excluir sua conta e seus dados
       </h1>
