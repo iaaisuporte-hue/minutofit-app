@@ -56,6 +56,12 @@ describe("encontrarReferenciasLocais", () => {
     );
   });
 
+  it("acha IP de rede local embutido em código (mesmas faixas recusadas na variável)", () => {
+    expect(
+      encontrarReferenciasLocais('"http://192.168.0.5:3000/api" "http://172.20.1.1/api" "https://10.1.2.3:8443"'),
+    ).toEqual(expect.arrayContaining(["http://192.168.0.5:3000", "http://172.20.1.1/api", "https://10.1.2.3:8443"]));
+  });
+
   it("não acusa o 'localhost' legítimo de um bundle de produção", () => {
     // Trechos reais de um build de produção correto (16/10/2026).
     const legitimo =

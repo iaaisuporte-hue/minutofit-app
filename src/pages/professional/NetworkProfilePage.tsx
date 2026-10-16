@@ -11,7 +11,7 @@ import {
 } from "../../services/professionalNetworkApi";
 import OfferingsSection from "./OfferingsSection";
 import SubscribersSection from "./SubscribersSection";
-import { AccountDataSection } from "../../features/account/AccountDataSection";
+import { OwnerAwareAccountDataSection } from "../../features/account/OwnerAwareAccountDataSection";
 import { PlanSection } from "../../features/personalPlan/PlanSection";
 import { useAuth } from "../../auth/AuthContext";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
@@ -585,7 +585,7 @@ export default function NetworkProfilePage() {
         exclusão de dados do Google Play cobram de qualquer conta, não só do aluno.
       */}
       <div style={{ marginTop: 24 }}>
-        <AccountDataSection onDeleted={logout} />
+        <OwnerAwareAccountDataSection onDeleted={logout} />
       </div>
 
       <div style={{ marginTop: 24, display: "flex", justifyContent: "flex-end" }}>

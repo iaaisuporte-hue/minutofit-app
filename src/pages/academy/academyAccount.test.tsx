@@ -14,16 +14,23 @@ const conta = vi.hoisted(() => ({
 }));
 const sessao = vi.hoisted(() => ({
   logout: vi.fn(),
+  accessProfile: null as string | null,
   academies: [] as Array<{ id: number; slug: string; displayName: string; roleSlug: string; roleLabel: string; status: string }>,
 }));
 
 vi.mock("../../services/accountApi", () => conta);
 vi.mock("../../auth/AuthContext", () => ({
-  useAuth: () => ({ email: "equipe@academia.com", logout: sessao.logout, academies: sessao.academies }),
+  useAuth: () => ({
+    email: "equipe@academia.com",
+    logout: sessao.logout,
+    academies: sessao.academies,
+    accessProfile: sessao.accessProfile,
+  }),
 }));
 
 const { default: AcademyAccountPage } = await import("./AcademyAccountPage");
 const { AccountDataSection } = await import("../../features/account/AccountDataSection");
+const { OwnerAwareAccountDataSection } = await import("../../features/account/OwnerAwareAccountDataSection");
 
 function academia(roleSlug: string) {
   return { id: 1, slug: "forca", displayName: "Academia Força", roleSlug, roleLabel: roleSlug, status: "active" };
@@ -37,6 +44,7 @@ beforeEach(() => {
   conta.deleteMyAccount.mockClear();
   sessao.logout.mockClear();
   sessao.academies = [];
+  sessao.accessProfile = null;
 });
 
 describe("Minha conta — equipe da academia", () => {
@@ -87,5 +95,30 @@ describe("AccountDataSection sem as props novas (aluno, personal, nutri)", () =>
     abrirExclusao();
     expect(screen.getByLabelText(/para confirmar/i)).toBeInTheDocument();
     expect(screen.queryByText(/só a sua conta pessoal/i)).not.toBeInTheDocument();
+  });
+});
+
+describe("trava do dono nas outras portas (perfil de aluno e de profissional)", () => {
+  it("dono que também é aluno não exclui pelo perfil comum", () => {
+    sessao.academies = [academia("academy_owner")];
+    render(<MemoryRouter><OwnerAwareAccountDataSection onDeleted={() => {}} /></MemoryRouter>);
+    abrirExclusao();
+    expect(screen.getByText("Academia Força")).toBeInTheDocument();
+    expect(screen.queryByLabelText(/para confirmar/i)).not.toBeInTheDocument();
+  });
+
+  it("login sem a lista de academias (OAuth): o perfil de acesso de dono basta", () => {
+    sessao.accessProfile = "academy_owner";
+    render(<MemoryRouter><OwnerAwareAccountDataSection onDeleted={() => {}} /></MemoryRouter>);
+    abrirExclusao();
+    expect(screen.getByText(/responsável por uma academia/i)).toBeInTheDocument();
+    expect(screen.queryByLabelText(/para confirmar/i)).not.toBeInTheDocument();
+  });
+
+  it("quem não é dono segue com o formulário de sempre", () => {
+    sessao.academies = [academia("academy_personal")];
+    render(<MemoryRouter><OwnerAwareAccountDataSection onDeleted={() => {}} /></MemoryRouter>);
+    abrirExclusao();
+    expect(screen.getByLabelText(/para confirmar/i)).toBeInTheDocument();
   });
 });

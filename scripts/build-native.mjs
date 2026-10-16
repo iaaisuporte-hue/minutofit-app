@@ -28,6 +28,10 @@ const COPIA_NATIVA = {
   android: join(RAIZ, "android/app/src/main/assets/public"),
 };
 
+// npm/npx no Windows são `.cmd` e só rodam via shell.
+const WINDOWS = process.platform === "win32";
+const bin = (nome) => (WINDOWS ? `${nome}.cmd` : nome);
+
 const args = process.argv.slice(2);
 const plataforma = args.find((a) => !a.startsWith("--"));
 const sincronizar = args.includes("--sync");
@@ -83,13 +87,13 @@ if (!api.ok) falhar(api.motivo);
 
 if (!soConferir) {
   console.log(`[build-native] build de distribuição ${plataforma} com API ${api.url}`);
-  execFileSync("npm", ["run", "build"], { cwd: RAIZ, stdio: "inherit", env: process.env });
+  execFileSync(bin("npm"), ["run", "build"], { cwd: RAIZ, stdio: "inherit", env: process.env, shell: WINDOWS });
 }
 
 conferirBundle(join(RAIZ, "dist"), api.url);
 
 if (sincronizar) {
-  execFileSync("npx", ["cap", "sync", plataforma], { cwd: RAIZ, stdio: "inherit", env: process.env });
+  execFileSync(bin("npx"), ["cap", "sync", plataforma], { cwd: RAIZ, stdio: "inherit", env: process.env, shell: WINDOWS });
 }
 
 if (sincronizar || (soConferir && existsSync(COPIA_NATIVA[plataforma]))) {

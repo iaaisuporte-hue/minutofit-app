@@ -22,9 +22,11 @@ const HOST_LOCAL =
  * reservados do tenant, base de `new URL` em SSR) — por isso o padrão exige
  * PORTA ou caminho `/api` colado ao host, e não a palavra solta.
  */
+const HOST_LOCAL_NO_BUNDLE =
+  "(?:localhost|0\\.0\\.0\\.0|\\[::1\\]|127(?:\\.\\d{1,3}){3}|10(?:\\.\\d{1,3}){3}|192\\.168(?:\\.\\d{1,3}){2}|172\\.(?:1[6-9]|2\\d|3[01])(?:\\.\\d{1,3}){2})";
 const REFERENCIAS_LOCAIS = [
-  /https?:\/\/(?:localhost|127\.0\.0\.1|0\.0\.0\.0|10\.0\.2\.2|\[::1\])(?::\d+)/gi,
-  /https?:\/\/(?:localhost|127\.0\.0\.1|0\.0\.0\.0|10\.0\.2\.2)\/api\b/gi,
+  new RegExp(`https?:\\/\\/${HOST_LOCAL_NO_BUNDLE}(?::\\d+)`, "gi"),
+  new RegExp(`https?:\\/\\/${HOST_LOCAL_NO_BUNDLE}\\/api\\b`, "gi"),
 ];
 
 /**

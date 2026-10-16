@@ -18,7 +18,7 @@ import {
 } from "./todayPageMotion";
 import "./todayPage.css";
 import { SportProfileSection } from "../../features/sport/components/SportProfileSection";
-import { AccountDataSection } from "../../features/account/AccountDataSection";
+import { OwnerAwareAccountDataSection } from "../../features/account/OwnerAwareAccountDataSection";
 import { ProfileNavList, type ProfileNavSection } from "../../features/profile/ProfileNavList";
 import { Users, BookOpen, Target, TrendingUp, Moon, Sun } from "lucide-react";
 import { isNativeApp } from "../../lib/platform";
@@ -780,7 +780,7 @@ export default function UserProfilePage({ onLogout }: Props) {
       </motion.div>
 
       <motion.div variants={sectionRevealVariants}>
-        <AccountDataSection onDeleted={onLogout} />
+        <OwnerAwareAccountDataSection onDeleted={onLogout} />
       </motion.div>
 
       <motion.div variants={sectionRevealVariants} style={{ display: "flex", justifyContent: "flex-end" }}>
