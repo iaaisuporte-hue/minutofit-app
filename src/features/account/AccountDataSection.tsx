@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { COLORS } from "../../styles/colors";
 import { exportMyData, deleteMyAccount } from "../../services/accountApi";
 import { handleExternal } from "../../lib/externalLink";
@@ -7,8 +7,22 @@ import { useOverlay } from "../../lib/overlayStack";
 /**
  * Seção "Seus dados e conta" (LGPD + requisito de loja Apple 5.1.1v / Google).
  * Exportação (SAR) e exclusão self-service. `onDeleted` deve encerrar a sessão.
+ *
+ * - `deletionNote`: contexto extra no diálogo de confirmação (ex.: staff de
+ *   academia — deixar claro que só a conta PESSOAL sai, não a organização).
+ * - `deletionBlocked`: quando a exclusão self-service ainda não é segura para
+ *   este titular, o botão continua visível (a exclusão é iniciada no app), mas
+ *   abre a explicação e o canal de atendimento em vez do formulário.
  */
-export function AccountDataSection({ onDeleted }: { onDeleted: () => void }) {
+export function AccountDataSection({
+  onDeleted,
+  deletionNote,
+  deletionBlocked,
+}: {
+  onDeleted: () => void;
+  deletionNote?: ReactNode;
+  deletionBlocked?: ReactNode;
+}) {
   const [exporting, setExporting] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
@@ -111,6 +125,20 @@ export function AccountDataSection({ onDeleted }: { onDeleted: () => void }) {
               Sua conta e seus dados de treino, dieta, check-ins e fotos serão <strong>excluídos permanentemente</strong>.
               Registros financeiros são anonimizados e retidos por obrigação legal. Esta ação <strong>não pode ser desfeita</strong>.
             </div>
+            {deletionBlocked ? (
+              <>
+                <div style={{ fontSize: 13, color: COLORS.text, lineHeight: 1.55 }}>{deletionBlocked}</div>
+                <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 4 }}>
+                  <button type="button" className="btn btn-ghost" onClick={() => setShowDelete(false)}>
+                    Fechar
+                  </button>
+                </div>
+              </>
+            ) : (
+            <>
+            {deletionNote && (
+              <div style={{ fontSize: 13, color: COLORS.text, lineHeight: 1.55 }}>{deletionNote}</div>
+            )}
             <label style={{ fontSize: 12, color: COLORS.muted, display: "grid", gap: 4 }}>
               Senha (só se você usa email e senha)
               <input
@@ -149,6 +177,8 @@ export function AccountDataSection({ onDeleted }: { onDeleted: () => void }) {
                 {deleting ? "Excluindo…" : "Excluir conta"}
               </button>
             </div>
+            </>
+            )}
           </div>
         </div>
       )}

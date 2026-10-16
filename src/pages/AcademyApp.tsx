@@ -17,6 +17,7 @@ import AcademyStudentsPage        from "./academy/AcademyStudentsPage";
 import AcademyStudentDetailPage   from "./academy/AcademyStudentDetailPage";
 import AcademyPlansPage           from "./academy/AcademyPlansPage";
 import AcademyFinancePage         from "./academy/AcademyFinancePage";
+import AcademyAccountPage         from "./academy/AcademyAccountPage";
 import { academyFallbackLogoUrl } from "./academy/academyFallbackLogo";
 import RecepcaoHubPage            from "./academy/recepcao/RecepcaoHubPage";
 import RecepcaoDisplayPage        from "./academy/recepcao/RecepcaoDisplayPage";
@@ -161,6 +162,10 @@ export default function AcademyApp() {
 
       {/* Footer */}
       <div className="sidebar-footer" style={{ padding: "var(--space-3) var(--space-2)" }}>
+        {/* Conta pessoal (exportar/excluir) — vale para todo papel da equipe, sem permissão de academia. */}
+        <div className="navStack" style={{ marginBottom: "var(--space-2)" }}>
+          <MenuLink to="/app/academy/conta" label="Minha conta" />
+        </div>
         <button className="logoutButton" onClick={handleLogout}>Sair</button>
         {isTenantSubdomain && (
           <div className="powered-by">powered by S2Core</div>
@@ -289,6 +294,7 @@ export default function AcademyApp() {
               </AcademyPermissionRoute>
             }
           />
+          <Route path="conta" element={<AcademyAccountPage />} />
           <Route path="*" element={<RedirectToFirstAcademyRoute />} />
         </Route>
       </Routes>
