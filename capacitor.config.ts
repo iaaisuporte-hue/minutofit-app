@@ -25,6 +25,12 @@ const config: CapacitorConfig = {
      */
     adjustMarginsForEdgeToEdge: 'auto',
   },
+  ios: {
+    // `limitsNavigationsToAppBoundDomains` fica no padrão (desligado) de propósito:
+    // o MediaPipe do Lab de Movimento é self-hosted (copiado para os assets do app
+    // no build), então não há domínio externo a declarar — e ligá-lo só quebraria o
+    // fallback de CDN sem ganho nenhum de segurança aqui.
+  },
   server: {
     androidScheme: 'https',
   },

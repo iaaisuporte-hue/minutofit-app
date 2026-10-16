@@ -6,7 +6,9 @@ import tseslint from 'typescript-eslint'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist', 'public/mediapipe/**', 'android/**']),
+  // Projetos nativos: `cap sync` copia o bundle (e os .d.ts do MediaPipe) para
+  // dentro deles — é o mesmo código de dist, já lintado na origem.
+  globalIgnores(['dist', 'public/mediapipe/**', 'android/**', 'ios/**']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [

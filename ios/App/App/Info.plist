@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>en</string>
+	<key>CFBundleDisplayName</key>
+        <string>S2Core</string>
+	<key>CFBundleExecutable</key>
+	<string>$(EXECUTABLE_NAME)</string>
+	<key>CFBundleIdentifier</key>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>$(PRODUCT_NAME)</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>$(MARKETING_VERSION)</string>
+	<key>CFBundleVersion</key>
+	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>LSRequiresIPhoneOS</key>
+	<true/>
+	<!--
+		Justificativas de permissão, em PT-BR (a App Review lê estas strings e
+		rejeita as genéricas). Equivalem às permissões declaradas no
+		AndroidManifest.xml: câmera, localização em primeiro plano e acesso à
+		foto escolhida pelo usuário.
+
+		Localização é só WhenInUse: o rastreio com a tela apagada não é
+		suportado, então não pedimos Always.
+	-->
+	<key>NSCameraUsageDescription</key>
+	<string>O S2Core usa a câmera no Lab de Movimento — a análise da sua execução roda no próprio aparelho, sem gravar nem enviar vídeo — e para tirar suas fotos de progresso e a foto do card de treino.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>O S2Core acessa suas fotos para você escolher uma imagem de progresso ou o fundo do card de treino que vai compartilhar. Só a foto que você selecionar é lida.</string>
+	<!--
+		O app hoje salva a arte do treino em Documents e usa o compartilhamento
+		do sistema, não a galeria; a chave existe porque o plugin de câmera
+		expõe a gravação na galeria e o iOS encerra o app se ela for chamada
+		sem justificativa declarada.
+	-->
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>O S2Core salva na sua galeria as fotos de progresso e os cards de treino que você pedir para guardar.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>O S2Core usa sua localização para registrar o trajeto, a distância e o ritmo da corrida, caminhada ou pedalada. Só durante a atividade que você inicia — nunca em segundo plano.</string>
+	<!--
+		Voice Workout (P5A) — push-to-talk, sem UIBackgroundModes: a captura só
+		funciona com o app em primeiro plano e a tela ligada nesta fase (a
+		mesma limitação de foreground-only do restante do app; ver plano P5).
+		Nenhum áudio é gravado — só o comando reconhecido atravessa para o app.
+	-->
+	<key>NSMicrophoneUsageDescription</key>
+	<string>O S2Core usa o microfone só quando você ativa o Voice Workout durante um treino, para registrar comandos como "fiz 12 com 28" por voz. Nenhum áudio é gravado.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>O S2Core envia o comando de voz que você deu durante o Voice Workout para o reconhecedor de fala, só para transformá-lo em texto. Nenhum áudio é guardado.</string>
+	<!--
+		Esquema próprio `s2core://`, o mesmo já registrado no AndroidManifest e
+		traduzido por `src/lib/deepLinks.ts`. Widget, Quick Action e notificação
+		abrem um DESTINO por aqui; sem esta declaração o iOS descarta o link.
+
+		Os links `https://app.s2core.com.br/...` NÃO entram aqui: Universal Link
+		é resolvido pelo entitlement de Associated Domains (App.entitlements) +
+		o arquivo AASA servido pelo site, não por URL scheme.
+
+		Falta declarar aqui o esquema reverso do client OAuth do tipo iOS
+		(`com.googleusercontent.apps.<ID>`), exigido pelo login Google nativo.
+		O valor só existe depois que o client for criado no Google Cloud Console
+		— ver VITE_GOOGLE_IOS_CLIENT_ID em .env.example.
+	-->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.s2core.app</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>s2core</string>
+			</array>
+		</dict>
+	</array>
+	<key>UILaunchStoryboardName</key>
+	<string>LaunchScreen</string>
+	<key>UIMainStoryboardFile</key>
+	<string>Main</string>
+	<key>UIRequiredDeviceCapabilities</key>
+	<array>
+		<string>armv7</string>
+	</array>
+	<key>UISupportedInterfaceOrientations</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
+	<key>UISupportedInterfaceOrientations~ipad</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationPortraitUpsideDown</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
+	<key>UIViewControllerBasedStatusBarAppearance</key>
+	<true/>
+</dict>
+</plist>

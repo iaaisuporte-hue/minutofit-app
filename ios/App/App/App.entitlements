@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!--
+		Associated Domains — pré-requisito dos Universal Links.
+
+		Sem esta entrada o iOS nem chega a buscar o arquivo AASA
+		(public/.well-known/apple-app-site-association), e cada link
+		https://app.s2core.com.br/... abre no Safari em vez do app. Só o
+		entitlement não basta: o App ID no portal da Apple precisa ter a
+		capability "Associated Domains" ligada, senão a assinatura falha.
+
+		Só o host do app autenticado entra. `www.s2core.com.br` é o site
+		institucional (Next.js) e deve continuar abrindo no navegador.
+	-->
+	<key>com.apple.developer.associated-domains</key>
+	<array>
+		<string>applinks:app.s2core.com.br</string>
+	</array>
+</dict>
+</plist>
