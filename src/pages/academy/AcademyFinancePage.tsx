@@ -3,6 +3,8 @@ import { fetchAcademyPayments, type AcademyPaymentRow, type AcademyFinanceKPIs }
 import { EmptyState } from "../../components/EmptyState";
 import { LoadingSkeleton } from "../../components/LoadingSkeleton";
 import { Banner } from "../../components/Banner";
+import { isNativeApp } from "../../lib/platform";
+import { AcademyWebOnlyPanel } from "../../features/academyPlan/AcademyWebOnlyPanel";
 
 const STATUS_LABEL: Record<string, string> = {
   paid:     "Pago",
@@ -56,9 +58,19 @@ export default function AcademyFinancePage() {
     }
   }, [from, to, status]);
 
-  useEffect(() => { void load(); }, [load]);
+  // No app empacotado nem buscamos: a tela inteira é valor em reais.
+  useEffect(() => { if (isNativeApp()) return; void load(); }, [load]);
 
   const currency = rows[0]?.currency ?? "BRL";
+
+  if (isNativeApp()) {
+    return (
+      <AcademyWebOnlyPanel
+        titulo="Pagamentos da academia"
+        descricao="Os pagamentos e valores da academia não aparecem no aplicativo."
+      />
+    );
+  }
 
   return (
     <div className="page-container">

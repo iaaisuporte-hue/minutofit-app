@@ -1,0 +1,16 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appID": "TEAMID.com.s2core.app",
+        "paths": [
+          "/app/user/*",
+          "/app/personal/*",
+          "/convite-personal/*",
+          "/convite-nutri/*",
+          "/invite/*"
+        ]
+      }
+    ]
+  }
+}

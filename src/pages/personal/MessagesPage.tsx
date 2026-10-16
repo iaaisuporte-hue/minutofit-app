@@ -22,6 +22,7 @@ import { usePersonalStudentSnapshot } from "./hooks/usePersonalStudentSnapshot";
 import { SkeletonStudentList } from "../../components/feedback/Skeleton";
 import { EmptyState } from "../../components/EmptyState";
 import { normalizePhoneToBRE164, openWhatsappCompose } from "./lib/whatsappLink";
+import { ReportConversationButton } from "../../features/chatReport/ReportConversationButton";
 import "./messagesPersonal.css";
 
 type Role = "user" | "personal" | "admin" | "nutri";
@@ -613,6 +614,14 @@ export default function MessagesPage() {
                   {normalizePhoneToBRE164(selectedConv.studentPhone)
                     ? "\"WhatsApp\" abre o app para você revisar e enviar."
                     : "Cadastre o telefone do aluno para habilitar o WhatsApp."}
+                </div>
+              ) : null}
+
+              {/* Denúncia disponível dos dois lados do chat — o mesmo caminho
+                  do aluno (guideline 1.2 das lojas). */}
+              {selectedConv ? (
+                <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 8 }}>
+                  <ReportConversationButton conversationId={selectedConv.id} />
                 </div>
               ) : null}
             </div>

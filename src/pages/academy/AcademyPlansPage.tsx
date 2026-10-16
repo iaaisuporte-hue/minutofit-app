@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { EmptyState } from "../../components/EmptyState";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
+import { isNativeApp } from "../../lib/platform";
+import { AcademyWebOnlyPanel } from "../../features/academyPlan/AcademyWebOnlyPanel";
 import {
   fetchPlans,
   createPlan,
@@ -42,7 +44,8 @@ export default function AcademyPlansPage() {
     }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  // No app empacotado nem buscamos: a tela define preço de mensalidade.
+  useEffect(() => { if (isNativeApp()) return; load(); }, [load]);
 
   function startCreate() { setForm(DEFAULT_FORM); setEditingId(null); setError(""); setShowForm(true); }
 
@@ -114,6 +117,15 @@ export default function AcademyPlansPage() {
 
   const activePlans   = plans.filter((p) => p.status === "active");
   const archivedPlans = plans.filter((p) => p.status === "archived");
+
+  if (isNativeApp()) {
+    return (
+      <AcademyWebOnlyPanel
+        titulo="Planos"
+        descricao="Os valores de mensalidade não aparecem no aplicativo."
+      />
+    );
+  }
 
   return (
     <div className="page-container">

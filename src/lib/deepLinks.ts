@@ -57,8 +57,16 @@ const MAPA: Array<{ padrao: RegExp; rota: (m: RegExpMatchArray) => string }> = [
   { padrao: /^integrations$/, rota: () => "/app/user/integracoes" },
 ];
 
-/** Caminhos de App Link (https) permitidos, por prefixo. */
-const PREFIXOS_HTTPS = [
+/**
+ * Caminhos de App Link (https) permitidos, por prefixo.
+ *
+ * Exportado porque é a mesma lista que precisa estar no
+ * `public/.well-known/apple-app-site-association` — o iOS nem entrega o link ao
+ * app se o AASA não cobrir o caminho, e as duas listas divergindo em silêncio
+ * dariam "o link abre no Safari" sem nenhum erro visível. Um teste amarra as
+ * duas.
+ */
+export const PREFIXOS_HTTPS = [
   "/app/user/",
   "/app/personal/",
   "/convite-personal/",

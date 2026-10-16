@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "../../auth/AuthContext";
 import { useIsMobile } from "../../hooks/useIsMobile";
 import { useLayoutVar } from "../../hooks/useLayoutVar";
+import { ReportConversationButton } from "../../features/chatReport/ReportConversationButton";
 import "./userMessages.css";
 import {
   ensureChatConversation,
@@ -583,6 +584,13 @@ export default function UserMessagesPage() {
             {sending ? "Enviando…" : "Enviar"}
           </button>
         </div>
+        {/* Denúncia: discreta e no rodapé — presente sempre que há conversa,
+            sem competir com o canal em si (guideline 1.2 das lojas). */}
+        {selectedConversation && (
+          <div style={{ display: "flex", justifyContent: "flex-end" }}>
+            <ReportConversationButton conversationId={selectedConversation.id} />
+          </div>
+        )}
       </div>
     </div>
   );

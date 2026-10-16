@@ -1,4 +1,5 @@
 import { SocialLogin } from "@capgo/capacitor-social-login";
+import { ensureSocialLoginInitialized } from "./socialLoginNative";
 
 /**
  * Login com Google dentro do app empacotado (Capacitor).
@@ -6,28 +7,15 @@ import { SocialLogin } from "@capgo/capacitor-social-login";
  * O botão do Google Identity Services não funciona aqui: o Google **bloqueia**
  * OAuth em WebView embarcada por política de segurança, então no APK o usuário
  * ficava só com e-mail e senha. Este caminho usa a conta já logada no aparelho
- * (Credential Manager no Android) e devolve o mesmo `idToken` que o backend já
- * valida em `POST /auth/oauth/google/callback` — nenhuma rota nova.
+ * (Credential Manager no Android, Google Sign-In no iOS) e devolve o mesmo
+ * `idToken` que o backend já valida em `POST /auth/oauth/google/callback` —
+ * nenhuma rota nova.
  *
- * PRÉ-REQUISITO DE CONFIGURAÇÃO: além do `VITE_GOOGLE_CLIENT_ID` (client web),
- * o Google Cloud Console precisa de um **client OAuth do tipo Android** com o
- * package `com.s2core.app` e a impressão SHA-1 do certificado de assinatura.
- * Sem ele o login falha em runtime com DEVELOPER_ERROR, mesmo com o código
- * correto. Ver o runbook de publicação.
+ * A configuração dos client IDs (web, Android, iOS) e os pré-requisitos de
+ * portal estão em `socialLoginNative.ts`, compartilhados com o Apple.
  */
 
 const WEB_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined;
-
-let initialized: Promise<void> | null = null;
-
-function ensureInitialized(): Promise<void> {
-  if (!initialized) {
-    initialized = SocialLogin.initialize({
-      google: { webClientId: WEB_CLIENT_ID },
-    });
-  }
-  return initialized;
-}
 
 export function isGoogleNativeConfigured(): boolean {
   return Boolean(WEB_CLIENT_ID);
@@ -41,7 +29,7 @@ export function isGoogleNativeConfigured(): boolean {
 export async function signInWithGoogleNative(): Promise<string | null> {
   if (!WEB_CLIENT_ID) return null;
 
-  await ensureInitialized();
+  await ensureSocialLoginInitialized();
   // SEM `scopes` aqui de propósito: o provider Android do plugin já adiciona
   // email/profile/openid como padrão internamente (GoogleProvider.java). Passar
   // um array de scopes — mesmo pedindo exatamente os mesmos — força o plugin a
