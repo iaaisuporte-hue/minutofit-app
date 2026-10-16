@@ -17,8 +17,10 @@ import "./styles/components.css";
 import { setupSentryConsentGate } from "./lib/sentryConsent";
 import { hydrateTokenStorage } from "./lib/tokenStorage";
 import { isNativeApp } from "./lib/platform";
+import { applyNativeIosViewport } from "./lib/nativeViewport";
 
 setupSentryConsentGate();
+applyNativeIosViewport();
 
 function montar() {
   ReactDOM.createRoot(document.getElementById("root")!).render(
