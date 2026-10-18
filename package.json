@@ -13,6 +13,7 @@
     "build": "tsc -b && vite build",
     "build:native:ios": "node scripts/build-native.mjs ios",
     "build:native:android": "node scripts/build-native.mjs android",
+    "aasa:team-id": "node scripts/set-aasa-team-id.mjs",
     "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest",

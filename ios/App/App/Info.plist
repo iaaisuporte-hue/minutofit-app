@@ -23,6 +23,15 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<!--
+		Export compliance (F2). O app só usa criptografia fornecida pelo sistema: HTTPS/TLS pelo
+		WKWebView e URLSession. Nenhuma biblioteca de criptografia própria no bundle web (package.json
+		não tem crypto/forge/sodium/jose/etc.; sem crypto.subtle em src/), nem nos pods (GoogleSignIn,
+		Alamofire e o SDK do Facebook usam o TLS do sistema). Esse é o caso de isenção que a Apple
+		descreve; a declaração final continua sendo responsabilidade do titular da conta.
+	-->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+	<!--
 		Justificativas de permissão, em PT-BR (a App Review lê estas strings e
 		rejeita as genéricas). Equivalem às permissões declaradas no
 		AndroidManifest.xml: câmera, localização em primeiro plano e acesso à
