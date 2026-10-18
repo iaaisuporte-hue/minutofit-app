@@ -10,16 +10,17 @@ const SUPORTE_EMAIL = "s2core.contato@gmail.com";
  *
  * Por quê: `academies.owner_user_id` vira NULL na exclusão e a academia fica sem
  * responsável, com o Pro seguindo na cobrança do cartão de quem saiu e sem rota
- * para cancelar. Até a Spec 040 colocar a trava no servidor (fonte de verdade:
- * `owner_user_id`, inclusive de academia inativa), o app inicia o pedido e o
- * atendimento conclui com a transferência de posse.
+ * para cancelar. O servidor também barra (Spec 040: 409 academy_owner_transfer_required,
+ * inclusive para academia suspensa e para chamada direta à API) — esta explicação é a
+ * conveniência de não deixar o dono preencher um formulário que vai ser recusado. O app
+ * inicia o pedido e o atendimento conclui com a transferência de posse.
  *
  * Usado em TODA tela que tem a seção de exclusão (aluno, profissional,
  * academia): o dono costuma ser também aluno ou personal, e bloquear só numa
  * página deixaria a outra porta aberta. Dois sinais, porque o caminho de login
  * OAuth não carrega `academies` — o perfil de acesso cobre esse caso.
  *
- * É mitigação de UI. A garantia é do servidor (Spec 040).
+ * Mitigação de UI: a garantia é do servidor.
  */
 export function useOwnerDeletionBlock(): ReactNode | undefined {
   const auth = useAuth();

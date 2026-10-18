@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from "react";
 import { COLORS } from "../../styles/colors";
-import { exportMyData, deleteMyAccount } from "../../services/accountApi";
+import { exportMyData, deleteMyAccount, AccountDeletionBlockedError } from "../../services/accountApi";
 import { handleExternal } from "../../lib/externalLink";
 
 import { useOverlay } from "../../lib/overlayStack";
@@ -33,6 +33,8 @@ export function AccountDataSection({
   // Exclusão em andamento não pode ser dispensada por voltar/Escape.
   useOverlay(() => { if (!deleting) setShowDelete(false); }, showDelete);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  // Exclusão aceita, mas a conta segue até o gateway confirmar o cancelamento da cobrança (Spec 040).
+  const [pendingNotice, setPendingNotice] = useState<string | null>(null);
 
   async function handleExport() {
     setExporting(true);
@@ -51,14 +53,22 @@ export function AccountDataSection({
     setDeleting(true);
     setDeleteError(null);
     try {
-      await deleteMyAccount({ confirmation: confirmText.trim(), password: password || undefined });
+      const outcome = await deleteMyAccount({ confirmation: confirmText.trim(), password: password || undefined });
+      if (outcome && outcome.status !== "completed") {
+        // NÃO é "conta excluída": a conta continua até a cobrança ser encerrada. Diz isso, sem encerrar a sessão às cegas.
+        setPendingNotice(outcome.message);
+        setDeleting(false);
+        return;
+      }
       onDeleted(); // encerra sessão + redireciona
     } catch (e) {
       const code = e instanceof Error ? e.message : "";
       setDeleteError(
-        code === "invalid_password"
-          ? "Senha incorreta."
-          : "Não foi possível excluir a conta. Tente novamente.",
+        e instanceof AccountDeletionBlockedError
+          ? e.message
+          : code === "invalid_password"
+            ? "Senha incorreta."
+            : "Não foi possível excluir a conta. Tente novamente.",
       );
       setDeleting(false);
     }
@@ -125,7 +135,16 @@ export function AccountDataSection({
               Sua conta e seus dados de treino, dieta, check-ins e fotos serão <strong>excluídos permanentemente</strong>.
               Registros financeiros são anonimizados e retidos por obrigação legal. Esta ação <strong>não pode ser desfeita</strong>.
             </div>
-            {deletionBlocked ? (
+            {pendingNotice ? (
+              <>
+                <div role="status" style={{ fontSize: 13, color: COLORS.text, lineHeight: 1.55 }}>{pendingNotice}</div>
+                <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 4 }}>
+                  <button type="button" className="btn btn-ghost" onClick={onDeleted}>
+                    Entendi, sair
+                  </button>
+                </div>
+              </>
+            ) : deletionBlocked ? (
               <>
                 <div style={{ fontSize: 13, color: COLORS.text, lineHeight: 1.55 }}>{deletionBlocked}</div>
                 <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 4 }}>
