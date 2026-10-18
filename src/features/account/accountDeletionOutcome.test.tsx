@@ -54,6 +54,27 @@ describe("deleteMyAccount — contrato com o servidor", () => {
     expect(erro.message).toMatch(/único responsável/);
   });
 
+  it("manda `acceptsPending` para o servidor saber que este cliente entende o estado pendente", async () => {
+    let enviado: unknown = null;
+    const apiClient = await import("../../services/apiClient");
+    const original = apiClient.authFetch;
+    (apiClient as { authFetch: unknown }).authFetch = async (_u: string, init?: RequestInit) => {
+      enviado = JSON.parse(String(init?.body));
+      return new Response(JSON.stringify({ success: true }), { status: 200 });
+    };
+    try {
+      await deleteMyAccount({ confirmation: "EXCLUIR" });
+    } finally {
+      (apiClient as { authFetch: unknown }).authFetch = original;
+    }
+    expect(enviado).toMatchObject({ confirmation: "EXCLUIR", acceptsPending: true });
+  });
+
+  it("409 deletion_pending (servidor que prefere não usar 202) também é 'pendente', não erro", async () => {
+    responder(409, { success: false, code: "deletion_pending", status: "pending_cancellation", subscriptionsPending: 2, message: "Estamos encerrando." });
+    await expect(deleteMyAccount(pedido)).resolves.toEqual({ status: "pending_cancellation", message: "Estamos encerrando.", subscriptionsPending: 2 });
+  });
+
   it("senha errada continua sendo o erro de sempre (compatível com o contrato antigo)", async () => {
     responder(401, { success: false, error: "invalid_password" });
     await expect(deleteMyAccount(pedido)).rejects.toThrow("invalid_password");

@@ -51,7 +51,9 @@ export async function deleteMyAccount(input: { confirmation: string; password?: 
   const res = await authFetch(`${API_URL}/user/account`, {
     method: "DELETE",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(input),
+    // `acceptsPending`: este cliente sabe mostrar "encerrando a cobrança, conta mantida". Os apps antigos não
+    // enviam, e por isso o servidor responde 409 a eles (um 2xx os faria sair achando que a conta foi excluída).
+    body: JSON.stringify({ ...input, acceptsPending: true }),
   });
   if (res.status === 202) {
     const payload = await parseJson(res);
@@ -63,6 +65,14 @@ export async function deleteMyAccount(input: { confirmation: string; password?: 
   }
   if (!res.ok) {
     const payload = await parseJson(res);
+    // Defesa: um servidor que responda `deletion_pending` em 409 continua sendo "pendente", não erro.
+    if (res.status === 409 && payload?.code === "deletion_pending") {
+      return {
+        status: payload?.status === "stalled" ? "stalled" : "pending_cancellation",
+        message: String(payload?.message ?? "Estamos encerrando a sua cobrança recorrente. A conta será excluída em seguida."),
+        subscriptionsPending: Number(payload?.subscriptionsPending ?? 0),
+      };
+    }
     if (res.status === 409 && payload?.code) {
       throw new AccountDeletionBlockedError(String(payload.code), String(payload.message ?? payload.error));
     }
