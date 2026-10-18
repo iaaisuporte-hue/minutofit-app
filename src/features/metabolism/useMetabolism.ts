@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { API_URL, parseJson } from '../../services/apiBase';
 import { authFetch } from '../../services/apiClient';
+import { AI_CONSENT_CHANGED_EVENT } from '../../services/aiConsentApi';
 import type { MetabolicData } from './metabolism.types';
 
 interface UseMetabolismResult {
@@ -57,6 +58,12 @@ export function useMetabolism(): UseMetabolismResult {
     const controller = new AbortController();
     void fetchData(controller.signal);
   }, [fetchData]);
+
+  // Autorizar ou revogar a IA muda o que o servidor devolve (a narrativa): relê na hora.
+  useEffect(() => {
+    window.addEventListener(AI_CONSENT_CHANGED_EVENT, refetch);
+    return () => window.removeEventListener(AI_CONSENT_CHANGED_EVENT, refetch);
+  }, [refetch]);
 
   return { data, loading, error, refetch };
 }

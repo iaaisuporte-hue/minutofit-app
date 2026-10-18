@@ -19,6 +19,7 @@ import {
 import "./todayPage.css";
 import { SportProfileSection } from "../../features/sport/components/SportProfileSection";
 import { OwnerAwareAccountDataSection } from "../../features/account/OwnerAwareAccountDataSection";
+import { AiPrivacySection } from "../../features/aiConsent/AiPrivacySection";
 import { ProfileNavList, type ProfileNavSection } from "../../features/profile/ProfileNavList";
 import { Users, BookOpen, Target, TrendingUp, Moon, Sun } from "lucide-react";
 import { isNativeApp } from "../../lib/platform";
@@ -777,6 +778,10 @@ export default function UserProfilePage({ onLogout }: Props) {
 
       <motion.div variants={sectionRevealVariants}>
         <ProfileNavList sections={navSections} />
+      </motion.div>
+
+      <motion.div variants={sectionRevealVariants}>
+        <AiPrivacySection audience="aluno" />
       </motion.div>
 
       <motion.div variants={sectionRevealVariants}>

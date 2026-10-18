@@ -6,6 +6,7 @@ import { ConfirmDialog } from "../../components/ConfirmDialog";
 import { IntakeItemRow, ItemQuantityEditor, displayTitle } from "./IntakeItemRow";
 import { persistedToWorking, planToWorking, sumTotals, type WorkingItem } from "./intakeWorking";
 import { useMealWorkspace } from "./useMealWorkspace";
+import { AiConsentCard } from "../aiConsent/AiConsentCard";
 import {
   parseIntakeText,
   getIntakeShortcuts,
@@ -82,6 +83,8 @@ export function IntakeLogSheet({
   const [customMealType, setCustomMealType] = useState("");
   const [parsing, setParsing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // O servidor sinaliza que a IA ajudaria, mas o titular ainda não autorizou (Spec 039).
+  const [aiConsentNeeded, setAiConsentNeeded] = useState(false);
   const [editUid, setEditUid] = useState<string | null>(null);
   const [confirmRemoveAll, setConfirmRemoveAll] = useState(false);
   const [closeBlocked, setCloseBlocked] = useState(false);
@@ -145,6 +148,7 @@ export function IntakeLogSheet({
     setError(null);
     try {
       const preview = await parseIntakeText(value);
+      setAiConsentNeeded(preview.aiConsentRequired === true);
       const source: IntakeSource = preview.aiUsed ? "parse_ai" : "parse";
       // Alta confiança entra direto (com "Desfazer"); o resto fica em "Falta confirmar" — nunca salva palpite.
       const direct = preview.items.filter((i) => i.resolved && i.confidence === "high");
@@ -383,6 +387,9 @@ export function IntakeLogSheet({
 
           {ws.notice && <div role="alert" style={{ fontSize: 12, color: "var(--color-danger)" }}>{ws.notice}</div>}
           {error && <div role="alert" style={{ fontSize: 12, color: "var(--color-danger)" }}>{error}</div>}
+          {aiConsentNeeded && (
+            <AiConsentCard finalidade="o texto da refeição que você digita" onGranted={() => setAiConsentNeeded(false)} />
+          )}
         </div>
 
         {/* Rodapé fixo acima do teclado: campo + Adicionar + Pronto. Some enquanto a quantidade de um item está sendo

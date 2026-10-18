@@ -37,6 +37,11 @@ export interface MetabolicData {
    * por usuário no backend. `null` quando OPENAI indisponível ou rate-limited.
    */
   interpretation?: { hint: string; action: string } | null;
+  /**
+   * `true` quando a IA está disponível mas o titular ainda não autorizou o tratamento por IA de
+   * terceiros (Spec 039). A tela oferece a autorização; o restante do score funciona igual.
+   */
+  aiConsentRequired?: boolean;
 }
 
 export interface MetabolicHistoryPoint {

@@ -52,6 +52,10 @@ export async function generateWorkoutWithAi(
       data?.error || "A IA demorou demais para responder. Tente um prompt mais curto ou tente novamente."
     );
   }
+  if (response.status === 403 && data?.code === "AI_CONSENT_REQUIRED") {
+    // O pedido é texto do próprio personal: ele precisa ter autorizado a IA (Spec 039).
+    throw new Error("Autorize o uso de IA em Privacidade (no seu perfil) para gerar fichas com IA.");
+  }
   if (!response.ok) {
     throw new Error(data?.error || "Não foi possível gerar a ficha.");
   }

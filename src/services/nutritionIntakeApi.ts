@@ -175,6 +175,12 @@ export interface ParsedPreview {
   needsConfirmation: boolean;
   /** `true` quando a IA (não o parser determinístico) interpretou o texto — usado só para escolher `source:'parse_ai'` no POST. */
   aiUsed: boolean;
+  /**
+   * `true` quando a interpretação por IA está ativa para o usuário e o parser não resolveu tudo,
+   * mas ele ainda não autorizou o tratamento por IA de terceiros (Spec 039). O resultado
+   * determinístico segue valendo; a tela oferece a autorização uma vez.
+   */
+  aiConsentRequired?: boolean;
 }
 
 export async function parseIntakeText(text: string): Promise<ParsedPreview> {

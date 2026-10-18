@@ -101,6 +101,13 @@ export function ContextTab({ patientId }: { patientId: number }) {
               </div>
             )}
 
+            {/* Sem a autorização do paciente (Spec 039) a leitura por IA não é gerada — o nutri precisa saber por quê. */}
+            {m.aiConsentRequired && (
+              <div className="muted" style={{ fontSize: "var(--text-xs)", lineHeight: 1.5 }}>
+                A leitura em texto por IA não está disponível: o paciente ainda não autorizou o uso de IA com os dados dele.
+              </div>
+            )}
+
             {/* Interpretação IA */}
             {m.interpretation?.hint && (
               <div className="muted" style={{ fontSize: "var(--text-xs)", fontStyle: "italic", lineHeight: 1.5 }}>

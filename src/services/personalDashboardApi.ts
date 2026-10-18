@@ -352,6 +352,8 @@ export async function fetchStudentAiSummary(studentId: string): Promise<StudentA
   const data = await parseJson(response);
   if (!response.ok) {
     const err: Error & { code?: string } = new Error(data?.error || "Não foi possível gerar o resumo IA.");
+    // O titular dos dados é o ALUNO: sem a autorização dele a IA não roda (Spec 039).
+    if (response.status === 403 && data?.code === "AI_CONSENT_REQUIRED") err.code = "STUDENT_AI_CONSENT_REQUIRED";
     if (response.status === 429) err.code = "RATE_LIMITED";
     if (response.status === 503) err.code = "AI_UNAVAILABLE";
     throw err;

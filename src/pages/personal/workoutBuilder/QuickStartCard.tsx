@@ -2,6 +2,8 @@ import React, { useMemo, useState } from "react";
 import { WB } from "./workoutBuilderTheme";
 import { WbButton } from "./WorkoutBuilderUi";
 import type { ProtocolSuggestion } from "../../../services/workoutProtocolsApi";
+import { AiConsentCard } from "../../../features/aiConsent/AiConsentCard";
+import { useAiConsent } from "../../../features/aiConsent/useAiConsent";
 
 type Props = {
   protocolSuggestions: ProtocolSuggestion[];
@@ -26,6 +28,9 @@ export function QuickStartCard({
 }: Props) {
   const [activeTab, setActiveTab] = useState<"ai" | "protocols">("ai");
   const [aiPrompt, setAiPrompt] = useState("");
+  // Gerar ficha envia o TEXTO do personal a um provedor de IA: ele precisa ter autorizado (Spec 039).
+  // `null` (ainda carregando/erro) não libera nada — o servidor também barra.
+  const { granted: aiAllowed } = useAiConsent();
 
   const inputS: React.CSSProperties = {
     minHeight: "var(--tap-h-sm)",
@@ -138,9 +143,16 @@ export function QuickStartCard({
               </div>
             ) : null}
 
+            {!aiAllowed && (
+              <AiConsentCard finalidade="o texto que você escrever no pedido da ficha" dismissible={false} />
+            )}
+            <div style={{ fontSize: 11, color: WB.muted, lineHeight: 1.4 }}>
+              Não inclua nome nem dados pessoais de alunos no pedido.
+            </div>
+
             <WbButton
               variant="primary"
-              disabled={!aiPrompt.trim() || aiLoading}
+              disabled={!aiPrompt.trim() || aiLoading || !aiAllowed}
               onClick={() => {
                 onGenerate(aiPrompt);
                 setAiPrompt("");

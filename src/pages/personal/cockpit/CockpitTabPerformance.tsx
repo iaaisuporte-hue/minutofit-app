@@ -105,6 +105,8 @@ export function CockpitTabPerformance({ studentId }: { studentId: string }) {
   const [loading, setLoading] = useState(true);
   const [summary, setSummary] = useState<PerformanceAiSummary | null>(null);
   const [summaryState, setSummaryState] = useState<"idle" | "loading" | "blocked">("idle");
+  // O resumo veio do texto determinístico porque o ALUNO não autorizou IA com os dados dele (Spec 039).
+  const [studentNoAi, setStudentNoAi] = useState(false);
 
   const load = useCallback(
     async (signal?: AbortSignal) => {
@@ -135,6 +137,7 @@ export function CockpitTabPerformance({ studentId }: { studentId: string }) {
     postPerformanceEvent("personal.performance_ai_summary_requested", {});
     try {
       const res = await requestPerformanceInsight(studentId);
+      setStudentNoAi(res.aiConsentRequired === "student");
       setSummary(res);
       setSummaryState("idle");
       postPerformanceEvent("personal.performance_ai_summary_shown", { source: res.source });
@@ -286,7 +289,9 @@ export function CockpitTabPerformance({ studentId }: { studentId: string }) {
             <p className="ppf-muted ppf-disclaimer">
               {summary.source === "ai"
                 ? summary.disclaimer
-                : "Resumo montado a partir dos próprios dados, sem IA."}
+                : studentNoAi
+                  ? "Resumo montado a partir dos próprios dados, sem IA: o aluno ainda não autorizou o uso de IA com os dados dele (Perfil › Privacidade)."
+                  : "Resumo montado a partir dos próprios dados, sem IA."}
             </p>
           </div>
         ) : summaryState === "blocked" ? (

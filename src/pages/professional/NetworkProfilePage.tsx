@@ -12,6 +12,7 @@ import {
 import OfferingsSection from "./OfferingsSection";
 import SubscribersSection from "./SubscribersSection";
 import { OwnerAwareAccountDataSection } from "../../features/account/OwnerAwareAccountDataSection";
+import { AiPrivacySection } from "../../features/aiConsent/AiPrivacySection";
 import { PlanSection } from "../../features/personalPlan/PlanSection";
 import { useAuth } from "../../auth/AuthContext";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
@@ -584,6 +585,10 @@ export default function NetworkProfilePage() {
         não teria como se autoexcluir — o que Apple 5.1.1(v) e a política de
         exclusão de dados do Google Play cobram de qualquer conta, não só do aluno.
       */}
+      <div style={{ marginTop: 24 }}>
+        <AiPrivacySection audience="profissional" />
+      </div>
+
       <div style={{ marginTop: 24 }}>
         <OwnerAwareAccountDataSection onDeleted={logout} />
       </div>

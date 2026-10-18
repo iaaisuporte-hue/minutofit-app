@@ -16,15 +16,23 @@ export function CockpitTabAiSummary({ studentId }: Props) {
   const [result, setResult] = useState<StudentAiSummaryResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // O aluno não autorizou IA com os dados dele: não é falha, é uma escolha dele — a tela diz isso.
+  const [studentBlocked, setStudentBlocked] = useState(false);
 
   async function generate() {
     setLoading(true);
     setError(null);
+    setStudentBlocked(false);
     try {
       const data = await fetchStudentAiSummary(studentId);
       setResult(data);
     } catch (e: any) {
-      setError(e.message || "Não foi possível gerar o resumo.");
+      if (e?.code === "STUDENT_AI_CONSENT_REQUIRED") {
+        setStudentBlocked(true);
+        setResult(null);
+      } else {
+        setError(e.message || "Não foi possível gerar o resumo.");
+      }
     } finally {
       setLoading(false);
     }
@@ -66,7 +74,24 @@ export function CockpitTabAiSummary({ studentId }: Props) {
         </button>
       </div>
 
-      {!result && !loading && !error ? (
+      {studentBlocked ? (
+        <div
+          role="status"
+          style={{
+            padding: "14px 16px",
+            border: "1px solid var(--color-border)",
+            borderRadius: 10,
+            fontSize: 13,
+            lineHeight: 1.55,
+            color: "var(--color-text-secondary)",
+          }}
+        >
+          Este aluno ainda não autorizou o uso de IA com os dados dele, então o resumo não pode ser gerado.
+          Ele pode ativar em Perfil › Privacidade. Todo o restante da ficha dele continua disponível.
+        </div>
+      ) : null}
+
+      {!result && !loading && !error && !studentBlocked ? (
         <div
           style={{
             padding: "24px 16px",

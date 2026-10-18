@@ -410,6 +410,8 @@ export interface PatientMetabolism {
   trend7d?: { delta: number; direction: 'up' | 'down' | 'stable' };
   factors?: Array<{ name: string; impact: number }>;
   interpretation?: { hint: string; action: string } | null;
+  /** O paciente ainda não autorizou o tratamento por IA de terceiros (Spec 039): sem leitura em texto. */
+  aiConsentRequired?: boolean;
 }
 
 export interface PatientDailyCheckin {

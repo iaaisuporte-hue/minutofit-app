@@ -115,7 +115,9 @@ export async function fetchStudentPerformance(
  * O corpo é vazio de propósito: o servidor recomputa o snapshot. Mandar os fatos
  * daqui permitiria pedir um resumo sobre números escritos pelo cliente.
  */
-export async function requestPerformanceInsight(studentId: string): Promise<PerformanceAiSummary> {
+export async function requestPerformanceInsight(
+  studentId: string,
+): Promise<PerformanceAiSummary & { aiConsentRequired?: "student" }> {
   const res = await authFetch(`${API_URL}/personal/students/${studentId}/performance/insight`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -125,5 +127,6 @@ export async function requestPerformanceInsight(studentId: string): Promise<Perf
   if (!res.ok) {
     throw new PerformanceAccessError(data?.code ?? "UNKNOWN", data?.error ?? "Não foi possível gerar o resumo.");
   }
-  return data.data as PerformanceAiSummary;
+  // Sem a autorização do aluno (Spec 039) o servidor devolve o texto montado dos números e avisa por quê.
+  return { ...(data.data as PerformanceAiSummary), ...(data.aiConsentRequired === "student" ? { aiConsentRequired: "student" as const } : {}) };
 }

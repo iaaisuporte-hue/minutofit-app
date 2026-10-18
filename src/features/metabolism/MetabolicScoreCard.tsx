@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { X } from 'lucide-react';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import { InfoHint } from '../../components/InfoHint';
+import { AiConsentCard } from '../aiConsent/AiConsentCard';
 import type { MetabolicData, MetabolicFactor, MetabolicTrend } from './metabolism.types';
 import type { DerivedEnergyStatus, MetabolicForecast } from './metabolismDerivations';
 import { computeMetabolicTrends } from '../metabolicCheckin/computeMetabolicTrends';
@@ -228,6 +229,11 @@ export function MetabolicScoreCard({ data, loading, error, derivedStatus, foreca
               </div>
             )}
           </div>
+
+          {/* Narrativa por IA depende da autorização do titular (Spec 039) — o score funciona sem ela. */}
+          {data.aiConsentRequired && (
+            <AiConsentCard finalidade="o seu score metabólico e os fatores do dia" />
+          )}
 
           {/* Forecast humanizado (1 linha) */}
           {forecast && (
