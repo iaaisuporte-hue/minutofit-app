@@ -18,6 +18,7 @@ import {
 } from "./todayPageMotion";
 import "./todayPage.css";
 import { SportProfileSection } from "../../features/sport/components/SportProfileSection";
+import { StudentNutritionGoalsSection } from "../../features/nutrition/goals/StudentNutritionGoalsSection";
 import { AccountDataSection } from "../../features/account/AccountDataSection";
 import { ProfileNavList, type ProfileNavSection } from "../../features/profile/ProfileNavList";
 import { Users, BookOpen, Target, TrendingUp, Moon, Sun } from "lucide-react";
@@ -676,6 +677,13 @@ export default function UserProfilePage({ onLogout }: Props) {
           </div>
         </Card>
       </motion.div>
+
+      {/* Metas diárias prescritas pelo nutri (Spec 039) — logo após peso/altura. */}
+      {user?.role === "user" && (
+        <motion.div variants={sectionRevealVariants}>
+          <StudentNutritionGoalsSection hasNutri={Boolean(proContext?.nutri)} canLogMeals={hasFeature("nutrition_intake")} />
+        </motion.div>
+      )}
 
       {user?.role === "user" && (
         <motion.div variants={sectionRevealVariants}>

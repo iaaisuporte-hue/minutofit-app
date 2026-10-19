@@ -92,7 +92,8 @@ export function IntakeSection({ patientId }: { patientId: number }) {
   }
 
   const { summary, days } = data;
-  const isPlanTarget = summary.target?.source === "plan_items";
+  const targetSource = summary.target?.source;
+  const isPlanTarget = targetSource === "plan_items" || targetSource === "nutri_goal";
 
   return (
     <div className="card cardPad">
@@ -103,7 +104,7 @@ export function IntakeSection({ patientId }: { patientId: number }) {
         {summary.target && (
           <span className={`badge ${isPlanTarget ? "badge-brand" : "badge-neutral"}`} style={{ display: "inline-flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
             {isPlanTarget ? <ClipboardList size={11} /> : <Calculator size={11} />}
-            {isPlanTarget ? "Meta do plano" : "Estimativa do paciente"}
+            {targetSource === "nutri_goal" ? "Meta prescrita" : isPlanTarget ? "Meta do plano" : "Estimativa do paciente"}
           </span>
         )}
       </div>
@@ -115,9 +116,9 @@ export function IntakeSection({ patientId }: { patientId: number }) {
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(110px, 1fr))", gap: "var(--space-2)", marginBottom: "var(--space-3)" }}>
           <Tile label="Calorias (média)" value={summary.avgKcal7d} target={summary.target?.kcal} unit="kcal" />
-          <Tile label="Proteína (média)" value={summary.avgProteinG7d} target={summary.target?.p} unit="g" />
-          <Tile label="Carboidrato (média)" value={summary.avgCarbG7d} target={summary.target?.c} unit="g" />
-          <Tile label="Gordura (média)" value={summary.avgFatG7d} target={summary.target?.f} unit="g" />
+          <Tile label="Proteína (média)" value={summary.avgProteinG7d} target={summary.target?.p ?? undefined} unit="g" />
+          <Tile label="Carboidrato (média)" value={summary.avgCarbG7d} target={summary.target?.c ?? undefined} unit="g" />
+          <Tile label="Gordura (média)" value={summary.avgFatG7d} target={summary.target?.f ?? undefined} unit="g" />
         </div>
       )}
 

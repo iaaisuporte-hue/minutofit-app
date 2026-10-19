@@ -19,6 +19,7 @@ import {
   NutriApiError,
 } from "../../../services/nutriApi";
 import { ConsentRevokedNotice, formatDate } from "./shared";
+import { PatientNutritionGoalsSection } from "../../../features/nutrition/goals/PatientNutritionGoalsSection";
 
 type ResumoData = {
   plan: NutritionPlan | null;
@@ -76,7 +77,9 @@ export function ResumoTab({ patientId, onNavigateTab }: { patientId: number; onN
 
   const { plan, adherence, criticalItems, topInsight, intake } = data;
   const showIntake = intake && intake.state !== "none";
-  const isPlanTarget = intake?.target?.source === "plan_items";
+  // Spec 039: meta prescrita (nutri) e meta do plano são ambas "do profissional".
+  const targetSource = intake?.target?.source;
+  const isPlanTarget = targetSource === "plan_items" || targetSource === "nutri_goal";
   const TrendIcon = adherence?.trend ? TREND_ICON[adherence.trend] : null;
 
   async function handleSaveObservation() {
@@ -123,6 +126,9 @@ export function ResumoTab({ patientId, onNavigateTab }: { patientId: number; onN
         {obsSaved && <div className="muted" style={{ fontSize: "var(--text-xs)", marginTop: "var(--space-2)", color: COLORS.successText }}>Observação salva.</div>}
       </div>
 
+      {/* Metas diárias (Spec 039) — mesma linha que o aluno vê no perfil. */}
+      <PatientNutritionGoalsSection patientId={patientId} />
+
       {/* Estado atual */}
       <div className="card cardPad">
         <div className="muted" style={{ fontSize: "var(--text-xs)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "var(--space-3)" }}>
@@ -161,7 +167,7 @@ export function ResumoTab({ patientId, onNavigateTab }: { patientId: number; onN
               {intake?.target && (
                 <span className={`badge ${isPlanTarget ? "badge-brand" : "badge-neutral"}`} style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10 }}>
                   {isPlanTarget ? <ClipboardList size={10} /> : <Calculator size={10} />}
-                  {isPlanTarget ? "Meta do plano" : "Estimativa do paciente"}
+                  {targetSource === "nutri_goal" ? "Meta prescrita" : isPlanTarget ? "Meta do plano" : "Estimativa do paciente"}
                 </span>
               )}
             </div>

@@ -283,7 +283,8 @@ export interface PatientIntakeSummary {
   avgProteinG7d: number | null;
   avgCarbG7d: number | null;
   avgFatG7d: number | null;
-  target: { kcal: number; p: number; c: number; f: number; source: 'plan_items' | 'self_estimate' } | null;
+  /** Spec 039: P/C/G são `null` quando nenhuma fonte tem o nutriente (nunca 0). */
+  target: { kcal: number; p: number | null; c: number | null; f: number | null; source: 'nutri_goal' | 'plan_items' | 'self_estimate' } | null;
   kcalTrend: IntakeTrend;
   exception: { type: IntakeExceptionType; detail: string } | null;
 }

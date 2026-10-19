@@ -30,7 +30,8 @@ async function readJson(res: Response): Promise<any> {
 
 export type NutritionObjective = 'weight_loss' | 'maintenance' | 'muscle_gain';
 export type ActivityLevel = 'low' | 'moderate' | 'high';
-export type NutritionTargetSource = 'plan_items' | 'self_estimate';
+/** Fonte da KCAL (Spec 039: a meta do nutri vence por nutriente sobre plano e estimativa). */
+export type NutritionTargetSource = 'nutri_goal' | 'plan_items' | 'self_estimate';
 
 export interface MealSplit {
   energyKcal: number;
@@ -52,11 +53,14 @@ export interface EstimatedTarget {
 
 export interface ResolvedNutritionTarget {
   energyKcal: number;
-  proteinG: number;
-  carbohydrateG: number;
-  fatG: number;
+  /** `null` só quando nenhuma fonte tem o nutriente — nunca "meta 0". */
+  proteinG: number | null;
+  carbohydrateG: number | null;
+  fatG: number | null;
   mealsPerDay: number;
   source: NutritionTargetSource;
+  /** Presente quando a proteína veio da meta do nutri; `proteinG` é o mínimo. Opcional por compat. de deploy. */
+  proteinRange?: { minG: number; maxG: number | null } | null;
 }
 
 export interface NutritionTargetResponse {

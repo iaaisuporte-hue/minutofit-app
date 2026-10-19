@@ -507,6 +507,219 @@ html[data-color-mode="daltonic"] .navLinkActive {
   }
 }
 
+/* ── Metas diárias (Spec 039) — mesmo painel no perfil do aluno e no Resumo
+   do paciente. Grade 2×2 fixa: os 4 indicadores nunca pedem rolagem
+   horizontal; o valor encolhe com a viewport (clamp) em vez de cortar. ── */
+.nutritionGoals__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+.nutritionGoals__title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  font-size: var(--text-base);
+  font-weight: var(--font-bold);
+  color: var(--color-text);
+}
+.nutritionGoals__title svg {
+  color: var(--color-primary);
+  flex-shrink: 0;
+}
+.nutritionGoals__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.nutritionGoals__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+.nutritionGoals__cell {
+  min-width: 0;
+  padding: var(--space-3);
+}
+.nutritionGoals__cell:nth-child(odd) {
+  border-right: 1px solid var(--color-border);
+}
+.nutritionGoals__cell:nth-child(-n + 2) {
+  border-bottom: 1px solid var(--color-border);
+}
+.nutritionGoals__label {
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-muted);
+}
+.nutritionGoals__value {
+  margin: 4px 0 0;
+  font-size: clamp(var(--text-lg), 5.6vw, var(--text-2xl));
+  font-weight: var(--font-bold);
+  line-height: 1.15;
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.nutritionGoals__unit {
+  margin-left: 3px;
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-muted);
+}
+.nutritionGoals__value--empty {
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-muted);
+}
+.nutritionGoals__note {
+  display: flex;
+  gap: var(--space-2);
+  margin: var(--space-3) 0 0;
+  font-size: var(--text-sm);
+  line-height: 1.45;
+  color: var(--color-text-muted);
+}
+.nutritionGoals__note svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.nutritionGoals__meta {
+  display: block;
+  margin-top: 2px;
+  font-size: var(--text-xs);
+  color: var(--color-text-subtle);
+}
+.nutritionGoals__message {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+.nutritionGoals__actions {
+  display: grid;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}
+.nutritionGoals__action {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  min-height: 56px;
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-raised);
+  color: var(--color-text);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--transition-base);
+}
+.nutritionGoals__action:hover,
+.nutritionGoals__action:focus-visible {
+  border-color: var(--color-primary);
+}
+.nutritionGoals__actionIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}
+.nutritionGoals__actionText {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+.nutritionGoals__actionTitle {
+  font-size: var(--text-sm);
+  font-weight: var(--font-bold);
+}
+.nutritionGoals__actionSubtitle {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+.nutritionGoals__actionChevron {
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+}
+
+/* Editor do nutri ("Ajustar metas") — vive dentro do DrawerShell (bottom
+   sheet no mobile). Rodapé no fluxo, no fim do formulário: `sticky` aqui se
+   ancora na borda de CONTEÚDO do sheet, e o padding inferior do shell no
+   mobile (88px) deixava o botão flutuando com campos visíveis abaixo dele. */
+.nutritionGoalsEditor {
+  display: grid;
+  gap: var(--space-4);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.nutritionGoalsEditor__title {
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: var(--font-bold);
+  color: var(--color-text);
+}
+.nutritionGoalsEditor__hint {
+  margin: var(--space-1) 0 0;
+  font-size: var(--text-sm);
+}
+.nutritionGoalsEditor__range {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.nutritionGoalsEditor__pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+.nutritionGoalsEditor__pair .label {
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-muted);
+}
+.nutritionGoalsEditor__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.nutritionGoalsEditor__noteFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+.nutritionGoalsEditor__noteFooter .field-hint {
+  margin-left: auto;
+}
+.nutritionGoalsEditor__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border);
+}
+
 /* ── Collapse panel — progressive disclosure genérica (UX_UI_NUTRITION_PREMIUM_REDESIGN.md §4) ── */
 .collapsePanel {
   overflow: hidden;

@@ -357,4 +357,64 @@ describe("NutritionDaySummary", () => {
       expect(screen.queryByText("Fora do plano")).not.toBeInTheDocument();
     });
   });
+
+  // Spec 039 — meta prescrita pelo nutri vence por nutriente; consumo segue
+  // vindo só dos registros. Carb/gordura do plano preservados.
+  describe("meta prescrita pelo nutri", () => {
+    const NUTRI_TARGET = {
+      energyKcal: 2300, proteinG: 150, carbohydrateG: 210, fatG: 70, mealsPerDay: 4,
+      source: "nutri_goal", proteinRange: { minG: 150, maxG: 170 },
+    };
+
+    it("selo 'Meta do seu nutricionista', sem ≈, proteína contra o mínimo com a faixa indicada", async () => {
+      getDayIntake.mockResolvedValue({
+        date: "2026-09-17",
+        logs: [BASE_LOG],
+        meals: [toMeal(BASE_LOG)],
+        totals: { energyKcal: 500, proteinG: 40, carbohydrateG: 50, fatG: 15, fiberG: 5, fiberPartial: false },
+        coverage: { loggedMeals: 1, expectedMeals: 4, coverageRatio: 0.25, confidence: 1, level: "low" },
+        target: NUTRI_TARGET,
+        plannedMeals: [{ mealId: 1, name: "Almoço", orderIndex: 0, energyKcal: 1500 }],
+      });
+      render(<NutritionDaySummary />);
+
+      expect(await screen.findByText("Meta do seu nutricionista")).toBeInTheDocument();
+      // Texto exato: com prefixo "≈ " (estimativa) não casaria.
+      expect(screen.getByText("500 / 2300 kcal")).toBeInTheDocument();
+      expect(screen.getByText("40 / 150 g")).toBeInTheDocument();
+      expect(screen.getByText("Faixa recomendada: 150–170 g")).toBeInTheDocument();
+      expect(screen.getByText("50 / 210 g")).toBeInTheDocument();
+    });
+
+    it("meta só com calorias: macros sem meta mostram só o registrado (nunca '/0')", async () => {
+      getDayIntake.mockResolvedValue({
+        date: "2026-09-17",
+        logs: [BASE_LOG],
+        meals: [toMeal(BASE_LOG)],
+        totals: { energyKcal: 500, proteinG: 40, carbohydrateG: 50, fatG: 15, fiberG: 5, fiberPartial: false },
+        coverage: { loggedMeals: 1, expectedMeals: 3, coverageRatio: 0.33, confidence: 1, level: "low" },
+        target: { energyKcal: 2000, proteinG: null, carbohydrateG: null, fatG: null, mealsPerDay: 3, source: "nutri_goal", proteinRange: null },
+        plannedMeals: [],
+      });
+      render(<NutritionDaySummary />);
+
+      expect(await screen.findByText("500 / 2000 kcal")).toBeInTheDocument();
+      expect(screen.queryByText(/\/ 0 g/)).not.toBeInTheDocument();
+    });
+  });
+
+  it("openSheetOnMount (atalho do perfil) abre o sheet de registro já existente", async () => {
+    getDayIntake.mockResolvedValue({
+      date: "2026-09-17",
+      logs: [],
+      meals: [],
+      totals: { energyKcal: 0, proteinG: 0, carbohydrateG: 0, fatG: 0, fiberG: null, fiberPartial: false },
+      coverage: { loggedMeals: 0, expectedMeals: 3, coverageRatio: 0, confidence: 0, level: "none" },
+      target: null,
+      plannedMeals: [],
+    });
+    render(<NutritionDaySummary openSheetOnMount />);
+    // Mesmo fluxo do CTA do diário (refeição extra / registro incremental).
+    expect(await screen.findByRole("dialog", { name: "Registrar alimento" })).toBeInTheDocument();
+  });
 });

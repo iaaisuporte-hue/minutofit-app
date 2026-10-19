@@ -76,12 +76,12 @@ function WeightStepper({ value, onChange }: { value: number; onChange: (next: nu
   );
 }
 
-function MacroRow({ label, value, unit }: { label: string; value: number; unit: string }) {
+function MacroRow({ label, value, unit }: { label: string; value: number | null; unit: string }) {
   return (
     <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
       <span style={{ color: COLORS.muted }}>{label}</span>
       <span style={{ fontWeight: 700, color: COLORS.text, fontVariantNumeric: "tabular-nums" }}>
-        {value} {unit}
+        {value == null ? "—" : `${value} ${unit}`}
       </span>
     </div>
   );
@@ -176,7 +176,10 @@ export default function NutritionTargetCard() {
 
   if (!loaded) return null;
 
-  const isPlanTarget = resolved?.source === "plan_items";
+  // Spec 039: meta prescrita pelo nutri usa o mesmo bloco da meta do plano.
+  const isPlanTarget = resolved?.source === "plan_items" || resolved?.source === "nutri_goal";
+  const isNutriGoal = resolved?.source === "nutri_goal";
+  const proteinRange = resolved?.proteinRange ?? null;
   const hasSavedSelfEstimate = resolved?.source === "self_estimate";
   const objectiveLabel = OBJECTIVE_CHIPS.find((c) => c.value === objective)?.label ?? objective;
   const activityLabel = ACTIVITY_CHIPS.find((c) => c.value === activity)?.label ?? activity;
@@ -190,7 +193,7 @@ export default function NutritionTargetCard() {
         <>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
             <span className="badge badge-brand" style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-              <ClipboardList size={13} /> Meta do plano
+              <ClipboardList size={13} /> {isNutriGoal ? "Meta do nutricionista" : "Meta do plano"}
             </span>
           </div>
           <div style={{ fontSize: 12, color: COLORS.muted, marginBottom: 10 }}>
@@ -198,7 +201,16 @@ export default function NutritionTargetCard() {
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             <MacroRow label="Calorias" value={resolved!.energyKcal} unit="kcal" />
-            <MacroRow label="Proteína" value={resolved!.proteinG} unit="g" />
+            {proteinRange?.maxG != null ? (
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
+                <span style={{ color: COLORS.muted }}>Proteína</span>
+                <span style={{ fontWeight: 700, color: COLORS.text, fontVariantNumeric: "tabular-nums" }}>
+                  {proteinRange.minG}–{proteinRange.maxG} g
+                </span>
+              </div>
+            ) : (
+              <MacroRow label="Proteína" value={resolved!.proteinG} unit="g" />
+            )}
             <MacroRow label="Carboidrato" value={resolved!.carbohydrateG} unit="g" />
             <MacroRow label="Gordura" value={resolved!.fatG} unit="g" />
           </div>

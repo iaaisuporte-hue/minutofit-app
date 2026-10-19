@@ -21,7 +21,14 @@ import { getDayIntake, type DayIntakeResponse, type NutritionIntakeMeal } from "
  * acumulado e uma frase factual. Nunca julga ("bom"/"ruim"), nunca inventa
  * meta, nunca trata "13h" como "dia falhou".
  */
-export function NutritionDaySummary({ refreshToken = 0 }: { refreshToken?: number }) {
+export function NutritionDaySummary({
+  refreshToken = 0,
+  openSheetOnMount = false,
+}: {
+  refreshToken?: number;
+  /** Spec 039 — atalho "Registrar refeição" do perfil abre este sheet (modo extra) direto. */
+  openSheetOnMount?: boolean;
+}) {
   const [data, setData] = useState<DayIntakeResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -32,7 +39,7 @@ export function NutritionDaySummary({ refreshToken = 0 }: { refreshToken?: numbe
   // abre em modo edição; ausente = modo criação (refeição extra, §7-§10).
   const [detailMeal, setDetailMeal] = useState<NutritionIntakeMeal | null>(null);
   const [editingMeal, setEditingMeal] = useState<NutritionIntakeMeal | null>(null);
-  const [sheetOpen, setSheetOpen] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(openSheetOnMount);
   const [yesterdayOpen, setYesterdayOpen] = useState(false);
 
   // Já com dados na tela, recarregar é SILENCIOSO (nada de skeleton): o registro incremental atualiza o dia a cada
@@ -79,7 +86,9 @@ export function NutritionDaySummary({ refreshToken = 0 }: { refreshToken?: numbe
   const plannedMeals = data.plannedMeals ?? [];
   const meals = data.meals ?? [];
   const hasMeals = meals.length > 0;
-  const isPlanTarget = target?.source === "plan_items";
+  // Spec 039: meta do nutri e meta do plano são ambas prescrição (sem "≈").
+  const isPlanTarget = target?.source === "plan_items" || target?.source === "nutri_goal";
+  const proteinRange = target?.proteinRange ?? null;
   const hasPlan = dayHasPlan(data);
   // Divisão informativa (não é adesão): o que veio das refeições do plano e o que foi registrado fora dele.
   const planKcal = meals.filter((m) => !m.isExtra).reduce((sum, m) => sum + m.energyKcal, 0);
@@ -98,7 +107,13 @@ export function NutritionDaySummary({ refreshToken = 0 }: { refreshToken?: numbe
 
         {target && (
           <div className="nutritionHeroGrid__macros" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            <MacroBar label="Proteína" value={totals.proteinG} target={target.proteinG ?? null} unit="g" />
+            <MacroBar
+              label="Proteína"
+              value={totals.proteinG}
+              target={target.proteinG ?? null}
+              unit="g"
+              hint={proteinRange?.maxG != null ? `Faixa recomendada: ${Math.round(proteinRange.minG)}–${Math.round(proteinRange.maxG)} g` : undefined}
+            />
             <MacroBar label="Carboidratos" value={totals.carbohydrateG} target={target.carbohydrateG ?? null} unit="g" />
             <MacroBar label="Gorduras" value={totals.fatG} target={target.fatG ?? null} unit="g" />
             <FiberRow fiberG={totals.fiberG ?? null} fiberPartial={Boolean(totals.fiberPartial)} />
@@ -286,7 +301,7 @@ function EnergyProgress({
           style={{ display: "inline-flex", alignItems: "center", gap: 4 }}
         >
           {isPlanTarget ? <ClipboardList size={11} /> : <Calculator size={11} />}
-          {isPlanTarget ? "Meta do seu plano" : "Estimativa diária"}
+          {target.source === "nutri_goal" ? "Meta do seu nutricionista" : isPlanTarget ? "Meta do seu plano" : "Estimativa diária"}
         </span>
       </div>
       <div style={{ fontSize: "var(--text-4xl)", fontWeight: 800, color: COLORS.text, lineHeight: 1.1 }}>
@@ -308,7 +323,7 @@ function EnergyProgress({
 // Macros
 // ---------------------------------------------------------------------------
 
-function MacroBar({ label, value, target, unit }: { label: string; value: number; target: number | null; unit: string }) {
+function MacroBar({ label, value, target, unit, hint }: { label: string; value: number; target: number | null; unit: string; hint?: string }) {
   if (target == null) return <AbsoluteRow label={label} value={value} unit={unit} />;
   const pct = target > 0 ? Math.round((value / target) * 100) : 0;
   const barPct = Math.min(100, Math.max(0, pct));
@@ -325,6 +340,7 @@ function MacroBar({ label, value, target, unit }: { label: string; value: number
       <div className="progressTrack">
         <div className="progressFill" style={{ width: `${barPct}%`, background: "var(--color-border-strong)" }} />
       </div>
+      {hint && <div className="muted" style={{ fontSize: "var(--text-xs)", marginTop: 4 }}>{hint}</div>}
     </div>
   );
 }

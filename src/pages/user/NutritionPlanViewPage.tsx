@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { COLORS } from "../../styles/colors";
 import { usePushSubscription } from "../../features/nutrition/usePushSubscription";
 import DietaryProfileCard from "../../features/nutrition/DietaryProfileCard";
@@ -725,6 +726,18 @@ function MealCard({
 export default function NutritionPlanViewPage() {
   usePushSubscription();
   const { hasFeature } = useFeatureFlags();
+  const location = useLocation();
+  const navigate = useNavigate();
+  // Spec 039: atalho "Registrar refeição" do perfil chega com
+  // `state.openIntakeSheet` e abre o MESMO sheet do diário. Lido uma vez e
+  // limpo do histórico — F5/voltar não reabre o sheet.
+  const [openIntakeOnMount] = useState(
+    () => (location.state as { openIntakeSheet?: boolean } | null)?.openIntakeSheet === true,
+  );
+  useEffect(() => {
+    if (openIntakeOnMount) navigate(location.pathname, { replace: true, state: null });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const [timeline, setTimeline] = useState<MealTimeline | null | undefined>(
     undefined
@@ -803,7 +816,7 @@ export default function NutritionPlanViewPage() {
     const intakeEnabled = hasFeature("nutrition_intake");
     return (
       <div className="pageBottomSafe" style={{ maxWidth: 560, margin: "0 auto", paddingTop: 16 }}>
-        {intakeEnabled && <NutritionDaySummary />}
+        {intakeEnabled && <NutritionDaySummary openSheetOnMount={openIntakeOnMount} />}
         {/* A meta diária vale como estimativa própria enquanto não há plano. */}
         {intakeEnabled && <NutritionTargetCard />}
         <div style={{ textAlign: "center", marginTop: intakeEnabled ? 20 : 24 }}>
@@ -931,7 +944,7 @@ export default function NutritionPlanViewPage() {
           estado atual e progresso vêm antes de configuração e planejamento
           (UX_UI_NUTRITION_PREMIUM_REDESIGN.md §2/§6). Visão do aluno apenas;
           nada aqui alimenta o lado do nutri (isso é P1C). */}
-      {hasFeature("nutrition_intake") && <NutritionDaySummary refreshToken={dayRefreshToken} />}
+      {hasFeature("nutrition_intake") && <NutritionDaySummary refreshToken={dayRefreshToken} openSheetOnMount={openIntakeOnMount} />}
 
       <div className="nutritionPageGrid">
         {/* Coluna principal: refeições de hoje (próxima refeição já é

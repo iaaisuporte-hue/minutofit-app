@@ -5,6 +5,7 @@
  * registrar refeição nem ver os totais do dia.
  */
 import { render, screen } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const fetchMealTimeline = vi.fn();
@@ -45,7 +46,7 @@ describe("NutritionPlanViewPage — sem plano alimentar ativo", () => {
   });
 
   it("monta os totais do dia e a meta própria, com o contexto de plano ausente", async () => {
-    render(<NutritionPlanViewPage />);
+    render(<MemoryRouter><NutritionPlanViewPage /></MemoryRouter>);
     expect(await screen.findByTestId("day-summary")).toBeInTheDocument();
     expect(screen.getByTestId("target-card")).toBeInTheDocument();
     expect(screen.getByText(/ainda sem plano alimentar prescrito/i)).toBeInTheDocument();
@@ -54,7 +55,7 @@ describe("NutritionPlanViewPage — sem plano alimentar ativo", () => {
 
   it("sem a feature de registro, mantém só a mensagem de plano ausente", async () => {
     intakeEnabled = false;
-    render(<NutritionPlanViewPage />);
+    render(<MemoryRouter><NutritionPlanViewPage /></MemoryRouter>);
     expect(await screen.findByText(/nenhum plano alimentar ativo/i)).toBeInTheDocument();
     expect(screen.queryByTestId("day-summary")).not.toBeInTheDocument();
     expect(screen.queryByTestId("target-card")).not.toBeInTheDocument();
