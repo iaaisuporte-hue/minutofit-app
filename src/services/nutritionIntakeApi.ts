@@ -294,6 +294,38 @@ export async function submitIntakeLog(input: {
 }
 
 /**
+ * P0 "Feito → diário" — "Sim, registrar conforme o plano". Registra os itens
+ * prescritos da refeição pelo MESMO POST do registro (itens `plan`, que o
+ * servidor copia do plano — o cliente não envia macros). Chave fixa por item
+ * (`plan-item:<id>`): repetir no mesmo dia é idempotente; `onlyIfMealEmpty`
+ * faz o servidor recusar (409) se a refeição já tem outro consumo hoje, e a
+ * resposta traz a linha existente para a tela mostrar "já registrado".
+ */
+export async function registerPlanMealAsPlanned(meal: {
+  id: number;
+  name: string;
+  itemIds: number[];
+}): Promise<{ log: IntakeLogRecord; alreadyLogged: boolean }> {
+  const res = await authFetch(`${API_URL}/user/nutrition-intake`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      label: meal.name,
+      mealId: meal.id,
+      source: 'plan',
+      onlyIfMealEmpty: true,
+      items: meal.itemIds.map((id) => ({ kind: 'plan', planMealItemId: id, clientKey: `plan-item:${id}` })),
+    }),
+  });
+  if (res.status === 409) {
+    const json = await parseJson(res);
+    if (json?.error === 'meal_already_logged' && json?.data) return { log: json.data, alreadyLogged: true };
+  }
+  const json = await readJson(res);
+  return { log: json.data, alreadyLogged: false };
+}
+
+/**
  * PLAN P1B corrective ("Consulta + Edição de Refeição Registrada") — edita
  * o CONTEÚDO de um log já persistido. Nunca envia `dateKey`/`loggedAt`
  * (preservados pelo servidor); o servidor sempre recalcula kcal/macros a

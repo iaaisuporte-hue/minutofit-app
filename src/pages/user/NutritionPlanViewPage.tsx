@@ -6,6 +6,7 @@ import DietaryProfileCard from "../../features/nutrition/DietaryProfileCard";
 import NutritionTargetCard from "../../features/nutrition/NutritionTargetCard";
 import { NutritionDaySummary } from "../../features/nutrition/NutritionDaySummary";
 import { IntakeLogSheet } from "../../features/nutrition/IntakeLogSheet";
+import { PlanMealConsumptionPrompt } from "../../features/nutrition/PlanMealConsumptionPrompt";
 import { useOverlay } from "../../lib/overlayStack";
 import { useFeatureFlags } from "../../auth/FeatureFlagsContext";
 import { Utensils } from "lucide-react";
@@ -107,11 +108,14 @@ function MealDrawer({
   onClose,
   onCheckin,
   onOpenIntake,
+  onIntakeRegistered,
 }: {
   meal: MealTimelineEntry;
   onClose: () => void;
   onCheckin: (mealId: number, status: MealCheckinStatus) => void;
   onOpenIntake: (mealId: number, mealName: string) => void;
+  /** Consumo registrado pelo convite pós-"Segui" — a página recarrega dia e timeline. */
+  onIntakeRegistered: () => void;
 }) {
   const [selected, setSelected] = useState<MealCheckinStatus | null>(
     meal.checkin?.status ?? null
@@ -120,6 +124,8 @@ function MealDrawer({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedAltId, setSelectedAltId] = useState<number | null>(null);
+  // P0 Feito → diário: depois do "Segui" o drawer fica aberto e mostra o convite de consumo.
+  const [promptAfterCheckin, setPromptAfterCheckin] = useState(false);
   const overlayRef = useRef<HTMLDivElement>(null);
   const { hasFeature } = useFeatureFlags();
   // Voltar do Android / Escape fecham o drawer antes de qualquer navegação (antes o botão voltar saía da página).
@@ -142,6 +148,12 @@ function MealDrawer({
         substitutedAlternativeId: altId ?? null,
       });
       onCheckin(meal.id, status);
+      // "Segui" grava só adesão; o consumo é decisão explícita do aluno no convite.
+      if (status === "done" && hasFeature("nutrition_intake")) {
+        setPromptAfterCheckin(true);
+        setSubmitting(false);
+        return;
+      }
       onClose();
     } catch {
       setError("Não foi possível registrar. Tente novamente.");
@@ -154,6 +166,9 @@ function MealDrawer({
   );
   const timeLabel = formatTime(meal.meal_time);
   const minsUntil = minutesUntil(meal.meal_time);
+  // Convite também ao reabrir uma refeição já marcada como "Segui" (ou mostra que o consumo já foi registrado).
+  const showConsumptionPrompt =
+    hasFeature("nutrition_intake") && (promptAfterCheckin || (isChecked && meal.status === "done"));
 
   return (
     <div
@@ -357,7 +372,7 @@ function MealDrawer({
             nesta refeição. Antes só existia via card no Hoje; sem isto,
             quem abre a refeição pelo Plano Alimentar não encontrava o
             caminho (achado de uso real). */}
-        {hasFeature("nutrition_intake") && (
+        {hasFeature("nutrition_intake") && !showConsumptionPrompt && (
           <button
             type="button"
             className="btn btn-primary hit-target-44"
@@ -370,7 +385,7 @@ function MealDrawer({
         )}
 
         {/* Check-in */}
-        {!isChecked && (
+        {!isChecked && !promptAfterCheckin && (
           <>
             <div
               style={{
@@ -498,7 +513,7 @@ function MealDrawer({
           </>
         )}
 
-        {isChecked && (
+        {(isChecked || promptAfterCheckin) && (
           <div
             style={{
               display: "flex",
@@ -513,13 +528,21 @@ function MealDrawer({
               fontWeight: 600,
             }}
           >
-            Registrado — {STATUS_LABELS[meal.status]}
+            Registrado — {promptAfterCheckin ? STATUS_LABELS.done : STATUS_LABELS[meal.status]}
             {meal.checkin?.note && (
               <span style={{ fontWeight: 400, color: COLORS.muted, marginLeft: 4 }}>
                 · {meal.checkin.note}
               </span>
             )}
           </div>
+        )}
+
+        {showConsumptionPrompt && (
+          <PlanMealConsumptionPrompt
+            meal={meal}
+            onRegistered={onIntakeRegistered}
+            onOpenIntake={() => onOpenIntake(meal.id, meal.name)}
+          />
         )}
       </div>
     </div>
@@ -622,6 +645,12 @@ function MealCard({
           {minsUntil !== null && minsUntil > 0 && (
             <span style={{ fontSize: 12, color: COLORS.muted }}>
               {formatCountdown(minsUntil)}
+            </span>
+          )}
+          {/* Consumo é separado da adesão: o selo acima diz como foi; este diz o que entrou no dia. */}
+          {meal.intakeToday && (
+            <span className="badge badge-neutral" style={{ fontSize: 11 }}>
+              No seu dia · {Math.round(meal.intakeToday.energyKcal)} kcal
             </span>
           )}
         </div>
@@ -754,6 +783,12 @@ export default function NutritionPlanViewPage() {
   // empilhava por z-index e o sheet nascia atrás do drawer, invisível.
   // O nome da refeição do plano vira o rótulo fixo do registro (PLAN P1B
   // corrective "Agrupamento por Refeição" §5) — nunca o texto livre digitado.
+  /** Consumo mudou (convite pós-"Segui" ou folha de registro): recarrega o dia e o selo de consumo da timeline. */
+  function refreshAfterIntake() {
+    setDayRefreshToken((t) => t + 1);
+    fetchMealTimeline().then(setTimeline).catch(() => undefined);
+  }
+
   function handleOpenIntakeFromMeal(mealId: number, mealName: string) {
     setOpenMeal(null);
     setIntakeMealId(mealId);
@@ -1034,11 +1069,10 @@ export default function NutritionPlanViewPage() {
         <MealDrawer
           meal={openMeal}
           onClose={() => setOpenMeal(null)}
-          onCheckin={(mealId, status) => {
-            handleCheckin(mealId, status);
-            setOpenMeal(null);
-          }}
+          // O drawer decide se fecha (sem convite) ou permanece aberto com o convite de consumo.
+          onCheckin={(mealId, status) => handleCheckin(mealId, status)}
           onOpenIntake={handleOpenIntakeFromMeal}
+          onIntakeRegistered={refreshAfterIntake}
         />
       )}
 
@@ -1047,8 +1081,8 @@ export default function NutritionPlanViewPage() {
         onClose={() => setIntakeSheetOpen(false)}
         defaultMealId={intakeMealId}
         defaultMealLabel={intakeMealLabel}
-        // A folha continua aberta (registro incremental): só atualiza o dia, em silêncio.
-        onSaved={() => setDayRefreshToken((t) => t + 1)}
+        // A folha continua aberta (registro incremental): atualiza o dia e o selo da timeline, em silêncio.
+        onSaved={refreshAfterIntake}
       />
     </div>
   );

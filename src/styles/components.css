@@ -887,6 +887,68 @@ html[data-color-mode="daltonic"] .navLinkActive {
   color: var(--color-danger);
 }
 
+/* ── Convite pós-"Segui" (P0 Feito → diário) — adesão e consumo seguem
+   separados; aqui o aluno confirma o consumo com um toque. Ações empilham
+   no mobile estreito em vez de espremer o texto. ── */
+.planMealPrompt {
+  display: grid;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-raised);
+}
+.planMealPrompt__question {
+  margin: 0;
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  line-height: 1.45;
+  color: var(--color-text);
+}
+.planMealPrompt__preview {
+  display: flex;
+  gap: var(--space-2);
+  min-width: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+.planMealPrompt__preview svg {
+  flex-shrink: 0;
+  margin-top: 3px;
+  color: var(--color-primary);
+}
+.planMealPrompt__items {
+  overflow-wrap: anywhere;
+}
+.planMealPrompt__macros {
+  margin-top: 2px;
+  font-weight: var(--font-semibold);
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+.planMealPrompt__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.planMealPrompt__actions .btn {
+  flex: 1 1 180px;
+}
+.planMealPrompt__done {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--color-text);
+}
+.planMealPrompt__done svg {
+  flex-shrink: 0;
+  color: var(--color-primary);
+}
+
 /* ── Collapse panel — progressive disclosure genérica (UX_UI_NUTRITION_PREMIUM_REDESIGN.md §4) ── */
 .collapsePanel {
   overflow: hidden;

@@ -13,6 +13,7 @@ import {
 import { useFeatureFlags } from "../../auth/FeatureFlagsContext";
 import { getDayIntake, type DayIntakeResponse } from "../../services/nutritionIntakeApi";
 import { IntakeLogSheet } from "./IntakeLogSheet";
+import { PlanMealConsumptionPrompt } from "./PlanMealConsumptionPrompt";
 import { IntakeDayStrip } from "./IntakeDayStrip";
 
 // ---------------------------------------------------------------------------
@@ -85,6 +86,10 @@ export function NutritionCheckinCard() {
   const [intakeSheetOpen, setIntakeSheetOpen] = useState(false);
   const [freeSheetOpen, setFreeSheetOpen] = useState(false);
   const [dayIntake, setDayIntake] = useState<DayIntakeResponse | null>(null);
+  // P0 Feito → diário: refeição recém-marcada como "Segui" — o card já avança para a próxima,
+  // então o convite de consumo fica preso a ESTA refeição até o aluno decidir ou dispensar.
+  const [promptMeal, setPromptMeal] = useState<MealTimelineEntry | null>(null);
+  const [promptSheetOpen, setPromptSheetOpen] = useState(false);
 
   useEffect(() => {
     if (!intakeEnabled) return;
@@ -116,6 +121,7 @@ export function NutritionCheckinCard() {
     setSubmitError(null);
     try {
       await recordMealCheckin(nextMeal.id, { status });
+      if (status === "done" && intakeEnabled) setPromptMeal(nextMeal);
 
       // Update local state and recalculate next meal
       setTimeline((prev) => {
@@ -145,6 +151,30 @@ export function NutritionCheckinCard() {
   }
 
   if (cardState === "loading") return null;
+
+  const refreshDay = () => {
+    getDayIntake().then(setDayIntake).catch(() => {});
+  };
+
+  // Convite pós-"Segui" — mesmo componente do drawer do plano. Nada é registrado sem confirmação.
+  const consumptionPrompt = promptMeal ? (
+    <div style={{ marginBottom: 12, paddingBottom: 12, borderBottom: "1px solid var(--color-border)" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: COLORS.text }}>{promptMeal.name} · Feito</div>
+        <button type="button" className="btn btn-ghost btn-sm" style={{ minHeight: 44 }} onClick={() => setPromptMeal(null)}>
+          Agora não
+        </button>
+      </div>
+      <PlanMealConsumptionPrompt meal={promptMeal} onRegistered={refreshDay} onOpenIntake={() => setPromptSheetOpen(true)} />
+      <IntakeLogSheet
+        open={promptSheetOpen}
+        onClose={() => setPromptSheetOpen(false)}
+        defaultMealId={promptMeal.id}
+        defaultMealLabel={promptMeal.name}
+        onSaved={refreshDay}
+      />
+    </div>
+  ) : null;
 
   // ---------------------------------------------------------------------------
   // Sem plano do nutri — atalho mínimo de registro avulso (refeição extra,
@@ -244,6 +274,7 @@ export function NutritionCheckinCard() {
           border: "1.5px solid var(--color-success, #7B9919)",
         }}
       >
+        {consumptionPrompt}
         <div
           style={{
             display: "flex",
@@ -340,6 +371,7 @@ export function NutritionCheckinCard() {
           : "1px solid var(--color-border)",
       }}
     >
+      {consumptionPrompt}
       {/* Header row */}
       <div
         style={{

@@ -195,6 +195,8 @@ export interface NutritionMeal {
 export interface MealTimelineEntry extends NutritionMeal {
   status: MealStatus;
   checkin: MealCheckinRecord | null;
+  /** Consumo JÁ registrado hoje para esta refeição (P0 Feito → diário). Opcional por compat. de deploy. */
+  intakeToday?: { logId: number; energyKcal: number } | null;
 }
 
 export interface MealCheckinRecord {
