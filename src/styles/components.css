@@ -720,6 +720,173 @@ html[data-color-mode="daltonic"] .navLinkActive {
   border-top: 1px solid var(--color-border);
 }
 
+/* ── Suplementação (Spec 040) — card único para aluno e nutri. Ações
+   quebram linha no mobile em vez de espremer; alvos ≥ 44px. ── */
+.supplementsSection__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+.supplementsSection__title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  font-size: var(--text-base);
+  font-weight: var(--font-bold);
+  color: var(--color-text);
+}
+.supplementsSection__title svg {
+  flex-shrink: 0;
+  color: var(--color-primary);
+}
+.supplementsSection__hint {
+  margin: var(--space-1) 0 var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+.supplementsSection__list {
+  display: grid;
+  gap: var(--space-3);
+}
+.supplementsSection__logs {
+  margin-top: var(--space-2);
+}
+.supplementsSection__logList {
+  display: grid;
+  gap: var(--space-1);
+  margin: var(--space-2) 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--text-sm);
+  color: var(--color-text);
+}
+.supplementsSection__logList li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  min-width: 0;
+  padding: var(--space-1) 0;
+  border-bottom: 1px solid var(--color-border);
+}
+.supplementsSection__logList li > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.supplementCard {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-raised);
+}
+.supplementCard__head {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  min-width: 0;
+}
+.supplementCard__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}
+.supplementCard__title {
+  flex: 1;
+  min-width: 0;
+}
+.supplementCard__title h3 {
+  margin: 0;
+  font-size: var(--text-base);
+  font-weight: var(--font-bold);
+  color: var(--color-text);
+  overflow-wrap: anywhere;
+}
+.supplementCard__title p {
+  margin: 2px 0 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+.supplementCard__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+.supplementCard__meta li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.supplementCard__purpose,
+.supplementCard__notes {
+  margin: 0;
+  font-size: var(--text-sm);
+  line-height: 1.45;
+  color: var(--color-text);
+  overflow-wrap: anywhere;
+}
+.supplementCard__notes {
+  display: flex;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-subtle);
+}
+.supplementCard__notes svg {
+  flex-shrink: 0;
+  margin-top: 3px;
+  color: var(--color-text-muted);
+}
+.supplementCard__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--color-border);
+}
+.supplementCard__usage {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+.supplementCard__usage--done {
+  font-weight: var(--font-semibold);
+  color: var(--color-text);
+}
+.supplementCard__usage--done svg {
+  color: var(--color-primary);
+}
+.supplementCard__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+.supplementCard__danger {
+  color: var(--color-danger);
+}
+
 /* ── Collapse panel — progressive disclosure genérica (UX_UI_NUTRITION_PREMIUM_REDESIGN.md §4) ── */
 .collapsePanel {
   overflow: hidden;

@@ -19,6 +19,7 @@ import {
 import "./todayPage.css";
 import { SportProfileSection } from "../../features/sport/components/SportProfileSection";
 import { StudentNutritionGoalsSection } from "../../features/nutrition/goals/StudentNutritionGoalsSection";
+import { StudentSupplementsSection } from "../../features/nutrition/supplements/StudentSupplementsSection";
 import { AccountDataSection } from "../../features/account/AccountDataSection";
 import { ProfileNavList, type ProfileNavSection } from "../../features/profile/ProfileNavList";
 import { Users, BookOpen, Target, TrendingUp, Moon, Sun } from "lucide-react";
@@ -682,6 +683,13 @@ export default function UserProfilePage({ onLogout }: Props) {
       {user?.role === "user" && (
         <motion.div variants={sectionRevealVariants}>
           <StudentNutritionGoalsSection hasNutri={Boolean(proContext?.nutri)} canLogMeals={hasFeature("nutrition_intake")} />
+        </motion.div>
+      )}
+
+      {/* Minha suplementação (Spec 040) — some quando não há orientação nem registro. */}
+      {user?.role === "user" && (
+        <motion.div variants={sectionRevealVariants}>
+          <StudentSupplementsSection />
         </motion.div>
       )}
 

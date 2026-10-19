@@ -16,6 +16,7 @@ import {
   NutriApiError,
 } from "../../../services/nutriApi";
 import { ConsentRevokedNotice, formatDate, ALERT_KIND_LABEL, ALERT_LEVEL_CLASS, type EditDraft, type EditDraftMeal } from "./shared";
+import { PatientSupplementsSection } from "../../../features/nutrition/supplements/PatientSupplementsSection";
 
 export function PlanTab({ patientId }: { patientId: number }) {
   const navigate = useNavigate();
@@ -392,6 +393,9 @@ export function PlanTab({ patientId }: { patientId: number }) {
           </button>
         </div>
       )}
+
+      {/* Suplementação (Spec 040) — independe de haver plano ativo. */}
+      <PatientSupplementsSection patientId={patientId} />
     </div>
   );
 }
